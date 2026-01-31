@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where:*)",
+      "Bash(where npm:*)",
+      "Bash(npm install:*)",
+      "Bash(cd:*)",
+      "Bash(dir:*)",
+      "Bash(cmd /c \"dir /s /b\")",
+      "Bash(node:*)",
+      "Bash(for f in *.png)",
+      "Bash(do echo -n \"$f: \")",
+      "Bash(xxd:*)",
+      "Bash(done)",
+      "Bash(findstr:*)",
+      "Bash(ls -la \"D:\\\\programs\\\\33Metro\\\\bot\\\\src\\\\assets\\\\background\"\" 2>/dev/null || echo \"Background folder contents check \")",
+      "Bash(npx vite:*)",
+      "Bash(npm ls:*)",
+      "Bash(ls:*)",
+      "Bash(cmd.exe /c \"rename D:\\\\programs\\\\33Metro Tap_Raiders\")",
+      "Bash(powershell.exe:*)"
+    ]
+  }
+}
