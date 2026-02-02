@@ -18,7 +18,16 @@
       "Bash(npm ls:*)",
       "Bash(ls:*)",
       "Bash(cmd.exe /c \"rename D:\\\\programs\\\\33Metro Tap_Raiders\")",
-      "Bash(powershell.exe:*)"
+      "Bash(powershell.exe:*)",
+      "Bash(npm run build:*)",
+      "Bash(python3:*)",
+      "Bash(python -c:*)",
+      "Bash(identify:*)",
+      "Bash(file:*)",
+      "Bash(bash:*)",
+      "Bash(python -m json.tool:*)",
+      "WebFetch(domain:poe2db.tw)",
+      "Bash(tree:*)"
     ]
   }
 }

@@ -53,6 +53,12 @@ export class Inventory {
       <div class="inventory-panel">
         <button class="inventory-close-btn" id="inventory-close">&times;</button>
 
+        <!-- Gold (only visible in inventory) -->
+        <div class="inventory-gold-row">
+          <span class="inventory-gold__icon">&#9789;</span>
+          <span class="inventory-gold__value" id="inventory-gold">0</span>
+        </div>
+
         <h2 class="inventory-title">Equipment</h2>
 
         <!-- Equipment grid (3 cols × 4 rows, armor spans rows 2-3) -->
@@ -138,6 +144,21 @@ export class Inventory {
 
     this.container.appendChild(this._el);
 
+    // Gold display ref
+    this._goldEl = this._el.querySelector("#inventory-gold");
+
+    // Listen for gold changes
+    this._onGoldChanged = (data) => {
+      if (this._goldEl) this._goldEl.textContent = data.gold;
+    };
+    this.events.on("goldChanged", this._onGoldChanged);
+
+    // Sync initial gold when state is loaded
+    this._onStateLoaded = (state) => {
+      if (this._goldEl && state.player) this._goldEl.textContent = state.player.gold;
+    };
+    this.events.on("stateLoaded", this._onStateLoaded);
+
     // Close button
     this._el.querySelector("#inventory-close").addEventListener("click", () => {
       this.close();
@@ -189,6 +210,8 @@ export class Inventory {
   }
 
   destroy() {
+    if (this._onGoldChanged) this.events.off("goldChanged", this._onGoldChanged);
+    if (this._onStateLoaded) this.events.off("stateLoaded", this._onStateLoaded);
     if (this._el) this._el.remove();
     if (this._toggleBtn) this._toggleBtn.remove();
   }

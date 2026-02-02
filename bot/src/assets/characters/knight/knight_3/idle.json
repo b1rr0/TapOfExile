@@ -1,0 +1,103 @@
+{
+  "frames": [
+    {
+      "filename": "knight_3 #idle 0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "sourceSize": {
+        "w": 184,
+        "h": 137
+      },
+      "duration": 100
+    },
+    {
+      "filename": "knight_3 #idle 1",
+      "frame": {
+        "x": 184,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "sourceSize": {
+        "w": 184,
+        "h": 137
+      },
+      "duration": 100
+    },
+    {
+      "filename": "knight_3 #idle 2",
+      "frame": {
+        "x": 368,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "sourceSize": {
+        "w": 184,
+        "h": 137
+      },
+      "duration": 100
+    },
+    {
+      "filename": "knight_3 #idle 3",
+      "frame": {
+        "x": 552,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 184,
+        "h": 137
+      },
+      "sourceSize": {
+        "w": 184,
+        "h": 137
+      },
+      "duration": 100
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "version": "1.3-rc6-x64",
+    "image": "Crouch.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 736,
+      "h": 137
+    },
+    "scale": "1"
+  }
+}

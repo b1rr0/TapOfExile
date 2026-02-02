@@ -294,7 +294,26 @@ export class BattleScene {
   }
 
   _onMonsterSpawned(monster) {
-    this.monsterNameEl.textContent = monster.name;
+    // Rarity label + color
+    const rarity = monster.rarity;
+    if (rarity && rarity.id !== "common") {
+      this.monsterNameEl.textContent = `[${rarity.label}] ${monster.name}`;
+    } else {
+      this.monsterNameEl.textContent = monster.name;
+    }
+
+    // Apply rarity CSS class
+    this.monsterNameEl.className = "monster-name";
+    if (rarity) {
+      this.monsterNameEl.classList.add(`rarity-${rarity.id}`);
+    }
+
+    // Apply rarity tint to HP bar
+    this.hpBarFill.className = "hp-bar-fill";
+    if (rarity) {
+      this.hpBarFill.classList.add(`hp-rarity-${rarity.id}`);
+    }
+
     this._updateHp(monster);
     this.monsterInfoEl.classList.remove("hidden");
 

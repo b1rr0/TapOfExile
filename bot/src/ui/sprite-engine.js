@@ -49,14 +49,19 @@ export class SpriteEngine {
           const pngFile = atlas.meta.image;
           const img = await this._loadImage(`${basePath}/${pngFile}`);
 
+          // Normalize frames: Aseprite exports both array and hash formats
+          const rawFrames = Array.isArray(atlas.frames)
+            ? atlas.frames
+            : Object.values(atlas.frames);
+
           // Extract frame rects from JSON
-          const frames = atlas.frames.map((f) => f.frame); // {x,y,w,h}
+          const frames = rawFrames.map((f) => f.frame); // {x,y,w,h}
 
           // FPS: use config override, or derive from JSON duration (ms)
           const fps =
             anim.fps ||
-            (atlas.frames[0]?.duration
-              ? Math.round(1000 / atlas.frames[0].duration)
+            (rawFrames[0]?.duration
+              ? Math.round(1000 / rawFrames[0].duration)
               : 10);
 
           return {

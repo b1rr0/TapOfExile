@@ -1,4 +1,4 @@
-import { createMonster } from "./monsters.js";
+import { createMonster, createMonsterForLocation } from "./monsters.js";
 import { checkLevelUp } from "./progression.js";
 
 export class CombatManager {
@@ -7,13 +7,59 @@ export class CombatManager {
     this.events = events;
     this.monster = null;
     this._deathCooldown = false;
+
+    // Location-based combat
+    this._location = null;
+    this._monsterQueue = [];
+    this._queueIndex = 0;
+    this._totalMonsters = 0;
   }
+
+  // ─── Legacy infinite mode (fallback) ──────────────────────
 
   init() {
     const { currentStage, currentWave } = this.state.data.combat;
     this.monster = createMonster(currentStage, currentWave);
     this.events.emit("monsterSpawned", this.monster);
   }
+
+  // ─── Location-based finite combat ─────────────────────────
+
+  /**
+   * Start a location — build a finite monster queue from location waves.
+   * @param {Object} location — location object from LOCATIONS catalog
+   */
+  startLocation(location) {
+    this._location = location;
+    this._monsterQueue = [];
+    this._queueIndex = 0;
+
+    // Flatten waves into a single monster queue (each item = {type, rarity})
+    for (const wave of location.waves) {
+      for (const entry of wave.monsters) {
+        for (let i = 0; i < entry.count; i++) {
+          this._monsterQueue.push({ type: entry.type, rarity: entry.rarity || "common" });
+        }
+      }
+    }
+
+    this._totalMonsters = this._monsterQueue.length;
+
+    this.events.emit("locationWaveProgress", {
+      current: 0,
+      total: this._totalMonsters,
+    });
+
+    // Spawn first monster
+    this._spawnNextFromQueue();
+  }
+
+  /** @returns {boolean} true if currently in location-based combat */
+  get isLocationMode() {
+    return this._location !== null;
+  }
+
+  // ─── Tap / Passive ────────────────────────────────────────
 
   handleTap() {
     if (this._deathCooldown || !this.monster) return;
@@ -49,6 +95,8 @@ export class CombatManager {
     this.state.scheduleSave();
   }
 
+  // ─── Internal ─────────────────────────────────────────────
+
   _calculateDamage(player) {
     let damage = player.tapDamage;
     const isCrit = Math.random() < player.critChance;
@@ -62,7 +110,6 @@ export class CombatManager {
     this._deathCooldown = true;
 
     const player = this.state.data.player;
-    const combat = this.state.data.combat;
     const gold = this.monster.goldReward;
     const xp = this.monster.xpReward;
 
@@ -80,27 +127,61 @@ export class CombatManager {
     }
 
     this.events.emit("goldChanged", { gold: player.gold });
+    this.events.emit("xpChanged", { xp: player.xp, xpToNext: player.xpToNext });
 
-    // Advance wave/stage
-    combat.currentWave++;
-    if (combat.currentWave > combat.wavesPerStage) {
-      combat.currentWave = 1;
-      combat.currentStage++;
-      this.events.emit("stageAdvanced", { stage: combat.currentStage });
+    // Location mode — finite queue
+    if (this.isLocationMode) {
+      this._queueIndex++;
+
+      this.events.emit("locationWaveProgress", {
+        current: this._queueIndex,
+        total: this._totalMonsters,
+      });
+
+      if (this._queueIndex >= this._totalMonsters) {
+        // All monsters defeated — location complete
+        setTimeout(() => {
+          this._deathCooldown = false;
+          this.events.emit("locationComplete", {
+            locationId: this._location.id,
+            rewards: this._location.rewards,
+          });
+        }, 1200);
+      } else {
+        // Spawn next monster from queue
+        setTimeout(() => {
+          this._spawnNextFromQueue();
+          this._deathCooldown = false;
+        }, 1200);
+      }
+    } else {
+      // Legacy infinite mode
+      const combat = this.state.data.combat;
+      combat.currentWave++;
+      if (combat.currentWave > combat.wavesPerStage) {
+        combat.currentWave = 1;
+        combat.currentStage++;
+        this.events.emit("stageAdvanced", { stage: combat.currentStage });
+      }
+
+      this.events.emit("waveChanged", {
+        stage: combat.currentStage,
+        wave: combat.currentWave,
+      });
+
+      setTimeout(() => {
+        this.monster = createMonster(combat.currentStage, combat.currentWave);
+        this._deathCooldown = false;
+        this.events.emit("monsterSpawned", this.monster);
+      }, 1200);
     }
 
-    this.events.emit("waveChanged", {
-      stage: combat.currentStage,
-      wave: combat.currentWave,
-    });
-
-    // Spawn next monster after death animation completes
-    setTimeout(() => {
-      this.monster = createMonster(combat.currentStage, combat.currentWave);
-      this._deathCooldown = false;
-      this.events.emit("monsterSpawned", this.monster);
-    }, 1200);
-
     this.state.scheduleSave();
+  }
+
+  _spawnNextFromQueue() {
+    const entry = this._monsterQueue[this._queueIndex];
+    this.monster = createMonsterForLocation(entry.type, this._location.order, entry.rarity);
+    this.events.emit("monsterSpawned", this.monster);
   }
 }

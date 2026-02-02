@@ -1,4 +1,6 @@
-import { MONSTER_TYPES } from "../data/monster-types.js";
+import { MONSTER_TYPES, RARITIES } from "../data/monster-types.js";
+
+// ─── Legacy helpers (still used by old init() path) ──────────
 
 export function getMonsterHp(stage, wave) {
   const base = 10;
@@ -31,9 +33,64 @@ export function createMonster(stage, wave) {
     cssClass: type.cssClass,
     bodyColor: type.bodyColor,
     eyeColor: type.eyeColor,
+    rarity: RARITIES.common,
     maxHp: hp,
     currentHp: hp,
     goldReward: getMonsterGold(stage, wave),
     xpReward: getMonsterXp(stage, wave),
+  };
+}
+
+// ─── Location-based monster creation ─────────────────────────
+
+/**
+ * Randomise an integer in [min, max] (inclusive).
+ */
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * Create a monster for a specific location.
+ * HP is randomised within ±15 % of the base value, then scaled by rarity.
+ * Gold / XP also scale by rarity.
+ *
+ * @param {string} typeName    — monster type name (e.g. "Bandit")
+ * @param {number} locationOrder — location.order (1-based)
+ * @param {string} [rarityId="common"] — rarity key from RARITIES
+ * @returns {Object} monster instance
+ */
+export function createMonsterForLocation(typeName, locationOrder, rarityId = "common") {
+  const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
+  const rarity = RARITIES[rarityId] || RARITIES.common;
+
+  // --- HP: base × locationScale × rarity, then randomise ±15 % ---
+  const hpBase = 10;
+  const hpScale = Math.pow(1.5, locationOrder - 1);
+  const baseHp = Math.floor(hpBase * hpScale * rarity.hpMul);
+  const hpMin = Math.max(1, Math.floor(baseHp * 0.85));
+  const hpMax = Math.ceil(baseHp * 1.15);
+  const hp = randInt(hpMin, hpMax);
+
+  // --- Gold ---
+  const goldBase = 3;
+  const goldScale = Math.pow(1.35, locationOrder - 1);
+  const gold = Math.floor(goldBase * goldScale * rarity.goldMul);
+
+  // --- XP ---
+  const xpBase = 5;
+  const xpScale = Math.pow(1.3, locationOrder - 1);
+  const xp = Math.floor(xpBase * xpScale * rarity.xpMul);
+
+  return {
+    name: type.name,
+    cssClass: type.cssClass,
+    bodyColor: type.bodyColor,
+    eyeColor: type.eyeColor,
+    rarity,
+    maxHp: hp,
+    currentHp: hp,
+    goldReward: gold,
+    xpReward: xp,
   };
 }

@@ -6,18 +6,15 @@ export class HUD {
     this.events = events;
 
     this.stageEl = container.querySelector("#stage-display");
-    this.levelEl = container.querySelector("#level-display");
-    this.goldEl = container.querySelector("#gold-display");
+    this.levelEl = document.querySelector("#level-display");
     this.dpsEl = document.querySelector("#dps-display");
+    this.xpFillEl = document.querySelector("#xp-bar-fill");
+    this.xpTextEl = document.querySelector("#xp-bar-text");
 
     this._listen();
   }
 
   _listen() {
-    this.events.on("goldChanged", (data) => {
-      this.updateGold(data.gold);
-    });
-
     this.events.on("waveChanged", (data) => {
       this.updateStage(data.stage, data.wave);
     });
@@ -26,33 +23,33 @@ export class HUD {
       this.updateLevel(data.level);
     });
 
+    this.events.on("xpChanged", (data) => {
+      this.updateXp(data.xp, data.xpToNext);
+    });
+
     this.events.on("stateLoaded", (state) => {
-      this.updateGold(state.player.gold);
       this.updateStage(state.combat.currentStage, state.combat.currentWave);
       this.updateLevel(state.player.level);
       this.updateDps(state.player.passiveDps);
+      this.updateXp(state.player.xp, state.player.xpToNext);
     });
-
-    this.events.on("statsRecalculated", (player) => {
-      this.updateDps(player.passiveDps);
-    });
-  }
-
-  updateGold(amount) {
-    this.goldEl.textContent = formatNumber(amount);
-    this.goldEl.classList.add("pulse");
-    setTimeout(() => this.goldEl.classList.remove("pulse"), 300);
   }
 
   updateStage(stage, wave) {
-    this.stageEl.textContent = `Stage ${stage}-${wave}`;
+    if (this.stageEl) this.stageEl.textContent = `Stage ${stage}-${wave}`;
   }
 
   updateLevel(level) {
-    this.levelEl.textContent = `Lv.${level}`;
+    if (this.levelEl) this.levelEl.textContent = `Lv.${level}`;
   }
 
   updateDps(dps) {
-    this.dpsEl.textContent = `DPS: ${formatNumber(dps)}`;
+    if (this.dpsEl) this.dpsEl.textContent = `DPS: ${formatNumber(dps)}`;
+  }
+
+  updateXp(xp, xpToNext) {
+    const pct = xpToNext > 0 ? (xp / xpToNext) * 100 : 0;
+    if (this.xpFillEl) this.xpFillEl.style.width = pct + "%";
+    if (this.xpTextEl) this.xpTextEl.textContent = `${xp} / ${xpToNext}`;
   }
 }

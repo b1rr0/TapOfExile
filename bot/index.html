@@ -15,37 +15,8 @@
         <div class="loading-subtitle">Samurai Idle</div>
       </div>
 
-      <!-- Main game screen -->
-      <div id="game-screen" class="screen hidden">
-        <!-- HUD -->
-        <div id="hud" class="hud">
-          <div class="hud-left">
-            <span id="stage-display" class="stage-display">Stage 1-1</span>
-          </div>
-          <div class="hud-center">
-            <span id="level-display" class="level-display">Lv.1</span>
-          </div>
-          <div class="hud-right">
-            <span class="gold-icon">&#9789;</span>
-            <span id="gold-display" class="gold-display">0</span>
-          </div>
-        </div>
-
-        <!-- Battle scene -->
-        <div id="battle-scene" class="battle-scene"></div>
-
-        <!-- Tap zone -->
-        <div class="tap-zone">
-          <button id="tap-btn" class="tap-button">ATTACK</button>
-          <div id="dps-display" class="dps-display">DPS: 0</div>
-        </div>
-
-        <!-- Upgrade panel -->
-        <div id="upgrade-panel" class="upgrade-panel collapsed">
-          <div class="upgrade-handle" id="upgrade-toggle">UPGRADES</div>
-          <div class="upgrade-list" id="upgrade-list"></div>
-        </div>
-      </div>
+      <!-- Scene container (managed by SceneManager) -->
+      <div id="scene-container"></div>
 
       <!-- Offline reward popup -->
       <div id="offline-popup" class="popup hidden">
