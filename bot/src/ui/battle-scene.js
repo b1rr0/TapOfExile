@@ -24,6 +24,7 @@ export class BattleScene {
    * @param {Object} [opts]
    * @param {string} [opts.heroSkin="samurai_1"]  — hero skin ID from registry
    * @param {string} [opts.enemySkin="goblin_black"] — enemy skin ID from registry
+   * @param {string} [opts.backgroundSrc] — background image path for this location
    */
   constructor(container, events, opts = {}) {
     this.container = container;
@@ -47,6 +48,9 @@ export class BattleScene {
     // Skin IDs (can be changed before _tryLoadSprites)
     this._heroSkinId = opts.heroSkin || "samurai_1";
     this._enemySkinId = opts.enemySkin || "goblin_black";
+
+    // Background image for this location
+    this._backgroundSrc = opts.backgroundSrc || null;
 
     // Render state
     this._tickTimer = null;
@@ -115,7 +119,7 @@ export class BattleScene {
       await Promise.all([
         this.hero.load(),
         this.enemy.load(),
-        this.bgRenderer.load(),
+        this.bgRenderer.load(this._backgroundSrc),
       ]);
 
       this.useSprites = true;

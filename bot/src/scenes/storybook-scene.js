@@ -1,10 +1,18 @@
 import { SpriteEngine } from "../ui/sprite-engine.js";
+import { BackgroundRenderer } from "../ui/background-renderer.js";
 import {
   HERO_SKINS,
   ENEMY_SKINS,
   listHeroSkins,
   listEnemySkins,
+  getHeroSkin,
+  getEnemySkin,
 } from "../data/sprite-registry.js";
+import {
+  ACT_DEFINITIONS,
+  ACT_BACKGROUNDS,
+  getActModifiers,
+} from "../data/locations.js";
 
 /**
  * StorybookScene — sprite preview with accordion categories.
@@ -15,6 +23,7 @@ import {
  *
  * Hero demo:  run → idle → attack → idle (loop)
  * Enemy demo: run → idle → death (loop)
+ * Locations demo: background + hero + enemy standing together
  */
 
 // ─── Demo phase constants ────────────────────────────────
@@ -50,6 +59,14 @@ const CATEGORIES = [
     role: "enemy",
     getSkins: () => listEnemySkins().map((id) => ENEMY_SKINS[id]),
   },
+  {
+    id: "locations",
+    label: "Locations",
+    icon: "\uD83D\uDDFA\uFE0F",
+    description: "Background previews with characters",
+    role: "location",
+    getSkins: () => [], // handled separately
+  },
 ];
 
 // ─── Scene ───────────────────────────────────────────────
@@ -63,6 +80,18 @@ export class StorybookScene {
     this._groups = new Map();
     this._rafId = null;
     this._lastTime = 0;
+
+    /** Location fullscreen viewer state */
+    this._locScenes = [];
+    this._locCanvas = null;
+    this._locInfoEl = null;
+    this._locOverlay = null;
+    this._locResizeObserver = null;
+    this._locIndex = 0;
+    this._locDpr = 1;
+    this._locCanvasW = 0;
+    this._locCanvasH = 0;
+    this._locOpen = false;
   }
 
   // ─── Lifecycle ─────────────────────────────────────────
@@ -102,13 +131,17 @@ export class StorybookScene {
     const group = document.createElement("div");
     group.className = "sb-group";
 
+    const count = category.id === "locations"
+      ? ACT_DEFINITIONS.length
+      : category.getSkins().length;
+
     // Toggle button
     const btn = document.createElement("button");
     btn.className = "sb-group__btn";
     btn.innerHTML = `
       <span class="sb-group__icon">${category.icon}</span>
       <span class="sb-group__label">${category.label}</span>
-      <span class="sb-group__count">${category.getSkins().length}</span>
+      <span class="sb-group__count">${count}</span>
       <span class="sb-group__arrow">&#x25BC;</span>
     `;
 
@@ -137,40 +170,36 @@ export class StorybookScene {
     const g = this._groups.get(catId);
     if (!g) return;
 
+    // Locations open as fullscreen overlay — not accordion
+    if (catId === "locations") {
+      this._openLocationViewer();
+      return;
+    }
+
     if (g.open) {
       // Collapse
       g.open = false;
       g.listEl.classList.remove("sb-group__list--open");
       g.btn.classList.remove("sb-group__btn--open");
-      // Destroy cards to free memory
       this._destroyGroupCards(catId);
     } else {
       // Expand
       g.open = true;
       g.listEl.classList.add("sb-group__list--open");
       g.btn.classList.add("sb-group__btn--open");
-      // Create cards if first open
-      if (!g.loaded) {
-        const skins = g.category.getSkins();
-        for (const skin of skins) {
-          this._createCard(g, skin, g.category.role);
-        }
-        g.loaded = true;
-        this._loadGroupCards(catId);
-      } else {
-        // Re-create cards (were destroyed on collapse)
-        const skins = g.category.getSkins();
-        for (const skin of skins) {
-          this._createCard(g, skin, g.category.role);
-        }
-        this._loadGroupCards(catId);
+
+      const skins = g.category.getSkins();
+      for (const skin of skins) {
+        this._createCard(g, skin, g.category.role);
       }
+      g.loaded = true;
+      this._loadGroupCards(catId);
     }
 
     this._ensureTick();
   }
 
-  // ─── Card creation ────────────────────────────────────
+  // ─── Sprite Card creation ──────────────────────────────
 
   _createCard(group, skin, role) {
     const card = document.createElement("div");
@@ -245,6 +274,201 @@ export class StorybookScene {
     group.cards.push(cardData);
   }
 
+  // ─── Location Viewer (fullscreen overlay) ──────────────
+
+  _openLocationViewer() {
+    if (this._locOverlay) return; // already open
+
+    const dpr = window.devicePixelRatio || 1;
+    this._locDpr = dpr;
+    const heroIds = listHeroSkins();
+    const enemyIds = listEnemySkins();
+
+    // Build scene data for each act
+    this._locScenes = [];
+    for (let i = 0; i < ACT_DEFINITIONS.length; i++) {
+      const act = ACT_DEFINITIONS[i];
+      const actNum = act.act;
+      const bgImages = ACT_BACKGROUNDS[actNum] || [];
+      const mods = getActModifiers(actNum);
+      const heroSkin = getHeroSkin(heroIds[i % heroIds.length]);
+      const enemySkin = getEnemySkin(enemyIds[i % enemyIds.length]);
+
+      this._locScenes.push({
+        actNum, act, mods, bgImages,
+        bgIndex: 0, bgTimer: 0,
+        bgRenderer: new BackgroundRenderer(),
+        heroEngine: new SpriteEngine({ basePath: heroSkin.basePath, animations: heroSkin.animations }),
+        enemyEngine: new SpriteEngine({ basePath: enemySkin.basePath, animations: enemySkin.animations }),
+        heroSkin, enemySkin,
+        loaded: false,
+      });
+    }
+
+    this._locIndex = 0;
+    this._locOpen = true;
+
+    // Build fullscreen overlay — mirrors combat scene layout:
+    //   .hud (top bar)  →  .battle-scene (canvas, flex:1)  →  .combat-bottom-bar (info panel)
+    const overlay = document.createElement("div");
+    overlay.className = "sb-loc-fullscreen screen";
+    overlay.innerHTML = `
+      <!-- Top bar — same as combat HUD -->
+      <div class="hud">
+        <button class="hud-flee-btn" id="sb-loc-close">&larr;</button>
+        <div class="hud-center">
+          <button class="sb-loc-hud-arrow" id="sb-loc-prev">&#x276E;</button>
+          <span class="stage-display" id="sb-loc-title">—</span>
+          <button class="sb-loc-hud-arrow" id="sb-loc-next">&#x276F;</button>
+        </div>
+        <span class="sb-loc-counter" id="sb-loc-counter"></span>
+      </div>
+
+      <!-- Battle scene area — canvas fills this -->
+      <div class="battle-scene" id="sb-loc-battle">
+        <canvas class="scene-canvas" id="sb-loc-canvas"></canvas>
+      </div>
+
+      <!-- Bottom bar — description instead of ATTACK -->
+      <div class="combat-bottom-bar">
+        <div class="sb-loc-desc-panel" id="sb-loc-desc"></div>
+      </div>
+    `;
+
+    this.container.appendChild(overlay);
+    this._locOverlay = overlay;
+    this._locCanvas = overlay.querySelector("#sb-loc-canvas");
+    this._locInfoEl = overlay.querySelector("#sb-loc-desc");
+    this._locTitleEl = overlay.querySelector("#sb-loc-title");
+    this._locCounterEl = overlay.querySelector("#sb-loc-counter");
+
+    // Wire buttons
+    overlay.querySelector("#sb-loc-close").addEventListener("click", () => this._closeLocationViewer());
+    overlay.querySelector("#sb-loc-prev").addEventListener("click", () => {
+      this._locIndex = (this._locIndex - 1 + this._locScenes.length) % this._locScenes.length;
+      this._switchLocScene();
+    });
+    overlay.querySelector("#sb-loc-next").addEventListener("click", () => {
+      this._locIndex = (this._locIndex + 1) % this._locScenes.length;
+      this._switchLocScene();
+    });
+
+    // Size canvas to match battle-scene container
+    const battleEl = overlay.querySelector("#sb-loc-battle");
+    this._locResizeObserver = new ResizeObserver(() => {
+      this._resizeLocCanvas();
+      const sc = this._locScenes[this._locIndex];
+      if (sc) sc.bgRenderer._dirty = true;
+    });
+    this._locResizeObserver.observe(battleEl);
+
+    requestAnimationFrame(() => {
+      this._resizeLocCanvas();
+      this._updateLocInfo();
+    });
+
+    // Load all scenes in parallel
+    this._loadLocationScenes();
+    this._ensureTick();
+  }
+
+  _closeLocationViewer() {
+    this._locOpen = false;
+
+    // Destroy scene data
+    for (const sc of this._locScenes) {
+      sc.bgRenderer.destroy();
+      sc.heroEngine.destroy();
+      sc.enemyEngine.destroy();
+    }
+    this._locScenes = [];
+
+    if (this._locResizeObserver) {
+      this._locResizeObserver.disconnect();
+      this._locResizeObserver = null;
+    }
+
+    if (this._locOverlay) {
+      this._locOverlay.remove();
+      this._locOverlay = null;
+    }
+    this._locCanvas = null;
+    this._locInfoEl = null;
+    this._locTitleEl = null;
+    this._locCounterEl = null;
+
+    this._ensureTick();
+  }
+
+  _resizeLocCanvas() {
+    if (!this._locCanvas || !this._locOverlay) return;
+    const battleEl = this._locOverlay.querySelector("#sb-loc-battle");
+    if (!battleEl) return;
+    const rect = battleEl.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    if (w === 0 || h === 0) return;
+    const dpr = this._locDpr;
+
+    this._locCanvas.width = w * dpr;
+    this._locCanvas.height = h * dpr;
+    this._locCanvasW = w;
+    this._locCanvasH = h;
+
+    for (const sc of this._locScenes) {
+      sc.bgRenderer._dirty = true;
+    }
+  }
+
+  _switchLocScene() {
+    this._updateLocInfo();
+    const sc = this._locScenes[this._locIndex];
+    if (sc) sc.bgRenderer._dirty = true;
+  }
+
+  _updateLocInfo() {
+    const sc = this._locScenes[this._locIndex];
+    if (!sc) return;
+
+    // HUD title
+    if (this._locTitleEl) {
+      this._locTitleEl.textContent = sc.act.name;
+    }
+    // HUD counter
+    if (this._locCounterEl) {
+      this._locCounterEl.textContent = `${this._locIndex + 1}/${this._locScenes.length}`;
+    }
+
+    // Bottom description panel
+    if (!this._locInfoEl) return;
+
+    const modsHtml = sc.mods.map(m =>
+      `<div class="sb-loc-mod sb-loc-mod--${m.type}"><span class="sb-loc-mod__icon">${m.icon}</span><span class="sb-loc-mod__name">${m.name}</span><span class="sb-loc-mod__desc">${m.description}</span></div>`
+    ).join("");
+
+    this._locInfoEl.innerHTML = `
+      <div class="sb-loc-desc__meta">${sc.act.locations.length} locations &bull; ${sc.bgImages.length} backgrounds &bull; BG ${sc.bgIndex + 1}/${sc.bgImages.length}</div>
+      <div class="sb-loc-desc__mods">${modsHtml}</div>
+    `;
+  }
+
+  async _loadLocationScenes() {
+    const promises = this._locScenes.map(async (sc) => {
+      try {
+        if (sc.bgImages.length) await sc.bgRenderer.load(sc.bgImages[0]);
+        await sc.heroEngine.load();
+        await sc.enemyEngine.load();
+        sc.heroEngine.play("idle");
+        sc.enemyEngine.play("idle");
+        sc.loaded = true;
+      } catch (err) {
+        console.warn(`[Storybook] Failed to load location act ${sc.actNum}:`, err);
+      }
+    });
+    await Promise.allSettled(promises);
+    this._updateLocInfo();
+  }
+
   // ─── Loading ──────────────────────────────────────────
 
   async _loadGroupCards(catId) {
@@ -252,6 +476,7 @@ export class StorybookScene {
     if (!g) return;
 
     const promises = g.cards.map(async (card) => {
+      if (!card.engine) return; // skip location cards
       try {
         await card.engine.load();
         card.loaded = true;
@@ -269,8 +494,8 @@ export class StorybookScene {
   // ─── Tick loop ────────────────────────────────────────
 
   _ensureTick() {
-    // Start tick if any group is open, stop if all closed
-    const anyOpen = [...this._groups.values()].some((g) => g.open);
+    // Start tick if any group is open or location viewer is open
+    const anyOpen = [...this._groups.values()].some((g) => g.open) || this._locOpen;
     if (anyOpen && !this._rafId) {
       this._startTick();
     } else if (!anyOpen && this._rafId) {
@@ -286,6 +511,13 @@ export class StorybookScene {
       const dt = Math.min((now - this._lastTime) / 1000, 0.2);
       this._lastTime = now;
 
+      // Location fullscreen viewer
+      if (this._locOpen) {
+        this._updateLocationScene(dt);
+        this._drawLocationScene();
+      }
+
+      // Sprite groups (heroes, enemies)
       for (const g of this._groups.values()) {
         if (!g.open) continue;
         for (const card of g.cards) {
@@ -308,7 +540,7 @@ export class StorybookScene {
     }
   }
 
-  // ─── Phase state machine ──────────────────────────────
+  // ─── Phase state machine (sprites) ────────────────────
 
   _updateCard(card, dt) {
     card.engine.update(dt);
@@ -353,7 +585,67 @@ export class StorybookScene {
     }
   }
 
-  // ─── Drawing ──────────────────────────────────────────
+  // ─── Location viewer update/draw ───────────────────────
+
+  _updateLocationScene(dt) {
+    if (!this._locScenes || !this._locScenes.length) return;
+    const sc = this._locScenes[this._locIndex];
+    if (!sc || !sc.loaded) return;
+
+    sc.heroEngine.update(dt);
+    sc.enemyEngine.update(dt);
+
+    // Cycle backgrounds every 4 seconds
+    if (sc.bgImages.length > 1) {
+      sc.bgTimer += dt;
+      if (sc.bgTimer >= 4.0) {
+        sc.bgTimer = 0;
+        sc.bgIndex = (sc.bgIndex + 1) % sc.bgImages.length;
+        sc.bgRenderer.setBackground(sc.bgImages[sc.bgIndex]);
+        this._updateLocInfo();
+      }
+    }
+  }
+
+  _drawLocationScene() {
+    if (!this._locCanvas || !this._locScenes || !this._locScenes.length) return;
+    const sc = this._locScenes[this._locIndex];
+    if (!sc || !sc.loaded) return;
+
+    const dpr = this._locDpr;
+    const cw = this._locCanvas.width;
+    const ch = this._locCanvas.height;
+    const ctx = this._locCanvas.getContext("2d");
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    // 1. Background
+    sc.bgRenderer.draw(ctx, cw, ch);
+
+    // 2. Hero (left side, ~25% from left, feet at 90%)
+    if (sc.heroEngine.loaded) {
+      const hs = sc.heroSkin.defaultSize;
+      const charScale = (ch * 0.65) / hs.h;
+      const dw = hs.w * charScale;
+      const dh = hs.h * charScale;
+      const dx = cw * 0.20 - dw / 2;
+      const dy = ch * 0.90 - dh;
+      sc.heroEngine.drawFrame(ctx, dx, dy, dw, dh, false);
+    }
+
+    // 3. Enemy (right side, flipped, ~75% from left, feet at 90%)
+    if (sc.enemyEngine.loaded) {
+      const es = sc.enemySkin.defaultSize;
+      const charScale = (ch * 0.65) / es.h;
+      const dw = es.w * charScale;
+      const dh = es.h * charScale;
+      const dx = cw * 0.75 - dw / 2;
+      const dy = ch * 0.90 - dh;
+      sc.enemyEngine.drawFrame(ctx, dx, dy, dw, dh, true);
+    }
+  }
+
+  // ─── Drawing (sprites) ────────────────────────────────
 
   _drawCard(card) {
     if (!card.engine.needsRedraw) return;
@@ -381,9 +673,11 @@ export class StorybookScene {
   _destroyGroupCards(catId) {
     const g = this._groups.get(catId);
     if (!g) return;
+
     for (const card of g.cards) {
-      card.engine.destroy();
+      if (card.engine) card.engine.destroy();
     }
+
     g.cards = [];
     g.listEl.innerHTML = "";
     g.loaded = false;
@@ -394,5 +688,6 @@ export class StorybookScene {
       this._destroyGroupCards(catId);
     }
     this._groups.clear();
+    this._closeLocationViewer();
   }
 }

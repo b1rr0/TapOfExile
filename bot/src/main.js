@@ -10,8 +10,8 @@ import { CharacterCreateScene } from "./scenes/character-create-scene.js";
 import { CharacterSelectScene } from "./scenes/character-select-scene.js";
 import { SkinShopScene } from "./scenes/skin-shop-scene.js";
 
-// Feature flags
-export const IS_TESTING = true;
+// Feature flags (set VITE_IS_TESTING=true in .env to enable)
+export const IS_TESTING = import.meta.env.VITE_IS_TESTING === "true";
 
 // Telegram Web App init
 const tg = window.Telegram?.WebApp;

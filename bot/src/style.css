@@ -136,6 +136,106 @@ body {
   letter-spacing: 1px;
 }
 
+/* === Battle Exit Button (top-left inside battle area, mirrors equipment btn) === */
+.battle-exit-btn {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 20;
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(74, 53, 32, 0.6);
+  border-radius: 8px;
+  background: rgba(30, 20, 10, 0.7);
+  color: var(--game-text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(4px);
+  opacity: 0.75;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.battle-exit-btn:active {
+  transform: scale(0.88);
+  opacity: 1;
+  border-color: var(--game-accent);
+}
+
+/* === Flee Confirmation Overlay === */
+.flee-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+.flee-confirm-overlay--hidden {
+  display: none;
+}
+.flee-confirm-box {
+  background: var(--game-dark);
+  border: 2px solid #4a3520;
+  border-radius: 14px;
+  padding: 24px 20px 18px;
+  width: 85%;
+  max-width: 300px;
+  text-align: center;
+}
+.flee-confirm-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--game-gold);
+  margin: 0 0 10px;
+  letter-spacing: 0.5px;
+}
+.flee-confirm-text {
+  font-size: 13px;
+  color: var(--game-muted);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+.flee-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+.flee-confirm-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+}
+.flee-confirm-btn:active {
+  transform: scale(0.95);
+}
+.flee-confirm-btn--cancel {
+  background: rgba(74, 175, 80, 0.15);
+  border-color: #4caf50;
+  color: #6fcf73;
+}
+.flee-confirm-btn--leave {
+  background: rgba(196, 30, 58, 0.15);
+  border-color: var(--game-accent);
+  color: #e85d75;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* === XP Bar === */
 .xp-bar {
   width: 100%;
@@ -171,6 +271,7 @@ body {
   position: relative;
   overflow: hidden;
   min-height: 0;
+  background: #000;
 }
 
 /* Scene Canvas (sprite engine) */
@@ -505,10 +606,12 @@ body {
 .hideout-topbar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 12px 20px;
+  justify-content: space-between;
+  padding: 10px 12px;
   background: var(--game-dark);
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .hideout-topbar__title {
@@ -516,6 +619,100 @@ body {
   font-weight: 800;
   color: var(--game-text);
   letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+/* ── Top-bar dropdown wrapper ─────────────────────────── */
+.hideout-topbar__dropdown {
+  position: relative;
+}
+
+.hideout-topbar__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  background: var(--game-bg2);
+  border: 1px solid #4a3520;
+  border-radius: 8px;
+  color: var(--game-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.hideout-topbar__btn:active {
+  background: #3a2525;
+  border-color: var(--game-accent);
+}
+
+.hideout-topbar__btn-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.hideout-topbar__btn-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+/* ── Dropdown menu ────────────────────────────────────── */
+.hideout-dropdown__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  min-width: 140px;
+  background: var(--game-dark);
+  border: 1px solid #4a3520;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  padding: 6px 0;
+  z-index: 100;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+/* Left-aligned for Shop, right-aligned for Settings */
+#shop-dropdown .hideout-dropdown__menu {
+  left: 0;
+}
+#settings-dropdown .hideout-dropdown__menu {
+  right: 0;
+}
+
+.hideout-dropdown--hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+}
+
+.hideout-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: var(--game-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+
+.hideout-dropdown__item:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hideout-dropdown__icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .hideout-hero {
@@ -620,6 +817,58 @@ body {
   color: var(--game-text);
 }
 
+/* Act tabs */
+.map-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #4a3520;
+  flex-shrink: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.map-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
+  border: 2px solid #4a3520;
+  border-radius: 8px;
+  background: var(--game-bg2);
+  color: var(--game-text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-tab:active {
+  transform: scale(0.96);
+}
+
+.map-tab--active {
+  border-color: var(--game-accent);
+  background: rgba(196, 30, 58, 0.15);
+  color: var(--game-gold);
+}
+
+.map-tab--unlocked {
+  border-color: #4caf50;
+  opacity: 0.85;
+}
+
+.map-tab--locked {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.map-tab--locked:active {
+  transform: none;
+}
+
 .map-list {
   flex: 1;
   overflow-y: auto;
@@ -650,8 +899,7 @@ body {
 }
 
 .location-card--locked {
-  opacity: 0.4;
-  cursor: default;
+  display: none;
 }
 
 .location-card--completed {
@@ -687,9 +935,8 @@ body {
   font-size: 11px;
   color: var(--game-text);
   opacity: 0.55;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .location-card__rewards {
@@ -788,6 +1035,29 @@ body {
   transform: scale(0.95);
 }
 
+/* Act completion banner */
+.victory-act-complete {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.victory-act-complete__title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--game-gold);
+  text-shadow: 0 2px 12px rgba(255, 215, 0, 0.5);
+  animation: victoryPulse 1.5s ease-in-out infinite;
+}
+
+.victory-act-complete__subtitle {
+  font-size: 14px;
+  color: #4caf50;
+  margin-top: 6px;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
 @keyframes victoryPulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
@@ -847,11 +1117,11 @@ body {
 }
 
 /* =============================================
-   INVENTORY  — Pure CSS, mobile-first layout
+   EQUIPMENT  — Pure CSS, mobile-first layout
    ============================================= */
 
 /* --- Toggle button on game screen (top-right, inside battle area) --- */
-.inventory-toggle-btn {
+.equipment-toggle-btn {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -869,20 +1139,22 @@ body {
   transition: transform 0.1s, border-color 0.2s, box-shadow 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
-.inventory-toggle-btn:active {
+.equipment-toggle-btn:active {
   transform: scale(0.88);
 }
-.inventory-toggle-btn:hover {
+.equipment-toggle-btn:hover {
   border-color: #9a7ff0;
   box-shadow: 0 0 14px rgba(154, 127, 240, 0.5);
 }
-.inventory-toggle-icon {
-  font-size: 20px;
-  line-height: 1;
+.equipment-toggle-icon {
+  width: 22px;
+  height: 22px;
+  filter: invert(1);
+  pointer-events: none;
 }
 
 /* --- Fullscreen overlay --- */
-.inventory-overlay {
+.equipment-overlay {
   position: absolute;
   inset: 0;
   z-index: 60;
@@ -893,29 +1165,29 @@ body {
   pointer-events: none;
   transition: background 0.3s ease;
 }
-.inventory-overlay.hidden {
+.equipment-overlay.hidden {
   pointer-events: none;
 }
-.inventory-overlay.hidden .inventory-panel {
+.equipment-overlay.hidden .equipment-panel {
   transform: translateY(110%);
 }
-.inventory-overlay.inventory-visible {
+.equipment-overlay.equipment-visible {
   background: rgba(0, 0, 0, 0.8);
   pointer-events: auto;
 }
-.inventory-overlay.inventory-visible .inventory-panel {
+.equipment-overlay.equipment-visible .equipment-panel {
   transform: translateY(0);
 }
-.inventory-overlay.inventory-closing {
+.equipment-overlay.equipment-closing {
   background: rgba(0, 0, 0, 0);
   pointer-events: none;
 }
-.inventory-overlay.inventory-closing .inventory-panel {
+.equipment-overlay.equipment-closing .equipment-panel {
   transform: translateY(110%);
 }
 
 /* --- Panel (the sliding card) --- */
-.inventory-panel {
+.equipment-panel {
   position: relative;
   width: 100%;
   height: 100%;
@@ -931,7 +1203,7 @@ body {
 }
 
 /* --- Gold row (only visible in inventory) --- */
-.inventory-gold-row {
+.equipment-gold-row {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -940,12 +1212,12 @@ body {
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
 }
 
-.inventory-gold__icon {
+.equipment-gold__icon {
   font-size: 22px;
   color: var(--game-gold);
 }
 
-.inventory-gold__value {
+.equipment-gold__value {
   font-size: 20px;
   font-weight: 700;
   color: var(--game-gold);
@@ -954,7 +1226,7 @@ body {
 }
 
 /* --- Title (pushed down) --- */
-.inventory-title {
+.equipment-title {
   text-align: center;
   font-size: 16px;
   font-weight: 700;
@@ -967,7 +1239,7 @@ body {
 }
 
 /* --- Close button --- */
-.inventory-close-btn {
+.equipment-close-btn {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -987,7 +1259,7 @@ body {
   justify-content: center;
   transition: background 0.15s, transform 0.1s;
 }
-.inventory-close-btn:active {
+.equipment-close-btn:active {
   background: rgba(210, 50, 70, 1);
   transform: scale(0.88);
 }
@@ -1105,6 +1377,212 @@ body {
   box-shadow:
     inset 0 0 18px rgba(90, 173, 58, 0.2),
     0 0 10px rgba(90, 173, 58, 0.3);
+}
+
+/* =============================================
+   INVENTORY BAG  — 4×8 item grid with sorting
+   ============================================= */
+
+/* --- Fullscreen overlay --- */
+.bag-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+.bag-overlay.hidden {
+  pointer-events: none;
+}
+.bag-overlay.hidden .bag-panel {
+  transform: translateY(110%);
+}
+.bag-overlay.bag-visible {
+  background: rgba(0, 0, 0, 0.8);
+  pointer-events: auto;
+}
+.bag-overlay.bag-visible .bag-panel {
+  transform: translateY(0);
+}
+.bag-overlay.bag-closing {
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+}
+.bag-overlay.bag-closing .bag-panel {
+  transform: translateY(110%);
+}
+
+/* --- Panel --- */
+.bag-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transform: translateY(110%);
+  transition: transform 0.35s cubic-bezier(0.22, 0.68, 0.35, 1.0);
+  background: linear-gradient(180deg, #0d0b1e 0%, #111028 40%, #14122e 100%);
+  padding-bottom: 24px;
+}
+
+/* --- Title --- */
+.bag-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #c4b5f0;
+  margin: 0 0 12px;
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  text-shadow: 0 0 10px rgba(140, 100, 255, 0.35);
+}
+
+/* --- Close button --- */
+.bag-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(180, 40, 60, 0.6);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.1s;
+}
+.bag-close-btn:active {
+  background: rgba(210, 50, 70, 1);
+  transform: scale(0.88);
+}
+
+/* --- Sort row --- */
+.bag-sort-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  justify-content: center;
+}
+
+.bag-sort-btn {
+  flex: 1;
+  max-width: 100px;
+  padding: 6px 8px;
+  border: 2px solid #3a2878;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #1e1548 0%, #15103a 100%);
+  color: rgba(160, 140, 210, 0.7);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bag-sort-btn:active {
+  transform: scale(0.95);
+}
+
+.bag-sort-btn--active {
+  border-color: #7b5cf0;
+  color: #e0d4ff;
+  background: linear-gradient(145deg, #2a1e60 0%, #1e1548 100%);
+  box-shadow: 0 0 8px rgba(123, 92, 240, 0.3);
+}
+
+/* --- 4×8 item grid --- */
+.bag-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 16px;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* --- Single cell --- */
+.bag-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.1s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+
+  background: linear-gradient(145deg, #1e1548 0%, #15103a 100%);
+  border: 2px solid #3a2878;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.bag-cell:active {
+  transform: scale(0.94);
+}
+
+/* --- Empty cell --- */
+.bag-cell--empty {
+  opacity: 0.3;
+  cursor: default;
+}
+.bag-cell--empty:active {
+  transform: none;
+}
+
+/* --- Quality border colors --- */
+.bag-cell--common {
+  border-color: #9e9e9e;
+}
+.bag-cell--rare {
+  border-color: #4fc3f7;
+  box-shadow:
+    inset 0 1px 0 rgba(79, 195, 247, 0.1),
+    0 0 6px rgba(79, 195, 247, 0.15);
+}
+.bag-cell--epic {
+  border-color: #ffd740;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 215, 64, 0.1),
+    0 0 6px rgba(255, 215, 64, 0.2);
+}
+.bag-cell--legendary {
+  border-color: #ff9100;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 145, 0, 0.12),
+    0 0 8px rgba(255, 145, 0, 0.25);
+}
+
+/* --- Cell icon --- */
+.bag-cell__icon {
+  font-size: 24px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+/* --- Cell level badge --- */
+.bag-cell__level {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(200, 185, 240, 0.65);
+  letter-spacing: 0.5px;
 }
 
 /* ─── Storybook ─────────────────────────────────────────── */
@@ -1760,4 +2238,330 @@ body {
 
 .skin-card__select-btn:active {
   transform: scale(0.92);
+}
+
+/* ═══════════════════════════════════════════════════════
+   COMBAT — Zone Modifiers Side Panel (right edge)
+   ═══════════════════════════════════════════════════════ */
+
+/* Toggle tab — sits on the right edge, vertically centered */
+.combat-mods-toggle {
+  position: absolute;
+  right: 0;
+  top: 40%;
+  transform: translateY(-50%);
+  z-index: 30;
+  width: 30px;
+  padding: 8px 2px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  background: rgba(13, 5, 5, 0.85);
+  color: var(--game-text);
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  backdrop-filter: blur(4px);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.4);
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.combat-mods-toggle:active {
+  background: rgba(196, 30, 58, 0.4);
+  border-color: var(--game-accent);
+}
+
+/* Panel — slides out from the right */
+.combat-mods-panel {
+  position: absolute;
+  right: 34px;
+  top: 25%;
+  z-index: 29;
+  width: 210px;
+  max-height: 55%;
+  overflow-y: auto;
+  padding: 12px 14px;
+  background: rgba(13, 5, 5, 0.92);
+  border: 2px solid #4a3520;
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.combat-mods-panel--hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(20px);
+}
+
+.combat-mods-panel__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--game-text);
+  opacity: 0.6;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.combat-mod {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.combat-mod:last-child {
+  border-bottom: none;
+}
+
+.combat-mod__icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.combat-mod__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--game-text);
+}
+
+.combat-mod--buff .combat-mod__name {
+  color: #66bb6a;
+}
+
+.combat-mod--debuff .combat-mod__name {
+  color: #ef5350;
+}
+
+.combat-mod__desc {
+  width: 100%;
+  font-size: 10px;
+  color: var(--game-text);
+  opacity: 0.55;
+  line-height: 1.35;
+  padding-left: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAP — Zone Modifiers Banner (collapsible)
+   ═══════════════════════════════════════════════════════ */
+
+.map-modifiers {
+  margin-bottom: 10px;
+}
+
+.map-modifiers__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #4a3520;
+  border-radius: 10px;
+  background: var(--game-bg2);
+  color: var(--game-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-modifiers__toggle:active {
+  border-color: var(--game-accent);
+  background: rgba(196, 30, 58, 0.08);
+}
+
+.map-modifiers__toggle-icons {
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.map-modifiers__toggle-label {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.map-modifiers__arrow {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.5;
+}
+
+.map-modifiers__panel {
+  margin-top: 6px;
+  padding: 10px 14px;
+  border: 1px solid #4a3520;
+  border-radius: 10px;
+  background: rgba(26, 10, 10, 0.6);
+  transition: opacity 0.2s, max-height 0.25s ease;
+  overflow: hidden;
+}
+
+.map-modifiers__panel--hidden {
+  display: none;
+}
+
+.mod-section {
+  margin-bottom: 8px;
+}
+
+.mod-section:last-child {
+  margin-bottom: 0;
+}
+
+.mod-section__title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.mod-section__title--buff {
+  color: #4caf50;
+}
+
+.mod-section__title--debuff {
+  color: #e57373;
+}
+
+.mod-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.mod-chip:last-child {
+  border-bottom: none;
+}
+
+.mod-chip__icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.mod-chip__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--game-text);
+}
+
+.mod-chip--buff .mod-chip__name {
+  color: #81c784;
+}
+
+.mod-chip--debuff .mod-chip__name {
+  color: #ef9a9a;
+}
+
+/* Map tab font size — smaller to fit zone names */
+.map-tab {
+  font-size: 10px;
+  padding: 8px 2px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STORYBOOK — Location Viewer (combat-layout fullscreen)
+   ═══════════════════════════════════════════════════════ */
+
+/* Fullscreen overlay — uses .screen flex layout (same as combat) */
+.sb-loc-fullscreen {
+  z-index: 50;
+}
+
+/* HUD prev/next arrows — inline in the top bar */
+.sb-loc-hud-arrow {
+  background: none;
+  border: none;
+  color: var(--game-text);
+  font-size: 16px;
+  padding: 4px 10px;
+  cursor: pointer;
+  opacity: 0.6;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sb-loc-hud-arrow:active {
+  opacity: 1;
+  color: var(--game-accent);
+}
+
+/* Counter badge — right side of HUD */
+.sb-loc-counter {
+  position: absolute;
+  right: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  letter-spacing: 0.5px;
+}
+
+/* Bottom description panel — replaces ATTACK button area */
+.sb-loc-desc-panel {
+  padding: 10px 16px 14px;
+  background: var(--game-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sb-loc-desc__meta {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+}
+
+/* Modifier rows in description panel */
+.sb-loc-desc__mods {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sb-loc-mod {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sb-loc-mod__icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.sb-loc-mod__name {
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sb-loc-mod__desc {
+  font-size: 11px;
+  color: #888;
+  margin-left: auto;
+}
+
+.sb-loc-mod--buff .sb-loc-mod__name {
+  color: #81c784;
+}
+
+.sb-loc-mod--debuff .sb-loc-mod__name {
+  color: #ef9a9a;
 }

@@ -1,14 +1,18 @@
 /**
  * Background renderer: draws a static background image scaled to fill the canvas.
  *
- * Uses /src/assets/background/summer2.png as the battlefield background.
+ * Supports per-location backgrounds via setBackground(src).
  * Cached on offscreen canvas for performance.
  */
+
+/** Default fallback background. */
+const DEFAULT_BG = "/src/assets/background/castle/img.png";
 
 export class BackgroundRenderer {
   constructor() {
     this._bgImage = null;
     this._loaded = false;
+    this._currentSrc = null;
 
     // Prebuilt background (cached)
     this._cache = null;
@@ -19,12 +23,27 @@ export class BackgroundRenderer {
 
   /**
    * Load the background image.
+   * @param {string} [src] — image path; defaults to castle background
    * @returns {Promise<void>}
    */
-  async load() {
-    this._bgImage = await this._loadImage("/src/assets/background/summer2.png");
+  async load(src) {
+    const target = src || DEFAULT_BG;
+    if (this._currentSrc === target && this._loaded) return;
+
+    this._currentSrc = target;
+    this._bgImage = await this._loadImage(target);
     this._loaded = true;
     this._dirty = true;
+  }
+
+  /**
+   * Switch to a different background image.
+   * @param {string} src — image path
+   * @returns {Promise<void>}
+   */
+  async setBackground(src) {
+    if (!src || src === this._currentSrc) return;
+    await this.load(src);
   }
 
   _loadImage(src) {
@@ -38,11 +57,9 @@ export class BackgroundRenderer {
   }
 
   /**
-   * Stage change — mark dirty to redraw (background stays the same image
-   * but cache may need rebuild on resize).
+   * Stage change — mark dirty to redraw.
    */
   setStage(_stage) {
-    // Single background for now — just mark dirty
     this._dirty = true;
   }
 
@@ -92,5 +109,6 @@ export class BackgroundRenderer {
     this._bgImage = null;
     this._cache = null;
     this._loaded = false;
+    this._currentSrc = null;
   }
 }

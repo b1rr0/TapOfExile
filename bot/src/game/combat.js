@@ -1,5 +1,6 @@
 import { createMonster, createMonsterForLocation } from "./monsters.js";
 import { checkLevelUp } from "./progression.js";
+import { getScaledRewards } from "../data/locations.js";
 
 export class CombatManager {
   constructor(state, events) {
@@ -10,6 +11,7 @@ export class CombatManager {
 
     // Location-based combat
     this._location = null;
+    this._actNumber = 1;
     this._monsterQueue = [];
     this._queueIndex = 0;
     this._totalMonsters = 0;
@@ -31,6 +33,7 @@ export class CombatManager {
    */
   startLocation(location) {
     this._location = location;
+    this._actNumber = location.act || 1;
     this._monsterQueue = [];
     this._queueIndex = 0;
 
@@ -144,7 +147,7 @@ export class CombatManager {
           this._deathCooldown = false;
           this.events.emit("locationComplete", {
             locationId: this._location.id,
-            rewards: this._location.rewards,
+            rewards: getScaledRewards(this._location),
           });
         }, 1200);
       } else {
@@ -181,7 +184,7 @@ export class CombatManager {
 
   _spawnNextFromQueue() {
     const entry = this._monsterQueue[this._queueIndex];
-    this.monster = createMonsterForLocation(entry.type, this._location.order, entry.rarity);
+    this.monster = createMonsterForLocation(entry.type, this._location.order, entry.rarity, this._actNumber);
     this.events.emit("monsterSpawned", this.monster);
   }
 }

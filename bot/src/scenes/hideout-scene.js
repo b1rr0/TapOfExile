@@ -1,4 +1,5 @@
-import { Inventory } from "../ui/inventory.js";
+import { Equipment } from "../ui/equipment.js";
+import { ChestPanel } from "../ui/chest-panel.js";
 import { IS_TESTING } from "../main.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { getCharacterClass } from "../data/character-classes.js";
@@ -7,8 +8,9 @@ import { SpriteEngine } from "../ui/sprite-engine.js";
 /**
  * HideoutScene — home hub screen.
  *
- * Shows player level + gold, hero canvas sprite, character info,
- * and navigation buttons (Map, Inventory, Switch Character).
+ * Top bar: title + Shop dropdown (Skins, Hideouts) + Settings dropdown (Heroes, Storybook).
+ * Center: hero canvas sprite + character info.
+ * Bottom: XP bar + 4-button nav (Map, Equip, Chest, Market).
  *
  * Lifecycle: mount(params) / unmount()
  */
@@ -19,11 +21,13 @@ export class HideoutScene {
     this.state = deps.state;
     this.sceneManager = deps.sceneManager;
 
-    this.inventory = null;
+    this.equipment = null;
+    this.chestPanel = null;
     this._goldHandler = null;
     this._levelHandler = null;
     this._heroEngine = null;
     this._heroRaf = null;
+    this._closeDropdowns = null;
   }
 
   mount(params = {}) {
@@ -33,9 +37,43 @@ export class HideoutScene {
 
     this.container.innerHTML = `
       <div class="hideout">
-        <!-- Top bar — scene title only -->
+        <!-- Top bar — title + Shop / Settings -->
         <div class="hideout-topbar">
+          <!-- Shop dropdown -->
+          <div class="hideout-topbar__dropdown" id="shop-dropdown">
+            <button class="hideout-topbar__btn" id="shop-toggle">
+              <span class="hideout-topbar__btn-icon">&#x1F6D2;</span>
+              <span class="hideout-topbar__btn-label">Shop</span>
+            </button>
+            <div class="hideout-dropdown__menu hideout-dropdown--hidden" id="shop-menu">
+              <button class="hideout-dropdown__item" data-action="skins">
+                <span class="hideout-dropdown__icon">&#x1F455;</span> Skins
+              </button>
+              <button class="hideout-dropdown__item" data-action="hideouts">
+                <span class="hideout-dropdown__icon">&#x1F3E0;</span> Hideouts
+              </button>
+            </div>
+          </div>
+
           <span class="hideout-topbar__title">Hideout</span>
+
+          <!-- Settings dropdown -->
+          <div class="hideout-topbar__dropdown" id="settings-dropdown">
+            <button class="hideout-topbar__btn" id="settings-toggle">
+              <span class="hideout-topbar__btn-icon">&#x2699;</span>
+              <span class="hideout-topbar__btn-label">Settings</span>
+            </button>
+            <div class="hideout-dropdown__menu hideout-dropdown--hidden" id="settings-menu">
+              <button class="hideout-dropdown__item" data-action="heroes">
+                <span class="hideout-dropdown__icon">&#x1F464;</span> Heroes
+              </button>
+              ${IS_TESTING ? `
+              <button class="hideout-dropdown__item" data-action="storybook">
+                <span class="hideout-dropdown__icon">&#x1F3A8;</span> Storybook
+              </button>
+              ` : ""}
+            </div>
+          </div>
         </div>
 
         <!-- Hero area -->
@@ -65,59 +103,72 @@ export class HideoutScene {
               <span class="hideout-btn__icon">&#x1F5FA;</span>
               <span class="hideout-btn__label">Map</span>
             </button>
-            <button class="hideout-btn hideout-btn--inventory" id="hideout-inv-btn">
-              <span class="hideout-btn__icon">&#x1F392;</span>
-              <span class="hideout-btn__label">Inventory</span>
+            <button class="hideout-btn hideout-btn--equipment" id="hideout-equip-btn">
+              <span class="hideout-btn__icon">&#x2694;</span>
+              <span class="hideout-btn__label">Equip</span>
             </button>
-            <button class="hideout-btn hideout-btn--shop" id="hideout-shop-btn">
-              <span class="hideout-btn__icon">&#x1F455;</span>
-              <span class="hideout-btn__label">Skins</span>
+            <button class="hideout-btn hideout-btn--chest" id="hideout-chest-btn">
+              <span class="hideout-btn__icon">&#x1F4E6;</span>
+              <span class="hideout-btn__label">Chest</span>
             </button>
-            <button class="hideout-btn hideout-btn--switch" id="hideout-switch-btn">
-              <span class="hideout-btn__icon">&#x1F464;</span>
-              <span class="hideout-btn__label">Heroes</span>
+            <button class="hideout-btn hideout-btn--market" id="hideout-market-btn">
+              <span class="hideout-btn__icon">&#x1F4B0;</span>
+              <span class="hideout-btn__label">Market</span>
             </button>
-            ${IS_TESTING ? `
-            <button class="hideout-btn hideout-btn--storybook" id="hideout-sb-btn">
-              <span class="hideout-btn__icon">&#x1F3A8;</span>
-              <span class="hideout-btn__label">Storybook</span>
-            </button>
-            ` : ""}
           </div>
         </div>
       </div>
     `;
 
-    // Inventory overlay (attached to hideout root)
+    // Overlays (attached to hideout root)
     const hideoutEl = this.container.querySelector(".hideout");
-    this.inventory = new Inventory(hideoutEl, this.events);
+    this.equipment = new Equipment(hideoutEl, this.events);
+    this.chestPanel = new ChestPanel(hideoutEl, this.events, this.state);
 
-    // Wire buttons
+    // ── Bottom nav buttons ─────────────────────────────────
     this.container.querySelector("#hideout-map-btn").addEventListener("click", () => {
-      if (this.sceneManager) {
-        this.sceneManager.switchTo("map");
+      if (this.sceneManager) this.sceneManager.switchTo("map");
+    });
+
+    this.container.querySelector("#hideout-equip-btn").addEventListener("click", () => {
+      if (this.equipment) this.equipment.toggle();
+    });
+
+    this.container.querySelector("#hideout-chest-btn").addEventListener("click", () => {
+      if (this.chestPanel) this.chestPanel.toggle();
+    });
+
+    this.container.querySelector("#hideout-market-btn").addEventListener("click", () => {
+      // Market — placeholder, no logic yet
+      console.log("[Hideout] Market clicked — not implemented yet");
+    });
+
+    // ── Top bar dropdowns ──────────────────────────────────
+    this._wireDropdown("shop-toggle", "shop-menu", {
+      skins: () => this.sceneManager.switchTo("skinShop"),
+      hideouts: () => console.log("[Hideout] Hideouts clicked — not implemented yet"),
+    });
+
+    this._wireDropdown("settings-toggle", "settings-menu", {
+      heroes: () => this.sceneManager.switchTo("characterSelect"),
+      storybook: () => this.sceneManager.switchTo("storybook"),
+    });
+
+    // Close dropdowns on any outside click
+    this._closeDropdowns = (e) => {
+      const shopDD = this.container.querySelector("#shop-dropdown");
+      const settingsDD = this.container.querySelector("#settings-dropdown");
+      if (shopDD && !shopDD.contains(e.target)) {
+        this._hideMenu("shop-menu");
       }
-    });
+      if (settingsDD && !settingsDD.contains(e.target)) {
+        this._hideMenu("settings-menu");
+      }
+    };
+    document.addEventListener("click", this._closeDropdowns);
 
-    this.container.querySelector("#hideout-inv-btn").addEventListener("click", () => {
-      if (this.inventory) this.inventory.toggle();
-    });
-
-    this.container.querySelector("#hideout-shop-btn").addEventListener("click", () => {
-      this.sceneManager.switchTo("skinShop");
-    });
-
-    this.container.querySelector("#hideout-switch-btn").addEventListener("click", () => {
-      this.sceneManager.switchTo("characterSelect");
-    });
-
-    const sbBtn = this.container.querySelector("#hideout-sb-btn");
-    if (sbBtn) {
-      sbBtn.addEventListener("click", () => this.sceneManager.switchTo("storybook"));
-    }
-
-    // Live-update level & XP (gold is handled by Inventory)
-    this._goldHandler = null; // kept for unmount safety
+    // ── Live-update level & XP ─────────────────────────────
+    this._goldHandler = null;
     this._levelHandler = (data) => {
       const el = this.container.querySelector("#hideout-level");
       if (el) el.textContent = `Lv.${data.level}`;
@@ -133,6 +184,48 @@ export class HideoutScene {
     this._loadHeroSprite();
   }
 
+  /* ── Dropdown helpers ───────────────────────────────────── */
+
+  _wireDropdown(toggleId, menuId, actions) {
+    const toggle = this.container.querySelector(`#${toggleId}`);
+    const menu = this.container.querySelector(`#${menuId}`);
+    if (!toggle || !menu) return;
+
+    // Toggle menu visibility on button click
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      // Close the other menu first
+      const allMenus = this.container.querySelectorAll(".hideout-dropdown__menu");
+      allMenus.forEach((m) => {
+        if (m.id !== menuId) m.classList.add("hideout-dropdown--hidden");
+      });
+
+      menu.classList.toggle("hideout-dropdown--hidden");
+    });
+
+    // Wire action items
+    menu.addEventListener("click", (e) => {
+      const item = e.target.closest(".hideout-dropdown__item");
+      if (!item) return;
+
+      const action = item.dataset.action;
+      if (actions[action]) {
+        actions[action]();
+      }
+
+      // Close menu after action
+      menu.classList.add("hideout-dropdown--hidden");
+    });
+  }
+
+  _hideMenu(menuId) {
+    const menu = this.container.querySelector(`#${menuId}`);
+    if (menu) menu.classList.add("hideout-dropdown--hidden");
+  }
+
+  /* ── XP bar ─────────────────────────────────────────────── */
+
   _updateXpBar() {
     const p = this.state.data.player;
     if (!p) return;
@@ -143,7 +236,7 @@ export class HideoutScene {
     if (text) text.textContent = `${p.xp} / ${p.xpToNext}`;
   }
 
-  /* ── Canvas hero sprite ──────────────────────────────── */
+  /* ── Canvas hero sprite ──────────────────────────────────── */
 
   async _loadHeroSprite() {
     const char = this.state.getActiveCharacter();
@@ -222,7 +315,7 @@ export class HideoutScene {
     this._heroEngine.drawFrame(ctx, dx, dy, dw, dh, false);
   }
 
-  /* ── Cleanup ─────────────────────────────────────────── */
+  /* ── Cleanup ─────────────────────────────────────────────── */
 
   unmount() {
     if (this._heroRaf) {
@@ -245,9 +338,17 @@ export class HideoutScene {
       this.events.off("xpChanged", this._xpHandler);
       this._xpHandler = null;
     }
-    if (this.inventory) {
-      this.inventory.destroy();
-      this.inventory = null;
+    if (this._closeDropdowns) {
+      document.removeEventListener("click", this._closeDropdowns);
+      this._closeDropdowns = null;
+    }
+    if (this.equipment) {
+      this.equipment.destroy();
+      this.equipment = null;
+    }
+    if (this.chestPanel) {
+      this.chestPanel.destroy();
+      this.chestPanel = null;
     }
     this.container.innerHTML = "";
   }

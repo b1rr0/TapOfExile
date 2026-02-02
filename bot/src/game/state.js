@@ -14,7 +14,7 @@ function createDefault() {
       totalTaps: 0,
       totalKills: 0,
       totalGold: 0,
-      version: 2,
+      version: 3,
     },
   };
 }
@@ -34,8 +34,9 @@ function createDefaultCharacter() {
     critMultiplier: 2.0,
     passiveDps: 0,
     combat: { currentStage: 1, currentWave: 1, wavesPerStage: 10 },
-    locations: { completed: [], current: null },
+    locations: { completed: [], current: null, currentAct: 1 },
     inventory: { items: [], equipment: {} },
+    bag: [],  // Array of item objects: { id, name, quality, level, icon, acquiredAt }
   };
 }
 
@@ -62,6 +63,11 @@ export class GameState {
           this.data = this._migrateV1(saved);
         } else {
           this.data = this._mergeV2(createDefault(), saved);
+        }
+
+        // V2 → V3: prefix location IDs with act1_, add currentAct
+        if (this.data.meta.version < 3) {
+          this._migrateV2toV3();
         }
       }
     } catch {
@@ -244,7 +250,7 @@ export class GameState {
       critMultiplier: oldPlayer.critMultiplier || 2.0,
       passiveDps: oldPlayer.passiveDps || 0,
       combat: saved.combat || { currentStage: 1, currentWave: 1, wavesPerStage: 10 },
-      locations: saved.locations || { completed: [], current: null },
+      locations: saved.locations || { completed: [], current: null, currentAct: 1 },
       inventory: saved.inventory || { items: [], equipment: {} },
     };
 
@@ -260,6 +266,25 @@ export class GameState {
         version: 2,
       },
     };
+  }
+
+  /* ── Migration V2 → V3 (act-prefixed location IDs) ──── */
+
+  _migrateV2toV3() {
+    for (const char of this.data.characters) {
+      if (char.locations && Array.isArray(char.locations.completed)) {
+        char.locations.completed = char.locations.completed.map((id) =>
+          id.startsWith("act") ? id : `act1_${id}`
+        );
+      }
+      if (char.locations) {
+        char.locations.currentAct = char.locations.currentAct || 1;
+      }
+      if (char.locations && char.locations.current && !char.locations.current.startsWith("act")) {
+        char.locations.current = `act1_${char.locations.current}`;
+      }
+    }
+    this.data.meta.version = 3;
   }
 
   /* ── V2 merge (preserves arrays as-is) ───────────────── */

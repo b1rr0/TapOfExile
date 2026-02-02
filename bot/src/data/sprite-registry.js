@@ -16,7 +16,9 @@
  *  @property {string} classId     — character class this skin belongs to
  *  @property {string} basePath    — path to sprite folder (relative to project root)
  *  @property {Object} animations  — { name: { json, fps, loop } } for SpriteEngine
- *  @property {Object} defaultSize — { w, h } default draw size in CSS px
+ *  @property {Object} defaultSize    — { w, h } default draw size in CSS px
+ *  @property {number} anchorOffsetY  — fraction of frame height empty below feet
+ *  @property {number} scale          — visual scale multiplier (1 = unchanged)
  */
 
 // ─── Hero Skins ──────────────────────────────────────────
@@ -37,6 +39,8 @@ export const HERO_SKINS = {
       run:     { json: "run.json",       fps: 12, loop: true },
     },
     defaultSize: { w: 252, h: 336 },
+    anchorOffsetY: 0.146,
+    scale: 1.34,
   },
 
   samurai_2: {
@@ -52,6 +56,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 400, h: 400 },
+    anchorOffsetY: 0.39,
+    scale: 1.16,
   },
 
   samurai_3: {
@@ -67,6 +73,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 400, h: 400 },
+    anchorOffsetY: 0.355,
+    scale: 1.23,
   },
 
   /* ── Knight / Warrior ────────────────────────────────── */
@@ -85,6 +93,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 240, h: 210 },
+    anchorOffsetY: 0.274,
+    scale: 1.82,
   },
 
   knight_2: {
@@ -100,6 +110,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 128, h: 128 },
+    anchorOffsetY: 0,
+    scale: 1.70,
   },
 
   knight_3: {
@@ -113,6 +125,8 @@ export const HERO_SKINS = {
       run:     { json: "run.json",       fps: 10, loop: true },
     },
     defaultSize: { w: 368, h: 274 },
+    anchorOffsetY: 0.31,
+    scale: 0.71,
   },
 
   knight_4: {
@@ -128,6 +142,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 360, h: 360 },
+    anchorOffsetY: 0.361,
+    scale: 1.14,
   },
 
   /* ── Wizard / Mage ───────────────────────────────────── */
@@ -145,6 +161,8 @@ export const HERO_SKINS = {
       dead:    { json: "dead.json",      fps: 10, loop: false },
     },
     defaultSize: { w: 256, h: 256 },
+    anchorOffsetY: 0.23,
+    scale: 0.81,
   },
 
   wizard_2: {
@@ -160,6 +178,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 300, h: 300 },
+    anchorOffsetY: 0.32,
+    scale: 1.18,
   },
 
   /* ── Archer ──────────────────────────────────────────── */
@@ -178,6 +198,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 256, h: 256 },
+    anchorOffsetY: 0.109,
+    scale: 0.85,
   },
 
   archer_2: {
@@ -194,6 +216,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 184, h: 240 },
+    anchorOffsetY: 0,
+    scale: 0.67,
   },
 
   archer_3: {
@@ -208,6 +232,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 256, h: 256 },
+    anchorOffsetY: 0,
+    scale: 0.62,
   },
 
   archer_4: {
@@ -223,6 +249,8 @@ export const HERO_SKINS = {
       death:   { json: "death.json",     fps: 10, loop: false },
     },
     defaultSize: { w: 200, h: 200 },
+    anchorOffsetY: 0.33,
+    scale: 1.78,
   },
 };
 
@@ -239,6 +267,8 @@ export const ENEMY_SKINS = {
       death: { json: "death.json", fps: 10, loop: false },
     },
     defaultSize: { w: 210, h: 210 },
+    anchorOffsetY: 0.297,
+    scale: 1,
   },
 
   yellow_ninja: {
@@ -252,6 +282,8 @@ export const ENEMY_SKINS = {
       hit:   { json: "hit.json",   fps: 10, loop: false },
     },
     defaultSize: { w: 256, h: 256 },
+    anchorOffsetY: 0.25,
+    scale: 1,
   },
 
   necromancer_1: {
@@ -265,6 +297,8 @@ export const ENEMY_SKINS = {
       attack:{ json: "attack.json", fps: 12, loop: false },
     },
     defaultSize: { w: 280, h: 224 },
+    anchorOffsetY: 0.07,
+    scale: 1,
   },
 
   night_born_1: {
@@ -279,6 +313,8 @@ export const ENEMY_SKINS = {
       hurt:  { json: "hurt.json",   fps: 10, loop: false },
     },
     defaultSize: { w: 200, h: 200 },
+    anchorOffsetY: 0.025,
+    scale: 1,
   },
 };
 

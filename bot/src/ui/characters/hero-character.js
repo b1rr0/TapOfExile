@@ -27,11 +27,13 @@ export class HeroCharacter extends Character {
   constructor(skin, overrides = {}) {
     super({
       spriteConfig: { basePath: skin.basePath, animations: skin.animations },
-      x: overrides.x ?? 0,
-      groundLine: overrides.groundLine ?? 0.85,
+      xRatio: overrides.xRatio ?? 0.18,
+      groundLine: overrides.groundLine ?? 0.90,
       w: overrides.w ?? skin.defaultSize.w,
       h: overrides.h ?? skin.defaultSize.h,
       flipX: overrides.flipX ?? false,
+      anchorOffsetY: overrides.anchorOffsetY ?? skin.anchorOffsetY ?? 0,
+      scale: overrides.scale ?? skin.scale ?? 1,
     });
 
     this.skinId = skin.id;

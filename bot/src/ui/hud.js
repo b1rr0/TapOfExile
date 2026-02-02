@@ -11,12 +11,18 @@ export class HUD {
     this.xpFillEl = document.querySelector("#xp-bar-fill");
     this.xpTextEl = document.querySelector("#xp-bar-text");
 
+    // If the stage display already has text (location name), keep it
+    this._fixedLabel = this.stageEl ? this.stageEl.textContent.trim() : "";
+
     this._listen();
   }
 
   _listen() {
     this.events.on("waveChanged", (data) => {
-      this.updateStage(data.stage, data.wave);
+      // In location mode the label is set once (room name + level) — don't overwrite
+      if (!this._fixedLabel) {
+        this.updateStage(data.stage, data.wave);
+      }
     });
 
     this.events.on("levelUp", (data) => {
@@ -28,7 +34,9 @@ export class HUD {
     });
 
     this.events.on("stateLoaded", (state) => {
-      this.updateStage(state.combat.currentStage, state.combat.currentWave);
+      if (!this._fixedLabel) {
+        this.updateStage(state.combat.currentStage, state.combat.currentWave);
+      }
       this.updateLevel(state.player.level);
       this.updateDps(state.player.passiveDps);
       this.updateXp(state.player.xp, state.player.xpToNext);

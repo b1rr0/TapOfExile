@@ -2,8 +2,9 @@ import { CombatManager } from "../game/combat.js";
 import { BattleScene } from "../ui/battle-scene.js";
 import { Effects } from "../ui/effects.js";
 import { HUD } from "../ui/hud.js";
-import { Inventory } from "../ui/inventory.js";
+import { Equipment } from "../ui/equipment.js";
 import { haptic } from "../utils/haptic.js";
+import { isActComplete, getBackgroundForLocation, getActModifiers } from "../data/locations.js";
 
 /**
  * CombatScene — wraps the current battle flow into a single scene.
@@ -29,7 +30,7 @@ export class CombatScene {
     this.battleScene = null;
     this.effects = null;
     this.hud = null;
-    this.inventory = null;
+    this.equipment = null;
 
     // Intervals / refs
     this._dpsInterval = null;
@@ -42,22 +43,57 @@ export class CombatScene {
    * @param {Object} [params]
    */
   mount(params = {}) {
-    // Determine location name for the top bar
+    // Determine location name + monster level for the top bar
     const locationName = params.location ? params.location.name : "Battle";
+    const monsterLvl = params.location ? params.location.order : null;
+    const stageLabel = monsterLvl
+      ? `${locationName} · Lv.${monsterLvl}`
+      : locationName;
+
+    // Build modifiers panel HTML
+    const actNumber = params.location ? params.location.act : 1;
+    const mods = getActModifiers(actNumber);
+    let modsHtml = "";
+    if (mods.length) {
+      const chips = mods.map(m =>
+        `<div class="combat-mod combat-mod--${m.type}"><span class="combat-mod__icon">${m.icon}</span><span class="combat-mod__name">${m.name}</span><span class="combat-mod__desc">${m.description}</span></div>`
+      ).join("");
+      modsHtml = `
+        <button class="combat-mods-toggle" id="combat-mods-toggle">${mods.map(m => m.icon).join("")}</button>
+        <div class="combat-mods-panel combat-mods-panel--hidden" id="combat-mods-panel">
+          <div class="combat-mods-panel__title">Zone Effects</div>
+          ${chips}
+        </div>
+      `;
+    }
 
     // 1. Build DOM
     this.container.innerHTML = `
       <div id="game-screen" class="screen">
-        <!-- Top bar — location name + flee -->
+        <!-- Top bar — room name + monster level -->
         <div id="hud" class="hud">
-          <button class="hud-flee-btn" id="flee-btn">&larr;</button>
           <div class="hud-center">
-            <span id="stage-display" class="stage-display">${locationName}</span>
+            <span id="stage-display" class="stage-display">${stageLabel}</span>
           </div>
         </div>
 
         <!-- Battle scene -->
         <div id="battle-scene" class="battle-scene"></div>
+
+        <!-- Flee confirmation overlay -->
+        <div class="flee-confirm-overlay flee-confirm-overlay--hidden" id="flee-confirm">
+          <div class="flee-confirm-box">
+            <p class="flee-confirm-title">Flee the battlefield?</p>
+            <p class="flee-confirm-text">Entry fee will not be refunded and rewards will be lost.</p>
+            <div class="flee-confirm-actions">
+              <button class="flee-confirm-btn flee-confirm-btn--cancel" id="flee-cancel">Stay</button>
+              <button class="flee-confirm-btn flee-confirm-btn--leave" id="flee-leave">Leave</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zone modifiers — sits on top of battle scene, outside BattleScene container -->
+        ${modsHtml}
 
         <!-- Bottom bar: XP + level above tap zone -->
         <div class="combat-bottom-bar">
@@ -88,9 +124,22 @@ export class CombatScene {
     // Use active character's skin for the hero sprite
     const activeChar = this.state.getActiveCharacter();
     const heroSkin = activeChar ? activeChar.skinId : "samurai_1";
-    this.battleScene = new BattleScene(battleEl, this.events, { heroSkin });
+
+    // Determine background for this location
+    const backgroundSrc = params.location
+      ? getBackgroundForLocation(params.location)
+      : null;
+
+    this.battleScene = new BattleScene(battleEl, this.events, { heroSkin, backgroundSrc });
     this.effects = new Effects(battleEl, this.events);
-    this.inventory = new Inventory(gameScreen, this.events);
+    this.equipment = new Equipment(gameScreen, this.events);
+
+    // Exit button — appended after BattleScene init (which wipes innerHTML)
+    const exitBtn = document.createElement("button");
+    exitBtn.className = "battle-exit-btn";
+    exitBtn.id = "flee-btn";
+    exitBtn.textContent = "🚪";
+    battleEl.appendChild(exitBtn);
 
     // 3. Tap handler
     this._tapHandler = () => {
@@ -99,8 +148,25 @@ export class CombatScene {
     };
     tapBtn.addEventListener("click", this._tapHandler);
 
-    // 3b. Flee button — exit combat with no rewards
+    // 3b. Modifiers panel toggle
+    const modsToggle = this.container.querySelector("#combat-mods-toggle");
+    const modsPanel = this.container.querySelector("#combat-mods-panel");
+    if (modsToggle && modsPanel) {
+      modsToggle.addEventListener("click", () => {
+        modsPanel.classList.toggle("combat-mods-panel--hidden");
+      });
+    }
+
+    // 3c. Flee button — show confirmation dialog
+    const fleeOverlay = this.container.querySelector("#flee-confirm");
     this.container.querySelector("#flee-btn").addEventListener("click", () => {
+      fleeOverlay.classList.remove("flee-confirm-overlay--hidden");
+    });
+    this.container.querySelector("#flee-cancel").addEventListener("click", () => {
+      fleeOverlay.classList.add("flee-confirm-overlay--hidden");
+    });
+    this.container.querySelector("#flee-leave").addEventListener("click", () => {
+      fleeOverlay.classList.add("flee-confirm-overlay--hidden");
       if (this.sceneManager) {
         this.sceneManager.switchTo("hideout");
       }
@@ -113,14 +179,22 @@ export class CombatScene {
 
     // 5. Listen for location complete
     this._onLocationComplete = (data) => {
-      // Mark location as completed (avoid duplicates)
       const completed = this.state.data.locations.completed;
+      const actNumber = params.location ? params.location.act : 1;
+
+      // Was the act already complete before this location?
+      const wasAlreadyComplete = isActComplete(actNumber, completed);
+
+      // Mark location as completed (avoid duplicates)
       if (!completed.includes(data.locationId)) {
         completed.push(data.locationId);
       }
       this.state.save();
 
-      // Find location name for victory screen
+      // Show act banner only if this location just completed the act
+      const isNowComplete = isActComplete(actNumber, completed);
+      const actJustCompleted = !wasAlreadyComplete && isNowComplete;
+
       const locName = params.location ? params.location.name : "Unknown";
 
       console.log(`[CombatScene] locationComplete: ${data.locationId}`, data.rewards);
@@ -130,6 +204,7 @@ export class CombatScene {
         this.sceneManager.switchTo("victory", {
           locationName: locName,
           rewards: data.rewards,
+          actComplete: actJustCompleted ? actNumber : null,
         });
       }
     };
@@ -167,9 +242,9 @@ export class CombatScene {
       this.battleScene.destroy();
       this.battleScene = null;
     }
-    if (this.inventory) {
-      this.inventory.destroy();
-      this.inventory = null;
+    if (this.equipment) {
+      this.equipment.destroy();
+      this.equipment = null;
     }
 
     // Clear DOM

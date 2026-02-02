@@ -33,6 +33,11 @@ export class Character {
    * @param {number} opts.w             — draw width in CSS pixels
    * @param {number} opts.h             — draw height in CSS pixels
    * @param {boolean} [opts.flipX=false] — mirror horizontally
+   * @param {number} [opts.anchorOffsetY=0] — fraction of sprite height that is
+   *        empty below the character's feet. Shifts the sprite down so feet
+   *        sit exactly on the ground line.
+   * @param {number} [opts.scale=1] — visual scale multiplier applied on top of
+   *        defaultSize. Used to normalise characters to a uniform visual height.
    */
   constructor({
     spriteConfig,
@@ -43,6 +48,8 @@ export class Character {
     w,
     h,
     flipX = false,
+    anchorOffsetY = 0,
+    scale = 1,
   }) {
     // Sprite engine
     this._spriteConfig = spriteConfig;
@@ -56,6 +63,8 @@ export class Character {
     this._baseW = w;
     this._baseH = h;
     this._flipX = flipX;
+    this._anchorOffsetY = anchorOffsetY;
+    this._scale = scale;
 
     // --- Entrance animation ---
     this._entering = false;
@@ -202,8 +211,9 @@ export class Character {
   draw(ctx, canvasW, canvasH, dpr) {
     if (!this._visible || !this.engine.loaded) return;
 
-    const w = this._baseW * dpr;
-    const h = this._baseH * dpr;
+    const s = this._scale;
+    const w = this._baseW * dpr * 1.56 * s;
+    const h = this._baseH * dpr * 1.56 * s;
 
     // Resolve X position
     let x;
@@ -219,8 +229,11 @@ export class Character {
     // Apply shake
     x += this._shake * dpr;
 
-    // Y: anchor to ground line
-    const y = canvasH * this._groundLine - h;
+    // Center sprite horizontally: x points to character midpoint
+    x -= w / 2;
+
+    // Y: anchor to ground line, shift down by empty space below feet
+    const y = canvasH * this._groundLine - h + h * this._anchorOffsetY;
 
     // Draw with optional alpha (death fade)
     if (this._dying && this._deathAlpha < 1) {

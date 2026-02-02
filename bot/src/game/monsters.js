@@ -58,16 +58,18 @@ function randInt(min, max) {
  * @param {string} typeName    — monster type name (e.g. "Bandit")
  * @param {number} locationOrder — location.order (1-based)
  * @param {string} [rarityId="common"] — rarity key from RARITIES
+ * @param {number} [actNumber=1] — act number (1-5) for act-based scaling
  * @returns {Object} monster instance
  */
-export function createMonsterForLocation(typeName, locationOrder, rarityId = "common") {
+export function createMonsterForLocation(typeName, locationOrder, rarityId = "common", actNumber = 1) {
   const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
   const rarity = RARITIES[rarityId] || RARITIES.common;
+  const actMul = Math.pow(2.5, actNumber - 1);
 
-  // --- HP: base × locationScale × rarity, then randomise ±15 % ---
+  // --- HP: base × locationScale × rarity × actMul, then randomise ±15 % ---
   const hpBase = 10;
   const hpScale = Math.pow(1.5, locationOrder - 1);
-  const baseHp = Math.floor(hpBase * hpScale * rarity.hpMul);
+  const baseHp = Math.floor(hpBase * hpScale * rarity.hpMul * actMul);
   const hpMin = Math.max(1, Math.floor(baseHp * 0.85));
   const hpMax = Math.ceil(baseHp * 1.15);
   const hp = randInt(hpMin, hpMax);
@@ -75,12 +77,12 @@ export function createMonsterForLocation(typeName, locationOrder, rarityId = "co
   // --- Gold ---
   const goldBase = 3;
   const goldScale = Math.pow(1.35, locationOrder - 1);
-  const gold = Math.floor(goldBase * goldScale * rarity.goldMul);
+  const gold = Math.floor(goldBase * goldScale * rarity.goldMul * actMul);
 
   // --- XP ---
   const xpBase = 5;
   const xpScale = Math.pow(1.3, locationOrder - 1);
-  const xp = Math.floor(xpBase * xpScale * rarity.xpMul);
+  const xp = Math.floor(xpBase * xpScale * rarity.xpMul * actMul);
 
   return {
     name: type.name,
