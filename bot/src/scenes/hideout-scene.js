@@ -28,9 +28,21 @@ export class HideoutScene {
     this._heroEngine = null;
     this._heroRaf = null;
     this._closeDropdowns = null;
+
+    // Cached DOM refs (set in mount)
+    this._xpFill = null;
+    this._xpText = null;
+    this._levelEl = null;
+    this._shopDD = null;
+    this._settingsDD = null;
+    this._shopMenu = null;
+    this._settingsMenu = null;
   }
 
   mount(params = {}) {
+    // Check if endgame should be unlocked
+    this.state.checkEndgameUnlock();
+
     const player = this.state.data.player;
     const char = this.state.getActiveCharacter();
     const cls = char ? getCharacterClass(char.classId) : null;
@@ -120,6 +132,15 @@ export class HideoutScene {
       </div>
     `;
 
+    // Cache DOM refs once
+    this._xpFill = this.container.querySelector("#hideout-xp-fill");
+    this._xpText = this.container.querySelector("#hideout-xp-text");
+    this._levelEl = this.container.querySelector("#hideout-level");
+    this._shopDD = this.container.querySelector("#shop-dropdown");
+    this._settingsDD = this.container.querySelector("#settings-dropdown");
+    this._shopMenu = this.container.querySelector("#shop-menu");
+    this._settingsMenu = this.container.querySelector("#settings-menu");
+
     // Overlays (attached to hideout root)
     const hideoutEl = this.container.querySelector(".hideout");
     this.equipment = new Equipment(hideoutEl, this.events);
@@ -154,15 +175,13 @@ export class HideoutScene {
       storybook: () => this.sceneManager.switchTo("storybook"),
     });
 
-    // Close dropdowns on any outside click
+    // Close dropdowns on any outside click (uses cached refs)
     this._closeDropdowns = (e) => {
-      const shopDD = this.container.querySelector("#shop-dropdown");
-      const settingsDD = this.container.querySelector("#settings-dropdown");
-      if (shopDD && !shopDD.contains(e.target)) {
-        this._hideMenu("shop-menu");
+      if (this._shopDD && !this._shopDD.contains(e.target)) {
+        if (this._shopMenu) this._shopMenu.classList.add("hideout-dropdown--hidden");
       }
-      if (settingsDD && !settingsDD.contains(e.target)) {
-        this._hideMenu("settings-menu");
+      if (this._settingsDD && !this._settingsDD.contains(e.target)) {
+        if (this._settingsMenu) this._settingsMenu.classList.add("hideout-dropdown--hidden");
       }
     };
     document.addEventListener("click", this._closeDropdowns);
@@ -170,8 +189,7 @@ export class HideoutScene {
     // ── Live-update level & XP ─────────────────────────────
     this._goldHandler = null;
     this._levelHandler = (data) => {
-      const el = this.container.querySelector("#hideout-level");
-      if (el) el.textContent = `Lv.${data.level}`;
+      if (this._levelEl) this._levelEl.textContent = `Lv.${data.level}`;
       this._updateXpBar();
     };
     this._xpHandler = () => {
@@ -188,18 +206,16 @@ export class HideoutScene {
 
   _wireDropdown(toggleId, menuId, actions) {
     const toggle = this.container.querySelector(`#${toggleId}`);
-    const menu = this.container.querySelector(`#${menuId}`);
+    const menu = menuId === "shop-menu" ? this._shopMenu : this._settingsMenu;
+    const otherMenu = menuId === "shop-menu" ? this._settingsMenu : this._shopMenu;
     if (!toggle || !menu) return;
 
     // Toggle menu visibility on button click
     toggle.addEventListener("click", (e) => {
       e.stopPropagation();
 
-      // Close the other menu first
-      const allMenus = this.container.querySelectorAll(".hideout-dropdown__menu");
-      allMenus.forEach((m) => {
-        if (m.id !== menuId) m.classList.add("hideout-dropdown--hidden");
-      });
+      // Close the other menu first (cached ref, no querySelectorAll)
+      if (otherMenu) otherMenu.classList.add("hideout-dropdown--hidden");
 
       menu.classList.toggle("hideout-dropdown--hidden");
     });
@@ -220,7 +236,7 @@ export class HideoutScene {
   }
 
   _hideMenu(menuId) {
-    const menu = this.container.querySelector(`#${menuId}`);
+    const menu = menuId === "shop-menu" ? this._shopMenu : this._settingsMenu;
     if (menu) menu.classList.add("hideout-dropdown--hidden");
   }
 
@@ -230,10 +246,8 @@ export class HideoutScene {
     const p = this.state.data.player;
     if (!p) return;
     const pct = p.xpToNext > 0 ? (p.xp / p.xpToNext) * 100 : 0;
-    const fill = this.container.querySelector("#hideout-xp-fill");
-    const text = this.container.querySelector("#hideout-xp-text");
-    if (fill) fill.style.width = pct + "%";
-    if (text) text.textContent = `${p.xp} / ${p.xpToNext}`;
+    if (this._xpFill) this._xpFill.style.width = pct + "%";
+    if (this._xpText) this._xpText.textContent = `${p.xp} / ${p.xpToNext}`;
   }
 
   /* ── Canvas hero sprite ──────────────────────────────────── */
@@ -350,6 +364,13 @@ export class HideoutScene {
       this.chestPanel.destroy();
       this.chestPanel = null;
     }
+    this._xpFill = null;
+    this._xpText = null;
+    this._levelEl = null;
+    this._shopDD = null;
+    this._settingsDD = null;
+    this._shopMenu = null;
+    this._settingsMenu = null;
     this.container.innerHTML = "";
   }
 }

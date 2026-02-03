@@ -1,6 +1,7 @@
-import { createMonster, createMonsterForLocation } from "./monsters.js";
+import { createMonster, createMonsterForLocation, createMonsterForMap } from "./monsters.js";
 import { checkLevelUp } from "./progression.js";
 import { getScaledRewards } from "../data/locations.js";
+import { B } from "../data/balance.js";
 
 export class CombatManager {
   constructor(state, events) {
@@ -15,6 +16,11 @@ export class CombatManager {
     this._monsterQueue = [];
     this._queueIndex = 0;
     this._totalMonsters = 0;
+
+    // Map-based combat (endgame)
+    this._mapConfig = null;
+    this._mapTotalGold = 0;
+    this._mapTotalXp = 0;
   }
 
   // ─── Legacy infinite mode (fallback) ──────────────────────
@@ -34,6 +40,7 @@ export class CombatManager {
   startLocation(location) {
     this._location = location;
     this._actNumber = location.act || 1;
+    this._mapConfig = null;
     this._monsterQueue = [];
     this._queueIndex = 0;
 
@@ -60,6 +67,58 @@ export class CombatManager {
   /** @returns {boolean} true if currently in location-based combat */
   get isLocationMode() {
     return this._location !== null;
+  }
+
+  // ─── Map-based finite combat (endgame) ──────────────────────
+
+  /**
+   * Start a map encounter — build monster queue from map waves with tier scaling.
+   * @param {Object} mapConfig — { tier, waves, tierDef, isBoss, bossId, bossDef }
+   */
+  startMap(mapConfig) {
+    this._mapConfig = mapConfig;
+    this._mapTotalGold = 0;
+    this._mapTotalXp = 0;
+
+    // Set a synthetic _location so isLocationMode returns true
+    this._location = {
+      id: mapConfig.isBoss ? `boss_${mapConfig.bossId}` : `map_tier_${mapConfig.tier}`,
+      name: mapConfig.isBoss ? mapConfig.bossDef.name : mapConfig.tierDef.name,
+      act: 5,
+      order: 10,
+      waves: mapConfig.waves,
+      rewards: { gold: 0, xp: 0 },
+    };
+    this._actNumber = 5;
+    this._monsterQueue = [];
+    this._queueIndex = 0;
+
+    // Build monster queue (same pattern as startLocation)
+    for (const wave of mapConfig.waves) {
+      for (const entry of wave.monsters) {
+        for (let i = 0; i < entry.count; i++) {
+          this._monsterQueue.push({
+            type: entry.type,
+            rarity: entry.rarity || "common",
+            mapScaling: true,
+          });
+        }
+      }
+    }
+
+    this._totalMonsters = this._monsterQueue.length;
+
+    this.events.emit("locationWaveProgress", {
+      current: 0,
+      total: this._totalMonsters,
+    });
+
+    this._spawnNextFromQueue();
+  }
+
+  /** @returns {boolean} true if currently in map-based combat */
+  get isMapMode() {
+    return this._mapConfig !== null;
   }
 
   // ─── Tap / Passive ────────────────────────────────────────
@@ -121,6 +180,12 @@ export class CombatManager {
     this.state.data.meta.totalKills++;
     this.state.data.meta.totalGold += gold;
 
+    // Track map cumulative rewards
+    if (this.isMapMode) {
+      this._mapTotalGold += gold;
+      this._mapTotalXp += xp;
+    }
+
     const leveled = checkLevelUp(player);
 
     this.events.emit("monsterDied", { monster: this.monster, gold, xp });
@@ -132,7 +197,7 @@ export class CombatManager {
     this.events.emit("goldChanged", { gold: player.gold });
     this.events.emit("xpChanged", { xp: player.xp, xpToNext: player.xpToNext });
 
-    // Location mode — finite queue
+    // Location / Map mode — finite queue
     if (this.isLocationMode) {
       this._queueIndex++;
 
@@ -142,20 +207,31 @@ export class CombatManager {
       });
 
       if (this._queueIndex >= this._totalMonsters) {
-        // All monsters defeated — location complete
+        // All monsters defeated
         setTimeout(() => {
           this._deathCooldown = false;
-          this.events.emit("locationComplete", {
-            locationId: this._location.id,
-            rewards: getScaledRewards(this._location),
-          });
-        }, 1200);
+
+          if (this.isMapMode) {
+            // Endgame map complete
+            this.events.emit("mapComplete", {
+              mapConfig: this._mapConfig,
+              totalGold: this._mapTotalGold,
+              totalXp: this._mapTotalXp,
+            });
+          } else {
+            // Story location complete
+            this.events.emit("locationComplete", {
+              locationId: this._location.id,
+              rewards: getScaledRewards(this._location),
+            });
+          }
+        }, B.SPAWN_DELAY_MS);
       } else {
         // Spawn next monster from queue
         setTimeout(() => {
           this._spawnNextFromQueue();
           this._deathCooldown = false;
-        }, 1200);
+        }, B.SPAWN_DELAY_MS);
       }
     } else {
       // Legacy infinite mode
@@ -176,7 +252,7 @@ export class CombatManager {
         this.monster = createMonster(combat.currentStage, combat.currentWave);
         this._deathCooldown = false;
         this.events.emit("monsterSpawned", this.monster);
-      }, 1200);
+      }, B.SPAWN_DELAY_MS);
     }
 
     this.state.scheduleSave();
@@ -184,7 +260,20 @@ export class CombatManager {
 
   _spawnNextFromQueue() {
     const entry = this._monsterQueue[this._queueIndex];
-    this.monster = createMonsterForLocation(entry.type, this._location.order, entry.rarity, this._actNumber);
+
+    if (entry.mapScaling && this._mapConfig) {
+      // Endgame map scaling
+      const mc = this._mapConfig;
+      const muls = mc.isBoss ? mc.bossDef : mc.tierDef;
+      this.monster = createMonsterForMap(
+        entry.type, entry.rarity,
+        muls.hpMul, muls.goldMul, muls.xpMul
+      );
+    } else {
+      // Story location scaling
+      this.monster = createMonsterForLocation(entry.type, this._location.order, entry.rarity, this._actNumber);
+    }
+
     this.events.emit("monsterSpawned", this.monster);
   }
 }

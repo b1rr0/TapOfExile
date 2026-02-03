@@ -4,7 +4,9 @@ import { Effects } from "../ui/effects.js";
 import { HUD } from "../ui/hud.js";
 import { Equipment } from "../ui/equipment.js";
 import { haptic } from "../utils/haptic.js";
-import { isActComplete, getBackgroundForLocation, getActModifiers } from "../data/locations.js";
+import { isActComplete, getBackgroundForLocation, getActModifiers, getLocationById, ACT_BACKGROUNDS } from "../data/locations.js";
+import { rollMapDrops } from "../data/endgame-maps.js";
+import { B } from "../data/balance.js";
 
 /**
  * CombatScene — wraps the current battle flow into a single scene.
@@ -36,6 +38,7 @@ export class CombatScene {
     this._dpsInterval = null;
     this._tapHandler = null;
     this._onLocationComplete = null;
+    this._onMapComplete = null;
   }
 
   /**
@@ -43,15 +46,34 @@ export class CombatScene {
    * @param {Object} [params]
    */
   mount(params = {}) {
-    // Determine location name + monster level for the top bar
-    const locationName = params.location ? params.location.name : "Battle";
-    const monsterLvl = params.location ? params.location.order : null;
-    const stageLabel = monsterLvl
-      ? `${locationName} · Lv.${monsterLvl}`
-      : locationName;
+    const isMapMode = !!params.mapConfig;
 
-    // Build modifiers panel HTML
-    const actNumber = params.location ? params.location.act : 1;
+    // Determine location name + monster level for the top bar
+    let stageLabel;
+    let mapLocation = null;   // resolved location for map mode
+    if (isMapMode) {
+      const mc = params.mapConfig;
+      if (mc.isBoss) {
+        stageLabel = mc.bossDef.name;
+      } else {
+        // Use the map key's location name
+        mapLocation = mc.locationId ? getLocationById(mc.locationId) : null;
+        stageLabel = mapLocation
+          ? `${mapLocation.name} · ${mc.tierDef.name}`
+          : `Map · ${mc.tierDef.name}`;
+      }
+    } else {
+      const locationName = params.location ? params.location.name : "Battle";
+      const monsterLvl = params.location ? params.location.order : null;
+      stageLabel = monsterLvl
+        ? `${locationName} · Lv.${monsterLvl}`
+        : locationName;
+    }
+
+    // Build modifiers panel HTML — map mode uses the key's location act
+    const actNumber = isMapMode
+      ? (params.mapConfig.locationAct || 5)
+      : (params.location ? params.location.act : 1);
     const mods = getActModifiers(actNumber);
     let modsHtml = "";
     if (mods.length) {
@@ -125,10 +147,22 @@ export class CombatScene {
     const activeChar = this.state.getActiveCharacter();
     const heroSkin = activeChar ? activeChar.skinId : "samurai_1";
 
-    // Determine background for this location
-    const backgroundSrc = params.location
-      ? getBackgroundForLocation(params.location)
-      : null;
+    // Determine background for this location / map
+    let backgroundSrc = null;
+    if (isMapMode) {
+      // Use the map key's location for background (same as story)
+      if (mapLocation) {
+        backgroundSrc = getBackgroundForLocation(mapLocation);
+      } else {
+        // Boss maps or fallback — use cave backgrounds
+        const caveImages = ACT_BACKGROUNDS[5] || [];
+        backgroundSrc = caveImages.length > 0
+          ? caveImages[Math.floor(Math.random() * caveImages.length)]
+          : null;
+      }
+    } else if (params.location) {
+      backgroundSrc = getBackgroundForLocation(params.location);
+    }
 
     this.battleScene = new BattleScene(battleEl, this.events, { heroSkin, backgroundSrc });
     this.effects = new Effects(battleEl, this.events);
@@ -175,7 +209,7 @@ export class CombatScene {
     // 4. Passive DPS tick every second
     this._dpsInterval = setInterval(() => {
       this.combat.applyPassiveDamage();
-    }, 1000);
+    }, B.PASSIVE_DPS_TICK_MS);
 
     // 5. Listen for location complete
     this._onLocationComplete = (data) => {
@@ -210,11 +244,62 @@ export class CombatScene {
     };
     this.events.on("locationComplete", this._onLocationComplete);
 
+    // 5b. Listen for map complete (endgame)
+    this._onMapComplete = (data) => {
+      const mc = data.mapConfig;
+      const tier = mc.tier || 10;
+      const isBoss = mc.isBoss || false;
+
+      // Roll map drops (direction determines which boss key can drop)
+      const direction = mc.direction || null;
+      const mapDrops = rollMapDrops(tier, isBoss, direction);
+
+      // Add dropped keys to bag
+      for (const drop of mapDrops) {
+        this.state.addMapKeyToBag(drop);
+      }
+
+      // Update endgame stats
+      const char = this.state.getActiveCharacter();
+      if (char && char.endgame) {
+        char.endgame.totalMapsRun++;
+        if (!isBoss && tier > char.endgame.highestTierCompleted) {
+          char.endgame.highestTierCompleted = tier;
+        }
+        if (isBoss && mc.bossId && !char.endgame.completedBosses.includes(mc.bossId)) {
+          char.endgame.completedBosses.push(mc.bossId);
+        }
+      }
+      this.state.save();
+
+      const mapName = isBoss
+        ? mc.bossDef.name
+        : `Tier ${tier} Map`;
+
+      console.log(`[CombatScene] mapComplete: ${mapName}`, {
+        gold: data.totalGold,
+        xp: data.totalXp,
+        drops: mapDrops.length,
+      });
+
+      if (this.sceneManager) {
+        this.sceneManager.switchTo("victory", {
+          locationName: mapName,
+          rewards: { gold: data.totalGold, xp: data.totalXp },
+          mapDrops,
+          isMapVictory: true,
+        });
+      }
+    };
+    this.events.on("mapComplete", this._onMapComplete);
+
     // 6. Emit stateLoaded so HUD picks up current values
     this.events.emit("stateLoaded", this.state.data);
 
-    // 7. Start combat — location-based or legacy infinite
-    if (params.location) {
+    // 7. Start combat — map-based, location-based, or legacy infinite
+    if (isMapMode) {
+      this.combat.startMap(params.mapConfig);
+    } else if (params.location) {
       this.combat.startLocation(params.location);
     } else {
       this.combat.init();
@@ -235,6 +320,10 @@ export class CombatScene {
     if (this._onLocationComplete) {
       this.events.off("locationComplete", this._onLocationComplete);
       this._onLocationComplete = null;
+    }
+    if (this._onMapComplete) {
+      this.events.off("mapComplete", this._onMapComplete);
+      this._onMapComplete = null;
     }
 
     // Cleanup sub-systems

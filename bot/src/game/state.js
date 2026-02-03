@@ -1,4 +1,6 @@
 import { getCharacterClass } from "../data/character-classes.js";
+import { isEndgameUnlocked, createMapKeyItem } from "../data/endgame-maps.js";
+import { B } from "../data/balance.js";
 
 const SAVE_KEY = "33metro_save";
 
@@ -14,7 +16,7 @@ function createDefault() {
       totalTaps: 0,
       totalKills: 0,
       totalGold: 0,
-      version: 3,
+      version: 4,
     },
   };
 }
@@ -26,17 +28,23 @@ function createDefaultCharacter() {
     classId: "",
     skinId: "",
     createdAt: 0,
-    level: 1,
+    level: B.STARTING_STATS.level,
     xp: 0,
-    xpToNext: 100,
-    tapDamage: 1,
-    critChance: 0.05,
-    critMultiplier: 2.0,
-    passiveDps: 0,
+    xpToNext: B.XP_BASE,
+    tapDamage: B.STARTING_STATS.tapDamage,
+    critChance: B.STARTING_STATS.critChance,
+    critMultiplier: B.STARTING_STATS.critMultiplier,
+    passiveDps: B.STARTING_STATS.passiveDps,
     combat: { currentStage: 1, currentWave: 1, wavesPerStage: 10 },
     locations: { completed: [], current: null, currentAct: 1 },
     inventory: { items: [], equipment: {} },
-    bag: [],  // Array of item objects: { id, name, quality, level, icon, acquiredAt }
+    bag: [],  // Array of item objects: { id, name, type, quality, level, icon, acquiredAt }
+    endgame: {
+      unlocked: false,
+      completedBosses: [],
+      highestTierCompleted: 0,
+      totalMapsRun: 0,
+    },
   };
 }
 
@@ -68,6 +76,11 @@ export class GameState {
         // V2 → V3: prefix location IDs with act1_, add currentAct
         if (this.data.meta.version < 3) {
           this._migrateV2toV3();
+        }
+
+        // V3 → V4: add endgame state to characters
+        if (this.data.meta.version < 4) {
+          this._migrateV3toV4();
         }
       }
     } catch {
@@ -120,14 +133,13 @@ export class GameState {
   calculateOfflineProgress() {
     const now = Date.now();
     const elapsed = (now - this.data.meta.lastSaveTime) / 1000;
-    const maxSeconds = 8 * 60 * 60;
-    const seconds = Math.min(elapsed, maxSeconds);
+    const seconds = Math.min(elapsed, B.OFFLINE_MAX_SECONDS);
 
-    if (seconds < 10 || !this.data.player || this.data.player.passiveDps <= 0) {
+    if (seconds < B.OFFLINE_MIN_SECONDS || !this.data.player || this.data.player.passiveDps <= 0) {
       return { offlineGold: 0, seconds: 0 };
     }
 
-    const offlineGold = Math.floor(this.data.player.passiveDps * seconds * 0.5);
+    const offlineGold = Math.floor(this.data.player.passiveDps * seconds * B.OFFLINE_DPS_RATE);
     return { offlineGold, seconds };
   }
 
@@ -226,6 +238,7 @@ export class GameState {
     this.data.combat = char.combat;
     this.data.locations = char.locations;
     this.data.inventory = char.inventory;
+    this.data.endgame = char.endgame;
 
     this._playerProxy = playerView;
   }
@@ -242,13 +255,13 @@ export class GameState {
       classId: "samurai",
       skinId: "samurai_1",
       createdAt: saved.meta?.lastSaveTime || Date.now(),
-      level: oldPlayer.level || 1,
+      level: oldPlayer.level || B.STARTING_STATS.level,
       xp: oldPlayer.xp || 0,
-      xpToNext: oldPlayer.xpToNext || 100,
-      tapDamage: oldPlayer.tapDamage || 1,
-      critChance: oldPlayer.critChance || 0.05,
-      critMultiplier: oldPlayer.critMultiplier || 2.0,
-      passiveDps: oldPlayer.passiveDps || 0,
+      xpToNext: oldPlayer.xpToNext || B.XP_BASE,
+      tapDamage: oldPlayer.tapDamage || B.STARTING_STATS.tapDamage,
+      critChance: oldPlayer.critChance || B.STARTING_STATS.critChance,
+      critMultiplier: oldPlayer.critMultiplier || B.STARTING_STATS.critMultiplier,
+      passiveDps: oldPlayer.passiveDps || B.STARTING_STATS.passiveDps,
       combat: saved.combat || { currentStage: 1, currentWave: 1, wavesPerStage: 10 },
       locations: saved.locations || { completed: [], current: null, currentAct: 1 },
       inventory: saved.inventory || { items: [], equipment: {} },
@@ -285,6 +298,80 @@ export class GameState {
       }
     }
     this.data.meta.version = 3;
+  }
+
+  /* ── Migration V3 → V4 (endgame state) ────────────────── */
+
+  _migrateV3toV4() {
+    for (const char of this.data.characters) {
+      if (!char.endgame) {
+        char.endgame = {
+          unlocked: false,
+          completedBosses: [],
+          highestTierCompleted: 0,
+          totalMapsRun: 0,
+        };
+      }
+      // Ensure bag exists
+      if (!Array.isArray(char.bag)) {
+        char.bag = [];
+      }
+      // Ensure bag items have type field
+      for (const item of char.bag) {
+        if (!item.type) item.type = "equipment";
+      }
+    }
+    this.data.meta.version = 4;
+  }
+
+  /* ── Endgame helpers ─────────────────────────────────── */
+
+  /** Check and set endgame unlock status for active character. */
+  checkEndgameUnlock() {
+    const char = this.getActiveCharacter();
+    if (!char) return false;
+    if (!char.endgame) return false;
+    if (char.endgame.unlocked) return false;
+
+    const completed = char.locations.completed || [];
+    if (isEndgameUnlocked(completed)) {
+      char.endgame.unlocked = true;
+      if (!Array.isArray(char.bag)) char.bag = [];
+      // Grant starter map keys
+      for (let i = 0; i < B.ENDGAME_STARTER_KEYS; i++) {
+        char.bag.push(createMapKeyItem(B.ENDGAME_STARTER_TIER));
+      }
+      this.save();
+      this.events.emit("endgameUnlocked");
+      return true;
+    }
+    return false;
+  }
+
+  /** Add a map key item to the active character's bag. */
+  addMapKeyToBag(mapKeyItem) {
+    const char = this.getActiveCharacter();
+    if (!char) return;
+    if (!Array.isArray(char.bag)) char.bag = [];
+    char.bag.push(mapKeyItem);
+    this.scheduleSave();
+  }
+
+  /** Remove a map key from the bag by item id. */
+  removeMapKeyFromBag(itemId) {
+    const char = this.getActiveCharacter();
+    if (!char) return;
+    char.bag = char.bag.filter(item => item.id !== itemId);
+    this.scheduleSave();
+  }
+
+  /** Get all map keys from the active character's bag. */
+  getMapKeys() {
+    const char = this.getActiveCharacter();
+    if (!char || !Array.isArray(char.bag)) return [];
+    return char.bag.filter(item =>
+      item.type === "map_key" || item.type === "boss_map_key"
+    );
   }
 
   /* ── V2 merge (preserves arrays as-is) ───────────────── */

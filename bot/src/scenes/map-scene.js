@@ -37,6 +37,10 @@ export class MapScene {
       : (this.state.data.locations.completed || []);
     const highestAct = IS_TESTING ? TOTAL_ACTS : getHighestUnlockedAct(completed);
 
+    // Check endgame unlock
+    const char = this.state.getActiveCharacter();
+    this._endgameUnlocked = IS_TESTING || (char && char.endgame && char.endgame.unlocked);
+
     // Restore last viewed act (clamped to unlocked range)
     this._selectedAct = Math.min(
       this.state.data.locations.currentAct || highestAct,
@@ -57,6 +61,35 @@ export class MapScene {
       </div>
     `;
 
+    // Cache list element
+    this._listEl = this.container.querySelector("#map-list");
+
+    // Delegated click on #map-list — handles both cards and mods toggle
+    this._listEl.addEventListener("click", (e) => {
+      // Modifiers toggle
+      const toggle = e.target.closest("#map-mod-toggle");
+      if (toggle) {
+        const panel = this._listEl.querySelector("#map-mod-panel");
+        if (panel) {
+          panel.classList.toggle("map-modifiers__panel--hidden");
+          const arrow = toggle.querySelector(".map-modifiers__arrow");
+          if (arrow) {
+            arrow.textContent = panel.classList.contains("map-modifiers__panel--hidden") ? "\u25BC" : "\u25B2";
+          }
+        }
+        return;
+      }
+      // Location card click
+      const card = e.target.closest(".location-card");
+      if (!card || card.dataset.status === "locked") return;
+      const locId = card.dataset.id;
+      const locations = getLocationsForAct(this._selectedAct);
+      const location = locations.find((l) => l.id === locId);
+      if (location) {
+        this.sceneManager.switchTo("combat", { location });
+      }
+    });
+
     // Render cards for the selected act
     this._renderCards();
 
@@ -70,6 +103,12 @@ export class MapScene {
       const tab = e.target.closest(".map-tab");
       if (!tab) return;
       if (tab.classList.contains("map-tab--locked")) return;
+
+      // Endgame tab → switch to Map Device scene
+      if (tab.dataset.act === "endgame") {
+        this.sceneManager.switchTo("mapDevice");
+        return;
+      }
 
       const act = Number(tab.dataset.act);
       this._switchAct(act, highestAct);
@@ -97,12 +136,21 @@ export class MapScene {
       }
       html += `<button class="${cls}" data-act="${a}">${label}</button>`;
     }
+
+    // Endgame tab (shown when all acts complete)
+    if (this._endgameUnlocked) {
+      html += `<button class="map-tab map-tab--endgame map-tab--unlocked" data-act="endgame">Endgame</button>`;
+    }
+
     return html;
   }
 
   _updateTabVisuals(highestAct) {
     const tabs = this.container.querySelectorAll(".map-tab");
     tabs.forEach((tab) => {
+      // Skip endgame tab — it manages its own classes
+      if (tab.dataset.act === "endgame") return;
+
       const a = Number(tab.dataset.act);
       tab.className = "map-tab";
       if (a === this._selectedAct) {
@@ -207,7 +255,7 @@ export class MapScene {
       ? ALL_LOCATIONS.map(l => l.id)
       : (this.state.data.locations.completed || []);
     const locations = getLocationsForAct(this._selectedAct);
-    const listEl = this.container.querySelector("#map-list");
+    const listEl = this._listEl;
     if (!listEl) return;
 
     const modsBanner = this._renderModifiersBanner();
@@ -249,44 +297,10 @@ export class MapScene {
     }).join("");
 
     listEl.innerHTML = modsBanner + cards;
-
-    // Wire modifiers toggle
-    const toggleBtn = listEl.querySelector("#map-mod-toggle");
-    const panel = listEl.querySelector("#map-mod-panel");
-    if (toggleBtn && panel) {
-      toggleBtn.addEventListener("click", () => {
-        panel.classList.toggle("map-modifiers__panel--hidden");
-        const arrow = toggleBtn.querySelector(".map-modifiers__arrow");
-        if (arrow) {
-          arrow.textContent = panel.classList.contains("map-modifiers__panel--hidden") ? "\u25BC" : "\u25B2";
-        }
-      });
-    }
-
-    // Remove previous listener if any
-    if (this._cardClickHandler) {
-      listEl.removeEventListener("click", this._cardClickHandler);
-    }
-
-    // Card clicks
-    this._cardClickHandler = (e) => {
-      const card = e.target.closest(".location-card");
-      if (!card) return;
-
-      const status = card.dataset.status;
-      if (status === "locked") return;
-
-      const locId = card.dataset.id;
-      const location = locations.find((l) => l.id === locId);
-      if (location) {
-        this.sceneManager.switchTo("combat", { location });
-      }
-    };
-    listEl.addEventListener("click", this._cardClickHandler);
   }
 
   unmount() {
     this.container.innerHTML = "";
-    this._cardClickHandler = null;
+    this._listEl = null;
   }
 }

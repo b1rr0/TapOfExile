@@ -1,26 +1,24 @@
 import { MONSTER_TYPES, RARITIES } from "../data/monster-types.js";
+import { B } from "../data/balance.js";
 
 // ─── Legacy helpers (still used by old init() path) ──────────
 
 export function getMonsterHp(stage, wave) {
-  const base = 10;
-  const stageScale = Math.pow(1.5, stage - 1);
-  const waveBonus = 1 + (wave - 1) * 0.1;
-  return Math.floor(base * stageScale * waveBonus);
+  const stageScale = Math.pow(B.LEGACY_HP_GROWTH, stage - 1);
+  const waveBonus = 1 + (wave - 1) * B.LEGACY_HP_WAVE_BONUS;
+  return Math.floor(B.LEGACY_HP_BASE * stageScale * waveBonus);
 }
 
 export function getMonsterGold(stage, wave) {
-  const base = 5;
-  const stageScale = Math.pow(1.4, stage - 1);
-  const waveBonus = 1 + (wave - 1) * 0.05;
-  return Math.floor(base * stageScale * waveBonus);
+  const stageScale = Math.pow(B.LEGACY_GOLD_GROWTH, stage - 1);
+  const waveBonus = 1 + (wave - 1) * B.LEGACY_GOLD_WAVE_BONUS;
+  return Math.floor(B.LEGACY_GOLD_BASE * stageScale * waveBonus);
 }
 
 export function getMonsterXp(stage, wave) {
-  const base = 10;
-  const stageScale = Math.pow(1.3, stage - 1);
-  const waveBonus = 1 + (wave - 1) * 0.05;
-  return Math.floor(base * stageScale * waveBonus);
+  const stageScale = Math.pow(B.LEGACY_XP_GROWTH, stage - 1);
+  const waveBonus = 1 + (wave - 1) * B.LEGACY_XP_WAVE_BONUS;
+  return Math.floor(B.LEGACY_XP_BASE * stageScale * waveBonus);
 }
 
 export function createMonster(stage, wave) {
@@ -41,7 +39,7 @@ export function createMonster(stage, wave) {
   };
 }
 
-// ─── Location-based monster creation ─────────────────────────
+// ─── Shared helpers ──────────────────────────────────────────
 
 /**
  * Randomise an integer in [min, max] (inclusive).
@@ -49,6 +47,57 @@ export function createMonster(stage, wave) {
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+// ─── Map-based monster creation (endgame) ────────────────────
+
+/**
+ * Create a monster scaled for an endgame map.
+ * Uses Act 5 order-10 as the base, then applies tier/boss multipliers.
+ *
+ * @param {string} typeName    — monster type name (e.g. "Shogun")
+ * @param {string} rarityId    — rarity key from RARITIES
+ * @param {number} tierHpMul   — from MAP_TIERS[tier].hpMul or BOSS_MAPS[].hpMul
+ * @param {number} tierGoldMul — from MAP_TIERS[tier].goldMul or BOSS_MAPS[].goldMul
+ * @param {number} tierXpMul   — from MAP_TIERS[tier].xpMul or BOSS_MAPS[].xpMul
+ * @returns {Object} monster instance
+ */
+export function createMonsterForMap(typeName, rarityId, tierHpMul, tierGoldMul, tierXpMul) {
+  const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
+  const rarity = RARITIES[rarityId] || RARITIES.common;
+
+  // Base = Act 5 order 10 equivalent
+  const actMul = Math.pow(B.ACT_SCALING_BASE, B.MAP_BASE_ACT - 1);
+  const orderScale = B.MAP_BASE_ORDER;
+
+  // HP: base × orderScale × rarity × actMul × tierMul, randomised ±15%
+  const hpScale = Math.pow(B.MONSTER_HP_GROWTH, orderScale - 1);
+  const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actMul * tierHpMul);
+  const hpMin = Math.max(1, Math.floor(baseHp * (1 - B.MONSTER_HP_RANDOM)));
+  const hpMax = Math.ceil(baseHp * (1 + B.MONSTER_HP_RANDOM));
+  const hp = randInt(hpMin, hpMax);
+
+  // Gold
+  const goldScale = Math.pow(B.MONSTER_GOLD_GROWTH, orderScale - 1);
+  const gold = Math.floor(B.MONSTER_GOLD_BASE * goldScale * rarity.goldMul * actMul * tierGoldMul);
+
+  // XP
+  const xpScale = Math.pow(B.MONSTER_XP_GROWTH, orderScale - 1);
+  const xp = Math.floor(B.MONSTER_XP_BASE * xpScale * rarity.xpMul * actMul * tierXpMul);
+
+  return {
+    name: type.name,
+    cssClass: type.cssClass,
+    bodyColor: type.bodyColor,
+    eyeColor: type.eyeColor,
+    rarity,
+    maxHp: hp,
+    currentHp: hp,
+    goldReward: gold,
+    xpReward: xp,
+  };
+}
+
+// ─── Location-based monster creation ─────────────────────────
 
 /**
  * Create a monster for a specific location.
@@ -64,25 +113,22 @@ function randInt(min, max) {
 export function createMonsterForLocation(typeName, locationOrder, rarityId = "common", actNumber = 1) {
   const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
   const rarity = RARITIES[rarityId] || RARITIES.common;
-  const actMul = Math.pow(2.5, actNumber - 1);
+  const actMul = Math.pow(B.ACT_SCALING_BASE, actNumber - 1);
 
   // --- HP: base × locationScale × rarity × actMul, then randomise ±15 % ---
-  const hpBase = 10;
-  const hpScale = Math.pow(1.5, locationOrder - 1);
-  const baseHp = Math.floor(hpBase * hpScale * rarity.hpMul * actMul);
-  const hpMin = Math.max(1, Math.floor(baseHp * 0.85));
-  const hpMax = Math.ceil(baseHp * 1.15);
+  const hpScale = Math.pow(B.MONSTER_HP_GROWTH, locationOrder - 1);
+  const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actMul);
+  const hpMin = Math.max(1, Math.floor(baseHp * (1 - B.MONSTER_HP_RANDOM)));
+  const hpMax = Math.ceil(baseHp * (1 + B.MONSTER_HP_RANDOM));
   const hp = randInt(hpMin, hpMax);
 
   // --- Gold ---
-  const goldBase = 3;
-  const goldScale = Math.pow(1.35, locationOrder - 1);
-  const gold = Math.floor(goldBase * goldScale * rarity.goldMul * actMul);
+  const goldScale = Math.pow(B.MONSTER_GOLD_GROWTH, locationOrder - 1);
+  const gold = Math.floor(B.MONSTER_GOLD_BASE * goldScale * rarity.goldMul * actMul);
 
   // --- XP ---
-  const xpBase = 5;
-  const xpScale = Math.pow(1.3, locationOrder - 1);
-  const xp = Math.floor(xpBase * xpScale * rarity.xpMul * actMul);
+  const xpScale = Math.pow(B.MONSTER_XP_GROWTH, locationOrder - 1);
+  const xp = Math.floor(B.MONSTER_XP_BASE * xpScale * rarity.xpMul * actMul);
 
   return {
     name: type.name,

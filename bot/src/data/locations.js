@@ -17,6 +17,8 @@
  * Side branches = orders 9-10 (optional, don't gate act progression).
  */
 
+import { B } from "./balance.js";
+
 /* ── Wave templates (reused across acts) ──────────────────── */
 
 const WAVE_TEMPLATES = [
@@ -89,19 +91,7 @@ const WAVE_TEMPLATES = [
   ],
 ];
 
-/** Base rewards per order slot (gold, xp). Actual rewards = base × actMultiplier. */
-const BASE_REWARDS = [
-  { gold: 60,  xp: 40  },  // order 1
-  { gold: 100, xp: 65  },  // order 2
-  { gold: 140, xp: 95  },  // order 3
-  { gold: 190, xp: 130 },  // order 4
-  { gold: 260, xp: 180 },  // order 5
-  { gold: 350, xp: 240 },  // order 6
-  { gold: 450, xp: 320 },  // order 7
-  { gold: 600, xp: 450 },  // order 8
-  { gold: 300, xp: 220 },  // order 9  (side branch)
-  { gold: 420, xp: 300 },  // order 10 (side branch)
-];
+/** Base rewards per order slot — defined in balance.js */
 
 /**
  * Requirement pattern for 10 locations within an act.
@@ -315,7 +305,7 @@ function buildActLocations(actNumber) {
       act: actNumber,
       requiredLocationId,
       waves: WAVE_TEMPLATES[i],
-      rewards: BASE_REWARDS[i],
+      rewards: B.LOCATION_REWARDS[i],
     };
   });
 }
@@ -406,7 +396,7 @@ export function getActGateLocationId(actNumber) {
  * @returns {{ gold: number, xp: number }}
  */
 export function getScaledRewards(location) {
-  const actMul = Math.pow(2.5, (location.act || 1) - 1);
+  const actMul = Math.pow(B.ACT_SCALING_BASE, (location.act || 1) - 1);
   return {
     gold: Math.floor(location.rewards.gold * actMul),
     xp: Math.floor(location.rewards.xp * actMul),

@@ -1,5 +1,7 @@
+import { B } from "../data/balance.js";
+
 export function xpToNextLevel(level) {
-  return Math.floor(100 * Math.pow(1.3, level - 1));
+  return Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, level - 1));
 }
 
 export function checkLevelUp(player) {
