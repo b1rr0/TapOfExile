@@ -24,6 +24,7 @@ import {
 } from '@shared/endgame-maps';
 import { StartLocationDto } from './dto/start-location.dto';
 import { StartMapDto } from './dto/start-map.dto';
+import { computeElementalDamage } from './elemental-damage';
 
 interface RedisCombatSession {
   id: string;
@@ -292,11 +293,11 @@ export class CombatService {
     });
     if (!char) throw new NotFoundException('Character not found');
 
-    // Calculate damage
+    // Calculate raw damage (before elemental split)
     const isCrit = Math.random() < char.critChance;
-    let damage = char.tapDamage;
+    let rawDamage = char.tapDamage;
     if (isCrit) {
-      damage = Math.floor(damage * char.critMultiplier);
+      rawDamage = Math.floor(rawDamage * char.critMultiplier);
     }
 
     // Apply damage to current monster
@@ -305,7 +306,12 @@ export class CombatService {
       throw new BadRequestException('No monster to attack');
     }
 
-    monster.currentHp -= damage;
+    // Elemental damage: split by profile, reduce by resistance
+    const damageProfile = char.elementalDamage || { physical: 1.0 };
+    const monsterResistance = monster.resistance || {};
+    const breakdown = computeElementalDamage(rawDamage, damageProfile, monsterResistance);
+
+    monster.currentHp -= breakdown.total;
     session.totalTaps++;
     session.lastTapTime = now;
 
@@ -323,7 +329,8 @@ export class CombatService {
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
 
     return {
-      damage,
+      damage: breakdown.total,
+      damageBreakdown: breakdown,
       isCrit,
       monsterHp: monster.currentHp,
       monsterMaxHp: monster.maxHp,

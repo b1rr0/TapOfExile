@@ -82,4 +82,21 @@ export const B = {
   /* ── Endgame start ────────────────────────── */
   ENDGAME_STARTER_KEYS: 3,
   ENDGAME_STARTER_TIER: 1,
+
+  /* ── Elemental system ───────────────────────── */
+
+  /** Default elemental damage profile — 100% physical for everyone.
+   *  Elemental splits come from skill-tree nodes, not from class. */
+  DEFAULT_ELEMENTAL_DAMAGE: { physical: 1.0 } as Record<string, number>,
+
+  /** Bonus added to ALL base resistances by monster rarity. */
+  RARITY_RESISTANCE_BONUS: {
+    common: 0,
+    rare:   0.05,
+    epic:   0.10,
+    boss:   0.15,
+  } as Record<string, number>,
+
+  /** Hard cap for any single resistance value. */
+  RESISTANCE_CAP: 0.75,
 };

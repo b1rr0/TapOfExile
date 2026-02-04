@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { B } from '../shared/constants/balance.constants';
+import type { ElementalResistance, ElementalDamage, ResistableElement } from '@shared/types';
 import { MONSTER_TYPES, RARITIES, Rarity } from './monster-types';
 
 export interface ServerMonster {
@@ -10,6 +11,8 @@ export interface ServerMonster {
   currentHp: number;
   goldReward: number;
   xpReward: number;
+  resistance: ElementalResistance;
+  outgoingDamage: ElementalDamage;
 }
 
 export interface MonsterSpawn {
@@ -57,6 +60,9 @@ export class LevelGenService {
     const xpScale = Math.pow(B.MONSTER_XP_GROWTH, locationOrder - 1);
     const xp = Math.floor(B.MONSTER_XP_BASE * xpScale * rarity.xpMul * actMul);
 
+    // Elemental resistance: base from type + rarity bonus, capped
+    const resistance = this.computeResistance(type.resistance, rarityId);
+
     return {
       name: type.name,
       type: type.name,
@@ -65,6 +71,8 @@ export class LevelGenService {
       currentHp: hp,
       goldReward: gold,
       xpReward: xp,
+      resistance,
+      outgoingDamage: type.outgoingDamage || { physical: 1.0 },
     };
   }
 
@@ -100,6 +108,8 @@ export class LevelGenService {
     const xpScale = Math.pow(B.MONSTER_XP_GROWTH, orderScale - 1);
     const xp = Math.floor(B.MONSTER_XP_BASE * xpScale * rarity.xpMul * actMul * tierXpMul);
 
+    const resistance = this.computeResistance(type.resistance, rarityId);
+
     return {
       name: type.name,
       type: type.name,
@@ -108,7 +118,31 @@ export class LevelGenService {
       currentHp: hp,
       goldReward: gold,
       xpReward: xp,
+      resistance,
+      outgoingDamage: type.outgoingDamage || { physical: 1.0 },
     };
+  }
+
+  /**
+   * Compute final resistance: base from MonsterType + rarity bonus, capped.
+   */
+  private computeResistance(
+    baseRes: ElementalResistance | undefined,
+    rarityId: string,
+  ): ElementalResistance {
+    const rarityBonus = B.RARITY_RESISTANCE_BONUS[rarityId] || 0;
+    const src = baseRes || {};
+    const result: ElementalResistance = {};
+    const elements: ResistableElement[] = ['physical', 'fire', 'lightning', 'cold'];
+
+    for (const elem of elements) {
+      const base = src[elem] || 0;
+      if (base !== 0 || rarityBonus !== 0) {
+        result[elem] = Math.min(B.RESISTANCE_CAP, base + rarityBonus);
+      }
+    }
+
+    return result;
   }
 
   /**

@@ -148,6 +148,7 @@ export class CombatManager {
 
         this.events.emit("damage", {
           damage: result.damage,
+          damageBreakdown: result.damageBreakdown,
           isCrit: result.isCrit,
           monster: this.monster,
         });
@@ -198,6 +199,7 @@ export class CombatManager {
       currentHp: serverMonster.currentHp ?? serverMonster.maxHp,
       goldReward: serverMonster.goldReward || 0,
       xpReward: serverMonster.xpReward || 0,
+      resistance: serverMonster.resistance || {},
     };
     this.events.emit("monsterSpawned", this.monster);
   }

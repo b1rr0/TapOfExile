@@ -5,6 +5,54 @@
  * BE-only types (entities, DTOs) stay in server.
  */
 
+// ── Elemental System ─────────────────────────────────────
+
+export type DamageElement = 'physical' | 'fire' | 'lightning' | 'cold' | 'pure';
+export type ResistableElement = 'physical' | 'fire' | 'lightning' | 'cold';
+
+/**
+ * Damage split: fraction of total damage per element.
+ * Values 0..1, should sum to ~1.0.
+ * Missing keys = 0. Pure damage bypasses all resistance.
+ */
+export interface ElementalDamage {
+  physical?: number;
+  fire?: number;
+  lightning?: number;
+  cold?: number;
+  pure?: number;
+}
+
+/**
+ * Resistance per element: 0 = no resist, 0.75 = 75% resist.
+ * Can go negative (vulnerability). No pure — pure is unresistable.
+ */
+export interface ElementalResistance {
+  physical?: number;
+  fire?: number;
+  lightning?: number;
+  cold?: number;
+}
+
+/** Per-element breakdown returned after damage calculation. */
+export interface DamageBreakdown {
+  total: number;
+  physical: number;
+  fire: number;
+  lightning: number;
+  cold: number;
+  pure: number;
+}
+
+/** UI color per element. */
+export const ELEMENT_COLORS: Record<DamageElement, string> = {
+  physical:  '#c0c0c0',
+  fire:      '#ff4500',
+  lightning: '#00bfff',
+  cold:      '#87ceeb',
+  pure:      '#da70d6',
+};
+
 // ── Skill tree ───────────────────────────────────────────
 
 export type ModMode = "percent" | "flat";

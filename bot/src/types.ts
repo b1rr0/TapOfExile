@@ -10,7 +10,14 @@ export type {
   BossMap,
   DropSettings,
   BagItemData,
+  DamageElement,
+  ResistableElement,
+  ElementalDamage,
+  ElementalResistance,
+  DamageBreakdown,
 } from "@shared/types";
+
+export { ELEMENT_COLORS } from "@shared/types";
 
 // ── Re-export skill tree types from shared ───────────────
 
@@ -153,6 +160,7 @@ export interface Monster {
   currentHp: number;
   goldReward: number;
   xpReward: number;
+  resistance?: import("@shared/types").ElementalResistance;
 }
 
 // ── Location Types ───────────────────────────────────────
@@ -247,7 +255,7 @@ export interface Scene {
 
 export interface GameEventMap {
   monsterSpawned: Monster;
-  damage: { damage: number; isCrit: boolean; monster: Monster };
+  damage: { damage: number; damageBreakdown?: import("@shared/types").DamageBreakdown; isCrit: boolean; monster: Monster };
   passiveDamage: { damage: number; monster: Monster };
   monsterDied: { monster: Monster; gold: number; xp: number };
   locationWaveProgress: { current: number; total: number };

@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import type { ElementalDamage } from '@shared/types';
 import { Player } from './player.entity';
 import { PlayerLeague } from './player-league.entity';
 
@@ -62,6 +63,10 @@ export class Character {
 
   @Column({ type: 'float', default: 0 })
   passiveDps: number;
+
+  // Elemental damage profile (fractions summing to ~1.0)
+  @Column({ type: 'jsonb', default: '{"physical":1.0}' })
+  elementalDamage: ElementalDamage;
 
   // Combat state
   @Column({ type: 'int', default: 1 })

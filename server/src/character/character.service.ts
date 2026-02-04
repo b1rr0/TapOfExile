@@ -155,6 +155,7 @@ export class CharacterService {
       critChance: B.STARTING_STATS.critChance,
       critMultiplier: B.STARTING_STATS.critMultiplier,
       passiveDps: B.STARTING_STATS.passiveDps,
+      elementalDamage: { ...B.DEFAULT_ELEMENTAL_DAMAGE },
       combatCurrentStage: 1,
       combatCurrentWave: 1,
       combatWavesPerStage: 10,

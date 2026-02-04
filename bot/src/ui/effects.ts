@@ -1,3 +1,6 @@
+import type { DamageBreakdown, DamageElement } from "@shared/types";
+import { ELEMENT_COLORS } from "@shared/types";
+
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
   off(event: string, callback: (...args: any[]) => void): void;
@@ -6,6 +9,7 @@ interface EventBus {
 
 interface DamageData {
   damage: number;
+  damageBreakdown?: DamageBreakdown;
   isCrit: boolean;
 }
 
@@ -35,7 +39,11 @@ export class Effects {
 
   _listen(): void {
     this.events.on("damage", (data: DamageData) => {
-      this.showDamageNumber(data.damage, data.isCrit);
+      if (data.damageBreakdown) {
+        this.showElementalDamage(data.damageBreakdown, data.isCrit);
+      } else {
+        this.showDamageNumber(data.damage, data.isCrit);
+      }
     });
 
     this.events.on("monsterDied", (data: MonsterDiedData) => {
@@ -65,6 +73,36 @@ export class Effects {
     el.style.top = `${30 + Math.random() * 20}%`;
     this.layer.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
+  }
+
+  showElementalDamage(breakdown: DamageBreakdown, isCrit: boolean): void {
+    const elements: DamageElement[] = ['physical', 'fire', 'lightning', 'cold', 'pure'];
+    let offsetIndex = 0;
+
+    for (const elem of elements) {
+      const amount = breakdown[elem];
+      if (!amount || amount <= 0) continue;
+
+      const existing = this.layer.querySelectorAll(".float-damage");
+      if (existing.length >= this._maxVisible) {
+        existing[0].remove();
+      }
+
+      const el = document.createElement("div");
+      el.className = `float-damage float-damage--${elem} ${isCrit ? "crit" : ""}`;
+      el.textContent = isCrit ? `-${amount}!` : `-${amount}`;
+      el.style.color = ELEMENT_COLORS[elem];
+
+      // Stagger horizontally so multiple elements don't overlap
+      const baseLeft = 50 + offsetIndex * 12;
+      el.style.left = `${baseLeft + Math.random() * 10}%`;
+      el.style.top = `${28 + Math.random() * 15 + offsetIndex * 5}%`;
+      el.style.animationDelay = `${offsetIndex * 0.05}s`;
+
+      this.layer.appendChild(el);
+      el.addEventListener("animationend", () => el.remove());
+      offsetIndex++;
+    }
   }
 
   showGoldDrop(amount: number): void {

@@ -184,6 +184,7 @@ export const combat = {
   tap(sessionId: string) {
     return post<{
       damage: number;
+      damageBreakdown?: import("@shared/types").DamageBreakdown;
       isCrit: boolean;
       monsterHp: number;
       monsterMaxHp: number;
