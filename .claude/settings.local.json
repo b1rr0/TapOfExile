@@ -33,7 +33,8 @@
       "Bash(npx tsc:*)",
       "Bash(npx nest build:*)",
       "Bash(docker-compose up:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
