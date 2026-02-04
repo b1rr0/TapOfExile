@@ -30,7 +30,10 @@
       "Bash(tree:*)",
       "Bash(find:*)",
       "Bash(wc:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx nest build:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker logs:*)"
     ]
   }
 }

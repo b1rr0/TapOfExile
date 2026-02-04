@@ -17,12 +17,12 @@ if (!WEBAPP_URL) {
 const bot = new Telegraf(BOT_TOKEN);
 
 bot.command("start", (ctx) => {
-  ctx.reply("Welcome to 33Metro! Tap the button below to play.", {
+  ctx.reply("Welcome to Tap of Exile! Tap the button below to play.", {
     reply_markup: {
       inline_keyboard: [
         [
           {
-            text: "\uD83D\uDE87 Play 33Metro",
+            text: "\uD83D\uDE87 Play Tap of Exile",
             web_app: { url: WEBAPP_URL },
           },
         ],
@@ -33,7 +33,7 @@ bot.command("start", (ctx) => {
 
 bot.command("help", (ctx) => {
   ctx.reply(
-    "33Metro \u2014 a Telegram mini-app game.\n\n" +
+    "Tap of Exile \u2014 a Telegram mini-app game.\n\n" +
       "Commands:\n" +
       "/start \u2014 Open the game\n" +
       "/help \u2014 Show this message"

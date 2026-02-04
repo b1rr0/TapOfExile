@@ -1,4 +1,4 @@
-# 33Metro — Telegram Mini App Game
+# Tap of Exile — Telegram Mini App Game
 
 Telegram bot with an HTML5 mini-game (tap clicker).
 

@@ -4,7 +4,7 @@ import { B } from "../data/balance.js";
 import type { GameData, Character, PlayerProxy, BagItem } from "../types.js";
 import type { EventBus } from "./events.js";
 
-const SAVE_KEY = "33metro_save";
+const SAVE_KEY = "tap_of_exile_save";
 
 /* ── V2 default state ─────────────────────────────────── */
 

@@ -1,4 +1,4 @@
-# 33Metro Bot — Architecture Overview
+# Tap of Exile Bot — Architecture Overview
 
 ## Stack
 - **Runtime:** Browser (Telegram Web App)
