@@ -123,9 +123,9 @@ export class HideoutScene {
               <span class="hideout-btn__icon">&#x1F4E6;</span>
               <span class="hideout-btn__label">Chest</span>
             </button>
-            <button class="hideout-btn hideout-btn--market" id="hideout-market-btn">
-              <span class="hideout-btn__icon">&#x1F4B0;</span>
-              <span class="hideout-btn__label">Market</span>
+            <button class="hideout-btn hideout-btn--tree" id="hideout-tree-btn">
+              <span class="hideout-btn__icon">&#x1F333;</span>
+              <span class="hideout-btn__label">Tree</span>
             </button>
           </div>
         </div>
@@ -159,9 +159,8 @@ export class HideoutScene {
       if (this.chestPanel) this.chestPanel.toggle();
     });
 
-    this.container.querySelector("#hideout-market-btn").addEventListener("click", () => {
-      // Market — placeholder, no logic yet
-      console.log("[Hideout] Market clicked — not implemented yet");
+    this.container.querySelector("#hideout-tree-btn").addEventListener("click", () => {
+      if (this.sceneManager) this.sceneManager.switchTo("skillTree");
     });
 
     // ── Top bar dropdowns ──────────────────────────────────

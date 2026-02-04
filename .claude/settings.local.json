@@ -27,7 +27,8 @@
       "Bash(bash:*)",
       "Bash(python -m json.tool:*)",
       "WebFetch(domain:poe2db.tw)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(find:*)"
     ]
   }
 }

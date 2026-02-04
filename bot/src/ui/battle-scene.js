@@ -31,7 +31,6 @@ export class BattleScene {
     this.events = events;
 
     // DOM refs
-    this.samuraiEl = null;
     this.monsterInfoEl = null;
     this.hpBarFill = null;
     this.hpText = null;
@@ -70,17 +69,9 @@ export class BattleScene {
     this.container.innerHTML = `
       <canvas class="scene-canvas hidden" id="scene-canvas"></canvas>
 
-      <div class="bg-layer" id="css-bg"></div>
-      <div class="ground" id="css-ground"></div>
-      <div class="samurai" id="samurai">
-        <div class="samurai-hat"></div>
-        <div class="samurai-head"></div>
-        <div class="samurai-body"></div>
-        <div class="samurai-sword"></div>
-        <div class="samurai-legs">
-          <div class="samurai-leg left"></div>
-          <div class="samurai-leg right"></div>
-        </div>
+      <div class="battle-loading" id="battle-loading">
+        <div class="battle-loading__spinner"></div>
+        <div class="battle-loading__text">Loading...</div>
       </div>
 
       <div class="monster-info" id="monster-info">
@@ -94,7 +85,6 @@ export class BattleScene {
       <div class="effects-layer" id="effects-layer"></div>
     `;
 
-    this.samuraiEl = this.container.querySelector("#samurai");
     this.monsterInfoEl = this.container.querySelector("#monster-info");
     this.hpBarFill = this.container.querySelector("#hp-bar");
     this.hpText = this.container.querySelector("#hp-text");
@@ -124,10 +114,9 @@ export class BattleScene {
 
       this.useSprites = true;
 
-      // Hide CSS fallback
-      this.samuraiEl.classList.add("hidden");
-      this.container.querySelector("#css-bg").classList.add("hidden");
-      this.container.querySelector("#css-ground").classList.add("hidden");
+      // Hide loading screen
+      const loadingEl = this.container.querySelector("#battle-loading");
+      if (loadingEl) loadingEl.classList.add("hidden");
 
       // Show canvas
       this.sceneCanvas.classList.remove("hidden");
@@ -162,7 +151,15 @@ export class BattleScene {
       this.hero = null;
       this.enemy = null;
       this.bgRenderer = null;
-      console.log("[BattleScene] Sprites not available, CSS fallback", err);
+      // Show error in loading area
+      const loadingEl = this.container.querySelector("#battle-loading");
+      if (loadingEl) {
+        const textEl = loadingEl.querySelector(".battle-loading__text");
+        if (textEl) textEl.textContent = "Failed to load sprites";
+        const spinnerEl = loadingEl.querySelector(".battle-loading__spinner");
+        if (spinnerEl) spinnerEl.classList.add("hidden");
+      }
+      console.log("[BattleScene] Sprites not available", err);
     }
   }
 
@@ -278,9 +275,6 @@ export class BattleScene {
     // Hero attacks
     if (this.useSprites && this.hero) {
       this.hero.attack();
-    } else {
-      this.samuraiEl.classList.add("attacking");
-      setTimeout(() => this.samuraiEl.classList.remove("attacking"), 200);
     }
 
     // Enemy shakes

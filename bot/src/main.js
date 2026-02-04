@@ -10,6 +10,7 @@ import { CharacterCreateScene } from "./scenes/character-create-scene.js";
 import { CharacterSelectScene } from "./scenes/character-select-scene.js";
 import { SkinShopScene } from "./scenes/skin-shop-scene.js";
 import { MapDeviceScene } from "./scenes/map-device-scene.js";
+import { SkillTreeScene } from "./scenes/skill-tree-scene.js";
 
 // Feature flags (set VITE_IS_TESTING=true in .env to enable)
 export const IS_TESTING = import.meta.env.VITE_IS_TESTING === "true";
@@ -19,6 +20,7 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   tg.expand();
+  if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 }
 
 // Core systems
@@ -68,6 +70,7 @@ sceneManager.register("map", MapScene);
 sceneManager.register("victory", VictoryScene);
 sceneManager.register("skinShop", SkinShopScene);
 sceneManager.register("mapDevice", MapDeviceScene);
+sceneManager.register("skillTree", SkillTreeScene);
 if (IS_TESTING) sceneManager.register("storybook", StorybookScene);
 
 // Route to starting scene based on character state

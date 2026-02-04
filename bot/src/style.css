@@ -286,111 +286,37 @@ body {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
-.bg-layer {
+/* === Battle Loading Screen === */
+.battle-loading {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #1a0a2e 0%, #2a1525 40%, #1a1a0a 100%);
-}
-
-.ground {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 30%;
-  background: linear-gradient(180deg, #2d1f0e 0%, #1a1408 100%);
-  border-top: 2px solid #4a3520;
-}
-
-/* === Samurai === */
-.samurai {
-  position: absolute;
-  left: 15%;
-  bottom: 30%;
-  width: 48px;
-  height: 80px;
-  transform-origin: bottom center;
-  animation: samurai-idle 1.2s ease-in-out infinite;
-  z-index: 5;
-}
-
-.samurai-hat {
-  width: 40px;
-  height: 10px;
-  background: #2a2a2a;
-  border-radius: 50%;
-  margin: 0 auto;
-  position: relative;
-}
-
-.samurai-head {
-  width: 20px;
-  height: 20px;
-  background: #e8c9a0;
-  border-radius: 50%;
-  margin: -2px auto 0;
-}
-
-.samurai-body {
-  width: 30px;
-  height: 28px;
-  background: #8b0000;
-  border-radius: 4px 4px 0 0;
-  margin: 2px auto 0;
-  position: relative;
-}
-
-.samurai-sword {
-  position: absolute;
-  right: -8px;
-  top: 30px;
-  width: 6px;
-  height: 36px;
-  background: linear-gradient(180deg, #c0c0c0, #808080);
-  border-radius: 2px;
-  transform-origin: top center;
-  transform: rotate(-15deg);
-  transition: transform 0.15s ease-out;
-}
-
-.samurai-sword::after {
-  content: "";
-  position: absolute;
-  bottom: -6px;
-  left: -1px;
-  width: 8px;
-  height: 6px;
-  background: #4a3520;
-  border-radius: 2px;
-}
-
-.samurai-legs {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  background: var(--game-bg);
+  z-index: 3;
 }
 
-.samurai-leg {
-  width: 10px;
-  height: 14px;
-  background: #333;
-  border-radius: 0 0 3px 3px;
+.battle-loading__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(196, 30, 58, 0.2);
+  border-top-color: var(--game-accent);
+  border-radius: 50%;
+  animation: battle-spin 0.8s linear infinite;
 }
 
-/* Samurai attack animation */
-.samurai.attacking .samurai-sword {
-  transform: rotate(60deg) translateX(10px);
+.battle-loading__text {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--game-text);
+  opacity: 0.7;
+  letter-spacing: 1px;
 }
 
-.samurai.attacking {
-  animation: none;
-  transform: translateX(12px);
-  transition: transform 0.1s ease-out;
-}
-
-@keyframes samurai-idle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+@keyframes battle-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* === Monster === */
@@ -3003,4 +2929,335 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--game-text);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PASSIVE SKILL TREE
+   ═══════════════════════════════════════════════════════ */
+
+.skill-tree {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at center, #1a1025 0%, #0d0510 60%, #050208 100%);
+  overflow: hidden;
+}
+
+/* ── Top bar ─────────────────────────── */
+
+.skill-tree__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.6);
+  border-bottom: 1px solid rgba(196,30,58,0.3);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.skill-tree__back {
+  background: none;
+  border: 1px solid rgba(240,230,211,0.25);
+  color: var(--game-text);
+  font-size: 14px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.skill-tree__back:active {
+  background: rgba(255,255,255,0.1);
+}
+
+.skill-tree__title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--game-text);
+}
+
+.skill-tree__pts-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.skill-tree__points {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--game-gold);
+  background: rgba(255,215,0,0.1);
+  padding: 2px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,215,0,0.25);
+}
+
+.skill-tree__class-pts {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a0d4ff;
+  background: rgba(100,180,255,0.1);
+  padding: 1px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(100,180,255,0.25);
+}
+
+/* ── Viewport ────────────────────────── */
+
+.skill-tree__viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+.skill-tree__viewport:active {
+  cursor: grabbing;
+}
+
+.skill-tree__viewport svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Edges ────────────────────────────── */
+
+.st-edge {
+  stroke: rgba(100,80,130,0.25);
+  stroke-width: 2;
+  transition: stroke 0.2s;
+}
+.st-edge--active {
+  stroke: rgba(200,160,255,0.6);
+  stroke-width: 2.5;
+}
+
+/* ── Nodes ────────────────────────────── */
+
+.st-node circle,
+.st-node path {
+  fill: #2a2040;
+  stroke: #5a4a70;
+  stroke-width: 2;
+  cursor: pointer;
+  transition: fill 0.15s, stroke 0.15s, filter 0.15s;
+}
+
+/* Minor */
+.st-node--minor circle {
+  fill: #2a2040;
+  stroke: #5a4a70;
+}
+
+/* Notable */
+.st-node--notable path {
+  fill: #3a2a50;
+  stroke: #8a6aff;
+  stroke-width: 2.5;
+}
+
+/* Keystone */
+.st-node--keystone path {
+  fill: #4a2040;
+  stroke: #ff6a8a;
+  stroke-width: 3;
+}
+
+/* Start */
+.st-node--start circle {
+  fill: #1a3040;
+  stroke: var(--game-gold);
+  stroke-width: 3;
+}
+
+/* ── Node states ──────────────────────── */
+
+/* Allocated */
+.st-node--allocated circle,
+.st-node--allocated path {
+  fill: #c8a0ff;
+  stroke: #e8d0ff;
+  filter: drop-shadow(0 0 6px rgba(200,160,255,0.5));
+}
+.st-node--start.st-node--allocated circle {
+  fill: var(--game-gold);
+  stroke: #fff5cc;
+  filter: drop-shadow(0 0 8px rgba(255,215,0,0.5));
+}
+.st-node--notable.st-node--allocated path {
+  fill: #a87aff;
+  stroke: #d4b0ff;
+  filter: drop-shadow(0 0 8px rgba(168,122,255,0.6));
+}
+.st-node--keystone.st-node--allocated path {
+  fill: #ff4a6a;
+  stroke: #ff8aa0;
+  filter: drop-shadow(0 0 10px rgba(255,74,106,0.6));
+}
+
+/* Reachable (available to allocate) */
+.st-node--reachable circle,
+.st-node--reachable path {
+  stroke: rgba(200,160,255,0.7);
+  animation: st-pulse 2s ease-in-out infinite;
+}
+
+@keyframes st-pulse {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(200,160,255,0.2)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(200,160,255,0.5)); }
+}
+
+/* ── Class emblem circles ─────────────── */
+
+.st-emblem__bg {
+  fill: rgba(8,4,18,0.85);
+}
+
+.st-emblem__ring {
+  fill: none;
+  stroke: rgba(120,90,160,0.4);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 3;
+}
+.st-emblem__ring--own {
+  stroke: rgba(200,160,255,0.6);
+  stroke-width: 3;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 6px rgba(200,160,255,0.3));
+}
+
+.st-emblem__label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: rgba(240,230,211,0.5);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* ── Class skill nodes (inside emblem) ── */
+
+.st-node--classSkill path {
+  fill: #1a2840;
+  stroke: #4a8adf;
+  stroke-width: 2;
+}
+
+.st-node--classSkill.st-node--allocated path {
+  fill: #4a9aff;
+  stroke: #8ac4ff;
+  filter: drop-shadow(0 0 6px rgba(74,154,255,0.5));
+}
+
+.st-node--classSkill.st-node--reachable path {
+  stroke: rgba(100,180,255,0.7);
+  animation: st-pulse-class 2s ease-in-out infinite;
+}
+
+@keyframes st-pulse-class {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(100,180,255,0.2)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(100,180,255,0.5)); }
+}
+
+.st-edge--class {
+  stroke: rgba(180,200,255,0.6);
+  stroke-width: 2;
+}
+.st-edge--class.st-edge--active {
+  stroke: rgba(160,220,255,0.9);
+  stroke-width: 2.5;
+}
+
+/* ── Tooltip ──────────────────────────── */
+
+.skill-tree__tooltip {
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10,5,20,0.95);
+  border: 1px solid rgba(200,160,255,0.4);
+  border-radius: 8px;
+  padding: 8px 14px;
+  text-align: center;
+  z-index: 20;
+  pointer-events: none;
+  min-width: 140px;
+}
+
+.st-tip__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c8a0ff;
+  margin-bottom: 2px;
+}
+
+.st-tip__label {
+  font-size: 12px;
+  color: var(--game-text);
+}
+
+.st-tip__type {
+  font-size: 10px;
+  color: rgba(240,230,211,0.5);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.st-tip__hint {
+  font-size: 10px;
+  color: rgba(200,160,255,0.6);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* ── Controls (zoom buttons) ──────────── */
+
+.skill-tree__controls {
+  position: absolute;
+  bottom: 16px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 15;
+}
+
+.skill-tree__zoom-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(200,160,255,0.3);
+  background: rgba(20,10,40,0.8);
+  color: var(--game-text);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.skill-tree__zoom-btn:active {
+  background: rgba(200,160,255,0.2);
+}
+
+.skill-tree__reset-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,100,100,0.3);
+  background: rgba(40,10,10,0.8);
+  color: #ff8a8a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+.skill-tree__reset-btn:active {
+  background: rgba(255,100,100,0.2);
 }
