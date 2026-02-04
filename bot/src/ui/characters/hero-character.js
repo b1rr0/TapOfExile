@@ -49,4 +49,19 @@ export class HeroCharacter extends Character {
       onComplete: () => this.play("idle"),
     });
   }
+
+  /**
+   * Play "run" animation for the spawn entrance sequence.
+   * Loops until stopRunning() is called by BattleScene.
+   */
+  runEntrance() {
+    this.play("run");
+  }
+
+  /**
+   * Return to idle after the entrance sequence ends.
+   */
+  stopRunning() {
+    this.play("idle");
+  }
 }

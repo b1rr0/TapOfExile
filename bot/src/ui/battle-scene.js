@@ -58,6 +58,15 @@ export class BattleScene {
     this._canvasH = 0;
     this._dpr = 1;
 
+    // Entrance animation (hero runs, camera pans)
+    this._entranceActive = false;
+    this._entranceElapsed = 0;
+    this._entranceDuration = 1.2;     // seconds (longer hero run)
+
+    // Wave progress (from CombatManager via events)
+    this._totalMonsters = 0;
+    this._currentMonsterIndex = 0;
+
     this._init();
     this._listen();
     this._tryLoadSprites();
@@ -200,8 +209,26 @@ export class BattleScene {
         this.monsterInfoEl.classList.add("hidden");
       }
 
-      // Redraw if anything changed
-      if (this.hero.needsRedraw || this.enemy.needsRedraw) {
+      // Camera pan update
+      let panning = false;
+      if (this.bgRenderer) {
+        panning = this.bgRenderer.updateCamera(dt);
+      }
+
+      // Entrance choreography: hero runs while camera pans
+      if (this._entranceActive) {
+        this._entranceElapsed += dt;
+
+        if (this._entranceElapsed >= this._entranceDuration && !panning) {
+          // Entrance complete (timer done AND camera settled)
+          this._entranceActive = false;
+          this._entranceElapsed = 0;
+          if (this.hero) this.hero.stopRunning();
+        }
+
+        this._drawFrame();
+      } else if (panning || this.hero.needsRedraw || this.enemy.needsRedraw) {
+        // Normal redraw (outside entrance, or camera still finishing)
         this.hero.clearRedraw();
         this.enemy.clearRedraw();
         this._drawFrame();
@@ -262,6 +289,11 @@ export class BattleScene {
       this._onMonsterSpawned(monster);
     });
 
+    this.events.on("locationWaveProgress", ({ current, total }) => {
+      this._currentMonsterIndex = current;
+      this._totalMonsters = total;
+    });
+
     this.events.on("stageChanged", (data) => {
       this._currentStage = data.stage;
       if (this.bgRenderer) {
@@ -272,6 +304,16 @@ export class BattleScene {
   }
 
   _onDamage(data) {
+    // Cancel entrance if player attacks during it
+    if (this._entranceActive) {
+      this._entranceActive = false;
+      this._entranceElapsed = 0;
+      // Snap camera to target position immediately
+      if (this.bgRenderer) {
+        this.bgRenderer.snapCamera(this.bgRenderer._targetCameraX);
+      }
+    }
+
     // Hero attacks
     if (this.useSprites && this.hero) {
       this.hero.attack();
@@ -317,6 +359,28 @@ export class BattleScene {
 
     if (this.useSprites && this.enemy) {
       this.enemy.spawn();
+      this._startEntrance();
+    }
+  }
+
+  /**
+   * Begin entrance choreography: hero runs, camera pans to new position.
+   */
+  _startEntrance() {
+    this._entranceActive = true;
+    this._entranceElapsed = 0;
+
+    // Hero runs in place
+    if (this.hero) {
+      this.hero.runEntrance();
+    }
+
+    // Camera pans based on wave progress
+    if (this.bgRenderer && this._totalMonsters > 1) {
+      const maxPan = this.bgRenderer.getMaxPan(this._canvasW, this._canvasH);
+      const progress = this._currentMonsterIndex / (this._totalMonsters - 1);
+      const targetX = maxPan * progress;
+      this.bgRenderer.setCameraTarget(targetX);
     }
   }
 

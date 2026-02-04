@@ -1,8 +1,12 @@
 /**
- * Background renderer: draws a static background image scaled to fill the canvas.
+ * Background renderer with camera/viewport system.
  *
- * Supports per-location backgrounds via setBackground(src).
- * Cached on offscreen canvas for performance.
+ * The background image is scaled to fit the canvas HEIGHT, making it wider
+ * than the canvas. A camera (`_cameraX`) controls which horizontal slice
+ * is visible — creating a panoramic scrolling effect as the player
+ * progresses through the location's monsters.
+ *
+ * Supports smooth pan transitions via setCameraTarget() + updateCamera(dt).
  */
 
 /** Default fallback background. */
@@ -14,17 +18,33 @@ export class BackgroundRenderer {
     this._loaded = false;
     this._currentSrc = null;
 
-    // Prebuilt background (cached)
+    // Cache
+    this._dirty = true;
     this._cache = null;
     this._cacheW = 0;
     this._cacheH = 0;
-    this._dirty = true;
+
+    // Camera state (in device-pixel space of the scaled image)
+    this._cameraX = 0;          // current viewport left edge
+    this._targetCameraX = 0;    // where camera is heading
+    this._panStartX = 0;        // cameraX at pan start
+    this._panActive = false;
+    this._panElapsed = 0;
+    this._panDuration = 1.2;    // seconds
+
+    // Cached scaling values (recomputed on draw when dimensions change)
+    this._scale = 1;
+    this._drawW = 0;
+    this._drawH = 0;
+    this._lastW = 0;
+    this._lastH = 0;
   }
+
+  // ─── Loading ──────────────────────────────────────────
 
   /**
    * Load the background image.
    * @param {string} [src] — image path; defaults to castle background
-   * @returns {Promise<void>}
    */
   async load(src) {
     const target = src || DEFAULT_BG;
@@ -34,13 +54,13 @@ export class BackgroundRenderer {
     this._bgImage = await this._loadImage(target);
     this._loaded = true;
     this._dirty = true;
+
+    // Reset camera for new image
+    this._cameraX = 0;
+    this._targetCameraX = 0;
+    this._panActive = false;
   }
 
-  /**
-   * Switch to a different background image.
-   * @param {string} src — image path
-   * @returns {Promise<void>}
-   */
   async setBackground(src) {
     if (!src || src === this._currentSrc) return;
     await this.load(src);
@@ -56,27 +76,143 @@ export class BackgroundRenderer {
     });
   }
 
+  // ─── Camera ───────────────────────────────────────────
+
   /**
-   * Stage change — mark dirty to redraw.
+   * Maximum horizontal pan range in device pixels.
+   * 0 means the image fits exactly or is narrower than canvas.
+   * @param {number} canvasW — canvas width in device pixels
+   * @param {number} canvasH — canvas height in device pixels
+   * @returns {number}
    */
-  setStage(_stage) {
+  getMaxPan(canvasW, canvasH) {
+    if (!this._loaded) return 0;
+    const img = this._bgImage;
+    const scale = canvasH / img.naturalHeight;
+    const drawW = img.naturalWidth * scale;
+    return Math.max(0, drawW - canvasW);
+  }
+
+  /**
+   * Set the camera target and begin a smooth pan.
+   * @param {number} x — target cameraX in device pixels
+   */
+  setCameraTarget(x) {
+    this._targetCameraX = x;
+    this._panStartX = this._cameraX;
+    this._panActive = true;
+    this._panElapsed = 0;
+  }
+
+  /**
+   * Snap camera to a position immediately (no animation).
+   * @param {number} x — cameraX in device pixels
+   */
+  snapCamera(x) {
+    this._cameraX = x;
+    this._targetCameraX = x;
+    this._panActive = false;
+    this._panElapsed = 0;
     this._dirty = true;
   }
 
   /**
-   * Draw the background onto a canvas context.
-   * Scales the image to cover the full canvas (cover mode).
+   * Advance the pan animation.
+   * @param {number} dt — delta time in seconds
+   * @returns {boolean} true if pan is still active
+   */
+  updateCamera(dt) {
+    if (!this._panActive) return false;
+
+    this._panElapsed += dt;
+
+    if (this._panElapsed >= this._panDuration) {
+      // Pan complete
+      this._cameraX = this._targetCameraX;
+      this._panActive = false;
+      this._dirty = true;
+      return false;
+    }
+
+    // Ease-out cubic: fast start, smooth stop
+    const t = this._panElapsed / this._panDuration;
+    const eased = 1 - Math.pow(1 - t, 3);
+
+    this._cameraX = this._panStartX + (this._targetCameraX - this._panStartX) * eased;
+    this._dirty = true;
+    return true;
+  }
+
+  // ─── Stage (compat) ───────────────────────────────────
+
+  setStage(_stage) {
+    this._dirty = true;
+  }
+
+  // ─── Rendering ────────────────────────────────────────
+
+  /**
+   * Draw the background viewport onto a canvas context.
+   *
+   * Scaling: height-fit (scale = canvasH / imgH).
+   * The image fills the canvas vertically and is wider horizontally.
+   * _cameraX selects which horizontal slice to show.
    */
   draw(ctx, w, h) {
     if (!this._loaded) return;
 
-    // Use cache if available
-    if (!this._dirty && this._cache && this._cacheW === w && this._cacheH === h) {
+    const img = this._bgImage;
+    const imgW = img.naturalWidth;
+    const imgH = img.naturalHeight;
+
+    // Height-fit scale
+    const scale = h / imgH;
+    const drawW = imgW * scale;
+    const drawH = h;
+
+    // Max pan (clamped to 0 if image narrower than canvas)
+    const maxPan = Math.max(0, drawW - w);
+
+    // Clamp camera
+    const camX = Math.max(0, Math.min(this._cameraX, maxPan));
+
+    // If image is narrower than or equal to canvas, center it (cover fallback)
+    if (maxPan <= 0) {
+      // Use cache for static centered image
+      if (!this._dirty && this._cache && this._cacheW === w && this._cacheH === h) {
+        ctx.drawImage(this._cache, 0, 0);
+        return;
+      }
+      this._ensureCache(w, h);
+      const cctx = this._cache.getContext("2d");
+      cctx.imageSmoothingEnabled = false;
+      cctx.clearRect(0, 0, w, h);
+      const dx = (w - drawW) / 2;
+      cctx.drawImage(img, dx, 0, drawW, drawH);
+      ctx.drawImage(this._cache, 0, 0);
+      this._dirty = false;
+      return;
+    }
+
+    // Use cache when not panning
+    if (!this._dirty && !this._panActive && this._cache && this._cacheW === w && this._cacheH === h) {
       ctx.drawImage(this._cache, 0, 0);
       return;
     }
 
-    // Build cache
+    this._ensureCache(w, h);
+    const cctx = this._cache.getContext("2d");
+    cctx.imageSmoothingEnabled = false;
+    cctx.clearRect(0, 0, w, h);
+
+    // Draw image shifted left by camera position
+    cctx.drawImage(img, -camX, 0, drawW, drawH);
+
+    ctx.drawImage(this._cache, 0, 0);
+    this._dirty = false;
+  }
+
+  _ensureCache(w, h) {
     if (!this._cache || this._cacheW !== w || this._cacheH !== h) {
       this._cache = document.createElement("canvas");
       this._cache.width = w;
@@ -84,26 +220,9 @@ export class BackgroundRenderer {
       this._cacheW = w;
       this._cacheH = h;
     }
-
-    const cctx = this._cache.getContext("2d");
-    cctx.imageSmoothingEnabled = false;
-
-    const img = this._bgImage;
-    const imgW = img.naturalWidth;
-    const imgH = img.naturalHeight;
-
-    // Cover mode: scale to fill, crop overflow
-    const scale = Math.max(w / imgW, h / imgH);
-    const drawW = imgW * scale;
-    const drawH = imgH * scale;
-    const dx = (w - drawW) / 2;
-    const dy = (h - drawH) / 2;
-
-    cctx.drawImage(img, dx, dy, drawW, drawH);
-
-    ctx.drawImage(this._cache, 0, 0);
-    this._dirty = false;
   }
+
+  // ─── Cleanup ──────────────────────────────────────────
 
   destroy() {
     this._bgImage = null;

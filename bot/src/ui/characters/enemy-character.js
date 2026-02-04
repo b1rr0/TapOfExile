@@ -51,15 +51,13 @@ export class EnemyCharacter extends Character {
   }
 
   /**
-   * Spawn: reset state → slide in from right → run animation → idle.
-   * Call this when a new monster appears.
+   * Spawn: reset state → slide in from right while idling.
+   * The hero runs toward the enemy (orchestrated by BattleScene).
    */
   spawn() {
     this.resetState();
     this.startEntrance(this._defaultEntranceOffset, this._defaultEntranceSpeed);
-    this.play("run", {
-      onComplete: () => this.play("idle"),
-    });
+    this.play("idle");
   }
 
   /**
