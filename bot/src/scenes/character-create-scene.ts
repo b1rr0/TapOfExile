@@ -4,7 +4,7 @@ import { SpriteEngine } from "../ui/sprite-engine.js";
 import type { SharedDeps, SkinConfig } from "../types.js";
 
 /**
- * CharacterCreateScene — nickname input + class selection.
+ * CharacterCreateScene — league + nickname + class selection.
  *
  * Lifecycle: mount(params) / unmount()
  */
@@ -21,6 +21,7 @@ export class CharacterCreateScene {
   _raf: number | null;
 
   _selectedClassId: string | null;
+  _selectedLeagueId: string | null;
 
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
@@ -35,17 +36,31 @@ export class CharacterCreateScene {
     this._raf = null;
 
     this._selectedClassId = null;
+    this._selectedLeagueId = null;
   }
 
   mount(_params: Record<string, unknown> = {}): void {
     const classes = listCharacterClasses();
     const hasChars = this.state.hasCharacters();
+    const leagues = this.state.data.leagues || [];
 
     this.container.innerHTML = `
       <div class="char-create">
         <div class="char-create__header">
           ${hasChars ? `<button class="char-create__back" id="cc-back">&larr;</button>` : ""}
           <h2 class="char-create__title">Create Hero</h2>
+        </div>
+
+        <div class="char-create__section">
+          <label class="char-create__label">Choose League</label>
+          <div class="char-create__leagues" id="cc-leagues">
+            ${leagues.map((l: any) => `
+              <div class="league-card" data-league-id="${l.id}">
+                <div class="league-card__name">${l.name}</div>
+                <div class="league-card__type">${l.type === "standard" ? "Permanent" : "Monthly League"}</div>
+              </div>
+            `).join("")}
+          </div>
         </div>
 
         <div class="char-create__section">
@@ -83,6 +98,23 @@ export class CharacterCreateScene {
       });
     }
 
+    // Wire league card clicks
+    const leagueCards = this.container.querySelectorAll(".league-card") as NodeListOf<HTMLElement>;
+    leagueCards.forEach(card => {
+      card.addEventListener("click", () => {
+        leagueCards.forEach(c => c.classList.remove("league-card--selected"));
+        card.classList.add("league-card--selected");
+        this._selectedLeagueId = card.dataset.leagueId ?? null;
+        this._updateConfirmState();
+      });
+    });
+
+    // Auto-select if only one league
+    if (leagues.length === 1) {
+      this._selectedLeagueId = leagues[0].id;
+      leagueCards[0]?.classList.add("league-card--selected");
+    }
+
     // Wire class card clicks
     const classCards = this.container.querySelectorAll(".class-card") as NodeListOf<HTMLElement>;
     classCards.forEach(card => {
@@ -102,12 +134,22 @@ export class CharacterCreateScene {
     nicknameInput.addEventListener("input", () => this._updateConfirmState());
 
     // Wire confirm button
-    (this.container.querySelector("#cc-confirm") as HTMLButtonElement).addEventListener("click", () => {
+    (this.container.querySelector("#cc-confirm") as HTMLButtonElement).addEventListener("click", async () => {
       const nickname = nicknameInput.value.trim();
-      if (!nickname || !this._selectedClassId) return;
+      if (!nickname || !this._selectedClassId || !this._selectedLeagueId) return;
 
-      this.state.createCharacter(nickname, this._selectedClassId);
-      this.sceneManager.switchTo("hideout");
+      const btn = this.container.querySelector("#cc-confirm") as HTMLButtonElement;
+      btn.disabled = true;
+      btn.textContent = "Creating...";
+
+      try {
+        await this.state.createCharacter(nickname, this._selectedClassId, this._selectedLeagueId);
+        this.sceneManager.switchTo("hideout");
+      } catch (err) {
+        console.error("[CharCreate] Failed to create character:", err);
+        btn.disabled = false;
+        btn.textContent = "Create";
+      }
     });
 
     // Load sprite previews for class cards
@@ -259,7 +301,7 @@ export class CharacterCreateScene {
     const nickname = (this.container.querySelector("#cc-nickname") as HTMLInputElement | null)?.value.trim();
     const btn = this.container.querySelector("#cc-confirm") as HTMLButtonElement | null;
     if (btn) {
-      btn.disabled = !nickname || !this._selectedClassId;
+      btn.disabled = !nickname || !this._selectedClassId || !this._selectedLeagueId;
     }
   }
 
@@ -281,6 +323,7 @@ export class CharacterCreateScene {
     }
 
     this._selectedClassId = null;
+    this._selectedLeagueId = null;
     this.container.innerHTML = "";
   }
 }

@@ -5,6 +5,8 @@ import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { CombatService } from './combat.service';
 import { TapDto } from './dto/tap.dto';
+import { StartLocationDto } from './dto/start-location.dto';
+import { StartMapDto } from './dto/start-map.dto';
 
 @ApiTags('combat')
 @ApiBearerAuth()
@@ -12,6 +14,24 @@ import { TapDto } from './dto/tap.dto';
 @Controller('combat')
 export class CombatController {
   constructor(private combatService: CombatService) {}
+
+  @Post('start-location')
+  @ApiOperation({ summary: 'Start a location combat session' })
+  async startLocation(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body() dto: StartLocationDto,
+  ) {
+    return this.combatService.startLocationByDto(telegramId, dto);
+  }
+
+  @Post('start-map')
+  @ApiOperation({ summary: 'Start an endgame map combat session' })
+  async startMap(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body() dto: StartMapDto,
+  ) {
+    return this.combatService.startMapByDto(telegramId, dto);
+  }
 
   @Post('tap')
   @Throttle({ default: { ttl: 1000, limit: 20 } })

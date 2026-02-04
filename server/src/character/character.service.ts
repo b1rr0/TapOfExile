@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Character } from '../shared/entities/character.entity';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
+import { League } from '../shared/entities/league.entity';
 import { B } from '../shared/constants/balance.constants';
 import { CreateCharacterDto } from './dto/create-character.dto';
 
@@ -27,6 +28,8 @@ export class CharacterService {
     private playerRepo: Repository<Player>,
     @InjectRepository(PlayerLeague)
     private playerLeagueRepo: Repository<PlayerLeague>,
+    @InjectRepository(League)
+    private leagueRepo: Repository<League>,
   ) {}
 
   /**
@@ -54,33 +57,76 @@ export class CharacterService {
   }
 
   /**
+   * Get or create a PlayerLeague for a specific league.
+   */
+  private async getOrCreatePlayerLeague(
+    telegramId: string,
+    leagueId: string,
+  ): Promise<PlayerLeague> {
+    const league = await this.leagueRepo.findOne({ where: { id: leagueId } });
+    if (!league) throw new NotFoundException('League not found');
+    if (league.status !== 'active') {
+      throw new BadRequestException('Cannot create character in inactive league');
+    }
+
+    let pl = await this.playerLeagueRepo.findOne({
+      where: { playerTelegramId: telegramId, leagueId },
+    });
+
+    if (!pl) {
+      pl = this.playerLeagueRepo.create({
+        playerTelegramId: telegramId,
+        leagueId,
+        gold: '0',
+        activeCharacterId: null,
+      });
+      pl = await this.playerLeagueRepo.save(pl);
+    }
+
+    return pl;
+  }
+
+  /**
    * List characters in the active league.
    */
   async listCharacters(telegramId: string): Promise<Character[]> {
     const pl = await this.getActivePlayerLeague(telegramId);
     return this.charRepo.find({
       where: { playerLeagueId: pl.id },
-      relations: ['skillAllocations'],
     });
   }
 
   async getCharacter(telegramId: string, charId: string): Promise<Character> {
     const char = await this.charRepo.findOne({
       where: { id: charId, playerTelegramId: telegramId },
-      relations: ['skillAllocations'],
     });
     if (!char) throw new NotFoundException('Character not found');
     return char;
   }
 
   /**
-   * Create character in the active league.
+   * Create character in the specified or active league.
+   * If leagueId is provided, auto-joins that league and switches to it.
    */
   async createCharacter(
     telegramId: string,
     dto: CreateCharacterDto,
   ): Promise<Character> {
-    const pl = await this.getActivePlayerLeague(telegramId);
+    let pl: PlayerLeague;
+
+    if (dto.leagueId) {
+      // Create in specified league (join if needed)
+      pl = await this.getOrCreatePlayerLeague(telegramId, dto.leagueId);
+
+      // Switch player's active league to the chosen one
+      const player = await this.playerRepo.findOne({ where: { telegramId } });
+      if (player) {
+        player.activeLeagueId = dto.leagueId;
+        await this.playerRepo.save(player);
+      }
+    } else {
+      pl = await this.getActivePlayerLeague(telegramId);
+    }
 
     // Limit 10 characters per league
     const existing = await this.charRepo.count({

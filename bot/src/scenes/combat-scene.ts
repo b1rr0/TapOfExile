@@ -5,15 +5,11 @@ import { HUD } from "../ui/hud.js";
 import { Equipment } from "../ui/equipment.js";
 import { haptic } from "../utils/haptic.js";
 import { isActComplete, getBackgroundForLocation, getActModifiers, getLocationById, ACT_BACKGROUNDS } from "../data/locations.js";
-import { rollMapDrops } from "../data/endgame-maps.js";
 import { B } from "../data/balance.js";
 import type { SharedDeps, Location } from "../types.js";
 
 /**
  * CombatScene — wraps the current battle flow into a single scene.
- *
- * Creates all DOM (HUD, battle-scene, tap-zone), wires
- * BattleScene, Effects, HUD, tap-handler, passive DPS interval.
  *
  * Lifecycle: mount(params) / unmount() with full cleanup.
  */
@@ -36,45 +32,34 @@ export class CombatScene {
   _onLocationComplete: ((data: any) => void) | null;
   _onMapComplete: ((data: any) => void) | null;
 
-  /**
-   * @param container — scene-container element
-   * @param deps — { events, state }
-   */
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
     this.events = deps.events;
     this.state = deps.state;
     this.sceneManager = deps.sceneManager;
 
-    // Sub-systems (created in mount)
     this.combat = null;
     this.battleScene = null;
     this.effects = null;
     this.hud = null;
     this.equipment = null;
 
-    // Intervals / refs
     this._dpsInterval = null;
     this._tapHandler = null;
     this._onLocationComplete = null;
     this._onMapComplete = null;
   }
 
-  /**
-   * Mount the combat scene — build DOM, wire everything up, start combat.
-   */
   mount(params: Record<string, any> = {}): void {
     const isMapMode = !!params.mapConfig;
 
-    // Determine location name + monster level for the top bar
     let stageLabel: string;
-    let mapLocation: Location | null = null;   // resolved location for map mode
+    let mapLocation: Location | null = null;
     if (isMapMode) {
       const mc = params.mapConfig;
       if (mc.isBoss) {
         stageLabel = mc.bossDef.name;
       } else {
-        // Use the map key's location name
         mapLocation = mc.locationId ? getLocationById(mc.locationId) ?? null : null;
         stageLabel = mapLocation
           ? `${mapLocation.name} · ${mc.tierDef.name}`
@@ -88,7 +73,6 @@ export class CombatScene {
         : locationName;
     }
 
-    // Build modifiers panel HTML — map mode uses the key's location act
     const actNumber: number = isMapMode
       ? (params.mapConfig.locationAct || 5)
       : (params.location ? params.location.act : 1);
@@ -107,20 +91,21 @@ export class CombatScene {
       `;
     }
 
-    // 1. Build DOM
+    const playerData = this.state.data.player;
+    const playerLevel = playerData ? playerData.level : 1;
+    const playerXp = playerData ? playerData.xp : 0;
+    const playerXpToNext = playerData ? playerData.xpToNext : 100;
+
     this.container.innerHTML = `
       <div id="game-screen" class="screen">
-        <!-- Top bar — room name + monster level -->
         <div id="hud" class="hud">
           <div class="hud-center">
             <span id="stage-display" class="stage-display">${stageLabel}</span>
           </div>
         </div>
 
-        <!-- Battle scene -->
         <div id="battle-scene" class="battle-scene"></div>
 
-        <!-- Flee confirmation overlay -->
         <div class="flee-confirm-overlay flee-confirm-overlay--hidden" id="flee-confirm">
           <div class="flee-confirm-box">
             <p class="flee-confirm-title">Flee the battlefield?</p>
@@ -132,16 +117,14 @@ export class CombatScene {
           </div>
         </div>
 
-        <!-- Zone modifiers — sits on top of battle scene, outside BattleScene container -->
         ${modsHtml}
 
-        <!-- Bottom bar: XP + level above tap zone -->
         <div class="combat-bottom-bar">
           <div class="bottom-xp-row">
-            <span id="level-display" class="bottom-level-display">Lv.${this.state.data.player.level}</span>
+            <span id="level-display" class="bottom-level-display">Lv.${playerLevel}</span>
             <div class="xp-bar bottom-xp-bar" id="xp-bar">
               <div class="xp-bar__fill" id="xp-bar-fill"></div>
-              <div class="xp-bar__text" id="xp-bar-text">${this.state.data.player.xp} / ${this.state.data.player.xpToNext}</div>
+              <div class="xp-bar__text" id="xp-bar-text">${playerXp} / ${playerXpToNext}</div>
             </div>
           </div>
           <div class="tap-zone">
@@ -152,7 +135,6 @@ export class CombatScene {
       </div>
     `;
 
-    // 2. Create sub-systems
     const gameScreen = this.container.querySelector("#game-screen") as HTMLElement;
     const hudEl = this.container.querySelector("#hud") as HTMLElement;
     const battleEl = this.container.querySelector("#battle-scene") as HTMLElement;
@@ -161,18 +143,14 @@ export class CombatScene {
     this.combat = new CombatManager(this.state, this.events);
     this.hud = new HUD(hudEl, this.events);
 
-    // Use active character's skin for the hero sprite
     const activeChar = this.state.getActiveCharacter();
     const heroSkin: string = activeChar ? activeChar.skinId : "samurai_1";
 
-    // Determine background for this location / map
     let backgroundSrc: string | null = null;
     if (isMapMode) {
-      // Use the map key's location for background (same as story)
       if (mapLocation) {
         backgroundSrc = getBackgroundForLocation(mapLocation);
       } else {
-        // Boss maps or fallback — use cave backgrounds
         const caveImages: string[] = ACT_BACKGROUNDS[5] || [];
         backgroundSrc = caveImages.length > 0
           ? caveImages[Math.floor(Math.random() * caveImages.length)]
@@ -186,21 +164,18 @@ export class CombatScene {
     this.effects = new Effects(battleEl, this.events);
     this.equipment = new Equipment(gameScreen, this.events);
 
-    // Exit button — appended after BattleScene init (which wipes innerHTML)
     const exitBtn = document.createElement("button");
     exitBtn.className = "battle-exit-btn";
     exitBtn.id = "flee-btn";
     exitBtn.textContent = "\uD83D\uDEAA";
     battleEl.appendChild(exitBtn);
 
-    // 3. Tap handler
     this._tapHandler = () => {
       this.combat!.handleTap();
       haptic("light");
     };
     tapBtn.addEventListener("click", this._tapHandler);
 
-    // 3b. Modifiers panel toggle
     const modsToggle = this.container.querySelector("#combat-mods-toggle") as HTMLElement | null;
     const modsPanel = this.container.querySelector("#combat-mods-panel") as HTMLElement | null;
     if (modsToggle && modsPanel) {
@@ -209,7 +184,6 @@ export class CombatScene {
       });
     }
 
-    // 3c. Flee button — show confirmation dialog
     const fleeOverlay = this.container.querySelector("#flee-confirm") as HTMLElement;
     (this.container.querySelector("#flee-btn") as HTMLButtonElement).addEventListener("click", () => {
       fleeOverlay.classList.remove("flee-confirm-overlay--hidden");
@@ -219,86 +193,50 @@ export class CombatScene {
     });
     (this.container.querySelector("#flee-leave") as HTMLButtonElement).addEventListener("click", () => {
       fleeOverlay.classList.add("flee-confirm-overlay--hidden");
+      // Flee via API
+      if (this.combat) {
+        this.combat.flee().catch((err) => console.warn("[CombatScene] Flee failed:", err));
+      }
       if (this.sceneManager) {
         this.sceneManager.switchTo("hideout");
       }
     });
 
-    // 4. Passive DPS tick every second
     this._dpsInterval = setInterval(() => {
       this.combat!.applyPassiveDamage();
     }, B.PASSIVE_DPS_TICK_MS);
 
-    // 5. Listen for location complete
+    // Listen for location complete — server already persisted everything
     this._onLocationComplete = (data: any) => {
-      const completed: string[] = this.state.data.locations.completed;
-      const actNumber = params.location ? params.location.act : 1;
+      const completed: string[] = this.state.data.locations?.completed || [];
+      const locActNumber = params.location ? params.location.act : 1;
 
-      // Was the act already complete before this location?
-      const wasAlreadyComplete = isActComplete(actNumber, completed);
-
-      // Mark location as completed (avoid duplicates)
-      if (!completed.includes(data.locationId)) {
-        completed.push(data.locationId);
-      }
-      this.state.save();
-
-      // Show act banner only if this location just completed the act
-      const isNowComplete = isActComplete(actNumber, completed);
+      const wasAlreadyComplete = isActComplete(locActNumber, completed);
+      const isNowComplete = isActComplete(locActNumber, completed);
       const actJustCompleted = !wasAlreadyComplete && isNowComplete;
 
       const locName = params.location ? params.location.name : "Unknown";
 
-      console.log(`[CombatScene] locationComplete: ${data.locationId}`, data.rewards);
-
-      // Navigate to victory scene
       if (this.sceneManager) {
         this.sceneManager.switchTo("victory", {
           locationName: locName,
           rewards: data.rewards,
-          actComplete: actJustCompleted ? actNumber : null,
+          actComplete: actJustCompleted ? locActNumber : null,
         });
       }
     };
     this.events.on("locationComplete", this._onLocationComplete);
 
-    // 5b. Listen for map complete (endgame)
+    // Listen for map complete — server already persisted drops + endgame stats
     this._onMapComplete = (data: any) => {
       const mc = data.mapConfig;
       const tier: number = mc.tier || 10;
       const isBoss: boolean = mc.isBoss || false;
-
-      // Roll map drops (direction determines which boss key can drop)
-      const direction: string | null = mc.direction || null;
-      const mapDrops = rollMapDrops(tier, isBoss, direction);
-
-      // Add dropped keys to bag
-      for (const drop of mapDrops) {
-        this.state.addMapKeyToBag(drop);
-      }
-
-      // Update endgame stats
-      const char = this.state.getActiveCharacter();
-      if (char && char.endgame) {
-        char.endgame.totalMapsRun++;
-        if (!isBoss && tier > char.endgame.highestTierCompleted) {
-          char.endgame.highestTierCompleted = tier;
-        }
-        if (isBoss && mc.bossId && !char.endgame.completedBosses.includes(mc.bossId)) {
-          char.endgame.completedBosses.push(mc.bossId);
-        }
-      }
-      this.state.save();
+      const mapDrops = data.mapDrops || [];
 
       const mapName: string = isBoss
         ? mc.bossDef.name
         : `Tier ${tier} Map`;
-
-      console.log(`[CombatScene] mapComplete: ${mapName}`, {
-        gold: data.totalGold,
-        xp: data.totalXp,
-        drops: mapDrops.length,
-      });
 
       if (this.sceneManager) {
         this.sceneManager.switchTo("victory", {
@@ -311,30 +249,31 @@ export class CombatScene {
     };
     this.events.on("mapComplete", this._onMapComplete);
 
-    // 6. Emit stateLoaded so HUD picks up current values
     this.events.emit("stateLoaded", this.state.data);
 
-    // 7. Start combat — map-based, location-based, or legacy infinite
+    // Start combat via server API (async)
     if (isMapMode) {
-      this.combat.startMap(params.mapConfig);
+      const mc = params.mapConfig;
+      const mapKeyItemId = params.mapKeyItemId;
+      const direction = mc.direction || undefined;
+      this.combat.startMap(mc, mapKeyItemId, direction).catch((err) => {
+        console.error("[CombatScene] Failed to start map:", err);
+        if (this.sceneManager) this.sceneManager.switchTo("hideout");
+      });
     } else if (params.location) {
-      this.combat.startLocation(params.location);
-    } else {
-      this.combat.init();
+      this.combat.startLocation(params.location).catch((err) => {
+        console.error("[CombatScene] Failed to start location:", err);
+        if (this.sceneManager) this.sceneManager.switchTo("hideout");
+      });
     }
   }
 
-  /**
-   * Unmount — full cleanup of DOM, intervals, sub-systems.
-   */
   unmount(): void {
-    // Stop passive DPS
     if (this._dpsInterval) {
       clearInterval(this._dpsInterval);
       this._dpsInterval = null;
     }
 
-    // Remove event listeners
     if (this._onLocationComplete) {
       this.events.off("locationComplete", this._onLocationComplete);
       this._onLocationComplete = null;
@@ -344,7 +283,6 @@ export class CombatScene {
       this._onMapComplete = null;
     }
 
-    // Cleanup sub-systems
     if (this.battleScene) {
       this.battleScene.destroy();
       this.battleScene = null;
@@ -354,7 +292,6 @@ export class CombatScene {
       this.equipment = null;
     }
 
-    // Clear DOM
     this.container.innerHTML = "";
 
     this.combat = null;

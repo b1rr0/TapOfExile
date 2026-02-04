@@ -1,0 +1,17 @@
+import type { Wave, MapTier, BossMap, BossKeyTierDef, DropSettings, BagItemData } from './types';
+export declare const DROP_SETTINGS: DropSettings;
+export declare const BOSS_KEY_TIERS: BossKeyTierDef[];
+export declare function getBossKeyTierDef(tier: number): BossKeyTierDef;
+export declare function pickBossKeyTier(sourceTier: number, isBossMap: boolean): number;
+export declare const MAX_TIER: number;
+export declare const MAP_TIERS: MapTier[];
+export declare function getTierDef(tier: number): MapTier;
+export declare const BOSS_MAPS: BossMap[];
+export declare function getBossDef(bossId: string): BossMap | null;
+export declare function getWavesForTier(tier: number): Wave[];
+export declare function getBossMapWaves(bossId: string): Wave[];
+export declare const MAP_KEY_TYPES: Record<string, string>;
+export declare function tierQuality(tier: number): string;
+export declare function createMapKeyData(tier: number): BagItemData;
+export declare function createBossKeyData(bossId: string, bossKeyTier: number): BagItemData | null;
+export declare function rollMapDrops(tier: number, isBossMap: boolean, direction: string | null, createMapKey: (tier: number) => BagItemData, createBossKey: (bossId: string, bossKeyTier: number) => BagItemData | null): BagItemData[];

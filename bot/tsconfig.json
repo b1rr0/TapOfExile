@@ -13,8 +13,11 @@
     "jsx": "preserve",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    "paths": {
+      "@/*": ["src/*"],
+      "@shared/*": ["../shared/*"]
+    }
   },
-  "include": ["src/**/*.ts", "bot.ts"],
+  "include": ["src/**/*.ts", "bot.ts", "../shared/**/*.ts"],
   "exclude": ["node_modules", "dist", "scripts"]
 }

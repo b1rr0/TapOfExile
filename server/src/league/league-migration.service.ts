@@ -7,7 +7,7 @@ import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { Character } from '../shared/entities/character.entity';
 import { BagItem } from '../shared/entities/bag-item.entity';
 import { Player } from '../shared/entities/player.entity';
-import { LeagueService } from './league.service';
+import { LeagueService, JP_MONTH_NAMES } from './league.service';
 import {
   LeagueTransferResult,
   LeagueTransferPlayerResult,
@@ -74,11 +74,7 @@ export class LeagueMigrationService {
         59,
       );
 
-      const monthNames = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-      ];
-      const leagueName = `Monthly – ${monthNames[nextMonth.getMonth()]} ${nextMonth.getFullYear()}`;
+      const leagueName = `${JP_MONTH_NAMES[nextMonth.getMonth()]} ${nextMonth.getFullYear()}`;
 
       await this.leagueService.createMonthlyLeague(
         leagueName,

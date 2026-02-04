@@ -27,66 +27,86 @@ if (tg) {
 const events = new EventBus();
 const state = new GameState(events);
 
-// Load game
-state.load();
+// Async bootstrap
+(async () => {
+  try {
+    // 1. Auth + load state from server
+    await state.load();
 
-// Offline progress check (only if a character is active)
-if (state.data.activeCharacterId) {
-  const offline = state.calculateOfflineProgress();
-  if (offline.offlineGold > 0) {
-    const offlineEl = document.getElementById("offline-popup") as HTMLElement;
-    const offlineGoldEl = document.getElementById("offline-gold") as HTMLElement;
-    const claimBtn = document.getElementById("offline-claim") as HTMLButtonElement;
+    // 2. Offline progress check
+    if (state.data.activeCharacterId) {
+      try {
+        const offline = await state.claimOfflineGold();
+        if (offline.offlineGold > 0) {
+          const offlineEl = document.getElementById("offline-popup") as HTMLElement;
+          const offlineGoldEl = document.getElementById("offline-gold") as HTMLElement;
+          const claimBtn = document.getElementById("offline-claim") as HTMLButtonElement;
 
-    offlineGoldEl.textContent = String(offline.offlineGold);
-    offlineEl.classList.remove("hidden");
+          if (offlineEl && offlineGoldEl && claimBtn) {
+            offlineGoldEl.textContent = String(offline.offlineGold);
+            offlineEl.classList.remove("hidden");
 
-    claimBtn.addEventListener(
-      "click",
-      () => {
-        offlineEl.classList.add("hidden");
-        state.data.player!.gold += offline.offlineGold;
-        events.emit("goldChanged", { gold: state.data.player!.gold });
-        state.save();
-      },
-      { once: true }
-    );
+            claimBtn.addEventListener(
+              "click",
+              () => {
+                offlineEl.classList.add("hidden");
+                events.emit("goldChanged", { gold: state.data.gold });
+              },
+              { once: true },
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("[Main] Failed to claim offline gold:", err);
+      }
+    }
+
+    // 3. Hide loading screen
+    const loadingEl = document.getElementById("loading-screen") as HTMLElement;
+    if (loadingEl) loadingEl.classList.add("hidden");
+
+    // 4. Scene manager
+    const sceneContainer = document.getElementById("scene-container") as HTMLElement;
+    const sceneManager = new SceneManager(sceneContainer, { events, state, sceneManager: null as any });
+    sceneManager.deps.sceneManager = sceneManager;
+
+    sceneManager.register("characterCreate", CharacterCreateScene);
+    sceneManager.register("characterSelect", CharacterSelectScene);
+    sceneManager.register("combat", CombatScene);
+    sceneManager.register("hideout", HideoutScene);
+    sceneManager.register("map", MapScene);
+    sceneManager.register("victory", VictoryScene);
+    sceneManager.register("skinShop", SkinShopScene);
+    sceneManager.register("mapDevice", MapDeviceScene);
+    sceneManager.register("skillTree", SkillTreeScene);
+    if (IS_TESTING) sceneManager.register("storybook", StorybookScene);
+
+    // 5. Route to starting scene based on character state
+    if (!state.hasCharacters()) {
+      sceneManager.switchTo("characterCreate");
+    } else if (!state.data.activeCharacterId) {
+      sceneManager.switchTo("characterSelect");
+    } else {
+      sceneManager.switchTo("hideout");
+    }
+  } catch (err) {
+    console.error("[Main] Failed to load game:", err);
+    // Show error on loading screen
+    const loadingEl = document.getElementById("loading-screen");
+    if (loadingEl) {
+      loadingEl.innerHTML = `
+        <div style="color: #f66; text-align: center; padding: 2rem;">
+          <h2>Connection Error</h2>
+          <p>Could not connect to game server.</p>
+          <p style="font-size: 0.8rem; opacity: 0.7;">${(err as Error).message}</p>
+          <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; cursor: pointer;">
+            Retry
+          </button>
+        </div>
+      `;
+    }
   }
-}
-
-// Hide loading screen
-(document.getElementById("loading-screen") as HTMLElement).classList.add("hidden");
-
-// Scene manager
-const sceneContainer = document.getElementById("scene-container") as HTMLElement;
-const sceneManager = new SceneManager(sceneContainer, { events, state, sceneManager: null as any });
-sceneManager.deps.sceneManager = sceneManager;
-
-sceneManager.register("characterCreate", CharacterCreateScene);
-sceneManager.register("characterSelect", CharacterSelectScene);
-sceneManager.register("combat", CombatScene);
-sceneManager.register("hideout", HideoutScene);
-sceneManager.register("map", MapScene);
-sceneManager.register("victory", VictoryScene);
-sceneManager.register("skinShop", SkinShopScene);
-sceneManager.register("mapDevice", MapDeviceScene);
-sceneManager.register("skillTree", SkillTreeScene);
-if (IS_TESTING) sceneManager.register("storybook", StorybookScene);
-
-// Route to starting scene based on character state
-if (!state.hasCharacters()) {
-  sceneManager.switchTo("characterCreate");
-} else if (!state.data.activeCharacterId) {
-  sceneManager.switchTo("characterSelect");
-} else {
-  sceneManager.switchTo("hideout");
-}
-
-// Save on visibility change + beforeunload
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) state.save();
-});
-window.addEventListener("beforeunload", () => state.save());
+})();
 
 // Prevent double-tap zoom
 document.addEventListener("dblclick", (e: MouseEvent) => e.preventDefault());

@@ -19,28 +19,25 @@ export class SkillTreeController {
   constructor(private skillTreeService: SkillTreeService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get skill tree with allocations' })
-  async getTree(
+  @ApiOperation({ summary: 'Get skill tree allocations for a character' })
+  async getAllocations(
     @CurrentUser('telegramId') telegramId: string,
     @Query('characterId') characterId: string,
   ) {
-    return this.skillTreeService.getTreeWithAllocations(
-      telegramId,
-      characterId,
-    );
+    return this.skillTreeService.getAllocations(telegramId, characterId);
   }
 
-  @Post('allocate')
-  @ApiOperation({ summary: 'Allocate a skill node' })
-  async allocate(
+  @Post('accept')
+  @ApiOperation({ summary: 'Accept (bulk save) skill allocations' })
+  async accept(
     @CurrentUser('telegramId') telegramId: string,
     @Body('characterId') characterId: string,
-    @Body('nodeId') nodeId: number,
+    @Body('allocated') allocated: number[],
   ) {
-    return this.skillTreeService.allocateNode(
+    return this.skillTreeService.acceptAllocations(
       telegramId,
       characterId,
-      nodeId,
+      allocated,
     );
   }
 

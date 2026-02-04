@@ -78,14 +78,18 @@ export class SkinShopScene {
 
     // Wire select buttons
     this.container.querySelectorAll(".skin-card__select-btn").forEach(btn => {
-      btn.addEventListener("click", (e: Event) => {
+      btn.addEventListener("click", async (e: Event) => {
         e.stopPropagation();
         const skinId = (btn as HTMLElement).dataset.skin!;
-        this.state.setSkin(skinId);
-        // Re-mount to refresh UI
-        this._cleanup();
-        this.container.innerHTML = "";
-        this.mount();
+        try {
+          await this.state.setSkin(skinId);
+          // Re-mount to refresh UI
+          this._cleanup();
+          this.container.innerHTML = "";
+          this.mount();
+        } catch (err) {
+          console.error("[SkinShop] Failed to change skin:", err);
+        }
       });
     });
 

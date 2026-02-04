@@ -48,6 +48,7 @@ export class CharacterSelectScene {
                   <div class="char-card__name">${c.nickname}</div>
                   <div class="char-card__class">${cls ? cls.icon + " " + cls.name : c.classId}</div>
                   <div class="char-card__level">Lv. ${c.level}</div>
+                  ${c.leagueName ? `<div class="char-card__league">${c.leagueName}</div>` : ""}
                 </div>
               </div>
             `;
@@ -61,10 +62,14 @@ export class CharacterSelectScene {
     // Wire character card clicks
     const cards = this.container.querySelectorAll(".char-card") as NodeListOf<HTMLElement>;
     cards.forEach(card => {
-      card.addEventListener("click", () => {
+      card.addEventListener("click", async () => {
         const charId = card.dataset.id;
-        this.state.setActiveCharacter(charId);
-        this.sceneManager.switchTo("hideout");
+        try {
+          await this.state.setActiveCharacter(charId);
+          this.sceneManager.switchTo("hideout");
+        } catch (err) {
+          console.error("[CharSelect] Failed to activate character:", err);
+        }
       });
     });
 

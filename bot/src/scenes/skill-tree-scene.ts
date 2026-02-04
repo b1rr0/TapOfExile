@@ -1,15 +1,8 @@
 import { buildSkillTree, getClassStartNode, EMBLEM_RADIUS, MAX_CLASS_SKILLS } from "../data/skill-tree.js";
+import { validateAllocations } from "@shared/skill-tree-validation";
+import { api } from "../api.js";
 import type { SharedDeps, SkillTreeResult, NodeType } from "../types.js";
-
-interface SkillNode {
-  id: number;
-  x: number;
-  y: number;
-  type: NodeType;
-  label: string;
-  name?: string;
-  connections: number[];
-}
+import type { SkillNode } from "@shared/skill-tree";
 
 /**
  * SkillTreeScene — circular passive skill tree (PoE2-style).
@@ -42,6 +35,7 @@ export class SkillTreeScene {
   _tooltip: HTMLElement | null;
   _pointsEl: HTMLElement | null;
   _classPtsEl: HTMLElement | null;
+  _acceptBtn: HTMLButtonElement | null;
   _selectedNode: SkillNode | null;   // node currently showing tooltip (tap-to-inspect)
 
   _onPointerDown: ((e: PointerEvent) => void) | null;
@@ -76,6 +70,7 @@ export class SkillTreeScene {
     this._tooltip = null;
     this._pointsEl = null;
     this._classPtsEl = null;
+    this._acceptBtn = null;
     this._selectedNode = null;
 
     this._onPointerDown = null;
@@ -117,6 +112,7 @@ export class SkillTreeScene {
         <div class="skill-tree__controls">
           <button class="skill-tree__zoom-btn" id="st-zoom-in">+</button>
           <button class="skill-tree__zoom-btn" id="st-zoom-out">&minus;</button>
+          <button class="skill-tree__accept-btn" id="st-accept">&#x2714; Accept</button>
           <button class="skill-tree__reset-btn" id="st-reset">Reset</button>
         </div>
       </div>
@@ -126,6 +122,7 @@ export class SkillTreeScene {
     this._tooltip = this.container.querySelector("#st-tooltip");
     this._pointsEl = this.container.querySelector("#st-points");
     this._classPtsEl = this.container.querySelector("#st-class-pts");
+    this._acceptBtn = this.container.querySelector("#st-accept") as HTMLButtonElement;
 
     this._svg.setAttribute("width", "100%");
     this._svg.setAttribute("height", "100%");
@@ -162,15 +159,14 @@ export class SkillTreeScene {
     this._wireEvents();
 
     (this.container.querySelector("#st-back") as HTMLButtonElement).addEventListener("click", () => {
-      this._saveAllocated();
       this.sceneManager.switchTo("hideout");
     });
     (this.container.querySelector("#st-zoom-in") as HTMLButtonElement).addEventListener("click", () => this._zoomAt(1.3, null));
     (this.container.querySelector("#st-zoom-out") as HTMLButtonElement).addEventListener("click", () => this._zoomAt(0.7, null));
+    this._acceptBtn!.addEventListener("click", () => this._onAccept());
     (this.container.querySelector("#st-reset") as HTMLButtonElement).addEventListener("click", () => {
       this._allocated.clear();
       this._allocated.add(this._startNodeId);
-      this._saveAllocated();
       this._updateAllNodes();
       this._updatePoints();
     });
@@ -342,7 +338,6 @@ export class SkillTreeScene {
     if (this._allocated.has(node.id)) {
       if (node.id !== this._startNodeId && this._isLeaf(node.id)) {
         this._allocated.delete(node.id);
-        this._saveAllocated();
         this._updateAllNodes();
         this._updatePoints();
       }
@@ -359,7 +354,6 @@ export class SkillTreeScene {
     if (!this._isReachable(node.id)) return;
 
     this._allocated.add(node.id);
-    this._saveAllocated();
     this._updateAllNodes();
     this._updatePoints();
   }
@@ -531,24 +525,64 @@ export class SkillTreeScene {
 
   /* -- Save / Load ---------------------------------------- */
 
-  _saveAllocated(): void {
-    const char = this.state.getActiveCharacter();
-    if (!char) return;
-    if (!char.skillTree) char.skillTree = {};
-    char.skillTree.allocated = [...this._allocated];
-    this.state.scheduleSave();
+  _loadAllocated(char: any): void {
+    // Load from server-backed allocatedNodes on the character
+    this._allocated = char?.allocatedNodes?.length
+      ? new Set(char.allocatedNodes as number[])
+      : new Set();
   }
 
-  _loadAllocated(char: any): void {
-    this._allocated = char?.skillTree?.allocated
-      ? new Set(char.skillTree.allocated)
-      : new Set();
+  /** Send current allocations to the backend (with FE pre-validation). */
+  async _onAccept(): Promise<void> {
+    const char = this.state.getActiveCharacter();
+    if (!char || !char.id) return;
+
+    // Client-side pre-validation
+    const allocArr = [...this._allocated];
+    const validation = validateAllocations(char.classId, char.level, allocArr);
+    if (!validation.valid) {
+      console.error("[SkillTree] FE validation failed:", validation.errors);
+      if (this._acceptBtn) {
+        this._acceptBtn.textContent = "\u2716 Invalid";
+        setTimeout(() => {
+          if (this._acceptBtn) this._acceptBtn.textContent = "\u2714 Accept";
+        }, 2000);
+      }
+      return;
+    }
+
+    if (this._acceptBtn) {
+      this._acceptBtn.disabled = true;
+      this._acceptBtn.textContent = "Saving\u2026";
+    }
+
+    try {
+      await api.skillTree.accept(char.id, allocArr);
+      // Update local state to stay in sync
+      char.allocatedNodes = allocArr;
+
+      if (this._acceptBtn) {
+        this._acceptBtn.textContent = "\u2714 Saved!";
+        setTimeout(() => {
+          if (this._acceptBtn) this._acceptBtn.textContent = "\u2714 Accept";
+        }, 1500);
+      }
+    } catch (err) {
+      console.error("[SkillTree] Accept failed:", err);
+      if (this._acceptBtn) {
+        this._acceptBtn.textContent = "\u2716 Error";
+        setTimeout(() => {
+          if (this._acceptBtn) this._acceptBtn.textContent = "\u2714 Accept";
+        }, 2000);
+      }
+    } finally {
+      if (this._acceptBtn) this._acceptBtn.disabled = false;
+    }
   }
 
   /* -- Cleanup -------------------------------------------- */
 
   unmount(): void {
-    this._saveAllocated();
     const vp = this.container.querySelector("#st-viewport") as HTMLElement | null;
     if (vp) {
       vp.removeEventListener("pointerdown", this._onPointerDown!);
@@ -565,6 +599,7 @@ export class SkillTreeScene {
     this._tooltip = null;
     this._pointsEl = null;
     this._classPtsEl = null;
+    this._acceptBtn = null;
     this._tree = null;
     this.container.innerHTML = "";
   }

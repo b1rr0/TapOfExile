@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 
+const OFFLINE_MAX_SECONDS = 28800; // 8 hours
+const OFFLINE_MIN_SECONDS = 60;
+const OFFLINE_DPS_RATE = 0.5;
+
 @Injectable()
 export class PlayerService {
   constructor(
@@ -39,7 +43,7 @@ export class PlayerService {
         playerTelegramId: telegramId,
         leagueId: player.activeLeagueId,
       },
-      relations: ['league', 'characters', 'characters.skillAllocations', 'bag'],
+      relations: ['league', 'characters', 'bag'],
     });
 
     if (!pl) {
@@ -70,6 +74,9 @@ export class PlayerService {
         nickname: c.nickname,
         classId: c.classId,
         skinId: c.skinId,
+        leagueId: c.leagueId,
+        leagueName: pl.league?.name || 'Unknown',
+        leagueType: pl.league?.type || 'standard',
         createdAt: Number(c.createdAt),
         level: c.level,
         xp: Number(c.xp),
@@ -98,6 +105,7 @@ export class PlayerService {
           highestTierCompleted: c.highestTierCompleted,
           totalMapsRun: c.totalMapsRun,
         },
+        allocatedNodes: c.allocatedNodes || [],
       })),
       // Bag is per-league (shared among all characters in the league)
       bag: (pl.bag || []).map((item) => ({
@@ -156,5 +164,50 @@ export class PlayerService {
     player.totalGold = String(BigInt(player.totalGold) + BigInt(gold));
     player.lastSaveTime = String(Date.now());
     await this.playerRepo.save(player);
+  }
+
+  /**
+   * Calculate and claim offline passive gold.
+   * Uses lastSaveTime to determine elapsed time, active character's passiveDps.
+   */
+  async claimOfflineGold(telegramId: string) {
+    const player = await this.getPlayer(telegramId);
+    const pl = await this.getActivePlayerLeague(telegramId);
+
+    if (!pl.activeCharacterId) {
+      return { offlineGold: 0, seconds: 0 };
+    }
+
+    // Find active character to get passiveDps
+    const char = (pl.characters || []).find(
+      (c) => c.id === pl.activeCharacterId,
+    );
+    if (!char || char.passiveDps <= 0) {
+      return { offlineGold: 0, seconds: 0 };
+    }
+
+    const now = Date.now();
+    const elapsed = (now - Number(player.lastSaveTime)) / 1000;
+    const seconds = Math.min(elapsed, OFFLINE_MAX_SECONDS);
+
+    if (seconds < OFFLINE_MIN_SECONDS) {
+      return { offlineGold: 0, seconds: 0 };
+    }
+
+    const offlineGold = Math.floor(char.passiveDps * seconds * OFFLINE_DPS_RATE);
+    if (offlineGold <= 0) {
+      return { offlineGold: 0, seconds: 0 };
+    }
+
+    // Award the gold
+    pl.gold = String(BigInt(pl.gold) + BigInt(offlineGold));
+    await this.playerLeagueRepo.save(pl);
+
+    // Update lastSaveTime
+    player.lastSaveTime = String(now);
+    player.totalGold = String(BigInt(player.totalGold) + BigInt(offlineGold));
+    await this.playerRepo.save(player);
+
+    return { offlineGold, seconds: Math.floor(seconds), gold: pl.gold };
   }
 }

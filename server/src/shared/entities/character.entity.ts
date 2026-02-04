@@ -3,12 +3,10 @@ import {
   PrimaryColumn,
   Column,
   ManyToOne,
-  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { Player } from './player.entity';
 import { PlayerLeague } from './player-league.entity';
-import { SkillAllocation } from './skill-allocation.entity';
 
 @Entity('characters')
 export class Character {
@@ -102,6 +100,7 @@ export class Character {
   @Column({ type: 'int', default: 0 })
   totalMapsRun: number;
 
-  @OneToMany(() => SkillAllocation, (alloc) => alloc.character, { cascade: true })
-  skillAllocations: SkillAllocation[];
+  // Skill tree — allocated node IDs (JSONB array of numbers)
+  @Column({ type: 'jsonb', default: '[]' })
+  allocatedNodes: number[];
 }

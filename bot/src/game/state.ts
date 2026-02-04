@@ -1,18 +1,16 @@
-import { getCharacterClass } from "../data/character-classes.js";
-import { isEndgameUnlocked, createMapKeyItem } from "../data/endgame-maps.js";
 import { B } from "../data/balance.js";
-import type { GameData, Character, PlayerProxy, BagItem } from "../types.js";
+import { api } from "../api.js";
+import type { GameData, Character, PlayerProxy, BagItem, LeagueInfo } from "../types.js";
 import type { EventBus } from "./events.js";
 
-const SAVE_KEY = "tap_of_exile_save";
-
-/* ── V2 default state ─────────────────────────────────── */
+/* ── Default in-memory state ───────────────────────────── */
 
 function createDefault(): GameData {
   return {
     gold: 0,
     activeCharacterId: null,
     characters: [],
+    leagues: [],
     meta: {
       lastSaveTime: Date.now(),
       totalTaps: 0,
@@ -23,76 +21,119 @@ function createDefault(): GameData {
   };
 }
 
-function createDefaultCharacter(): Character {
-  return {
-    id: null,
-    nickname: "",
-    classId: "",
-    skinId: "",
-    createdAt: 0,
-    level: B.STARTING_STATS.level,
-    xp: 0,
-    xpToNext: B.XP_BASE,
-    tapDamage: B.STARTING_STATS.tapDamage,
-    critChance: B.STARTING_STATS.critChance,
-    critMultiplier: B.STARTING_STATS.critMultiplier,
-    passiveDps: B.STARTING_STATS.passiveDps,
-    combat: { currentStage: 1, currentWave: 1, wavesPerStage: 10 },
-    locations: { completed: [], current: null, currentAct: 1 },
-    inventory: { items: [], equipment: {} },
-    bag: [],  // Array of item objects: { id, name, type, quality, level, icon, acquiredAt }
-    endgame: {
-      unlocked: false,
-      completedBosses: [],
-      highestTierCompleted: 0,
-      totalMapsRun: 0,
-    },
-  };
-}
-
-/* ── GameState ─────────────────────────────────────────── */
+/* ── GameState (server-backed) ────────────────────────── */
 
 export class GameState {
   events: EventBus;
   data: GameData;
-  private _saveTimer: ReturnType<typeof setTimeout> | null;
   private _playerProxy: PlayerProxy | null;
+
+  /** Bag items (per-league, shared across characters) */
+  bag: BagItem[];
 
   constructor(events: EventBus) {
     this.events = events;
     this.data = createDefault();
-    this._saveTimer = null;
     this._playerProxy = null;
+    this.bag = [];
   }
 
-  /* ── Load / Save ──────────────────────────────────────── */
+  /* ── Load from server ────────────────────────────────── */
 
-  load(): void {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw);
+  /**
+   * Authenticate via Telegram, join league if needed, load full state.
+   */
+  async load(): Promise<void> {
+    const tg = (window as any).Telegram?.WebApp;
+    const initData: string | null = tg?.initData || null;
 
-        // Detect old V1 format (has player at top level, no characters array)
-        if (saved.player && !saved.characters) {
-          this.data = this._migrateV1(saved);
-        } else {
-          this.data = this._mergeV2(createDefault(), saved);
-        }
-
-        // V2 → V3: prefix location IDs with act1_, add currentAct
-        if (this.data.meta.version < 3) {
-          this._migrateV2toV3();
-        }
-
-        // V3 → V4: add endgame state to characters
-        if (this.data.meta.version < 4) {
-          this._migrateV3toV4();
-        }
-      }
-    } catch {
-      this.data = createDefault();
+    if (!initData) {
+      console.warn("[GameState] No Telegram initData — cannot authenticate");
+      throw new Error("Telegram initData required");
     }
+
+    // 1. Authenticate
+    const authResult = await api.auth.login(initData);
+
+    // 2. Load available leagues
+    const { leagues: leagueList } = await api.leagues.list();
+    this.data.leagues = leagueList.map((l: any) => ({
+      id: l.id,
+      name: l.name,
+      type: l.type,
+      status: l.status,
+      startsAt: l.startsAt,
+      endsAt: l.endsAt,
+    }));
+
+    // 3. If no active league, join standard league
+    if (!authResult.player.activeLeagueId) {
+      const standard = leagueList.find(
+        (l: any) => l.type === "standard" && l.status === "active",
+      );
+      if (standard) {
+        await api.leagues.join(standard.id);
+      }
+    }
+
+    // 4. Load full player state
+    await this.refreshState();
+  }
+
+  /**
+   * Re-fetch the full player state from server and populate local cache.
+   */
+  async refreshState(): Promise<void> {
+    const state = await api.player.getState();
+
+    this.data.gold = Number(state.gold);
+    this.data.activeCharacterId = state.activeCharacterId;
+    this.data.characters = state.characters.map((c: any) => ({
+      id: c.id,
+      nickname: c.nickname,
+      classId: c.classId,
+      skinId: c.skinId,
+      leagueId: c.leagueId,
+      leagueName: c.leagueName,
+      leagueType: c.leagueType,
+      createdAt: c.createdAt,
+      level: c.level,
+      xp: c.xp,
+      xpToNext: c.xpToNext,
+      tapDamage: c.tapDamage,
+      critChance: c.critChance,
+      critMultiplier: c.critMultiplier,
+      passiveDps: c.passiveDps,
+      combat: c.combat,
+      locations: c.locations,
+      inventory: c.inventory,
+      bag: [], // Bag is per-league, not per-character
+      endgame: c.endgame,
+      allocatedNodes: c.allocatedNodes || [],
+    }));
+
+    this.bag = (state.bag || []).map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      quality: item.quality,
+      level: item.level,
+      icon: item.icon,
+      acquiredAt: item.acquiredAt,
+      tier: item.tier,
+      locationId: item.locationId,
+      locationAct: item.locationAct,
+      bossId: item.bossId,
+      bossKeyTier: item.bossKeyTier,
+    }));
+
+    this.data.meta = {
+      lastSaveTime: state.meta.lastSaveTime,
+      totalTaps: state.meta.totalTaps,
+      totalKills: state.meta.totalKills,
+      totalGold: state.meta.totalGold,
+      version: state.meta.version,
+    };
 
     // Rebuild backward-compatible view if character is active
     if (this.data.activeCharacterId) {
@@ -102,55 +143,40 @@ export class GameState {
     this.events.emit("stateLoaded", this.data);
   }
 
+  /* ── Save (no-op — server handles persistence) ──────── */
+
   save(): void {
-    this.data.meta.lastSaveTime = Date.now();
-
-    // Serialize only canonical fields (not the player/combat/etc. proxy aliases)
-    const toSave = {
-      gold: this.data.gold,
-      activeCharacterId: this.data.activeCharacterId,
-      characters: this.data.characters,
-      meta: this.data.meta,
-    };
-
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(toSave));
-    } catch {
-      // storage full — ignore
-    }
+    // No-op: server is authoritative, no localStorage writes
   }
 
   scheduleSave(): void {
-    if (this._saveTimer) return;
-    this._saveTimer = setTimeout(() => {
-      this.save();
-      this._saveTimer = null;
-    }, 1000);
+    // No-op: server handles persistence
   }
 
   reset(): void {
     this.data = createDefault();
     this._playerProxy = null;
-    this.save();
+    this.bag = [];
     this.events.emit("stateLoaded", this.data);
   }
 
-  /* ── Offline Progress ─────────────────────────────────── */
+  /* ── Offline Progress ───────────────────────────────── */
 
-  calculateOfflineProgress(): { offlineGold: number; seconds: number } {
-    const now = Date.now();
-    const elapsed = (now - this.data.meta.lastSaveTime) / 1000;
-    const seconds = Math.min(elapsed, B.OFFLINE_MAX_SECONDS);
-
-    if (seconds < B.OFFLINE_MIN_SECONDS || !this.data.player || this.data.player.passiveDps <= 0) {
-      return { offlineGold: 0, seconds: 0 };
+  /**
+   * Claim offline gold from server.
+   */
+  async claimOfflineGold(): Promise<{ offlineGold: number; seconds: number }> {
+    const result = await api.player.claimOfflineGold();
+    if (result.offlineGold > 0 && result.gold) {
+      this.data.gold = Number(result.gold);
+      if (this.data.player) {
+        (this.data.player as any).gold = this.data.gold;
+      }
     }
-
-    const offlineGold = Math.floor(this.data.player.passiveDps * seconds * B.OFFLINE_DPS_RATE);
-    return { offlineGold, seconds };
+    return { offlineGold: result.offlineGold, seconds: result.seconds };
   }
 
-  /* ── Character helpers ────────────────────────────────── */
+  /* ── Character helpers ──────────────────────────────── */
 
   hasCharacters(): boolean {
     return this.data.characters.length > 0;
@@ -158,247 +184,197 @@ export class GameState {
 
   getActiveCharacter(): Character | null {
     if (!this.data.activeCharacterId) return null;
-    return this.data.characters.find(c => c.id === this.data.activeCharacterId) || null;
+    return (
+      this.data.characters.find(
+        (c) => c.id === this.data.activeCharacterId,
+      ) || null
+    );
   }
 
-  createCharacter(nickname: string, classId: string): Character {
-    const classDef = getCharacterClass(classId);
-    if (!classDef) throw new Error(`Unknown class: ${classId}`);
-
-    const char: Character = {
-      ...createDefaultCharacter(),
-      id: "char_" + Date.now(),
-      nickname,
-      classId,
-      skinId: classDef.skinId,
-      createdAt: Date.now(),
-    };
-
-    this.data.characters.push(char);
-    this.data.activeCharacterId = char.id;
-    this._rebuildPlayerView();
-    this.save();
-    this.events.emit("characterChanged", char);
-    return char;
+  /**
+   * Create character via API.
+   */
+  async createCharacter(nickname: string, classId: string, leagueId?: string): Promise<Character> {
+    await api.characters.create(nickname, classId, leagueId);
+    await this.refreshState();
+    const char = this.getActiveCharacter();
+    if (char) {
+      this.events.emit("characterChanged", char);
+    }
+    return char!;
   }
 
-  setActiveCharacter(charId: string): Character | null {
-    const char = this.data.characters.find(c => c.id === charId);
-    if (!char) return null;
-    this.data.activeCharacterId = charId;
-    this._rebuildPlayerView();
-    this.save();
-    this.events.emit("characterChanged", char);
+  /**
+   * Activate character via API.
+   */
+  async setActiveCharacter(charId: string): Promise<Character | null> {
+    await api.characters.activate(charId);
+    await this.refreshState();
+    const char = this.getActiveCharacter();
+    if (char) {
+      this.events.emit("characterChanged", char);
+    }
     return char;
   }
 
   /**
-   * Change the active character's skin.
+   * Change skin via API.
    */
-  setSkin(skinId: string): void {
+  async setSkin(skinId: string): Promise<void> {
     const char = this.getActiveCharacter();
     if (!char) return;
+    await api.characters.changeSkin(char.id!, skinId);
     char.skinId = skinId;
-    this.save();
     this.events.emit("skinChanged", { charId: char.id, skinId });
   }
 
-  /* ── Backward-compatible player view ──────────────────── */
+  /* ── Endgame helpers ───────────────────────────────── */
 
   /**
-   * Builds a proxy object so that existing code reading
-   * state.data.player.level, state.data.combat, etc.
-   * transparently reads/writes the active character's data.
-   * Gold goes to the global pool.
+   * Check endgame unlock via API.
    */
-  private _rebuildPlayerView(): void {
-    const char = this.getActiveCharacter();
-    if (!char) return;
-
-    const self = this;
-    const playerView: Record<string, any> = {};
-
-    // Per-character fields delegate to the character object
-    const charFields: string[] = [
-      "level", "xp", "xpToNext",
-      "tapDamage", "critChance", "critMultiplier", "passiveDps",
-    ];
-    for (const key of charFields) {
-      Object.defineProperty(playerView, key, {
-        get() { return (char as any)[key]; },
-        set(v: any) { (char as any)[key] = v; },
-        enumerable: true,
-      });
-    }
-
-    // Gold delegates to global
-    Object.defineProperty(playerView, "gold", {
-      get() { return self.data.gold; },
-      set(v: number) { self.data.gold = v; },
-      enumerable: true,
-    });
-
-    this.data.player = playerView as PlayerProxy;
-
-    // Alias sub-objects directly to the character's data
-    this.data.combat = char.combat;
-    this.data.locations = char.locations;
-    this.data.inventory = char.inventory;
-    this.data.endgame = char.endgame;
-
-    this._playerProxy = playerView as PlayerProxy;
-  }
-
-  /* ── Migration V1 → V2 ──────────────────────────────── */
-
-  private _migrateV1(saved: any): GameData {
-    const oldPlayer = saved.player || {};
-
-    const migratedChar: Character = {
-      ...createDefaultCharacter(),
-      id: "char_migrated",
-      nickname: "Samurai",
-      classId: "samurai",
-      skinId: "samurai_1",
-      createdAt: saved.meta?.lastSaveTime || Date.now(),
-      level: oldPlayer.level || B.STARTING_STATS.level,
-      xp: oldPlayer.xp || 0,
-      xpToNext: oldPlayer.xpToNext || B.XP_BASE,
-      tapDamage: oldPlayer.tapDamage || B.STARTING_STATS.tapDamage,
-      critChance: oldPlayer.critChance || B.STARTING_STATS.critChance,
-      critMultiplier: oldPlayer.critMultiplier || B.STARTING_STATS.critMultiplier,
-      passiveDps: oldPlayer.passiveDps || B.STARTING_STATS.passiveDps,
-      combat: saved.combat || { currentStage: 1, currentWave: 1, wavesPerStage: 10 },
-      locations: saved.locations || { completed: [], current: null, currentAct: 1 },
-      inventory: saved.inventory || { items: [], equipment: {} },
-    };
-
-    return {
-      gold: oldPlayer.gold || 0,
-      activeCharacterId: migratedChar.id,
-      characters: [migratedChar],
-      meta: {
-        lastSaveTime: saved.meta?.lastSaveTime || Date.now(),
-        totalTaps: saved.meta?.totalTaps || 0,
-        totalKills: saved.meta?.totalKills || 0,
-        totalGold: saved.meta?.totalGold || 0,
-        version: 2,
-      },
-    };
-  }
-
-  /* ── Migration V2 → V3 (act-prefixed location IDs) ──── */
-
-  private _migrateV2toV3(): void {
-    for (const char of this.data.characters) {
-      if (char.locations && Array.isArray(char.locations.completed)) {
-        char.locations.completed = char.locations.completed.map((id) =>
-          id.startsWith("act") ? id : `act1_${id}`
-        );
-      }
-      if (char.locations) {
-        char.locations.currentAct = char.locations.currentAct || 1;
-      }
-      if (char.locations && char.locations.current && !char.locations.current.startsWith("act")) {
-        char.locations.current = `act1_${char.locations.current}`;
-      }
-    }
-    this.data.meta.version = 3;
-  }
-
-  /* ── Migration V3 → V4 (endgame state) ────────────────── */
-
-  private _migrateV3toV4(): void {
-    for (const char of this.data.characters) {
-      if (!char.endgame) {
-        char.endgame = {
-          unlocked: false,
-          completedBosses: [],
-          highestTierCompleted: 0,
-          totalMapsRun: 0,
-        };
-      }
-      // Ensure bag exists
-      if (!Array.isArray(char.bag)) {
-        char.bag = [];
-      }
-      // Ensure bag items have type field
-      for (const item of char.bag) {
-        if (!item.type) item.type = "equipment";
-      }
-    }
-    this.data.meta.version = 4;
-  }
-
-  /* ── Endgame helpers ─────────────────────────────────── */
-
-  /** Check and set endgame unlock status for active character. */
-  checkEndgameUnlock(): boolean {
+  async checkEndgameUnlock(): Promise<boolean> {
     const char = this.getActiveCharacter();
     if (!char) return false;
-    if (!char.endgame) return false;
-    if (char.endgame.unlocked) return false;
+    if (char.endgame?.unlocked) return false;
 
-    const completed = char.locations.completed || [];
-    if (isEndgameUnlocked(completed)) {
+    const result = await api.endgame.checkUnlock(char.id!);
+    if (result.unlocked && !result.alreadyUnlocked) {
       char.endgame.unlocked = true;
-      if (!Array.isArray(char.bag)) char.bag = [];
-      // Grant starter map keys
-      for (let i = 0; i < B.ENDGAME_STARTER_KEYS; i++) {
-        char.bag.push(createMapKeyItem(B.ENDGAME_STARTER_TIER));
-      }
-      this.save();
+      await this.refreshBag();
       this.events.emit("endgameUnlocked");
       return true;
     }
     return false;
   }
 
-  /** Add a map key item to the active character's bag. */
-  addMapKeyToBag(mapKeyItem: BagItem): void {
-    const char = this.getActiveCharacter();
-    if (!char) return;
-    if (!Array.isArray(char.bag)) char.bag = [];
-    char.bag.push(mapKeyItem);
-    this.scheduleSave();
+  /**
+   * Refresh bag items from server.
+   */
+  async refreshBag(): Promise<void> {
+    const result = await api.loot.getBag();
+    const items = Array.isArray(result) ? result : (result as any).items || [];
+    this.bag = items.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      quality: item.quality,
+      level: item.level,
+      icon: item.icon,
+      acquiredAt: Number(item.acquiredAt),
+      tier: item.tier,
+      locationId: item.locationId,
+      locationAct: item.locationAct,
+      bossId: item.bossId,
+      bossKeyTier: item.bossKeyTier,
+    }));
   }
 
-  /** Remove a map key from the bag by item id. */
-  removeMapKeyFromBag(itemId: string): void {
-    const char = this.getActiveCharacter();
-    if (!char) return;
-    char.bag = char.bag.filter(item => item.id !== itemId);
-    this.scheduleSave();
-  }
-
-  /** Get all map keys from the active character's bag. */
+  /**
+   * Get all map keys from the league bag.
+   */
   getMapKeys(): BagItem[] {
-    const char = this.getActiveCharacter();
-    if (!char || !Array.isArray(char.bag)) return [];
-    return char.bag.filter(item =>
-      item.type === "map_key" || item.type === "boss_map_key"
+    return this.bag.filter(
+      (item) => item.type === "map_key" || item.type === "boss_map_key",
     );
   }
 
-  /* ── V2 merge (preserves arrays as-is) ───────────────── */
+  /**
+   * Update local state from combat completion response.
+   */
+  updateFromCombatComplete(result: {
+    totalGold: number;
+    totalXp: number;
+    level?: number;
+    xp?: number;
+    xpToNext?: number;
+    gold?: number;
+    mapDrops?: BagItem[];
+    locationId?: string;
+  }): void {
+    if (result.gold !== undefined) {
+      this.data.gold = result.gold;
+    }
 
-  private _mergeV2(defaults: any, saved: any): GameData {
-    const result: any = { ...defaults };
-    for (const key of Object.keys(defaults)) {
-      if (saved[key] === undefined) continue;
+    const char = this.getActiveCharacter();
+    if (char && result.level !== undefined) {
+      char.level = result.level;
+      char.xp = result.xp ?? char.xp;
+      char.xpToNext = result.xpToNext ?? char.xpToNext;
+    }
 
-      if (Array.isArray(defaults[key])) {
-        // Arrays (like characters): use saved value directly
-        result[key] = saved[key];
-      } else if (
-        typeof defaults[key] === "object" &&
-        defaults[key] !== null
-      ) {
-        result[key] = this._mergeV2(defaults[key], saved[key]);
-      } else {
-        result[key] = saved[key];
+    if (result.locationId && char) {
+      if (!char.locations.completed.includes(result.locationId)) {
+        char.locations.completed.push(result.locationId);
       }
     }
-    return result;
+
+    if (result.mapDrops) {
+      for (const drop of result.mapDrops) {
+        this.bag.push(drop);
+      }
+    }
+
+    this._rebuildPlayerView();
+
+    if (this.data.player) {
+      this.events.emit("goldChanged", { gold: this.data.player.gold });
+      this.events.emit("xpChanged", {
+        xp: this.data.player.xp,
+        xpToNext: this.data.player.xpToNext,
+      });
+    }
+    if (result.level !== undefined && char) {
+      this.events.emit("levelUp", { level: result.level });
+    }
+  }
+
+  /* ── Backward-compatible player view ──────────────── */
+
+  _rebuildPlayerView(): void {
+    const char = this.getActiveCharacter();
+    if (!char) return;
+
+    const self = this;
+    const playerView: Record<string, any> = {};
+
+    const charFields: string[] = [
+      "level",
+      "xp",
+      "xpToNext",
+      "tapDamage",
+      "critChance",
+      "critMultiplier",
+      "passiveDps",
+    ];
+    for (const key of charFields) {
+      Object.defineProperty(playerView, key, {
+        get() {
+          return (char as any)[key];
+        },
+        set(v: any) {
+          (char as any)[key] = v;
+        },
+        enumerable: true,
+      });
+    }
+
+    Object.defineProperty(playerView, "gold", {
+      get() {
+        return self.data.gold;
+      },
+      set(v: number) {
+        self.data.gold = v;
+      },
+      enumerable: true,
+    });
+
+    this.data.player = playerView as PlayerProxy;
+    this.data.combat = char.combat;
+    this.data.locations = char.locations;
+    this.data.inventory = char.inventory;
+    this.data.endgame = char.endgame;
+
+    this._playerProxy = playerView as PlayerProxy;
   }
 }

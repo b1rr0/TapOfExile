@@ -73,8 +73,8 @@ export class HideoutScene {
   }
 
   mount(_params: Record<string, unknown> = {}): void {
-    // Check if endgame should be unlocked
-    this.state.checkEndgameUnlock();
+    // Check if endgame should be unlocked (async, fire-and-forget)
+    this.state.checkEndgameUnlock().catch(() => {});
 
     const player = this.state.data.player;
     const char = this.state.getActiveCharacter();

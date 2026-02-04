@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class StartLocationDto {
@@ -6,4 +6,16 @@ export class StartLocationDto {
   @IsString()
   @IsNotEmpty()
   locationId: string;
+
+  @ApiProperty({ description: 'Location waves definition' })
+  @IsArray()
+  waves: any[];
+
+  @ApiProperty({ description: 'Location order (difficulty tier)' })
+  @IsNumber()
+  order: number;
+
+  @ApiProperty({ description: 'Act number' })
+  @IsNumber()
+  act: number;
 }

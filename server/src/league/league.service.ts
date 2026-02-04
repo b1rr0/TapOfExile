@@ -11,6 +11,12 @@ import { League } from '../shared/entities/league.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { Player } from '../shared/entities/player.entity';
 
+export const JP_MONTH_NAMES = [
+  'Ichigatsu', 'Nigatsu', 'Sangatsu', 'Shigatsu',
+  'Gogatsu', 'Rokugatsu', 'Shichigatsu', 'Hachigatsu',
+  'Kugatsu', 'Juugatsu', 'Juuichigatsu', 'Juunigatsu',
+];
+
 @Injectable()
 export class LeagueService implements OnModuleInit {
   private readonly logger = new Logger(LeagueService.name);
@@ -25,7 +31,7 @@ export class LeagueService implements OnModuleInit {
   ) {}
 
   /**
-   * Seed Standard league on first boot if none exists.
+   * Seed Standard league + current monthly league on first boot.
    */
   async onModuleInit() {
     const standardExists = await this.leagueRepo.findOne({
@@ -41,6 +47,30 @@ export class LeagueService implements OnModuleInit {
       });
       await this.leagueRepo.save(standard);
       this.logger.log(`Standard league created: ${standard.id}`);
+    }
+
+    // Auto-create monthly league for current month if none exists
+    const monthlyExists = await this.getActiveMonthlyLeague();
+    if (!monthlyExists) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23, 59, 59,
+      );
+      const leagueName = `${JP_MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
+
+      const monthly = this.leagueRepo.create({
+        name: leagueName,
+        type: 'monthly',
+        status: 'active',
+        startsAt: monthStart,
+        endsAt: monthEnd,
+      });
+      await this.leagueRepo.save(monthly);
+      this.logger.log(`Monthly league created: "${leagueName}" (${monthly.id})`);
     }
   }
 

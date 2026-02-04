@@ -6,11 +6,8 @@ import {
   getBossKeyTierDef,
   getWavesForTier,
   getBossMapWaves,
-  createMapKeyItem,
-  createBossMapKeyItem,
 } from "../data/endgame-maps.js";
 import { getLocationById, getActModifiers } from "../data/locations.js";
-import { IS_TESTING } from "../main.js";
 import type { SharedDeps, BagItem } from "../types.js";
 
 /**
@@ -53,21 +50,7 @@ export class MapDeviceScene {
   }
 
   mount(_params: Record<string, unknown> = {}): void {
-    // In testing mode, seed some keys if the bag is empty
-    if (IS_TESTING) {
-      const keys = this.state.getMapKeys();
-      if (keys.length === 0) {
-        for (let t = 1; t <= 10; t++) {
-          this.state.addMapKeyToBag(createMapKeyItem(t));
-        }
-        // Seed boss keys at all 3 tiers
-        for (const boss of BOSS_MAPS) {
-          for (let bt = 1; bt <= 3; bt++) {
-            this.state.addMapKeyToBag(createBossMapKeyItem(boss.id, bt));
-          }
-        }
-      }
-    }
+    // Keys are loaded from server via state.bag
 
     this.container.innerHTML = `
       <div class="map-device">
@@ -329,14 +312,14 @@ export class MapDeviceScene {
 
     const key = this._selectedKey;
 
-    // Consume the key from bag
-    this.state.removeMapKeyFromBag(key.id);
-
+    // Server will consume the key from bag via startMap API
+    // Pass mapKeyItemId to combat scene for server-side consumption
     if (key.type === MAP_KEY_TYPES.boss) {
       const bossDef = getBossDef(key.bossId!);
       const bkt = getBossKeyTierDef(key.bossKeyTier || 1);
       const waves = getBossMapWaves(key.bossId!);
       this.sceneManager.switchTo("combat", {
+        mapKeyItemId: key.id,
         mapConfig: {
           isBoss: true,
           bossId: key.bossId,
@@ -352,6 +335,7 @@ export class MapDeviceScene {
       const tierDef = getTierDef(key.tier!);
       const waves = getWavesForTier(key.tier!);
       this.sceneManager.switchTo("combat", {
+        mapKeyItemId: key.id,
         mapConfig: {
           isBoss: false,
           tier: key.tier,

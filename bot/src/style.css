@@ -1780,6 +1780,13 @@ body {
   color: var(--game-accent);
 }
 
+.char-card__league {
+  font-size: 11px;
+  color: var(--game-gold);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
 .char-select__new-btn {
   margin: 0 16px 24px;
   padding: 14px 24px;
@@ -1891,6 +1898,50 @@ body {
 }
 
 /* Class cards — 2x2 grid */
+/* League selection */
+.char-create__leagues {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.league-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border: 2px solid #4a3520;
+  border-radius: 12px;
+  background: var(--game-bg2);
+  cursor: pointer;
+  transition: transform 0.08s, border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.league-card:active {
+  transform: scale(0.96);
+}
+
+.league-card--selected {
+  border-color: var(--game-gold);
+  background: rgba(255, 215, 0, 0.08);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
+}
+
+.league-card__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--game-text);
+}
+
+.league-card__type {
+  font-size: 11px;
+  color: var(--game-text);
+  opacity: 0.5;
+}
+
+/* Class selection */
 .char-create__classes {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3260,4 +3311,23 @@ body {
 }
 .skill-tree__reset-btn:active {
   background: rgba(255,100,100,0.2);
+}
+
+.skill-tree__accept-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(100,255,100,0.3);
+  background: rgba(10,40,10,0.8);
+  color: #8aff8a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+.skill-tree__accept-btn:active {
+  background: rgba(100,255,100,0.2);
+}
+.skill-tree__accept-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

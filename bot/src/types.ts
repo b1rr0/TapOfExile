@@ -1,3 +1,32 @@
+// ── Re-export shared types ───────────────────────────────
+
+export type {
+  ModMode,
+  NodeType,
+  MonsterSpawn,
+  Wave,
+  MapTier,
+  BossKeyTierDef,
+  BossMap,
+  DropSettings,
+  BagItemData,
+} from "@shared/types";
+
+// ── Re-export skill tree types from shared ───────────────
+
+export type { Emblem, SkillTreeResult } from "@shared/skill-tree";
+
+// ── League Types ─────────────────────────────────────────
+
+export interface LeagueInfo {
+  id: string;
+  name: string;
+  type: "standard" | "monthly";
+  status: string;
+  startsAt: string;
+  endsAt: string | null;
+}
+
 // ── Game State Types ─────────────────────────────────────
 
 export interface Meta {
@@ -52,6 +81,9 @@ export interface Character {
   nickname: string;
   classId: string;
   skinId: string;
+  leagueId?: string;
+  leagueName?: string;
+  leagueType?: string;
   createdAt: number;
   level: number;
   xp: number;
@@ -65,6 +97,7 @@ export interface Character {
   inventory: InventoryState;
   bag: BagItem[];
   endgame: EndgameState;
+  allocatedNodes: number[];
 }
 
 export interface PlayerProxy {
@@ -82,6 +115,7 @@ export interface GameData {
   gold: number;
   activeCharacterId: string | null;
   characters: Character[];
+  leagues: LeagueInfo[];
   meta: Meta;
   player?: PlayerProxy;
   combat?: CombatState;
@@ -123,16 +157,6 @@ export interface Monster {
 
 // ── Location Types ───────────────────────────────────────
 
-export interface MonsterSpawn {
-  type: string;
-  count: number;
-  rarity: string;
-}
-
-export interface Wave {
-  monsters: MonsterSpawn[];
-}
-
 export interface Location {
   id: string;
   name: string;
@@ -140,7 +164,7 @@ export interface Location {
   order: number;
   act: number;
   requiredLocationId: string | null;
-  waves: Wave[];
+  waves: import("@shared/types").Wave[];
   rewards: { gold: number; xp: number };
   background?: string;
 }
@@ -168,36 +192,7 @@ export interface CharacterClassDef {
   icon: string;
 }
 
-// ── Endgame Types ────────────────────────────────────────
-
-export interface MapTier {
-  tier: number;
-  name: string;
-  hpMul: number;
-  goldMul: number;
-  xpMul: number;
-}
-
-export interface BossKeyTierDef {
-  tier: number;
-  name: string;
-  quality: string;
-  hpScale: number;
-  goldScale: number;
-  xpScale: number;
-}
-
-export interface BossMap {
-  id: string;
-  name: string;
-  description: string;
-  bossType: string;
-  icon: string;
-  hpMul: number;
-  goldMul: number;
-  xpMul: number;
-  trashWaves: Wave[];
-}
+// ── Map Config ───────────────────────────────────────────
 
 export interface MapConfig {
   tier?: number;
@@ -205,9 +200,9 @@ export interface MapConfig {
   bossId?: string;
   locationId?: string;
   locationAct?: number;
-  waves: Wave[];
-  tierDef?: MapTier;
-  bossDef?: BossMap;
+  waves: import("@shared/types").Wave[];
+  tierDef?: import("@shared/types").MapTier;
+  bossDef?: import("@shared/types").BossMap;
   totalGold?: number;
   totalXp?: number;
 }
@@ -229,26 +224,6 @@ export interface SkinConfig {
   defaultSize: { w: number; h: number };
   anchorOffsetY: number;
   scale: number;
-}
-
-// ── Skill Tree Types ─────────────────────────────────────
-
-export type NodeType = "start" | "classSkill" | "minor" | "notable" | "keystone";
-export type ModMode = "percent" | "flat";
-
-export interface SkillTreeResult {
-  nodes: any[];
-  edges: [number, number][];
-  emblems: Emblem[];
-}
-
-export interface Emblem {
-  classId: string;
-  cx: number;
-  cy: number;
-  r: number;
-  img: string;
-  startNodeId: number;
 }
 
 // ── Scene Types ──────────────────────────────────────────
@@ -288,21 +263,4 @@ export interface GameEventMap {
   characterChanged: Character;
   skinChanged: { charId: string; skinId: string };
   endgameUnlocked: undefined;
-}
-
-// ── Drop Settings ────────────────────────────────────────
-
-export interface DropSettings {
-  regular: {
-    sameTierChance: number;
-    tierUpChance: number;
-    bossKeyChance: number;
-    bossKeyMinTier: number;
-  };
-  boss: {
-    guaranteedTierMin: number;
-    guaranteedTierMax: number;
-    bonusKeyChance: number;
-    bossKeyChance: number;
-  };
 }

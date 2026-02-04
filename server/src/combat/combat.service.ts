@@ -8,11 +8,22 @@ import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from '../redis/redis.service';
 import { LevelGenService, ServerMonster } from '../level-gen/level-gen.service';
+import { LootService } from '../loot/loot.service';
+import { EndgameService } from '../endgame/endgame.service';
 import { Character } from '../shared/entities/character.entity';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { CombatSession } from '../shared/entities/combat-session.entity';
+import { BagItem } from '../shared/entities/bag-item.entity';
 import { B } from '../shared/constants/balance.constants';
+import {
+  getTierDef,
+  getBossKeyTierDef,
+  getWavesForTier as sharedGetWavesForTier,
+  getBossMapWaves as sharedGetBossMapWaves,
+} from '@shared/endgame-maps';
+import { StartLocationDto } from './dto/start-location.dto';
+import { StartMapDto } from './dto/start-map.dto';
 
 interface RedisCombatSession {
   id: string;
@@ -31,6 +42,7 @@ interface RedisCombatSession {
   locationId?: string;
   mapTier?: number;
   bossId?: string;
+  direction?: string;
 }
 
 const SESSION_TTL = 1800; // 30 minutes
@@ -41,6 +53,8 @@ export class CombatService {
   constructor(
     private redis: RedisService,
     private levelGen: LevelGenService,
+    private lootService: LootService,
+    private endgameService: EndgameService,
     @InjectRepository(Character)
     private charRepo: Repository<Character>,
     @InjectRepository(Player)
@@ -49,6 +63,8 @@ export class CombatService {
     private playerLeagueRepo: Repository<PlayerLeague>,
     @InjectRepository(CombatSession)
     private sessionRepo: Repository<CombatSession>,
+    @InjectRepository(BagItem)
+    private bagRepo: Repository<BagItem>,
   ) {}
 
   private sessionKey(id: string) {
@@ -165,6 +181,92 @@ export class CombatService {
       totalMonsters: queue.length,
       currentMonster: queue[0] || null,
     };
+  }
+
+  /**
+   * Start location via DTO from controller.
+   */
+  async startLocationByDto(telegramId: string, dto: StartLocationDto) {
+    return this.startLocation(
+      telegramId,
+      dto.locationId,
+      dto.waves,
+      dto.order,
+      dto.act,
+    );
+  }
+
+  /**
+   * Start map via DTO from controller — consumes the map key from bag.
+   */
+  async startMapByDto(telegramId: string, dto: StartMapDto) {
+    const { playerLeague } = await this.getActiveCharacterInfo(telegramId);
+
+    // Find the map key in bag
+    const key = await this.bagRepo.findOne({
+      where: { id: dto.mapKeyItemId, playerLeagueId: playerLeague.id },
+    });
+    if (!key) {
+      throw new NotFoundException('Map key not found in bag');
+    }
+
+    // Determine waves and tier based on key type
+    let waves: any[];
+    let tierHpMul: number;
+    let tierGoldMul: number;
+    let tierXpMul: number;
+    let mapTier: number;
+    let bossId: string | undefined;
+
+    if (key.type === 'boss_map_key') {
+      // Boss map key — use shared boss key tier defs
+      bossId = key.bossId || undefined;
+      mapTier = 10;
+      const bkt = getBossKeyTierDef(key.bossKeyTier || 1);
+      tierHpMul = bkt.hpScale;
+      tierGoldMul = bkt.goldScale;
+      tierXpMul = bkt.xpScale;
+      waves = sharedGetBossMapWaves(bossId!);
+    } else {
+      // Regular map key — use shared tier definitions (correct multipliers!)
+      mapTier = key.tier || 1;
+      const tierDef = getTierDef(mapTier);
+      tierHpMul = tierDef.hpMul;
+      tierGoldMul = tierDef.goldMul;
+      tierXpMul = tierDef.xpMul;
+      waves = sharedGetWavesForTier(mapTier);
+    }
+
+    // Remove the key from bag
+    await this.bagRepo.remove(key);
+
+    // Start the combat session
+    const result = await this.startMap(
+      telegramId,
+      waves,
+      tierHpMul,
+      tierGoldMul,
+      tierXpMul,
+      mapTier,
+      bossId,
+    );
+
+    // Store direction in session for drop calculation
+    if (dto.direction) {
+      const session = await this.redis.getJson<RedisCombatSession>(
+        this.sessionKey(result.sessionId),
+      );
+      if (session) {
+        session.direction = dto.direction;
+        await this.redis.setJson(
+          this.sessionKey(result.sessionId),
+          session,
+          SESSION_TTL,
+        );
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -290,7 +392,58 @@ export class CombatService {
           Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, char.level - 1)),
         );
       }
+
+      // Persist location completion for story mode
+      if (session.mode === 'location' && session.locationId) {
+        if (!char.completedLocations.includes(session.locationId)) {
+          char.completedLocations = [
+            ...char.completedLocations,
+            session.locationId,
+          ];
+        }
+      }
+
+      // Persist endgame stats for map/boss_map modes
+      if (session.mode === 'map' || session.mode === 'boss_map') {
+        char.totalMapsRun++;
+        if (
+          session.mode === 'map' &&
+          session.mapTier &&
+          session.mapTier > char.highestTierCompleted
+        ) {
+          char.highestTierCompleted = session.mapTier;
+        }
+        if (
+          session.mode === 'boss_map' &&
+          session.bossId &&
+          !char.completedBosses.includes(session.bossId)
+        ) {
+          char.completedBosses = [
+            ...char.completedBosses,
+            session.bossId,
+          ];
+        }
+      }
+
       await this.charRepo.save(char);
+    }
+
+    // Roll and persist map drops for endgame sessions
+    let mapDrops: Partial<BagItem>[] = [];
+    if (session.mode === 'map' || session.mode === 'boss_map') {
+      const isBoss = session.mode === 'boss_map';
+      const direction = session.direction || session.bossId || null;
+      mapDrops = this.lootService.rollMapDrops(
+        session.mapTier || 1,
+        isBoss,
+        direction,
+      );
+      if (mapDrops.length > 0) {
+        await this.lootService.addItemsToBag(
+          session.playerLeagueId,
+          mapDrops,
+        );
+      }
     }
 
     // Save audit record to PostgreSQL
@@ -321,7 +474,21 @@ export class CombatService {
       totalXp: session.totalXpEarned,
       totalTaps: session.totalTaps,
       monstersKilled: session.monsterQueue.length,
-      levelUp: char ? char.level : undefined,
+      level: char ? char.level : undefined,
+      xp: char ? Number(char.xp) : undefined,
+      xpToNext: char ? Number(char.xpToNext) : undefined,
+      gold: Number(playerLeague.gold),
+      mapDrops: mapDrops.map((d) => ({
+        id: d.id,
+        name: d.name,
+        type: d.type,
+        quality: d.quality,
+        tier: d.tier,
+        icon: d.icon,
+        bossId: d.bossId,
+        bossKeyTier: d.bossKeyTier,
+      })),
+      locationId: session.locationId || null,
     };
   }
 
