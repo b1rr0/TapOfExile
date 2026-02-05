@@ -103,7 +103,8 @@ export class GameState {
       tapDamage: c.tapDamage,
       critChance: c.critChance,
       critMultiplier: c.critMultiplier,
-      passiveDps: c.passiveDps,
+      dodgeChance: c.dodgeChance,
+      specialValue: c.specialValue,
       combat: c.combat,
       locations: c.locations,
       inventory: c.inventory,
@@ -345,7 +346,8 @@ export class GameState {
       "tapDamage",
       "critChance",
       "critMultiplier",
-      "passiveDps",
+      "dodgeChance",
+      "specialValue",
     ];
     for (const key of charFields) {
       Object.defineProperty(playerView, key, {

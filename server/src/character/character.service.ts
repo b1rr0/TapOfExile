@@ -10,14 +10,8 @@ import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { League } from '../shared/entities/league.entity';
 import { B } from '../shared/constants/balance.constants';
+import { CLASS_DEFS, statsAtLevel, specialAtLevel } from '@shared/class-stats';
 import { CreateCharacterDto } from './dto/create-character.dto';
-
-const CLASS_DEFAULT_SKINS: Record<string, string> = {
-  samurai: 'samurai_1',
-  warrior: 'knight_1',
-  mage: 'wizard_1',
-  archer: 'archer_1',
-};
 
 @Injectable()
 export class CharacterService {
@@ -139,6 +133,9 @@ export class CharacterService {
     const now = Date.now();
     const charId = `char_${now}_${Math.random().toString(36).slice(2, 6)}`;
 
+    const classDef = CLASS_DEFS[dto.classId];
+    const baseStats = statsAtLevel(dto.classId, 1);
+
     const char = this.charRepo.create({
       id: charId,
       playerTelegramId: telegramId,
@@ -146,16 +143,20 @@ export class CharacterService {
       playerLeagueId: pl.id,
       nickname: dto.nickname,
       classId: dto.classId,
-      skinId: CLASS_DEFAULT_SKINS[dto.classId] || 'samurai_1',
+      skinId: classDef?.skinId || 'samurai_1',
       createdAt: String(now),
-      level: B.STARTING_STATS.level,
+      level: 1,
       xp: '0',
       xpToNext: String(B.XP_BASE),
-      tapDamage: B.STARTING_STATS.tapDamage,
-      critChance: B.STARTING_STATS.critChance,
-      critMultiplier: B.STARTING_STATS.critMultiplier,
-      passiveDps: B.STARTING_STATS.passiveDps,
+      hp: baseStats.hp,
+      maxHp: baseStats.hp,
+      tapDamage: baseStats.tapDamage,
+      critChance: baseStats.critChance,
+      critMultiplier: baseStats.critMultiplier,
+      dodgeChance: baseStats.dodgeChance,
+      specialValue: specialAtLevel(dto.classId, 1),
       elementalDamage: { ...B.DEFAULT_ELEMENTAL_DAMAGE },
+      resistance: { ...baseStats.resistance },
       combatCurrentStage: 1,
       combatCurrentWave: 1,
       combatWavesPerStage: 10,

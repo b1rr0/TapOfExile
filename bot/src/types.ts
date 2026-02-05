@@ -19,6 +19,11 @@ export type {
 
 export { ELEMENT_COLORS } from "@shared/types";
 
+// ── Re-export class stats ────────────────────────────────
+
+export type { ClassDef, ClassBaseStats, ClassGrowth, ClassSpecial } from "@shared/class-stats";
+export { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
+
 // ── Re-export skill tree types from shared ───────────────
 
 export type { Emblem, SkillTreeResult } from "@shared/skill-tree";
@@ -95,10 +100,14 @@ export interface Character {
   level: number;
   xp: number;
   xpToNext: number;
+  hp: number;
+  maxHp: number;
   tapDamage: number;
   critChance: number;
   critMultiplier: number;
-  passiveDps: number;
+  dodgeChance: number;
+  specialValue: number;
+  resistance?: import("@shared/types").ElementalResistance;
   combat: CombatState;
   locations: LocationState;
   inventory: InventoryState;
@@ -114,7 +123,6 @@ export interface PlayerProxy {
   tapDamage: number;
   critChance: number;
   critMultiplier: number;
-  passiveDps: number;
   gold: number;
 }
 

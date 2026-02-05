@@ -59,25 +59,25 @@ export const B = {
   },
 
   /* ── Player progression ───────────────────── */
+  MAX_LEVEL: 60,
   XP_BASE: 100,                     // xpToNext = XP_BASE * XP_GROWTH^(level-1)
   XP_GROWTH: 1.3,
 
+  /** Legacy fallback — class-specific stats in shared/class-stats.ts */
   STARTING_STATS: {
     level: 1,
-    tapDamage: 1,
+    tapDamage: 2,
     critChance: 0.05,
-    critMultiplier: 2.0,
-    passiveDps: 0,
+    critMultiplier: 1.5,
   },
 
   /* ── Offline progress ─────────────────────── */
   OFFLINE_MAX_SECONDS: 28800,        // 8 hours
   OFFLINE_MIN_SECONDS: 10,
-  OFFLINE_DPS_RATE: 0.5,             // 50% of passiveDps
+  OFFLINE_DPS_RATE: 0.5,             // 50% of tapDamage (offline earnings)
 
   /* ── Combat timers ────────────────────────── */
   SPAWN_DELAY_MS: 1200,
-  PASSIVE_DPS_TICK_MS: 1000,
 
   /* ── Endgame start ────────────────────────── */
   ENDGAME_STARTER_KEYS: 3,

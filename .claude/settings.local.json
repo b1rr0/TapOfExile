@@ -47,7 +47,13 @@
       "Bash(cmd /c \"mklink /J shared ..\\\\shared\")",
       "Bash(powershell -Command \"New-Item -ItemType Junction -Path ''D:\\\\programs\\\\33Metro\\\\server\\\\shared'' -Target ''D:\\\\programs\\\\33Metro\\\\shared'' -Force\")",
       "Bash(powershell -Command \"Get-ChildItem ''D:\\\\programs\\\\33Metro\\\\server\\\\shared''\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(cmd.exe /c \"cd /d D:\\\\programs\\\\33Metro\\\\shared && npx tsc --noEmit 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d D:\\\\programs\\\\33Metro\\\\shared && npx tsc 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d D:\\\\programs\\\\33Metro\\\\shared && npx tsc --outDir . --declaration true 2>&1\")",
+      "Bash(cmd.exe /c \"dir D:\\\\programs\\\\33Metro\\\\shared\\\\dist\\\\*.js 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d D:\\\\programs\\\\33Metro\\\\shared && npx tsc -p tsconfig.json --outDir . 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d D:\\\\programs\\\\33Metro\\\\shared && npx tsc skill-node-defs.ts --module commonjs --target ES2022 --esModuleInterop --declaration --outDir . 2>&1\")"
     ]
   }
 }

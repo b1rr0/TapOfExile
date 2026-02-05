@@ -9,7 +9,7 @@
  *  Row 2:  (empty)   |  Armor   | Amulet
  *  Row 3:  Ring      |  Armor   | Ring
  *  Row 4:  Gloves    |  Belt    | Boots
- *  Row 5:  Pot1 | Pot2 | Pot3 | Pot4
+ *  Row 5:  Pot Q | Pot E
  */
 
 import type { GameData } from "../types.js";
@@ -145,23 +145,15 @@ export class Equipment {
           </div>
         </div>
 
-        <!-- Consumables row (separate, bottom — 4 slots) -->
+        <!-- Consumables row (separate, bottom — 2 slots) -->
         <div class="inv-consumables">
           <div class="inv-slot inv-slot--potion" data-slot="consumable-1">
             <div class="inv-slot__icon">&#x1F9EA;</div>
-            <span class="inv-slot__label">Pot 1</span>
+            <span class="inv-slot__label">Q</span>
           </div>
           <div class="inv-slot inv-slot--potion" data-slot="consumable-2">
             <div class="inv-slot__icon">&#x1F9EA;</div>
-            <span class="inv-slot__label">Pot 2</span>
-          </div>
-          <div class="inv-slot inv-slot--potion" data-slot="consumable-3">
-            <div class="inv-slot__icon">&#x1F9EA;</div>
-            <span class="inv-slot__label">Pot 3</span>
-          </div>
-          <div class="inv-slot inv-slot--potion" data-slot="consumable-4">
-            <div class="inv-slot__icon">&#x1F9EA;</div>
-            <span class="inv-slot__label">Pot 4</span>
+            <span class="inv-slot__label">E</span>
           </div>
         </div>
       </div>

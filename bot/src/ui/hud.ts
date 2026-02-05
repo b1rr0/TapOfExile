@@ -70,7 +70,6 @@ export class HUD {
         this.updateStage(state.combat!.currentStage, state.combat!.currentWave);
       }
       this.updateLevel(state.player!.level);
-      this.updateDps(state.player!.passiveDps);
       this.updateXp(state.player!.xp, state.player!.xpToNext);
     });
   }

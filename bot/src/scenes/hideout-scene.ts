@@ -4,7 +4,9 @@ import { IS_TESTING } from "../main.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { getCharacterClass } from "../data/character-classes.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
-import type { SharedDeps, SkinConfig } from "../types.js";
+import { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
+import { ELEMENT_COLORS } from "@shared/types";
+import type { SharedDeps, SkinConfig, Character } from "../types.js";
 
 /**
  * HideoutScene — home hub screen.
@@ -131,6 +133,7 @@ export class HideoutScene {
         <div class="hideout-char-info">
           <div class="hideout-char-info__name">${char.nickname}</div>
           <div class="hideout-char-info__class">${cls ? cls.icon + " " + cls.name : char.classId}</div>
+          <button class="hideout-char-info__stats-btn" id="hideout-stats-btn">Stats</button>
         </div>
         ` : ""}
 
@@ -195,6 +198,12 @@ export class HideoutScene {
     (this.container.querySelector("#hideout-tree-btn") as HTMLButtonElement).addEventListener("click", () => {
       if (this.sceneManager) this.sceneManager.switchTo("skillTree");
     });
+
+    // -- Stats button --------------------------------------
+    const statsBtn = this.container.querySelector("#hideout-stats-btn") as HTMLButtonElement | null;
+    if (statsBtn) {
+      statsBtn.addEventListener("click", () => this._openStatsOverlay());
+    }
 
     // -- Top bar dropdowns ---------------------------------
     this._wireDropdown("shop-toggle", "shop-menu", {
@@ -359,6 +368,120 @@ export class HideoutScene {
     const dy = h - dh - h * 0.08;
 
     this._heroEngine!.drawFrame(ctx, dx, dy, dw, dh, false);
+  }
+
+  /* -- Stats overlay -------------------------------------- */
+
+  _openStatsOverlay(): void {
+    const char = this.state.getActiveCharacter() as Character | null;
+    if (!char) return;
+
+    const cls = getCharacterClass(char.classId);
+    const def = CLASS_DEFS[char.classId];
+    const curStats = statsAtLevel(char.classId, char.level);
+    const maxStats = statsAtLevel(char.classId, MAX_LEVEL);
+
+    const fmtPct = (v: number) => `${Math.round(v * 100)}%`;
+
+    // Build elemental damage display
+    const elemDmg = (char as any).elementalDamage || { physical: 1.0 };
+    const elemEntries = Object.entries(elemDmg as Record<string, number>).filter(([, v]) => v > 0);
+
+    // Unique ability
+    const special = def?.special;
+    const curSpecial = specialAtLevel(char.classId, char.level);
+    const maxSpecial = specialAtLevel(char.classId, MAX_LEVEL);
+    const fmtSpecial = (v: number) => special?.format === 'percent' ? fmtPct(v) : String(Math.floor(v));
+
+    const overlay = document.createElement("div");
+    overlay.className = "stats-overlay";
+    overlay.innerHTML = `
+      <div class="stats-overlay__backdrop"></div>
+      <div class="stats-overlay__panel">
+        <div class="stats-overlay__header">
+          <span class="stats-overlay__title">${cls ? cls.icon + " " : ""}${char.nickname}</span>
+          <span class="stats-overlay__subtitle">${cls ? cls.name : char.classId} &middot; Lv.${char.level} / ${MAX_LEVEL}</span>
+          <button class="stats-overlay__close" id="stats-close">&times;</button>
+        </div>
+
+        <div class="stats-overlay__body">
+          <div class="stats-overlay__section-title">Combat Stats</div>
+          ${this._statRow(STAT_LABELS.hp.icon, "HP", `${char.hp ?? curStats.hp} / ${char.maxHp ?? curStats.hp}`, String(maxStats.hp))}
+          ${this._statRow(STAT_LABELS.tapDamage.icon, "Damage", String(char.tapDamage), String(maxStats.tapDamage))}
+          ${this._statRow(STAT_LABELS.critChance.icon, "Crit Chance", fmtPct(char.critChance), fmtPct(maxStats.critChance))}
+          ${this._statRow(STAT_LABELS.critMultiplier.icon, "Crit Dmg", fmtPct(char.critMultiplier), fmtPct(maxStats.critMultiplier))}
+          ${this._statRow(STAT_LABELS.dodgeChance.icon, "Dodge", fmtPct(char.dodgeChance ?? 0), fmtPct(maxStats.dodgeChance))}
+
+          ${special ? `
+          <div class="stats-overlay__section-title">Unique Ability</div>
+          <div class="stats-overlay__special">
+            <span class="stats-overlay__special-icon">${special.icon}</span>
+            <div class="stats-overlay__special-info">
+              <span class="stats-overlay__special-name">${special.name}</span>
+              <span class="stats-overlay__special-desc">${special.description}</span>
+            </div>
+            <span class="stats-overlay__special-value">${IS_TESTING ? `${fmtSpecial(curSpecial)} → ${fmtSpecial(maxSpecial)}` : fmtSpecial(curSpecial)}</span>
+          </div>
+          ` : ""}
+
+          <div class="stats-overlay__section-title">Damage Type</div>
+          <div class="stats-overlay__elem-row">
+            ${elemEntries.map(([elem, frac]) =>
+              `<span class="stats-overlay__elem-tag" style="border-color:${(ELEMENT_COLORS as any)[elem] || '#888'}; color:${(ELEMENT_COLORS as any)[elem] || '#888'}">
+                ${elem} ${Math.round(frac * 100)}%
+              </span>`
+            ).join("")}
+          </div>
+
+          <div class="stats-overlay__section-title">Resistances</div>
+          ${Object.entries(RESISTANCE_LABELS).map(([key, r]) => {
+            const val = char.resistance ? (char.resistance as any)[key] || 0 : (curStats.resistance as any)[key] || 0;
+            return `<div class="stats-overlay__res-row">
+              <span class="stats-overlay__res-dot" style="background:${r.color}"></span>
+              <span class="stats-overlay__res-label">${r.label}</span>
+              <span class="stats-overlay__res-value" style="color:${val > 0 ? r.color : 'var(--game-text)'}">${val}%</span>
+            </div>`;
+          }).join("")}
+
+          ${def && IS_TESTING ? `
+          <div class="stats-overlay__section-title">Per-Level Growth</div>
+          <div class="stats-overlay__growth-grid">
+            <span>HP</span><span>+${def.growth.hp}/lv</span>
+            <span>Damage</span><span>+${def.growth.tapDamage}/lv</span>
+            <span>Crit%</span><span>+${(def.growth.critChance * 100).toFixed(1)}%/lv</span>
+            <span>Crit Dmg</span><span>+${Math.round(def.growth.critMultiplier * 100)}%/lv</span>
+            <span>Dodge</span><span>+${(def.growth.dodgeChance * 100).toFixed(1)}%/lv</span>
+            ${special ? `<span>${special.name}</span><span>+${(def.special.growth * 100).toFixed(1)}%/lv</span>` : ""}
+          </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+
+    const hideoutEl = this.container.querySelector(".hideout") as HTMLElement;
+    hideoutEl.appendChild(overlay);
+
+    // Close handlers
+    const close = () => overlay.remove();
+    overlay.querySelector("#stats-close")!.addEventListener("click", close);
+    overlay.querySelector(".stats-overlay__backdrop")!.addEventListener("click", close);
+  }
+
+  _statRow(icon: string, label: string, current: string, max: string): string {
+    if (IS_TESTING) {
+      return `<div class="stats-overlay__stat-row">
+        <span class="stats-overlay__stat-icon">${icon}</span>
+        <span class="stats-overlay__stat-label">${label}</span>
+        <span class="stats-overlay__stat-current">${current}</span>
+        <span class="stats-overlay__stat-arrow">&rarr;</span>
+        <span class="stats-overlay__stat-max">${max}</span>
+      </div>`;
+    }
+    return `<div class="stats-overlay__stat-row">
+      <span class="stats-overlay__stat-icon">${icon}</span>
+      <span class="stats-overlay__stat-label">${label}</span>
+      <span class="stats-overlay__stat-current">${current}</span>
+    </div>`;
   }
 
   /* -- Cleanup -------------------------------------------- */

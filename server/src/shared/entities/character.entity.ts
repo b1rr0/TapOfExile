@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import type { ElementalDamage } from '@shared/types';
+import type { ElementalDamage, ElementalResistance } from '@shared/types';
 import { Player } from './player.entity';
 import { PlayerLeague } from './player-league.entity';
 
@@ -52,21 +52,35 @@ export class Character {
   @Column({ type: 'bigint', default: 100 })
   xpToNext: string;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: 'int', default: 100 })
+  hp: number;
+
+  @Column({ type: 'int', default: 100 })
+  maxHp: number;
+
+  @Column({ type: 'int', default: 2 })
   tapDamage: number;
 
   @Column({ type: 'float', default: 0.05 })
   critChance: number;
 
-  @Column({ type: 'float', default: 2.0 })
+  @Column({ type: 'float', default: 1.5 })
   critMultiplier: number;
 
   @Column({ type: 'float', default: 0 })
-  passiveDps: number;
+  dodgeChance: number;
+
+  // Unique class ability value (block / doubleStrike / spellAmp / doubleShot)
+  @Column({ type: 'float', default: 0 })
+  specialValue: number;
 
   // Elemental damage profile (fractions summing to ~1.0)
   @Column({ type: 'jsonb', default: '{"physical":1.0}' })
   elementalDamage: ElementalDamage;
+
+  // Resistances: physical/fire/lightning/cold (0..100 = percentage)
+  @Column({ type: 'jsonb', default: '{"physical":0,"fire":0,"lightning":0,"cold":0}' })
+  resistance: ElementalResistance;
 
   // Combat state
   @Column({ type: 'int', default: 1 })

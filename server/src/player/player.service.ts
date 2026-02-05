@@ -84,7 +84,8 @@ export class PlayerService {
         tapDamage: c.tapDamage,
         critChance: c.critChance,
         critMultiplier: c.critMultiplier,
-        passiveDps: c.passiveDps,
+        dodgeChance: c.dodgeChance,
+        specialValue: c.specialValue,
         combat: {
           currentStage: c.combatCurrentStage,
           currentWave: c.combatCurrentWave,
@@ -167,8 +168,8 @@ export class PlayerService {
   }
 
   /**
-   * Calculate and claim offline passive gold.
-   * Uses lastSaveTime to determine elapsed time, active character's passiveDps.
+   * Calculate and claim offline gold.
+   * Uses lastSaveTime to determine elapsed time, active character's tapDamage.
    */
   async claimOfflineGold(telegramId: string) {
     const player = await this.getPlayer(telegramId);
@@ -178,11 +179,11 @@ export class PlayerService {
       return { offlineGold: 0, seconds: 0 };
     }
 
-    // Find active character to get passiveDps
+    // Find active character to get tapDamage for offline earnings
     const char = (pl.characters || []).find(
       (c) => c.id === pl.activeCharacterId,
     );
-    if (!char || char.passiveDps <= 0) {
+    if (!char || char.tapDamage <= 0) {
       return { offlineGold: 0, seconds: 0 };
     }
 
@@ -194,7 +195,7 @@ export class PlayerService {
       return { offlineGold: 0, seconds: 0 };
     }
 
-    const offlineGold = Math.floor(char.passiveDps * seconds * OFFLINE_DPS_RATE);
+    const offlineGold = Math.floor(char.tapDamage * seconds * OFFLINE_DPS_RATE);
     if (offlineGold <= 0) {
       return { offlineGold: 0, seconds: 0 };
     }

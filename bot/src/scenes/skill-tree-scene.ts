@@ -105,6 +105,10 @@ export class SkillTreeScene {
             <span class="skill-tree__class-pts" id="st-class-pts">${classUsed}/${MAX_CLASS_SKILLS} class</span>
           </div>
         </div>
+        <div class="skill-tree__actions-row">
+          <button class="skill-tree__accept-btn" id="st-accept">&#x2714; Accept</button>
+          <button class="skill-tree__reset-btn" id="st-reset">Reset</button>
+        </div>
         <div class="skill-tree__viewport" id="st-viewport">
           <svg id="st-svg" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
@@ -112,8 +116,6 @@ export class SkillTreeScene {
         <div class="skill-tree__controls">
           <button class="skill-tree__zoom-btn" id="st-zoom-in">+</button>
           <button class="skill-tree__zoom-btn" id="st-zoom-out">&minus;</button>
-          <button class="skill-tree__accept-btn" id="st-accept">&#x2714; Accept</button>
-          <button class="skill-tree__reset-btn" id="st-reset">Reset</button>
         </div>
       </div>
     `;

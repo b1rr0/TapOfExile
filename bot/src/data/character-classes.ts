@@ -1,42 +1,25 @@
 /**
- * Character Classes — maps each playable class to its sprite skin.
+ * Character Classes — driven by shared/class-stats.ts (single source of truth).
  *
- * classId  → unique key used in state & character objects
- * skinId   → key into HERO_SKINS (sprite-registry.ts)
+ * Re-exports CLASS_DEFS as CharacterClassDef-compatible records + helpers.
  */
 
+import { CLASS_DEFS } from "@shared/class-stats";
 import type { CharacterClassDef } from "../types.js";
 
-export const CHARACTER_CLASSES: Record<string, CharacterClassDef> = {
-  samurai: {
-    id: "samurai",
-    name: "Samurai",
-    skinId: "samurai_1",
-    description: "Swift blade warrior",
-    icon: "\u2694\uFE0F",
-  },
-  warrior: {
-    id: "warrior",
-    name: "Warrior",
-    skinId: "knight_1",
-    description: "Armored frontline fighter",
-    icon: "\uD83D\uDEE1\uFE0F",
-  },
-  mage: {
-    id: "mage",
-    name: "Mage",
-    skinId: "wizard_1",
-    description: "Master of arcane arts",
-    icon: "\uD83E\uDDD9",
-  },
-  archer: {
-    id: "archer",
-    name: "Archer",
-    skinId: "archer_1",
-    description: "Precision ranged attacker",
-    icon: "\uD83C\uDFF9",
-  },
-};
+/** Build FE-compatible CharacterClassDef from shared CLASS_DEFS. */
+export const CHARACTER_CLASSES: Record<string, CharacterClassDef> = Object.fromEntries(
+  Object.values(CLASS_DEFS).map(d => [
+    d.id,
+    {
+      id: d.id,
+      name: d.name,
+      skinId: d.skinId,
+      description: d.description,
+      icon: d.icon,
+    },
+  ]),
+);
 
 export function getCharacterClass(classId: string): CharacterClassDef | undefined {
   return CHARACTER_CLASSES[classId];

@@ -97,7 +97,7 @@ export class CombatScene {
     const playerXpToNext = playerData ? playerData.xpToNext : 100;
 
     this.container.innerHTML = `
-      <div id="game-screen" class="screen">
+      <div id="game-screen" class="screen combat-screen">
         <div id="hud" class="hud">
           <div class="hud-center">
             <span id="stage-display" class="stage-display">${stageLabel}</span>
@@ -105,6 +105,76 @@ export class CombatScene {
         </div>
 
         <div id="battle-scene" class="battle-scene"></div>
+
+        <div class="action-bar">
+          <div class="action-bar__xp-row">
+            <span id="level-display" class="action-bar__level">Lv.${playerLevel}</span>
+            <div class="xp-bar action-bar__xp" id="xp-bar">
+              <div class="xp-bar__fill" id="xp-bar-fill"></div>
+              <div class="xp-bar__text" id="xp-bar-text">${playerXp} / ${playerXpToNext}</div>
+            </div>
+          </div>
+          <div class="action-bar__abilities">
+            <button class="action-slot action-slot--ability" id="ability-0" data-slot="0">
+              <span class="action-slot__key">1</span>
+              <div class="action-slot__cooldown"></div>
+            </button>
+            <button class="action-slot action-slot--ability" id="ability-1" data-slot="1">
+              <span class="action-slot__key">2</span>
+              <div class="action-slot__cooldown"></div>
+            </button>
+            <button class="action-slot action-slot--ability" id="ability-2" data-slot="2">
+              <span class="action-slot__key">3</span>
+              <div class="action-slot__cooldown"></div>
+            </button>
+            <button class="action-slot action-slot--ability" id="ability-3" data-slot="3">
+              <span class="action-slot__key">4</span>
+              <div class="action-slot__cooldown"></div>
+            </button>
+          </div>
+          <div class="action-bar__bottom">
+            <div class="action-bar__stats">
+              <div class="action-bar__hp-bar">
+                <div class="action-bar__hp-fill" id="player-hp-fill"></div>
+                <span class="action-bar__hp-text" id="player-hp-text">100 / 100</span>
+              </div>
+              <div class="action-bar__defense">
+                <div class="action-bar__stat">
+                  <span class="action-bar__stat-icon">🛡️</span>
+                  <span class="action-bar__stat-value" id="player-armor">0</span>
+                </div>
+                <div class="action-bar__stat action-bar__stat--dodge">
+                  <span class="action-bar__stat-icon">💨</span>
+                  <span class="action-bar__stat-value" id="player-dodge">0%</span>
+                </div>
+                <div class="action-bar__stat action-bar__stat--fire">
+                  <span class="action-bar__stat-icon">🔥</span>
+                  <span class="action-bar__stat-value" id="player-fire-res">0%</span>
+                </div>
+                <div class="action-bar__stat action-bar__stat--lightning">
+                  <span class="action-bar__stat-icon">⚡</span>
+                  <span class="action-bar__stat-value" id="player-lightning-res">0%</span>
+                </div>
+                <div class="action-bar__stat action-bar__stat--cold">
+                  <span class="action-bar__stat-icon">❄️</span>
+                  <span class="action-bar__stat-value" id="player-cold-res">0%</span>
+                </div>
+              </div>
+            </div>
+            <div class="action-bar__potions">
+              <button class="action-slot action-slot--potion" id="potion-0" data-potion="0">
+                <span class="action-slot__key">Q</span>
+                <span class="action-slot__count"></span>
+                <div class="action-slot__cooldown"></div>
+              </button>
+              <button class="action-slot action-slot--potion" id="potion-1" data-potion="1">
+                <span class="action-slot__key">E</span>
+                <span class="action-slot__count"></span>
+                <div class="action-slot__cooldown"></div>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div class="flee-confirm-overlay flee-confirm-overlay--hidden" id="flee-confirm">
           <div class="flee-confirm-box">
@@ -118,27 +188,12 @@ export class CombatScene {
         </div>
 
         ${modsHtml}
-
-        <div class="combat-bottom-bar">
-          <div class="bottom-xp-row">
-            <span id="level-display" class="bottom-level-display">Lv.${playerLevel}</span>
-            <div class="xp-bar bottom-xp-bar" id="xp-bar">
-              <div class="xp-bar__fill" id="xp-bar-fill"></div>
-              <div class="xp-bar__text" id="xp-bar-text">${playerXp} / ${playerXpToNext}</div>
-            </div>
-          </div>
-          <div class="tap-zone">
-            <button id="tap-btn" class="tap-button">ATTACK</button>
-            <div id="dps-display" class="dps-display">DPS: 0</div>
-          </div>
-        </div>
       </div>
     `;
 
     const gameScreen = this.container.querySelector("#game-screen") as HTMLElement;
     const hudEl = this.container.querySelector("#hud") as HTMLElement;
     const battleEl = this.container.querySelector("#battle-scene") as HTMLElement;
-    const tapBtn = this.container.querySelector("#tap-btn") as HTMLButtonElement;
 
     this.combat = new CombatManager(this.state, this.events);
     this.hud = new HUD(hudEl, this.events);
@@ -170,11 +225,12 @@ export class CombatScene {
     exitBtn.textContent = "\uD83D\uDEAA";
     battleEl.appendChild(exitBtn);
 
+    // Tap on battle scene to attack
     this._tapHandler = () => {
       this.combat!.handleTap();
       haptic("light");
     };
-    tapBtn.addEventListener("click", this._tapHandler);
+    battleEl.addEventListener("click", this._tapHandler);
 
     const modsToggle = this.container.querySelector("#combat-mods-toggle") as HTMLElement | null;
     const modsPanel = this.container.querySelector("#combat-mods-panel") as HTMLElement | null;

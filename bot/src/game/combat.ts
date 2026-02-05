@@ -164,10 +164,7 @@ export class CombatManager {
   }
 
   applyPassiveDamage(): void {
-    if (this._deathCooldown || !this.monster || !this._sessionId || this._tapping) return;
-    const dps = this.state.data.player?.passiveDps || 0;
-    if (dps <= 0) return;
-    this.handleTap();
+    // Passive DPS removed — kept as no-op for interface compatibility
   }
 
   // ─── Complete / Flee ──────────────────────────────────────

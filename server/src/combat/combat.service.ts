@@ -25,6 +25,7 @@ import {
 import { StartLocationDto } from './dto/start-location.dto';
 import { StartMapDto } from './dto/start-map.dto';
 import { computeElementalDamage } from './elemental-damage';
+import { statsAtLevel, specialAtLevel, MAX_LEVEL } from '@shared/class-stats';
 
 interface RedisCombatSession {
   id: string;
@@ -392,12 +393,30 @@ export class CombatService {
     });
     if (char) {
       char.xp = String(BigInt(char.xp) + BigInt(session.totalXpEarned));
-      while (BigInt(char.xp) >= BigInt(char.xpToNext)) {
+      while (
+        char.level < MAX_LEVEL &&
+        BigInt(char.xp) >= BigInt(char.xpToNext)
+      ) {
         char.xp = String(BigInt(char.xp) - BigInt(char.xpToNext));
         char.level++;
         char.xpToNext = String(
           Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, char.level - 1)),
         );
+
+        // Apply class-based stat growth
+        const newStats = statsAtLevel(char.classId, char.level);
+        char.maxHp = newStats.hp;
+        char.hp = newStats.hp;
+        char.tapDamage = newStats.tapDamage;
+        char.critChance = newStats.critChance;
+        char.critMultiplier = newStats.critMultiplier;
+        char.dodgeChance = newStats.dodgeChance;
+        char.specialValue = specialAtLevel(char.classId, char.level);
+      }
+
+      // Clamp XP at max level
+      if (char.level >= MAX_LEVEL) {
+        char.xp = '0';
       }
 
       // Persist location completion for story mode
