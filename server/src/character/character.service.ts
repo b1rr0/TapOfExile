@@ -183,6 +183,7 @@ export class CharacterService {
 
   /**
    * Activate a character (sets activeCharacterId on PlayerLeague).
+   * Also switches the player's active league if the character is in a different league.
    */
   async activateCharacter(
     telegramId: string,
@@ -194,8 +195,17 @@ export class CharacterService {
     });
     if (!pl) throw new NotFoundException('PlayerLeague not found');
 
+    // Update active character in the PlayerLeague
     pl.activeCharacterId = char.id;
     await this.playerLeagueRepo.save(pl);
+
+    // Switch player's active league to match the character's league
+    const player = await this.playerRepo.findOne({ where: { telegramId } });
+    if (player && player.activeLeagueId !== char.leagueId) {
+      player.activeLeagueId = char.leagueId;
+      await this.playerRepo.save(player);
+    }
+
     return char;
   }
 

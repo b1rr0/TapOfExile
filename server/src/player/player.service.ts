@@ -7,6 +7,14 @@ import { PlayerLeague } from '../shared/entities/player-league.entity';
 const OFFLINE_MAX_SECONDS = 28800; // 8 hours
 const OFFLINE_MIN_SECONDS = 60;
 const OFFLINE_DPS_RATE = 0.5;
+const DAILY_BONUS_WINS_MAX = 3;
+
+/**
+ * Get current UTC date as YYYY-MM-DD string.
+ */
+function getUtcDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 @Injectable()
 export class PlayerService {
@@ -54,11 +62,74 @@ export class PlayerService {
   }
 
   /**
-   * Get full player state scoped to active league.
+   * Get all PlayerLeagues for a player (with characters).
+   */
+  async getAllPlayerLeagues(telegramId: string): Promise<PlayerLeague[]> {
+    return this.playerLeagueRepo.find({
+      where: { playerTelegramId: telegramId },
+      relations: ['league', 'characters', 'bag'],
+    });
+  }
+
+  /**
+   * Get full player state with ALL characters from ALL leagues.
    */
   async getPlayerState(telegramId: string) {
     const player = await this.getPlayer(telegramId);
     const pl = await this.getActivePlayerLeague(telegramId);
+    const allPlayerLeagues = await this.getAllPlayerLeagues(telegramId);
+
+    // Collect all characters from all leagues
+    const today = getUtcDateString();
+    const allCharacters: any[] = [];
+    for (const playerLeague of allPlayerLeagues) {
+      for (const c of playerLeague.characters || []) {
+        // Calculate daily bonus remaining
+        const bonusUsed = c.dailyBonusResetDate === today ? c.dailyBonusWinsUsed : 0;
+        const dailyBonusRemaining = DAILY_BONUS_WINS_MAX - bonusUsed;
+
+        allCharacters.push({
+          id: c.id,
+          nickname: c.nickname,
+          classId: c.classId,
+          skinId: c.skinId,
+          leagueId: c.leagueId,
+          leagueName: playerLeague.league?.name || 'Unknown',
+          leagueType: playerLeague.league?.type || 'standard',
+          createdAt: Number(c.createdAt),
+          level: c.level,
+          xp: Number(c.xp),
+          xpToNext: Number(c.xpToNext),
+          tapDamage: c.tapDamage,
+          critChance: c.critChance,
+          critMultiplier: c.critMultiplier,
+          dodgeChance: c.dodgeChance,
+          specialValue: c.specialValue,
+          combat: {
+            currentStage: c.combatCurrentStage,
+            currentWave: c.combatCurrentWave,
+            wavesPerStage: c.combatWavesPerStage,
+          },
+          locations: {
+            completed: c.completedLocations,
+            current: c.currentLocation,
+            currentAct: c.currentAct,
+          },
+          inventory: {
+            items: [],
+            equipment: c.equipment,
+          },
+          endgame: {
+            unlocked: c.endgameUnlocked,
+            completedBosses: c.completedBosses,
+            highestTierCompleted: c.highestTierCompleted,
+            totalMapsRun: c.totalMapsRun,
+          },
+          allocatedNodes: c.allocatedNodes || [],
+          dailyBonusRemaining,
+        });
+      }
+    }
 
     return {
       gold: pl.gold,
@@ -69,45 +140,7 @@ export class PlayerService {
         name: pl.league?.name,
         type: pl.league?.type,
       },
-      characters: (pl.characters || []).map((c) => ({
-        id: c.id,
-        nickname: c.nickname,
-        classId: c.classId,
-        skinId: c.skinId,
-        leagueId: c.leagueId,
-        leagueName: pl.league?.name || 'Unknown',
-        leagueType: pl.league?.type || 'standard',
-        createdAt: Number(c.createdAt),
-        level: c.level,
-        xp: Number(c.xp),
-        xpToNext: Number(c.xpToNext),
-        tapDamage: c.tapDamage,
-        critChance: c.critChance,
-        critMultiplier: c.critMultiplier,
-        dodgeChance: c.dodgeChance,
-        specialValue: c.specialValue,
-        combat: {
-          currentStage: c.combatCurrentStage,
-          currentWave: c.combatCurrentWave,
-          wavesPerStage: c.combatWavesPerStage,
-        },
-        locations: {
-          completed: c.completedLocations,
-          current: c.currentLocation,
-          currentAct: c.currentAct,
-        },
-        inventory: {
-          items: [],
-          equipment: c.equipment,
-        },
-        endgame: {
-          unlocked: c.endgameUnlocked,
-          completedBosses: c.completedBosses,
-          highestTierCompleted: c.highestTierCompleted,
-          totalMapsRun: c.totalMapsRun,
-        },
-        allocatedNodes: c.allocatedNodes || [],
-      })),
+      characters: allCharacters,
       // Bag is per-league (shared among all characters in the league)
       bag: (pl.bag || []).map((item) => ({
         id: item.id,

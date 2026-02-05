@@ -7,13 +7,10 @@ import { AuthModule } from './auth/auth.module';
 import { PlayerModule } from './player/player.module';
 import { CharacterModule } from './character/character.module';
 import { CombatModule } from './combat/combat.module';
-import { GameDataModule } from './game-data/game-data.module';
 import { LevelGenModule } from './level-gen/level-gen.module';
 import { LootModule } from './loot/loot.module';
 import { SkillTreeModule } from './skill-tree/skill-tree.module';
 import { EndgameModule } from './endgame/endgame.module';
-import { RewardsModule } from './rewards/rewards.module';
-import { MigrationModule } from './migration/migration.module';
 import { LeagueModule } from './league/league.module';
 
 @Module({
@@ -26,13 +23,10 @@ import { LeagueModule } from './league/league.module';
     PlayerModule,
     CharacterModule,
     CombatModule,
-    GameDataModule,
     LevelGenModule,
     LootModule,
     SkillTreeModule,
     EndgameModule,
-    RewardsModule,
-    MigrationModule,
     LeagueModule,
   ],
 })

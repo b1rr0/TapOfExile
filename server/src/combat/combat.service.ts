@@ -49,6 +49,15 @@ interface RedisCombatSession {
 
 const SESSION_TTL = 1800; // 30 minutes
 const MIN_TAP_INTERVAL_MS = 50; // 20 taps/sec max
+const DAILY_BONUS_WINS_MAX = 3; // First 3 wins per day give x3 XP
+const DAILY_BONUS_XP_MULTIPLIER = 3;
+
+/**
+ * Get current UTC date as YYYY-MM-DD string.
+ */
+function getUtcDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 @Injectable()
 export class CombatService {
@@ -391,8 +400,28 @@ export class CombatService {
     const char = await this.charRepo.findOne({
       where: { id: session.characterId },
     });
+    let usedDailyBonus = false;
+    let dailyBonusRemaining = DAILY_BONUS_WINS_MAX;
+
     if (char) {
-      char.xp = String(BigInt(char.xp) + BigInt(session.totalXpEarned));
+      // Check and apply daily bonus (x3 XP for first 3 wins)
+      const today = getUtcDateString();
+      if (char.dailyBonusResetDate !== today) {
+        // New day — reset counter
+        char.dailyBonusWinsUsed = 0;
+        char.dailyBonusResetDate = today;
+      }
+
+      let xpToAward = session.totalXpEarned;
+      if (char.dailyBonusWinsUsed < DAILY_BONUS_WINS_MAX) {
+        // Apply x3 XP bonus
+        xpToAward = session.totalXpEarned * DAILY_BONUS_XP_MULTIPLIER;
+        char.dailyBonusWinsUsed++;
+        usedDailyBonus = true;
+      }
+      dailyBonusRemaining = Math.max(0, DAILY_BONUS_WINS_MAX - char.dailyBonusWinsUsed);
+
+      char.xp = String(BigInt(char.xp) + BigInt(xpToAward));
       while (
         char.level < MAX_LEVEL &&
         BigInt(char.xp) >= BigInt(char.xpToNext)
@@ -497,7 +526,9 @@ export class CombatService {
 
     return {
       totalGold: session.totalGoldEarned,
-      totalXp: session.totalXpEarned,
+      totalXp: usedDailyBonus ? session.totalXpEarned * DAILY_BONUS_XP_MULTIPLIER : session.totalXpEarned,
+      baseXp: session.totalXpEarned,
+      xpMultiplier: usedDailyBonus ? DAILY_BONUS_XP_MULTIPLIER : 1,
       totalTaps: session.totalTaps,
       monstersKilled: session.monsterQueue.length,
       level: char ? char.level : undefined,
@@ -515,6 +546,8 @@ export class CombatService {
         bossKeyTier: d.bossKeyTier,
       })),
       locationId: session.locationId || null,
+      dailyBonusUsed: usedDailyBonus,
+      dailyBonusRemaining,
     };
   }
 

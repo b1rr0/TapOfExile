@@ -44,6 +44,8 @@ export class HideoutScene {
   _settingsDD: HTMLElement | null;
   _shopMenu: HTMLElement | null;
   _settingsMenu: HTMLElement | null;
+  _dailyBonusEl: HTMLElement | null;
+  _dailyBonusHandler: ((data: any) => void) | null;
 
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
@@ -72,6 +74,8 @@ export class HideoutScene {
     this._settingsDD = null;
     this._shopMenu = null;
     this._settingsMenu = null;
+    this._dailyBonusEl = null;
+    this._dailyBonusHandler = null;
   }
 
   mount(_params: Record<string, unknown> = {}): void {
@@ -133,6 +137,7 @@ export class HideoutScene {
         <div class="hideout-char-info">
           <div class="hideout-char-info__name">${char.nickname}</div>
           <div class="hideout-char-info__class">${cls ? cls.icon + " " + cls.name : char.classId}</div>
+          <div class="hideout-char-info__league">${(char as any).leagueType !== "standard" ? ((char as any).leagueName || "League").replace(/\s*\d{4}$/, "") : "Standard"}</div>
           <button class="hideout-char-info__stats-btn" id="hideout-stats-btn">Stats</button>
         </div>
         ` : ""}
@@ -144,6 +149,15 @@ export class HideoutScene {
             <div class="xp-bar bottom-xp-bar" id="hideout-xp-bar">
               <div class="xp-bar__fill" id="hideout-xp-fill" style="width:${player.xpToNext > 0 ? (player.xp / player.xpToNext * 100) : 0}%"></div>
               <div class="xp-bar__text" id="hideout-xp-text">${player.xp} / ${player.xpToNext}</div>
+            </div>
+            <div class="daily-bonus-indicator" id="daily-bonus-indicator">
+              <span class="daily-bonus-indicator__star">&#x2B50;</span>
+              <span class="daily-bonus-indicator__count" id="daily-bonus-count">${char?.dailyBonusRemaining ?? 3}</span>
+              <div class="daily-bonus-indicator__tooltip">
+                <div class="daily-bonus-indicator__tooltip-title">Daily Bonus</div>
+                <div class="daily-bonus-indicator__tooltip-desc">First 3 wins each day give <strong>x3 XP</strong></div>
+                <div class="daily-bonus-indicator__tooltip-remaining"><span id="daily-bonus-tooltip-count">${char?.dailyBonusRemaining ?? 3}</span> bonus wins remaining</div>
+              </div>
             </div>
           </div>
           <div class="hideout-nav">
@@ -176,6 +190,7 @@ export class HideoutScene {
     this._settingsDD = this.container.querySelector("#settings-dropdown");
     this._shopMenu = this.container.querySelector("#shop-menu");
     this._settingsMenu = this.container.querySelector("#settings-menu");
+    this._dailyBonusEl = this.container.querySelector("#daily-bonus-indicator");
 
     // Overlays (attached to hideout root)
     const hideoutEl = this.container.querySelector(".hideout") as HTMLElement;
@@ -236,8 +251,12 @@ export class HideoutScene {
     this._xpHandler = () => {
       this._updateXpBar();
     };
+    this._dailyBonusHandler = (data: any) => {
+      this._updateDailyBonus(data.remaining);
+    };
     this.events.on("levelUp", this._levelHandler);
     this.events.on("xpChanged", this._xpHandler);
+    this.events.on("dailyBonusChanged", this._dailyBonusHandler);
 
     // Load hero sprite
     this._loadHeroSprite();
@@ -289,6 +308,24 @@ export class HideoutScene {
     const pct = p.xpToNext > 0 ? (p.xp / p.xpToNext) * 100 : 0;
     if (this._xpFill) (this._xpFill as HTMLElement).style.width = pct + "%";
     if (this._xpText) this._xpText.textContent = `${p.xp} / ${p.xpToNext}`;
+  }
+
+  /* -- Daily bonus indicator ------------------------------ */
+
+  _updateDailyBonus(remaining: number): void {
+    const countEl = this.container.querySelector("#daily-bonus-count");
+    const tooltipCountEl = this.container.querySelector("#daily-bonus-tooltip-count");
+    if (countEl) countEl.textContent = String(remaining);
+    if (tooltipCountEl) tooltipCountEl.textContent = String(remaining);
+
+    // Add visual feedback when bonus is depleted
+    if (this._dailyBonusEl) {
+      if (remaining <= 0) {
+        this._dailyBonusEl.classList.add("daily-bonus-indicator--depleted");
+      } else {
+        this._dailyBonusEl.classList.remove("daily-bonus-indicator--depleted");
+      }
+    }
   }
 
   /* -- Canvas hero sprite --------------------------------- */
@@ -507,6 +544,10 @@ export class HideoutScene {
       this.events.off("xpChanged", this._xpHandler);
       this._xpHandler = null;
     }
+    if (this._dailyBonusHandler) {
+      this.events.off("dailyBonusChanged", this._dailyBonusHandler);
+      this._dailyBonusHandler = null;
+    }
     if (this._closeDropdowns) {
       document.removeEventListener("click", this._closeDropdowns);
       this._closeDropdowns = null;
@@ -526,6 +567,7 @@ export class HideoutScene {
     this._settingsDD = null;
     this._shopMenu = null;
     this._settingsMenu = null;
+    this._dailyBonusEl = null;
     this.container.innerHTML = "";
   }
 }

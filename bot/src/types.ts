@@ -114,6 +114,8 @@ export interface Character {
   bag: BagItem[];
   endgame: EndgameState;
   allocatedNodes: number[];
+  /** Daily bonus wins remaining (first 3 wins give x3 XP) */
+  dailyBonusRemaining?: number;
 }
 
 export interface PlayerProxy {

@@ -111,6 +111,7 @@ export class GameState {
       bag: [], // Bag is per-league, not per-character
       endgame: c.endgame,
       allocatedNodes: c.allocatedNodes || [],
+      dailyBonusRemaining: c.dailyBonusRemaining ?? 3,
     }));
 
     this.bag = (state.bag || []).map((item: any) => ({
@@ -292,6 +293,8 @@ export class GameState {
     gold?: number;
     mapDrops?: BagItem[];
     locationId?: string;
+    dailyBonusUsed?: boolean;
+    dailyBonusRemaining?: number;
   }): void {
     if (result.gold !== undefined) {
       this.data.gold = result.gold;
@@ -302,6 +305,11 @@ export class GameState {
       char.level = result.level;
       char.xp = result.xp ?? char.xp;
       char.xpToNext = result.xpToNext ?? char.xpToNext;
+    }
+
+    // Update daily bonus remaining
+    if (char && result.dailyBonusRemaining !== undefined) {
+      char.dailyBonusRemaining = result.dailyBonusRemaining;
     }
 
     if (result.locationId && char) {
@@ -327,6 +335,10 @@ export class GameState {
     }
     if (result.level !== undefined && char) {
       this.events.emit("levelUp", { level: result.level });
+    }
+    // Emit event for daily bonus update
+    if (result.dailyBonusRemaining !== undefined) {
+      this.events.emit("dailyBonusChanged", { remaining: result.dailyBonusRemaining });
     }
   }
 

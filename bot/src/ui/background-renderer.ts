@@ -12,10 +12,14 @@
 /** Default fallback background. */
 const DEFAULT_BG: string = "/src/assets/background/castle/img.png";
 
+/** Extra scale for Act 1 backgrounds (castle) — 125% to fill the screen */
+const ACT1_EXTRA_SCALE = 1.25;
+
 export class BackgroundRenderer {
   _bgImage: HTMLImageElement | null;
   _loaded: boolean;
   _currentSrc: string | null;
+  _extraScale: number;
 
   // Cache
   _dirty: boolean;
@@ -42,6 +46,7 @@ export class BackgroundRenderer {
     this._bgImage = null;
     this._loaded = false;
     this._currentSrc = null;
+    this._extraScale = 1;
 
     // Cache
     this._dirty = true;
@@ -80,6 +85,9 @@ export class BackgroundRenderer {
     this._loaded = true;
     this._dirty = true;
 
+    // Apply extra scale for Act 1 (castle) backgrounds
+    this._extraScale = target.includes("/castle/") ? ACT1_EXTRA_SCALE : 1;
+
     // Reset camera for new image
     this._cameraX = 0;
     this._targetCameraX = 0;
@@ -112,7 +120,8 @@ export class BackgroundRenderer {
   getMaxPan(canvasW: number, canvasH: number): number {
     if (!this._loaded) return 0;
     const img = this._bgImage!;
-    const scale = canvasH / img.naturalHeight;
+    const baseScale = canvasH / img.naturalHeight;
+    const scale = baseScale * this._extraScale;
     const drawW = img.naturalWidth * scale;
     return Math.max(0, drawW - canvasW);
   }
@@ -178,7 +187,7 @@ export class BackgroundRenderer {
   /**
    * Draw the background viewport onto a canvas context.
    *
-   * Scaling: height-fit (scale = canvasH / imgH).
+   * Scaling: height-fit (scale = canvasH / imgH) with optional extra scale.
    * The image fills the canvas vertically and is wider horizontally.
    * _cameraX selects which horizontal slice to show.
    */
@@ -189,13 +198,17 @@ export class BackgroundRenderer {
     const imgW = img.naturalWidth;
     const imgH = img.naturalHeight;
 
-    // Height-fit scale
-    const scale = h / imgH;
+    // Height-fit scale with extra scale (e.g., 1.25 for Act 1)
+    const baseScale = h / imgH;
+    const scale = baseScale * this._extraScale;
     const drawW = imgW * scale;
-    const drawH = h;
+    const drawH = imgH * scale;
 
     // Max pan (clamped to 0 if image narrower than canvas)
     const maxPan = Math.max(0, drawW - w);
+
+    // Vertical offset to center the scaled image (when extraScale > 1)
+    const dy = (h - drawH) / 2;
 
     // Clamp camera
     const camX = Math.max(0, Math.min(this._cameraX, maxPan));
@@ -212,7 +225,7 @@ export class BackgroundRenderer {
       cctx.imageSmoothingEnabled = false;
       cctx.clearRect(0, 0, w, h);
       const dx = (w - drawW) / 2;
-      cctx.drawImage(img, dx, 0, drawW, drawH);
+      cctx.drawImage(img, dx, dy, drawW, drawH);
       ctx.drawImage(this._cache!, 0, 0);
       this._dirty = false;
       return;
@@ -229,8 +242,8 @@ export class BackgroundRenderer {
     cctx.imageSmoothingEnabled = false;
     cctx.clearRect(0, 0, w, h);
 
-    // Draw image shifted left by camera position
-    cctx.drawImage(img, -camX, 0, drawW, drawH);
+    // Draw image shifted left by camera position, centered vertically
+    cctx.drawImage(img, -camX, dy, drawW, drawH);
 
     ctx.drawImage(this._cache!, 0, 0);
     this._dirty = false;

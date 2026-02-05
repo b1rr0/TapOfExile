@@ -122,4 +122,12 @@ export class Character {
   // Skill tree — allocated node IDs (JSONB array of numbers)
   @Column({ type: 'jsonb', default: '[]' })
   allocatedNodes: number[];
+
+  // Daily bonus wins — first 3 wins per day give x3 XP
+  @Column({ type: 'int', default: 0 })
+  dailyBonusWinsUsed: number;
+
+  // UTC date string (YYYY-MM-DD) when bonus was last used — resets at 00:00 UTC
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  dailyBonusResetDate: string | null;
 }

@@ -830,13 +830,142 @@ body {
   height: 14px;
 }
 
+/* Daily Bonus Indicator */
+.daily-bonus-indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 152, 0, 0.15) 100%);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.daily-bonus-indicator:hover {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.3) 0%, rgba(255, 152, 0, 0.25) 100%);
+  border-color: rgba(255, 193, 7, 0.6);
+}
+
+.daily-bonus-indicator--depleted {
+  background: rgba(100, 100, 100, 0.2);
+  border-color: rgba(100, 100, 100, 0.3);
+}
+
+.daily-bonus-indicator--depleted .daily-bonus-indicator__star {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+.daily-bonus-indicator__star {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.daily-bonus-indicator__count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--game-gold);
+  min-width: 10px;
+  text-align: center;
+}
+
+.daily-bonus-indicator--depleted .daily-bonus-indicator__count {
+  color: #888;
+}
+
+/* Daily Bonus Tooltip */
+.daily-bonus-indicator__tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  padding: 12px;
+  background: linear-gradient(180deg, var(--game-bg2) 0%, var(--game-dark) 100%);
+  border: 1px solid var(--game-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: all 0.2s ease;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.daily-bonus-indicator__tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  background: var(--game-dark);
+  border-right: 1px solid var(--game-border);
+  border-bottom: 1px solid var(--game-border);
+  transform: rotate(45deg);
+}
+
+.daily-bonus-indicator:hover .daily-bonus-indicator__tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.daily-bonus-indicator__tooltip-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--game-gold);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.daily-bonus-indicator__tooltip-title::before {
+  content: '\2B50';
+  font-size: 14px;
+}
+
+.daily-bonus-indicator__tooltip-desc {
+  font-size: 11px;
+  color: var(--game-text);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.daily-bonus-indicator__tooltip-desc strong {
+  color: #4caf50;
+  font-weight: 700;
+}
+
+.daily-bonus-indicator__tooltip-remaining {
+  font-size: 11px;
+  color: #aaa;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.daily-bonus-indicator__tooltip-remaining span {
+  color: var(--game-gold);
+  font-weight: 700;
+}
+
 /* === Hideout Scene === */
 .hideout {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(ellipse at center, var(--game-bg2) 0%, var(--game-bg) 60%, var(--game-dark) 100%);
+  background:
+    radial-gradient(ellipse at center, rgba(26, 16, 37, 0.3) 0%, rgba(13, 5, 16, 0.6) 60%, rgba(5, 2, 8, 0.85) 100%),
+    url('/src/assets/background/meadow/meadov_with_castle.png');
+  background-size: 125% 125%;
+  background-position: center center;
+  background-repeat: no-repeat;
 }
 
 .hideout-topbar {
@@ -2032,8 +2161,33 @@ body {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
   -webkit-overflow-scrolling: touch;
+}
+
+/* League sections */
+.char-select__league-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.char-select__league-header {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--game-accent2);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--game-border);
+  background: linear-gradient(90deg, rgba(155, 89, 182, 0.15) 0%, transparent 100%);
+  border-radius: 6px 6px 0 0;
+}
+
+.char-select__league-chars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* Character card */
@@ -2591,6 +2745,14 @@ body {
   font-size: 12px;
   color: var(--game-text);
   opacity: 0.5;
+}
+
+.hideout-char-info__league {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--game-accent2);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
 }
 
 .hideout-char-info__stats-btn {

@@ -31,6 +31,61 @@ export class CharacterSelectScene {
     const characters = this.state.data.characters;
     const activeId = this.state.data.activeCharacterId;
 
+    // Group characters by leagueId
+    const charsByLeague = new Map<string, any[]>();
+    for (const c of characters) {
+      const lid = c.leagueId || "unknown";
+      if (!charsByLeague.has(lid)) charsByLeague.set(lid, []);
+      charsByLeague.get(lid)!.push(c);
+    }
+
+    // Sort leagues: seasonal first, then standard
+    const leagueEntries = Array.from(charsByLeague.entries()).sort((a, b) => {
+      const aChar = a[1][0];
+      const bChar = b[1][0];
+      const aIsStandard = aChar?.leagueType === "standard";
+      const bIsStandard = bChar?.leagueType === "standard";
+      if (aIsStandard && !bIsStandard) return 1;
+      if (!aIsStandard && bIsStandard) return -1;
+      return 0;
+    });
+
+    // Helper to render character card
+    const renderCharCard = (c: any) => {
+      const cls = getCharacterClass(c.classId);
+      const isActive = c.id === activeId;
+      return `
+        <div class="char-card ${isActive ? "char-card--active" : ""}" data-id="${c.id}">
+          <canvas class="char-card__preview" data-skin="${c.skinId}"></canvas>
+          <div class="char-card__info">
+            <div class="char-card__name">${c.nickname}</div>
+            <div class="char-card__class">${cls ? cls.icon + " " + cls.name : c.classId}</div>
+            <div class="char-card__level">Lv. ${c.level}</div>
+          </div>
+        </div>
+      `;
+    };
+
+    // Helper to render league section
+    const renderLeagueSection = ([_leagueId, chars]: [string, any[]]) => {
+      if (chars.length === 0) return "";
+
+      const firstChar = chars[0];
+      // For seasonal leagues, show name without year (e.g., "Nigatsu" instead of "Nigatsu 2026")
+      const displayName = firstChar.leagueType !== "standard"
+        ? (firstChar.leagueName || "League").replace(/\s*\d{4}$/, "")
+        : (firstChar.leagueName || "Standard");
+
+      return `
+        <div class="char-select__league-section">
+          <div class="char-select__league-header">${displayName}</div>
+          <div class="char-select__league-chars">
+            ${chars.map(renderCharCard).join("")}
+          </div>
+        </div>
+      `;
+    };
+
     this.container.innerHTML = `
       <div class="char-select">
         <div class="char-select__header">
@@ -38,21 +93,7 @@ export class CharacterSelectScene {
         </div>
 
         <div class="char-select__list" id="char-list">
-          ${characters.map((c: any) => {
-            const cls = getCharacterClass(c.classId);
-            const isActive = c.id === activeId;
-            return `
-              <div class="char-card ${isActive ? "char-card--active" : ""}" data-id="${c.id}">
-                <canvas class="char-card__preview" data-skin="${c.skinId}"></canvas>
-                <div class="char-card__info">
-                  <div class="char-card__name">${c.nickname}</div>
-                  <div class="char-card__class">${cls ? cls.icon + " " + cls.name : c.classId}</div>
-                  <div class="char-card__level">Lv. ${c.level}</div>
-                  ${c.leagueName ? `<div class="char-card__league">${c.leagueName}</div>` : ""}
-                </div>
-              </div>
-            `;
-          }).join("")}
+          ${leagueEntries.map(renderLeagueSection).join("")}
         </div>
 
         <button class="char-select__new-btn" id="char-new-btn">+ Create New Hero</button>

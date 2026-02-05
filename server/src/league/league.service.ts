@@ -225,28 +225,6 @@ export class LeagueService implements OnModuleInit {
   }
 
   /**
-   * Get leaderboard for a league (top players by gold).
-   */
-  async getLeaderboard(
-    leagueId: string,
-    limit: number = 50,
-  ): Promise<Array<{ rank: number; telegramId: string; gold: string; characterCount: number }>> {
-    const entries = await this.playerLeagueRepo.find({
-      where: { leagueId },
-      relations: ['player', 'characters'],
-      order: { gold: 'DESC' },
-      take: limit,
-    });
-
-    return entries.map((entry, index) => ({
-      rank: index + 1,
-      telegramId: entry.playerTelegramId,
-      gold: entry.gold,
-      characterCount: entry.characters?.length || 0,
-    }));
-  }
-
-  /**
    * Create a new monthly league. Called by CRON or admin.
    */
   async createMonthlyLeague(

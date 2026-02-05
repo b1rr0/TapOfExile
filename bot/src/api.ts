@@ -199,6 +199,8 @@ export const combat = {
     return post<{
       totalGold: number;
       totalXp: number;
+      baseXp?: number;
+      xpMultiplier?: number;
       totalTaps: number;
       monstersKilled: number;
       level?: number;
@@ -207,6 +209,8 @@ export const combat = {
       gold?: number;
       mapDrops?: any[];
       locationId?: string;
+      dailyBonusUsed?: boolean;
+      dailyBonusRemaining?: number;
     }>("/combat/complete", { sessionId });
   },
 

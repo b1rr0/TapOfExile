@@ -5,22 +5,17 @@ import {
   Body,
   Param,
   UseGuards,
-  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { LeagueService } from './league.service';
-import { LeagueMigrationService } from './league-migration.service';
 import { SwitchLeagueDto } from './dto/switch-league.dto';
 
 @ApiTags('leagues')
 @Controller('leagues')
 export class LeagueController {
-  constructor(
-    private leagueService: LeagueService,
-    private migrationService: LeagueMigrationService,
-  ) {}
+  constructor(private leagueService: LeagueService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all active leagues' })
@@ -55,22 +50,6 @@ export class LeagueController {
         activeCharacterId: pl.activeCharacterId,
         joinedAt: pl.joinedAt.toISOString(),
       })),
-    };
-  }
-
-  @Get('active')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get active league participation' })
-  async getActiveLeague(@CurrentUser('telegramId') telegramId: string) {
-    const pl = await this.leagueService.getActivePlayerLeague(telegramId);
-    return {
-      id: pl.id,
-      leagueId: pl.leagueId,
-      gold: pl.gold,
-      activeCharacterId: pl.activeCharacterId,
-      characterCount: pl.characters?.length || 0,
-      bagCount: pl.bag?.length || 0,
     };
   }
 
@@ -109,18 +88,5 @@ export class LeagueController {
       gold: pl.gold,
       activeCharacterId: pl.activeCharacterId,
     };
-  }
-
-  @Get(':leagueId/leaderboard')
-  @ApiOperation({ summary: 'Get league leaderboard' })
-  async getLeaderboard(
-    @Param('leagueId') leagueId: string,
-    @Query('limit') limit?: string,
-  ) {
-    const entries = await this.leagueService.getLeaderboard(
-      leagueId,
-      limit ? parseInt(limit, 10) : 50,
-    );
-    return { leaderboard: entries };
   }
 }
