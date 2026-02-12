@@ -212,6 +212,10 @@ export class SpriteEngine {
     return this.playing;
   }
 
+  hasAnimation(name: string): boolean {
+    return this.anims.has(name);
+  }
+
   destroy(): void {
     this.anims.clear();
     this.loaded = false;

@@ -5,7 +5,6 @@ import { HUD } from "../ui/hud.js";
 import { Equipment } from "../ui/equipment.js";
 import { haptic } from "../utils/haptic.js";
 import { isActComplete, getBackgroundForLocation, getActModifiers, getLocationById, ACT_BACKGROUNDS } from "../data/locations.js";
-import { B } from "../data/balance.js";
 import type { SharedDeps, Location } from "../types.js";
 
 /**
@@ -31,6 +30,7 @@ export class CombatScene {
   _tapHandler: (() => void) | null;
   _onLocationComplete: ((data: any) => void) | null;
   _onMapComplete: ((data: any) => void) | null;
+  _onPlayerDied: (() => void) | null;
 
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
@@ -48,6 +48,7 @@ export class CombatScene {
     this._tapHandler = null;
     this._onLocationComplete = null;
     this._onMapComplete = null;
+    this._onPlayerDied = null;
   }
 
   mount(params: Record<string, any> = {}): void {
@@ -258,9 +259,36 @@ export class CombatScene {
       }
     });
 
-    this._dpsInterval = setInterval(() => {
-      this.combat!.applyPassiveDamage();
-    }, B.PASSIVE_DPS_TICK_MS);
+    // Initialize player HP bar and defense stats
+    if (activeChar) {
+      const hpFill = this.container.querySelector("#player-hp-fill") as HTMLElement | null;
+      const hpText = this.container.querySelector("#player-hp-text") as HTMLElement | null;
+      if (hpFill) hpFill.style.width = "100%";
+      if (hpText) hpText.textContent = `${activeChar.maxHp || activeChar.hp || 100} / ${activeChar.maxHp || activeChar.hp || 100}`;
+
+      const armorEl = this.container.querySelector("#player-armor") as HTMLElement | null;
+      const dodgeEl = this.container.querySelector("#player-dodge") as HTMLElement | null;
+      const fireResEl = this.container.querySelector("#player-fire-res") as HTMLElement | null;
+      const lightResEl = this.container.querySelector("#player-lightning-res") as HTMLElement | null;
+      const coldResEl = this.container.querySelector("#player-cold-res") as HTMLElement | null;
+
+      const res = activeChar.resistance || {};
+      if (armorEl) armorEl.textContent = `${res.physical || 0}`;
+      if (dodgeEl) dodgeEl.textContent = `${Math.round((activeChar.dodgeChance || 0) * 100)}%`;
+      if (fireResEl) fireResEl.textContent = `${res.fire || 0}%`;
+      if (lightResEl) lightResEl.textContent = `${res.lightning || 0}%`;
+      if (coldResEl) coldResEl.textContent = `${res.cold || 0}%`;
+    }
+
+    // Listen for player death
+    this._onPlayerDied = () => {
+      setTimeout(() => {
+        if (this.sceneManager) {
+          this.sceneManager.switchTo("hideout");
+        }
+      }, 2000);
+    };
+    this.events.on("playerDied", this._onPlayerDied);
 
     // Listen for location complete — server already persisted everything
     this._onLocationComplete = (data: any) => {
@@ -338,6 +366,10 @@ export class CombatScene {
       this.events.off("mapComplete", this._onMapComplete);
       this._onMapComplete = null;
     }
+    if (this._onPlayerDied) {
+      this.events.off("playerDied", this._onPlayerDied);
+      this._onPlayerDied = null;
+    }
 
     if (this.battleScene) {
       this.battleScene.destroy();
@@ -349,6 +381,11 @@ export class CombatScene {
     }
 
     this.container.innerHTML = "";
+
+    // Clean up WebSocket listeners to prevent leaks
+    if (this.combat) {
+      this.combat.cleanup();
+    }
 
     this.combat = null;
     this.hud = null;

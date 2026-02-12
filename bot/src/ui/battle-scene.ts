@@ -51,6 +51,17 @@ interface WaveProgressData {
   total: number;
 }
 
+interface EnemyAttackData {
+  dodged: boolean;
+  blocked?: boolean;
+  damage: number;
+}
+
+interface PlayerHpData {
+  hp: number;
+  maxHp: number;
+}
+
 export class BattleScene {
   container: HTMLElement;
   events: EventBus;
@@ -375,6 +386,18 @@ export class BattleScene {
         this._drawFrame();
       }
     });
+
+    this.events.on("enemyAttack", (data: EnemyAttackData) => {
+      this._onEnemyAttack(data);
+    });
+
+    this.events.on("playerHpChanged", (data: PlayerHpData) => {
+      this._updatePlayerHp(data.hp, data.maxHp);
+    });
+
+    this.events.on("playerDied", () => {
+      this._onPlayerDied();
+    });
   }
 
   _onDamage(data: DamageData): void {
@@ -462,6 +485,48 @@ export class BattleScene {
     const pct = Math.max(0, (monster.currentHp / monster.maxHp) * 100);
     this.hpBarFill!.style.width = `${pct}%`;
     this.hpText!.textContent = `${Math.max(0, Math.ceil(monster.currentHp))}/${monster.maxHp}`;
+  }
+
+  // ─── Enemy Attack Visuals ─────────────────────────────────
+
+  _onEnemyAttack(data: EnemyAttackData): void {
+    if (data.dodged || data.blocked) return;
+
+    // Enemy plays attack animation if available
+    if (this.useSprites && this.enemy && this.enemy.engine.hasAnimation("attack1")) {
+      this.enemy.play("attack1", {
+        onComplete: () => this.enemy!.play("idle"),
+      });
+    }
+
+    // Hero takes hit: shake
+    if (this.hero) {
+      this.hero.shake(4);
+    }
+  }
+
+  _updatePlayerHp(hp: number, maxHp: number): void {
+    const hpFill = document.querySelector("#player-hp-fill") as HTMLElement | null;
+    const hpText = document.querySelector("#player-hp-text") as HTMLElement | null;
+    if (hpFill) {
+      const pct = Math.max(0, (hp / maxHp) * 100);
+      hpFill.style.width = `${pct}%`;
+    }
+    if (hpText) {
+      hpText.textContent = `${Math.max(0, hp)} / ${maxHp}`;
+    }
+  }
+
+  _onPlayerDied(): void {
+    if (this.useSprites && this.hero) {
+      if (this.hero.engine.hasAnimation("death")) {
+        this.hero.play("death", {
+          onComplete: () => this.hero!.startDeath(),
+        });
+      } else {
+        this.hero.startDeath();
+      }
+    }
   }
 
   // ─── Cleanup ────────────────────────────────────────────

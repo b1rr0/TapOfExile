@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CombatController } from './combat.controller';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CombatGateway } from './combat.gateway';
 import { CombatService } from './combat.service';
 import { LevelGenModule } from '../level-gen/level-gen.module';
 import { LootModule } from '../loot/loot.module';
@@ -17,9 +19,15 @@ import { BagItem } from '../shared/entities/bag-item.entity';
     LevelGenModule,
     LootModule,
     EndgameModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET', 'default_secret'),
+      }),
+    }),
   ],
-  controllers: [CombatController],
-  providers: [CombatService],
+  providers: [CombatService, CombatGateway],
   exports: [CombatService],
 })
 export class CombatModule {}

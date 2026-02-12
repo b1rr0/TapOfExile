@@ -13,6 +13,7 @@ export interface ServerMonster {
   xpReward: number;
   resistance: ElementalResistance;
   outgoingDamage: ElementalDamage;
+  scaledDamage: number;
 }
 
 export interface MonsterSpawn {
@@ -63,6 +64,13 @@ export class LevelGenService {
     // Elemental resistance: base from type + rarity bonus, capped
     const resistance = this.computeResistance(type.resistance, rarityId);
 
+    // Outgoing damage (attack power)
+    const dmgScale = Math.pow(B.MONSTER_DMG_GROWTH, locationOrder - 1);
+    const baseDmg = B.MONSTER_DMG_BASE * dmgScale * (B.RARITY_DMG_MULTIPLIERS[rarityId] || 1.0) * actMul;
+    const dmgMin = Math.max(1, Math.floor(baseDmg * (1 - B.MONSTER_DMG_RANDOM)));
+    const dmgMax = Math.ceil(baseDmg * (1 + B.MONSTER_DMG_RANDOM));
+    const scaledDamage = randInt(dmgMin, dmgMax);
+
     return {
       name: type.name,
       type: type.name,
@@ -73,6 +81,7 @@ export class LevelGenService {
       xpReward: xp,
       resistance,
       outgoingDamage: type.outgoingDamage || { physical: 1.0 },
+      scaledDamage,
     };
   }
 
@@ -110,6 +119,13 @@ export class LevelGenService {
 
     const resistance = this.computeResistance(type.resistance, rarityId);
 
+    // Outgoing damage (attack power)
+    const dmgScale = Math.pow(B.MONSTER_DMG_GROWTH, orderScale - 1);
+    const baseDmg = B.MONSTER_DMG_BASE * dmgScale * (B.RARITY_DMG_MULTIPLIERS[rarityId] || 1.0) * actMul * tierHpMul;
+    const dmgMin = Math.max(1, Math.floor(baseDmg * (1 - B.MONSTER_DMG_RANDOM)));
+    const dmgMax = Math.ceil(baseDmg * (1 + B.MONSTER_DMG_RANDOM));
+    const scaledDamage = randInt(dmgMin, dmgMax);
+
     return {
       name: type.name,
       type: type.name,
@@ -120,6 +136,7 @@ export class LevelGenService {
       xpReward: xp,
       resistance,
       outgoingDamage: type.outgoingDamage || { physical: 1.0 },
+      scaledDamage,
     };
   }
 

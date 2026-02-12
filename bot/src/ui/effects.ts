@@ -57,6 +57,16 @@ export class Effects {
     this.events.on("stageAdvanced", (data: StageAdvancedData) => {
       this.showAnnounce(`STAGE ${data.stage}`);
     });
+
+    this.events.on("enemyAttack", (data: any) => {
+      if (data.dodged) {
+        this.showPlayerStatus("DODGE", "#88ccff");
+      } else if (data.blocked) {
+        this.showPlayerStatus("BLOCK", "#ffcc00");
+      } else if (data.damage > 0) {
+        this.showPlayerDamage(data.damage);
+      }
+    });
   }
 
   showDamageNumber(amount: number, isCrit: boolean): void {
@@ -119,6 +129,33 @@ export class Effects {
     const el = document.createElement("div");
     el.className = "announce";
     el.textContent = text;
+    this.layer.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  }
+
+  showPlayerDamage(amount: number): void {
+    const existing = this.layer.querySelectorAll(".float-damage");
+    if (existing.length >= this._maxVisible) {
+      existing[0].remove();
+    }
+
+    const el = document.createElement("div");
+    el.className = "float-damage float-damage--incoming";
+    el.textContent = `-${amount}`;
+    el.style.left = `${10 + Math.random() * 15}%`;
+    el.style.top = `${30 + Math.random() * 20}%`;
+    el.style.color = "#ff4444";
+    this.layer.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  }
+
+  showPlayerStatus(text: string, color: string): void {
+    const el = document.createElement("div");
+    el.className = "float-damage float-damage--status";
+    el.textContent = text;
+    el.style.left = `${10 + Math.random() * 10}%`;
+    el.style.top = `${35 + Math.random() * 10}%`;
+    el.style.color = color;
     this.layer.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
   }

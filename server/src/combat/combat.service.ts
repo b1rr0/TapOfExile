@@ -25,9 +25,10 @@ import {
 import { StartLocationDto } from './dto/start-location.dto';
 import { StartMapDto } from './dto/start-map.dto';
 import { computeElementalDamage } from './elemental-damage';
-import { statsAtLevel, specialAtLevel, MAX_LEVEL } from '@shared/class-stats';
+import { statsAtLevel, specialAtLevel, MAX_LEVEL, CLASS_DEFS } from '@shared/class-stats';
+import type { DamageBreakdown } from '@shared/types';
 
-interface RedisCombatSession {
+export interface RedisCombatSession {
   id: string;
   playerId: string;
   characterId: string;
@@ -45,6 +46,17 @@ interface RedisCombatSession {
   mapTier?: number;
   bossId?: string;
   direction?: string;
+  // Enemy attack system
+  playerCurrentHp: number;
+  playerMaxHp: number;
+  lastEnemyAttackTime: number;
+}
+
+export interface EnemyAttackResult {
+  dodged: boolean;
+  blocked?: boolean;
+  damage: number;
+  breakdown: DamageBreakdown | null;
 }
 
 const SESSION_TTL = 1800; // 30 minutes
@@ -78,8 +90,18 @@ export class CombatService {
     private bagRepo: Repository<BagItem>,
   ) {}
 
-  private sessionKey(id: string) {
+  sessionKey(id: string) {
     return `combat:session:${id}`;
+  }
+
+  /** Read a combat session from Redis (used by gateway for reconnect). */
+  async getSession(sessionId: string): Promise<RedisCombatSession | null> {
+    return this.redis.getJson<RedisCombatSession>(this.sessionKey(sessionId));
+  }
+
+  /** Write a combat session back to Redis (used by gateway for reconnect). */
+  async saveSession(sessionId: string, session: RedisCombatSession): Promise<void> {
+    await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
   }
 
   /**
@@ -110,12 +132,18 @@ export class CombatService {
   async startLocation(telegramId: string, locationId: string, waves: any[], locationOrder: number, actNumber: number) {
     const { playerLeague } = await this.getActiveCharacterInfo(telegramId);
 
+    const char = await this.charRepo.findOne({
+      where: { id: playerLeague.activeCharacterId! },
+    });
+    if (!char) throw new NotFoundException('Character not found');
+
     const queue = this.levelGen.buildMonsterQueue(
       waves,
       locationOrder,
       actNumber,
     );
 
+    const now = Date.now();
     const sessionId = uuidv4();
     const session: RedisCombatSession = {
       id: sessionId,
@@ -130,8 +158,11 @@ export class CombatService {
       totalXpEarned: 0,
       totalTaps: 0,
       lastTapTime: 0,
-      startedAt: Date.now(),
+      startedAt: now,
       locationId,
+      playerCurrentHp: char.maxHp,
+      playerMaxHp: char.maxHp,
+      lastEnemyAttackTime: now,
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -140,6 +171,8 @@ export class CombatService {
       sessionId,
       totalMonsters: queue.length,
       currentMonster: queue[0] || null,
+      playerHp: char.maxHp,
+      playerMaxHp: char.maxHp,
     };
   }
 
@@ -157,6 +190,11 @@ export class CombatService {
   ) {
     const { playerLeague } = await this.getActiveCharacterInfo(telegramId);
 
+    const char = await this.charRepo.findOne({
+      where: { id: playerLeague.activeCharacterId! },
+    });
+    if (!char) throw new NotFoundException('Character not found');
+
     const queue = this.levelGen.buildMonsterQueue(
       waves,
       undefined,
@@ -166,6 +204,7 @@ export class CombatService {
       tierXpMul,
     );
 
+    const now = Date.now();
     const sessionId = uuidv4();
     const session: RedisCombatSession = {
       id: sessionId,
@@ -180,9 +219,12 @@ export class CombatService {
       totalXpEarned: 0,
       totalTaps: 0,
       lastTapTime: 0,
-      startedAt: Date.now(),
+      startedAt: now,
       mapTier,
       bossId,
+      playerCurrentHp: char.maxHp,
+      playerMaxHp: char.maxHp,
+      lastEnemyAttackTime: now,
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -191,6 +233,8 @@ export class CombatService {
       sessionId,
       totalMonsters: queue.length,
       currentMonster: queue[0] || null,
+      playerHp: char.maxHp,
+      playerMaxHp: char.maxHp,
     };
   }
 
@@ -281,7 +325,113 @@ export class CombatService {
   }
 
   /**
+   * Calculate and apply accumulated enemy attacks since lastEnemyAttackTime.
+   * Returns the list of individual attacks for the client to replay visually.
+   */
+  private processEnemyAttacks(
+    session: RedisCombatSession,
+    char: Character,
+    now: number,
+  ): { attacks: EnemyAttackResult[]; playerDead: boolean } {
+    const monster = session.monsterQueue[session.currentIndex];
+    if (!monster || session.playerCurrentHp <= 0) {
+      return { attacks: [], playerDead: session.playerCurrentHp <= 0 };
+    }
+
+    const elapsed = now - session.lastEnemyAttackTime;
+    const attackInterval = B.ENEMY_ATTACK_INTERVAL_MS;
+    let pendingAttacks = Math.floor(elapsed / attackInterval);
+    pendingAttacks = Math.min(pendingAttacks, B.MAX_PENDING_ATTACKS);
+
+    if (pendingAttacks <= 0) return { attacks: [], playerDead: false };
+
+    // Advance lastEnemyAttackTime by the number of attacks processed
+    session.lastEnemyAttackTime += pendingAttacks * attackInterval;
+
+    const attacks: EnemyAttackResult[] = [];
+    const charResistance = char.resistance || {};
+    const monsterDmgProfile = monster.outgoingDamage || { physical: 1.0 };
+
+    for (let i = 0; i < pendingAttacks; i++) {
+      if (session.playerCurrentHp <= 0) break;
+
+      // Dodge check
+      if (Math.random() < char.dodgeChance) {
+        attacks.push({ dodged: true, damage: 0, breakdown: null });
+        continue;
+      }
+
+      // Warrior block check (class special: blockChance)
+      const classDef = CLASS_DEFS[char.classId];
+      if (classDef?.special.id === 'blockChance' && Math.random() < char.specialValue) {
+        attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null });
+        continue;
+      }
+
+      // Compute elemental damage: monster's outgoing vs player's resistance
+      const breakdown = computeElementalDamage(
+        monster.scaledDamage,
+        monsterDmgProfile,
+        charResistance,
+      );
+
+      session.playerCurrentHp -= breakdown.total;
+      if (session.playerCurrentHp < 0) session.playerCurrentHp = 0;
+
+      attacks.push({
+        dodged: false,
+        damage: breakdown.total,
+        breakdown,
+      });
+    }
+
+    return {
+      attacks,
+      playerDead: session.playerCurrentHp <= 0,
+    };
+  }
+
+  /**
+   * Process one tick of enemy attacks (called by the WebSocket combat loop).
+   * Returns attack results for the client, or null if session is gone.
+   */
+  async processEnemyTick(sessionId: string): Promise<{
+    attacks: EnemyAttackResult[];
+    playerHp: number;
+    playerMaxHp: number;
+    playerDead: boolean;
+  } | null> {
+    const session = await this.redis.getJson<RedisCombatSession>(
+      this.sessionKey(sessionId),
+    );
+    if (!session) return null;
+
+    // Already dead — nothing to do
+    if (session.playerCurrentHp <= 0) {
+      return { attacks: [], playerHp: 0, playerMaxHp: session.playerMaxHp, playerDead: true };
+    }
+
+    const char = await this.charRepo.findOne({
+      where: { id: session.characterId },
+    });
+    if (!char) return null;
+
+    const { attacks, playerDead } = this.processEnemyAttacks(session, char, Date.now());
+
+    // Persist updated HP and lastEnemyAttackTime
+    await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
+
+    return {
+      attacks,
+      playerHp: session.playerCurrentHp,
+      playerMaxHp: session.playerMaxHp,
+      playerDead,
+    };
+  }
+
+  /**
    * Process a tap — server-authoritative damage calculation.
+   * Enemy attacks are handled separately by the WebSocket combat loop.
    */
   async processTap(telegramId: string, sessionId: string) {
     const session = await this.redis.getJson<RedisCombatSession>(
@@ -295,6 +445,24 @@ export class CombatService {
     const now = Date.now();
     if (now - session.lastTapTime < MIN_TAP_INTERVAL_MS) {
       throw new BadRequestException('Tap too fast');
+    }
+
+    // Player already dead — reject tap
+    if (session.playerCurrentHp <= 0) {
+      return {
+        damage: 0,
+        damageBreakdown: null,
+        isCrit: false,
+        monsterHp: session.monsterQueue[session.currentIndex]?.currentHp ?? 0,
+        monsterMaxHp: session.monsterQueue[session.currentIndex]?.maxHp ?? 0,
+        killed: false,
+        isComplete: false,
+        currentMonster: session.monsterQueue[session.currentIndex] || null,
+        monstersRemaining: session.monsterQueue.length - session.currentIndex,
+        playerHp: 0,
+        playerMaxHp: session.playerMaxHp,
+        playerDead: true,
+      };
     }
 
     // Get character stats from DB (server-authoritative)
@@ -333,6 +501,8 @@ export class CombatService {
       session.totalGoldEarned += monster.goldReward;
       session.totalXpEarned += monster.xpReward;
       session.currentIndex++;
+      // Reset enemy attack timer for new monster
+      session.lastEnemyAttackTime = now;
     }
 
     const isComplete = session.currentIndex >= session.monsterQueue.length;
@@ -348,6 +518,9 @@ export class CombatService {
       isComplete,
       currentMonster: !isComplete ? session.monsterQueue[session.currentIndex] : null,
       monstersRemaining: session.monsterQueue.length - session.currentIndex,
+      playerHp: session.playerCurrentHp,
+      playerMaxHp: session.playerMaxHp,
+      playerDead: false,
     };
   }
 
@@ -561,6 +734,42 @@ export class CombatService {
     if (!session || session.playerId !== telegramId) {
       throw new NotFoundException('Combat session not found');
     }
+
+    await this.redis.del(this.sessionKey(sessionId));
+
+    return { success: true };
+  }
+
+  /**
+   * Report player death — save audit record and clean up session.
+   */
+  async playerDeath(telegramId: string, sessionId: string) {
+    const session = await this.redis.getJson<RedisCombatSession>(
+      this.sessionKey(sessionId),
+    );
+    if (!session || session.playerId !== telegramId) {
+      throw new NotFoundException('Combat session not found');
+    }
+
+    // Save audit record with 'died' status
+    const auditSession = this.sessionRepo.create({
+      id: session.id,
+      playerTelegramId: telegramId,
+      characterId: session.characterId,
+      leagueId: session.leagueId,
+      mode: session.mode,
+      locationId: session.locationId || null,
+      mapTier: session.mapTier || null,
+      bossId: session.bossId || null,
+      totalMonsters: session.monsterQueue.length,
+      monstersKilled: session.currentIndex,
+      totalGoldEarned: String(session.totalGoldEarned),
+      totalXpEarned: String(session.totalXpEarned),
+      totalTaps: session.totalTaps,
+      completedAt: new Date(),
+      status: 'died',
+    });
+    await this.sessionRepo.save(auditSession);
 
     await this.redis.del(this.sessionKey(sessionId));
 

@@ -281,4 +281,7 @@ export interface GameEventMap {
   characterChanged: Character;
   skinChanged: { charId: string; skinId: string };
   endgameUnlocked: undefined;
+  enemyAttack: { dodged: boolean; blocked?: boolean; damage: number; breakdown: import("@shared/types").DamageBreakdown | null };
+  playerHpChanged: { hp: number; maxHp: number };
+  playerDied: {};
 }

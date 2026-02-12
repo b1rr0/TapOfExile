@@ -79,6 +79,19 @@ export const B = {
   /* ── Combat timers ────────────────────────── */
   SPAWN_DELAY_MS: 1200,
 
+  /* ── Enemy attack system ─────────────────── */
+  ENEMY_ATTACK_INTERVAL_MS: 1000,     // 1 attack per second
+  MONSTER_DMG_BASE: 3,                 // base damage at order=1, common
+  MONSTER_DMG_GROWTH: 1.4,             // dmg = BASE * GROWTH^(order-1)
+  MONSTER_DMG_RANDOM: 0.10,            // ±10% variance
+  RARITY_DMG_MULTIPLIERS: {
+    common: 1.0,
+    rare:   1.3,
+    epic:   1.8,
+    boss:   2.5,
+  } as Record<string, number>,
+  MAX_PENDING_ATTACKS: 10,             // cap accumulated attacks (anti-AFK)
+
   /* ── Endgame start ────────────────────────── */
   ENDGAME_STARTER_KEYS: 3,
   ENDGAME_STARTER_TIER: 1,

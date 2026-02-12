@@ -1,5 +1,6 @@
-import { api } from "../api.js";
+import { getSocket, waitForConnection, disconnectSocket } from "../combat-socket.js";
 import { B } from "../data/balance.js";
+import type { Socket } from "socket.io-client";
 import type { Monster, MapConfig, Location } from "../types.js";
 import type { GameState } from "./state.js";
 import type { EventBus } from "./events.js";
@@ -14,10 +15,11 @@ interface SyntheticLocation {
 }
 
 /**
- * CombatManager — server-authoritative combat.
+ * CombatManager — server-authoritative combat over WebSocket.
  *
  * All damage, rewards, and progression are calculated on the server.
- * Frontend sends taps via API, receives damage + kill info back.
+ * Enemy attacks are pushed in real-time via WebSocket every 1 second.
+ * Player taps are sent as WebSocket messages.
  */
 export class CombatManager {
   state: GameState;
@@ -29,6 +31,9 @@ export class CombatManager {
   // Server session
   private _sessionId: string | null;
 
+  // Socket.IO connection
+  private _socket: Socket | null;
+
   // Location / Map metadata for display
   private _location: Location | SyntheticLocation | null;
   private _actNumber: number;
@@ -38,6 +43,10 @@ export class CombatManager {
   // Map-based combat (endgame)
   private _mapConfig: MapConfig | null;
 
+  // Player HP tracking (from server)
+  private _playerHp: number;
+  private _playerMaxHp: number;
+
   constructor(state: GameState, events: EventBus) {
     this.state = state;
     this.events = events;
@@ -46,58 +55,185 @@ export class CombatManager {
     this._tapping = false;
 
     this._sessionId = null;
+    this._socket = null;
     this._location = null;
     this._actNumber = 1;
     this._totalMonsters = 0;
     this._monstersKilled = 0;
     this._mapConfig = null;
+
+    this._playerHp = 0;
+    this._playerMaxHp = 0;
   }
 
   get sessionId(): string | null {
     return this._sessionId;
   }
 
+  // ─── Socket connection ──────────────────────────────────
+
+  private async _connectSocket(): Promise<Socket> {
+    this._socket = getSocket();
+    this._setupSocketListeners();
+    await waitForConnection(this._socket);
+    return this._socket;
+  }
+
+  private _listenersAttached = false;
+
+  private _setupSocketListeners(): void {
+    if (!this._socket || this._listenersAttached) return;
+    this._listenersAttached = true;
+
+    // Enemy attacks pushed by server combat loop (real-time, every 1s)
+    this._socket.on("combat:enemy-attack", (data: any) => {
+      if (data.attacks && data.attacks.length > 0) {
+        data.attacks.forEach((atk: any, i: number) => {
+          setTimeout(() => {
+            this.events.emit("enemyAttack", atk);
+          }, i * 120);
+        });
+      }
+      if (data.playerHp !== undefined) {
+        this._playerHp = data.playerHp;
+        this._playerMaxHp = data.playerMaxHp ?? this._playerMaxHp;
+        this.events.emit("playerHpChanged", {
+          hp: this._playerHp,
+          maxHp: this._playerMaxHp,
+        });
+      }
+      if (data.playerDead) {
+        this._onPlayerDeath();
+      }
+    });
+
+    // Tap result (player damage to monster)
+    this._socket.on("combat:tap-result", (result: any) => {
+      this._tapping = false;
+      if (!this.monster) return;
+
+      if (result.playerDead) {
+        this._onPlayerDeath();
+        return;
+      }
+
+      this.monster.currentHp = result.monsterHp;
+
+      this.events.emit("damage", {
+        damage: result.damage,
+        damageBreakdown: result.damageBreakdown,
+        isCrit: result.isCrit,
+        monster: this.monster,
+      });
+
+      if (result.playerHp !== undefined) {
+        this._playerHp = result.playerHp;
+        this._playerMaxHp = result.playerMaxHp ?? this._playerMaxHp;
+        this.events.emit("playerHpChanged", {
+          hp: this._playerHp,
+          maxHp: this._playerMaxHp,
+        });
+      }
+
+      if (result.killed) {
+        this._onMonsterDeath(result);
+      }
+    });
+
+    // Player died (from server loop or tap)
+    this._socket.on("combat:player-died", () => {
+      this._onPlayerDeath();
+    });
+
+    // Reconnection state restore
+    this._socket.on("combat:reconnected", (data: any) => {
+      this._sessionId = data.sessionId;
+      this._playerHp = data.playerHp;
+      this._playerMaxHp = data.playerMaxHp;
+      if (data.currentMonster) {
+        this._setMonsterFromServer(data.currentMonster);
+      }
+      this.events.emit("playerHpChanged", {
+        hp: this._playerHp,
+        maxHp: this._playerMaxHp,
+      });
+    });
+
+    // Error handling
+    this._socket.on("combat:error", (data: any) => {
+      console.warn("[CombatManager] Socket error:", data.message);
+    });
+
+    // Auto-reconnect: if we had a session, try to resume it
+    this._socket.on("connect", () => {
+      if (this._sessionId) {
+        this._socket!.emit("combat:reconnect", { sessionId: this._sessionId });
+      }
+    });
+
+    this._socket.on("disconnect", (reason: string) => {
+      console.warn("[CombatManager] Disconnected:", reason);
+    });
+  }
+
   // ─── Location-based finite combat ─────────────────────────
 
-  /**
-   * Start a location — call server to create combat session.
-   */
   async startLocation(location: Location): Promise<void> {
     this._location = location;
     this._actNumber = location.act || 1;
     this._mapConfig = null;
     this._monstersKilled = 0;
 
-    const result = await api.combat.startLocation(
-      location.id,
-      location.waves,
-      location.order,
-      location.act,
-    );
+    const socket = await this._connectSocket();
 
-    this._sessionId = result.sessionId;
-    this._totalMonsters = result.totalMonsters;
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Start location timeout"));
+      }, 10000);
 
-    this.events.emit("locationWaveProgress", {
-      current: 0,
-      total: this._totalMonsters,
+      socket.once("combat:started", (result: any) => {
+        clearTimeout(timeout);
+
+        this._sessionId = result.sessionId;
+        this._totalMonsters = result.totalMonsters;
+        this._playerHp = result.playerHp ?? 0;
+        this._playerMaxHp = result.playerMaxHp ?? 0;
+
+        this.events.emit("playerHpChanged", {
+          hp: this._playerHp,
+          maxHp: this._playerMaxHp,
+        });
+        this.events.emit("locationWaveProgress", {
+          current: 0,
+          total: this._totalMonsters,
+        });
+
+        if (result.currentMonster) {
+          this._setMonsterFromServer(result.currentMonster);
+        }
+        resolve();
+      });
+
+      socket.once("combat:error", (err: any) => {
+        clearTimeout(timeout);
+        reject(new Error(err.message));
+      });
+
+      socket.emit("combat:start-location", {
+        locationId: location.id,
+        waves: location.waves,
+        order: location.order,
+        act: location.act,
+      });
     });
-
-    if (result.currentMonster) {
-      this._setMonsterFromServer(result.currentMonster);
-    }
   }
 
-  /** true if currently in location-based combat */
   get isLocationMode(): boolean {
     return this._location !== null;
   }
 
   // ─── Map-based finite combat (endgame) ──────────────────────
 
-  /**
-   * Start a map encounter — server creates session and consumes key.
-   */
   async startMap(mapConfig: MapConfig, mapKeyItemId: string, direction?: string): Promise<void> {
     this._mapConfig = mapConfig;
 
@@ -112,55 +248,61 @@ export class CombatManager {
     this._actNumber = 5;
     this._monstersKilled = 0;
 
-    const result = await api.combat.startMap(mapKeyItemId, direction);
+    const socket = await this._connectSocket();
 
-    this._sessionId = result.sessionId;
-    this._totalMonsters = result.totalMonsters;
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Start map timeout"));
+      }, 10000);
 
-    this.events.emit("locationWaveProgress", {
-      current: 0,
-      total: this._totalMonsters,
+      socket.once("combat:started", (result: any) => {
+        clearTimeout(timeout);
+
+        this._sessionId = result.sessionId;
+        this._totalMonsters = result.totalMonsters;
+        this._playerHp = result.playerHp ?? 0;
+        this._playerMaxHp = result.playerMaxHp ?? 0;
+
+        this.events.emit("playerHpChanged", {
+          hp: this._playerHp,
+          maxHp: this._playerMaxHp,
+        });
+        this.events.emit("locationWaveProgress", {
+          current: 0,
+          total: this._totalMonsters,
+        });
+
+        if (result.currentMonster) {
+          this._setMonsterFromServer(result.currentMonster);
+        }
+        resolve();
+      });
+
+      socket.once("combat:error", (err: any) => {
+        clearTimeout(timeout);
+        reject(new Error(err.message));
+      });
+
+      socket.emit("combat:start-map", { mapKeyItemId, direction });
     });
-
-    if (result.currentMonster) {
-      this._setMonsterFromServer(result.currentMonster);
-    }
   }
 
-  /** true if currently in map-based combat */
   get isMapMode(): boolean {
     return this._mapConfig !== null;
   }
 
-  // ─── Tap / Passive ────────────────────────────────────────
+  // ─── Tap ────────────────────────────────────────────────────
 
   handleTap(): void {
-    if (this._deathCooldown || !this.monster || !this._sessionId || this._tapping) return;
+    if (this._deathCooldown || !this.monster || !this._sessionId || this._tapping || !this._socket) return;
     this._tapping = true;
 
-    api.combat
-      .tap(this._sessionId)
-      .then((result) => {
-        this._tapping = false;
-        if (!this.monster) return;
+    this._socket.emit("combat:tap", { sessionId: this._sessionId });
 
-        this.monster.currentHp = result.monsterHp;
-
-        this.events.emit("damage", {
-          damage: result.damage,
-          damageBreakdown: result.damageBreakdown,
-          isCrit: result.isCrit,
-          monster: this.monster,
-        });
-
-        if (result.killed) {
-          this._onMonsterDeath(result);
-        }
-      })
-      .catch((err) => {
-        this._tapping = false;
-        console.warn("[CombatManager] Tap failed:", err);
-      });
+    // Fallback: reset tapping flag after 2s if no response
+    setTimeout(() => {
+      this._tapping = false;
+    }, 2000);
   }
 
   applyPassiveDamage(): void {
@@ -170,17 +312,75 @@ export class CombatManager {
   // ─── Complete / Flee ──────────────────────────────────────
 
   async complete(): Promise<any> {
-    if (!this._sessionId) return null;
-    const result = await api.combat.complete(this._sessionId);
-    this.state.updateFromCombatComplete(result);
-    this._sessionId = null;
-    return result;
+    if (!this._sessionId || !this._socket) return null;
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve(null);
+      }, 10000);
+
+      this._socket!.once("combat:completed", (result: any) => {
+        clearTimeout(timeout);
+        this.state.updateFromCombatComplete(result);
+        this._sessionId = null;
+        resolve(result);
+      });
+
+      this._socket!.emit("combat:complete", { sessionId: this._sessionId });
+    });
   }
 
   async flee(): Promise<void> {
-    if (!this._sessionId) return;
-    await api.combat.flee(this._sessionId);
+    if (!this._sessionId || !this._socket) return;
+
+    return new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        this._sessionId = null;
+        resolve();
+      }, 5000);
+
+      this._socket!.once("combat:fled", () => {
+        clearTimeout(timeout);
+        this._sessionId = null;
+        resolve();
+      });
+
+      this._socket!.emit("combat:flee", { sessionId: this._sessionId });
+    });
+  }
+
+  // ─── Player HP ───────────────────────────────────────────
+
+  get playerHp(): number { return this._playerHp; }
+  get playerMaxHp(): number { return this._playerMaxHp; }
+
+  private _onPlayerDeath(): void {
+    this.events.emit("playerDied", {});
+    // Server handles death automatically (via the combat loop or tap handler)
     this._sessionId = null;
+  }
+
+  // ─── Cleanup ─────────────────────────────────────────────
+
+  /**
+   * Remove all socket event listeners to prevent leaks.
+   * Called by CombatScene on unmount.
+   */
+  cleanup(): void {
+    if (this._socket) {
+      this._socket.off("combat:enemy-attack");
+      this._socket.off("combat:tap-result");
+      this._socket.off("combat:player-died");
+      this._socket.off("combat:reconnected");
+      this._socket.off("combat:error");
+      this._socket.off("combat:started");
+      this._socket.off("combat:completed");
+      this._socket.off("combat:fled");
+    }
+    disconnectSocket();
+    this._socket = null;
+    this._sessionId = null;
+    this._listenersAttached = false;
   }
 
   // ─── Internal ─────────────────────────────────────────────

@@ -162,62 +162,11 @@ export const characters = {
   },
 };
 
-/* ── Combat ────────────────────────────────────────────── */
+/* ── Access token (used by combat-socket.ts for WebSocket auth) ── */
 
-export const combat = {
-  startLocation(locationId: string, waves: any[], order: number, act: number) {
-    return post<{
-      sessionId: string;
-      totalMonsters: number;
-      currentMonster: any;
-    }>("/combat/start-location", { locationId, waves, order, act });
-  },
-
-  startMap(mapKeyItemId: string, direction?: string) {
-    return post<{
-      sessionId: string;
-      totalMonsters: number;
-      currentMonster: any;
-    }>("/combat/start-map", { mapKeyItemId, direction });
-  },
-
-  tap(sessionId: string) {
-    return post<{
-      damage: number;
-      damageBreakdown?: import("@shared/types").DamageBreakdown;
-      isCrit: boolean;
-      monsterHp: number;
-      monsterMaxHp: number;
-      killed: boolean;
-      isComplete: boolean;
-      currentMonster: any;
-      monstersRemaining: number;
-    }>("/combat/tap", { sessionId });
-  },
-
-  complete(sessionId: string) {
-    return post<{
-      totalGold: number;
-      totalXp: number;
-      baseXp?: number;
-      xpMultiplier?: number;
-      totalTaps: number;
-      monstersKilled: number;
-      level?: number;
-      xp?: number;
-      xpToNext?: number;
-      gold?: number;
-      mapDrops?: any[];
-      locationId?: string;
-      dailyBonusUsed?: boolean;
-      dailyBonusRemaining?: number;
-    }>("/combat/complete", { sessionId });
-  },
-
-  flee(sessionId: string) {
-    return post<{ success: boolean }>("/combat/flee", { sessionId });
-  },
-};
+export function getAccessToken(): string | null {
+  return accessToken;
+}
 
 /* ── Leagues ───────────────────────────────────────────── */
 
@@ -289,7 +238,6 @@ export const api = {
   auth,
   player,
   characters,
-  combat,
   leagues,
   endgame,
   loot,

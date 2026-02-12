@@ -1,12 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
+
+  // WebSocket support (Socket.IO shares the same HTTP server)
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.enableCors({
     origin: true,
