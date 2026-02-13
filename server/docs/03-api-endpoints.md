@@ -1,85 +1,97 @@
 # API Endpoints
 
-Base URL: `http://localhost:3001`
+Base URL: `http://localhost:3001/api`
 Swagger UI: `http://localhost:3001/api/docs`
 
-## Auth
+## REST Endpoints
+
+### Auth
 
 | Method | Endpoint | Auth | Body | Description |
 |--------|----------|------|------|-------------|
 | POST | `/auth/telegram` | - | `{initData}` | Authenticate via Telegram, returns JWT |
 | POST | `/auth/refresh` | - | `{refreshToken}` | Refresh access token |
 
-## Player
+### Player
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/player` | JWT | Full player state (gold, characters, meta) |
+| GET | `/player` | JWT | Full player state (all leagues, characters, bag, meta) |
 
-## Characters
+### Characters
 
 | Method | Endpoint | Auth | Body | Description |
 |--------|----------|------|------|-------------|
-| GET | `/characters` | JWT | - | List all characters |
-| POST | `/characters` | JWT | `{nickname, classId}` | Create character |
+| GET | `/characters` | JWT | - | List all characters in active league |
+| POST | `/characters` | JWT | `{nickname, classId, leagueId?}` | Create character (max 10/league) |
 | GET | `/characters/:id` | JWT | - | Get character details |
 | POST | `/characters/:id/activate` | JWT | - | Set as active character |
 | PUT | `/characters/:id/skin` | JWT | `{skinId}` | Change skin |
 
-## Combat
+### Leagues
 
 | Method | Endpoint | Auth | Body | Description |
 |--------|----------|------|------|-------------|
-| POST | `/combat/tap` | JWT | `{sessionId}` | Process tap (server calculates damage) |
-| POST | `/combat/complete` | JWT | `{sessionId}` | Complete session, claim rewards |
-| POST | `/combat/flee` | JWT | `{sessionId}` | Abandon session |
+| GET | `/leagues` | - | - | List all active leagues |
+| GET | `/leagues/my` | JWT | - | Player's league memberships |
+| POST | `/leagues/:leagueId/join` | JWT | - | Join a league |
+| POST | `/leagues/switch` | JWT | `{leagueId}` | Switch active league |
 
-## Loot
+### Loot
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/loot/bag?characterId=` | JWT | Get bag contents |
-| DELETE | `/loot/bag/:itemId?characterId=` | JWT | Discard item |
+| GET | `/loot/bag` | JWT | Get bag items for active league |
+| DELETE | `/loot/bag/:itemId` | JWT | Discard item from bag |
 
-## Skill Tree
+### Skill Tree
 
 | Method | Endpoint | Auth | Body | Description |
 |--------|----------|------|------|-------------|
-| GET | `/skill-tree?characterId=` | JWT | - | Get tree + allocations |
-| POST | `/skill-tree/allocate` | JWT | `{characterId, nodeId}` | Allocate node |
-| POST | `/skill-tree/reset` | JWT | `{characterId}` | Reset all (costs gold) |
+| GET | `/skill-tree?characterId=` | JWT | - | Get allocated node IDs |
+| POST | `/skill-tree/accept` | JWT | `{characterId, allocated[]}` | Bulk save allocations |
+| POST | `/skill-tree/reset` | JWT | `{characterId}` | Reset all (costs 100 gold/node) |
 
-## Endgame
+### Endgame
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/endgame/status?characterId=` | JWT | Endgame progress |
 | POST | `/endgame/check-unlock?characterId=` | JWT | Check/unlock endgame |
 
-## Game Data (public)
+## WebSocket Events (Socket.IO `/combat` namespace)
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/game-data/balance` | - | Balance constants |
-| GET | `/game-data/version` | - | Game version info |
-| GET | `/game-data/classes` | - | Character classes |
-| GET | `/game-data/endgame` | - | Endgame tiers, bosses, drop settings |
+All combat operations use WebSocket instead of REST.
 
-## Rewards
+### Client → Server
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/rewards/daily` | JWT | Daily reward info (day, canClaim) |
-| POST | `/rewards/daily/claim` | JWT | Claim daily reward |
-| GET | `/rewards/achievements` | JWT | Achievement list (future) |
+| Event | Data | Description |
+|-------|------|-------------|
+| `combat:start-location` | `{locationId, waves, order, act}` | Start story combat |
+| `combat:start-map` | `{mapKeyItemId, direction?}` | Start endgame map |
+| `combat:tap` | `{sessionId}` | Player attack |
+| `combat:entrance-done` | `{sessionId}` | Monster entrance animation done |
+| `combat:complete` | `{sessionId}` | Request rewards |
+| `combat:flee` | `{sessionId}` | Abandon combat |
+| `combat:reconnect` | `{sessionId}` | Resume after disconnect |
 
-## Migration
+### Server → Client
 
-| Method | Endpoint | Auth | Body | Description |
-|--------|----------|------|------|-------------|
-| POST | `/migration/import-local` | JWT | `{gameData}` | Import localStorage to server |
+| Event | Data | Description |
+|-------|------|-------------|
+| `combat:started` | `{sessionId, totalMonsters, currentMonster, playerHp, playerMaxHp}` | Session created |
+| `combat:tap-result` | `{damage, isCrit, monsterHp, killed, isComplete, playerHp, ...}` | Tap result |
+| `combat:enemy-attack` | `{attacks[], playerHp, playerMaxHp, playerDead}` | Server tick (200ms) |
+| `combat:completed` | `{totalGold, totalXp, level, mapDrops, ...}` | Rewards |
+| `combat:player-died` | `{sessionId}` | Player HP <= 0 |
+| `combat:fled` | `{success}` | Flee confirmed |
+| `combat:reconnected` | `{sessionId, currentMonster, playerHp, ...}` | Session resumed |
+| `combat:error` | `{message}` | Error |
 
 ## Rate Limits
-- Global: 100 req/min per IP
-- `/combat/tap`: 20 req/sec
-- `/auth/telegram`: 5 req/min
+
+| Scope | Limit | Location |
+|-------|-------|----------|
+| Global | 100 req/60s | `app.module.ts` ThrottlerModule |
+| `/auth/telegram` | 5 req/60s | `auth.controller.ts` @Throttle |
+| Tap interval | min 50ms | `combat.service.ts` MIN_TAP_INTERVAL_MS |

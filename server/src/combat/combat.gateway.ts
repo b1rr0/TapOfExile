@@ -127,6 +127,23 @@ export class CombatGateway
     );
   }
 
+  /**
+   * Resolve telegramId for a socket.
+   * If not found immediately (race with handleConnection), retries a few times.
+   */
+  private async resolveUser(client: Socket): Promise<string | null> {
+    let telegramId = this.socketUsers.get(client.id);
+    if (telegramId) return telegramId;
+
+    // handleConnection may not have finished yet — wait briefly
+    for (let i = 0; i < 5; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      telegramId = this.socketUsers.get(client.id);
+      if (telegramId) return telegramId;
+    }
+    return null;
+  }
+
   // ─── Start combat ─────────────────────────────────────────
 
   /**
@@ -151,12 +168,33 @@ export class CombatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { locationId: string; waves: any[]; order: number; act: number },
   ) {
-    const telegramId = this.socketUsers.get(client.id);
-    if (!telegramId) return;
+    const telegramId = await this.resolveUser(client);
+    if (!telegramId) {
+      client.emit('combat:error', { message: 'Auth not ready — please retry' });
+      return;
+    }
 
     try {
-      // Clean up any stale session before starting a new one
-      await this.cleanupStaleSession(telegramId);
+      // If the user already has an active session, re-send its state
+      // (client retry after transport upgrade — the first response was lost)
+      const existingSessionId = this.userSessions.get(telegramId);
+      if (existingSessionId) {
+        const existing = await this.combatService.getSession(existingSessionId);
+        if (existing && existing.playerId === telegramId) {
+          console.log(`[CombatGateway] Re-sending combat:started for existing session ${existingSessionId}`);
+          const currentMonster = existing.monsterQueue[existing.currentIndex] || null;
+          client.emit('combat:started', {
+            sessionId: existingSessionId,
+            totalMonsters: existing.monsterQueue.length,
+            playerHp: existing.playerCurrentHp,
+            playerMaxHp: existing.playerMaxHp,
+            currentMonster,
+          });
+          return;
+        }
+        // Session exists in map but not in Redis — clean up
+        this.userSessions.delete(telegramId);
+      }
 
       const result = await this.combatService.startLocation(
         telegramId,
@@ -182,12 +220,33 @@ export class CombatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { mapKeyItemId: string; direction?: string },
   ) {
-    const telegramId = this.socketUsers.get(client.id);
-    if (!telegramId) return;
+    const telegramId = await this.resolveUser(client);
+    if (!telegramId) {
+      client.emit('combat:error', { message: 'Auth not ready — please retry' });
+      return;
+    }
 
     try {
-      // Clean up any stale session before starting a new one
-      await this.cleanupStaleSession(telegramId);
+      // If the user already has an active session, re-send its state
+      // (client retry after transport upgrade — the first response was lost)
+      const existingSessionId = this.userSessions.get(telegramId);
+      if (existingSessionId) {
+        const existing = await this.combatService.getSession(existingSessionId);
+        if (existing && existing.playerId === telegramId) {
+          console.log(`[CombatGateway] Re-sending combat:started for existing session ${existingSessionId}`);
+          const currentMonster = existing.monsterQueue[existing.currentIndex] || null;
+          client.emit('combat:started', {
+            sessionId: existingSessionId,
+            totalMonsters: existing.monsterQueue.length,
+            playerHp: existing.playerCurrentHp,
+            playerMaxHp: existing.playerMaxHp,
+            currentMonster,
+          });
+          return;
+        }
+        // Session exists in map but not in Redis — clean up
+        this.userSessions.delete(telegramId);
+      }
 
       const result = await this.combatService.startMapByDto(telegramId, {
         mapKeyItemId: data.mapKeyItemId,

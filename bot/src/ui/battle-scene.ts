@@ -97,6 +97,9 @@ export class BattleScene {
   // ResizeObserver
   _resizeObserver?: ResizeObserver;
 
+  /** Resolves when all sprite assets (hero, enemy, background) are loaded. */
+  readonly spritesReady: Promise<void>;
+
   /**
    * @param container
    * @param events — EventBus instance
@@ -145,7 +148,7 @@ export class BattleScene {
 
     this._init();
     this._listen();
-    this._tryLoadSprites();
+    this.spritesReady = this._tryLoadSprites();
   }
 
   // ─── DOM Setup ──────────────────────────────────────────

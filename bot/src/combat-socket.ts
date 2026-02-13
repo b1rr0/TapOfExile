@@ -4,23 +4,47 @@
  * Singleton — one connection per session, shared across CombatManager lifecycle.
  */
 import { io, Socket } from "socket.io-client";
-import { getAccessToken } from "./api.js";
+import { getAccessToken, auth } from "./api.js";
 
 const WS_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/api\/?$/, "");
 
 let socket: Socket | null = null;
 
-export function getSocket(): Socket {
-  // Reuse if already connected OR still connecting
+/**
+ * Ensure we have a fresh access token before opening the socket.
+ * JWT access tokens expire in 1 hour; if the player was in the hideout
+ * or skill tree for a while, the token may have expired.
+ */
+async function ensureFreshToken(): Promise<string | null> {
+  const token = getAccessToken();
+  if (!token) return null;
+
+  try {
+    const payloadB64 = token.split(".")[1];
+    const payload = JSON.parse(atob(payloadB64));
+    const exp = payload.exp as number;
+    const now = Date.now() / 1000;
+    if (exp - now < 60) {
+      const ok = await auth.refresh();
+      if (ok) return getAccessToken();
+    }
+  } catch { /* non-critical */ }
+  return getAccessToken();
+}
+
+/**
+ * Get (or create) the shared combat socket.
+ * ASYNC — may refresh the JWT before creating a new socket.
+ */
+export async function getSocket(): Promise<Socket> {
   if (socket && (socket.connected || socket.active)) return socket;
 
-  // Clean up dead socket if any
   if (socket) {
     socket.removeAllListeners();
     socket.disconnect();
   }
 
-  const token = getAccessToken();
+  const token = await ensureFreshToken();
 
   socket = io(`${WS_URL}/combat`, {
     auth: { token },
@@ -28,7 +52,7 @@ export function getSocket(): Socket {
     upgrade: true,
     reconnection: true,
     reconnectionAttempts: 10,
-    reconnectionDelay: 1000,
+    reconnectionDelay: 500,
     timeout: 10000,
   });
 
@@ -38,7 +62,6 @@ export function getSocket(): Socket {
 /**
  * Start connecting early (before CombatScene mounts).
  * If already connected or connecting, this is a no-op.
- * CombatManager.getSocket() will reuse the same instance.
  */
 export function preconnectSocket(): void {
   getSocket();
@@ -59,9 +82,6 @@ export function waitForConnection(sock: Socket, timeoutMs = 30000): Promise<void
       resolve();
     };
 
-    // Don't reject on individual connect_error — Socket.IO will retry
-    // automatically (reconnection: true). Only the timeout rejects.
-
     const cleanup = () => {
       clearTimeout(timeout);
       sock.off("connect", onConnect);
@@ -70,4 +90,3 @@ export function waitForConnection(sock: Socket, timeoutMs = 30000): Promise<void
     sock.on("connect", onConnect);
   });
 }
-

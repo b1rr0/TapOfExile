@@ -76,7 +76,7 @@ export class CombatManager {
   // ─── Socket connection ──────────────────────────────────
 
   private async _connectSocket(): Promise<Socket> {
-    this._socket = getSocket();
+    this._socket = await getSocket();
     this._setupSocketListeners();
     await waitForConnection(this._socket);
     return this._socket;
@@ -198,6 +198,114 @@ export class CombatManager {
     }
   }
 
+  // ─── Shared start helper with retry ─────────────────────────
+
+  /**
+   * Emit a combat start event and wait for `combat:started`.
+   *
+   * Resilience layers:
+   * 1. Retry emit every 2s (up to 5×) — survives lost messages during transport switch
+   * 2. Re-emit on socket `connect` — survives full reconnect cycle
+   * 3. 30s hard timeout — falls back to hideout on total failure
+   */
+  private _emitWithRetry(
+    socket: Socket,
+    event: string,
+    payload: any,
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const RETRY_INTERVAL = 2000;
+      const MAX_RETRIES = 5;
+      const TOTAL_TIMEOUT = 30000;
+      let retries = 0;
+      let settled = false;
+
+      const totalTimeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(`Start combat timeout (${event})`));
+      }, TOTAL_TIMEOUT);
+
+      let retryTimer: ReturnType<typeof setInterval> | null = null;
+
+      const onStarted = (result: any) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this._handleStarted(result);
+        resolve();
+      };
+
+      const onError = (err: any) => {
+        if (settled) return;
+        const msg: string = err.message || "";
+        // Transient errors — server hasn't finished auth yet, just wait for retry
+        if (msg.includes("retry")) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(new Error(msg));
+      };
+
+      // Re-emit on reconnect (socket may have dropped and reconnected)
+      const onConnect = () => {
+        if (settled) return;
+        retries++;
+        socket.emit(event, payload);
+      };
+
+      const cleanup = () => {
+        clearTimeout(totalTimeout);
+        if (retryTimer) clearInterval(retryTimer);
+        socket.off("combat:started", onStarted);
+        socket.off("combat:error", onError);
+        socket.off("connect", onConnect);
+      };
+
+      socket.on("combat:started", onStarted);
+      socket.on("combat:error", onError);
+      socket.on("connect", onConnect);
+
+      // First emit
+      socket.emit(event, payload);
+
+      // Retry every 2s if no response
+      retryTimer = setInterval(() => {
+        if (settled) return;
+        retries++;
+        if (retries > MAX_RETRIES) return;
+        socket.emit(event, payload);
+      }, RETRY_INTERVAL);
+    });
+  }
+
+  /**
+   * Process the `combat:started` response from the server.
+   */
+  private _handleStarted(result: any): void {
+    this._sessionId = result.sessionId;
+    this._totalMonsters = result.totalMonsters;
+    this._playerHp = result.playerHp ?? 0;
+    this._playerMaxHp = result.playerMaxHp ?? 0;
+
+    this.events.emit("playerHpChanged", {
+      hp: this._playerHp,
+      maxHp: this._playerMaxHp,
+    });
+    this.events.emit("locationWaveProgress", {
+      current: 0,
+      total: this._totalMonsters,
+    });
+
+    this.events.emit("combatReady", {});
+
+    if (result.currentMonster) {
+      this._setMonsterFromServer(result.currentMonster);
+    }
+  }
+
   // ─── Location-based finite combat ─────────────────────────
 
   async startLocation(location: Location): Promise<void> {
@@ -208,48 +316,14 @@ export class CombatManager {
 
     const socket = await this._connectSocket();
 
-    return new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("Start location timeout"));
-      }, 30000);
+    const payload = {
+      locationId: location.id,
+      waves: location.waves,
+      order: location.order,
+      act: location.act,
+    };
 
-      socket.once("combat:started", (result: any) => {
-        clearTimeout(timeout);
-
-        this._sessionId = result.sessionId;
-        this._totalMonsters = result.totalMonsters;
-        this._playerHp = result.playerHp ?? 0;
-        this._playerMaxHp = result.playerMaxHp ?? 0;
-
-        this.events.emit("playerHpChanged", {
-          hp: this._playerHp,
-          maxHp: this._playerMaxHp,
-        });
-        this.events.emit("locationWaveProgress", {
-          current: 0,
-          total: this._totalMonsters,
-        });
-
-        this.events.emit("combatReady", {});
-
-        if (result.currentMonster) {
-          this._setMonsterFromServer(result.currentMonster);
-        }
-        resolve();
-      });
-
-      socket.once("combat:error", (err: any) => {
-        clearTimeout(timeout);
-        reject(new Error(err.message));
-      });
-
-      socket.emit("combat:start-location", {
-        locationId: location.id,
-        waves: location.waves,
-        order: location.order,
-        act: location.act,
-      });
-    });
+    return this._emitWithRetry(socket, "combat:start-location", payload);
   }
 
   get isLocationMode(): boolean {
@@ -274,43 +348,7 @@ export class CombatManager {
 
     const socket = await this._connectSocket();
 
-    return new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("Start map timeout"));
-      }, 30000);
-
-      socket.once("combat:started", (result: any) => {
-        clearTimeout(timeout);
-
-        this._sessionId = result.sessionId;
-        this._totalMonsters = result.totalMonsters;
-        this._playerHp = result.playerHp ?? 0;
-        this._playerMaxHp = result.playerMaxHp ?? 0;
-
-        this.events.emit("playerHpChanged", {
-          hp: this._playerHp,
-          maxHp: this._playerMaxHp,
-        });
-        this.events.emit("locationWaveProgress", {
-          current: 0,
-          total: this._totalMonsters,
-        });
-
-        this.events.emit("combatReady", {});
-
-        if (result.currentMonster) {
-          this._setMonsterFromServer(result.currentMonster);
-        }
-        resolve();
-      });
-
-      socket.once("combat:error", (err: any) => {
-        clearTimeout(timeout);
-        reject(new Error(err.message));
-      });
-
-      socket.emit("combat:start-map", { mapKeyItemId, direction });
-    });
+    return this._emitWithRetry(socket, "combat:start-map", { mapKeyItemId, direction });
   }
 
   get isMapMode(): boolean {

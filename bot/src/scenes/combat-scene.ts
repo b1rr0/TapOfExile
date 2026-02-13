@@ -280,12 +280,6 @@ export class CombatScene {
       });
     }
 
-    // Hide loading overlay when server responds with combat:started
-    this._onCombatReady = () => {
-      this._stopLoadingOverlay();
-    };
-    this.events.on("combatReady", this._onCombatReady);
-
     this.combat = new CombatManager(this.state, this.events);
     this.hud = new HUD(hudEl, this.events);
 
@@ -307,6 +301,18 @@ export class CombatScene {
     }
 
     this.battleScene = new BattleScene(battleEl, this.events, { heroSkin, backgroundSrc });
+
+    // Hide loading overlay only when BOTH server responded AND sprites loaded
+    const combatReadyPromise = new Promise<void>((resolve) => {
+      this._onCombatReady = () => resolve();
+      this.events.on("combatReady", this._onCombatReady);
+    });
+    Promise.all([
+      combatReadyPromise,
+      this.battleScene.spritesReady,
+    ]).then(() => {
+      this._stopLoadingOverlay();
+    });
     this.effects = new Effects(battleEl, this.events);
     this.combatLog = new CombatLog(battleEl, this.events);
     this.equipment = new Equipment(gameScreen, this.events);

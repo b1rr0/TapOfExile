@@ -4,6 +4,7 @@
 
 | Файл | Назначение |
 |------|-----------|
+| `server/src/combat/combat.gateway.ts` | WebSocket gateway, session management |
 | `server/src/combat/combat.service.ts` | Server-authoritative боёвка, rate limit |
 | `server/src/auth/auth.service.ts` | Telegram HMAC-SHA256 валидация |
 | `server/src/auth/strategies/jwt.strategy.ts` | JWT стратегия |
@@ -23,6 +24,7 @@
 - HP монстров хранятся в Redis сессии
 - Клиент не может подделать урон или убить монстра
 - Completion проверяет что все монстры убиты
+- Вражеские атаки генерируются сервером каждые 200ms (combat loop)
 
 ```typescript
 // combat.service.ts - processTap()
@@ -39,7 +41,7 @@ monster.currentHp -= damage                               // серверный 
 |---------|-----------|-----|
 | Global | 100 req/60 сек | `app.module.ts` ThrottlerModule |
 | Auth | 5 req/60 сек | `auth.controller.ts` @Throttle |
-| Tap | 20 req/1 сек | `combat.controller.ts` @Throttle |
+| Tap | min 50ms между тапами | `combat.service.ts` MIN_TAP_INTERVAL_MS |
 
 ### 3. Hard Tap Interval
 
@@ -99,7 +101,7 @@ Shared validator (`skill-tree-validation.ts`):
 1. Start node allocated
 2. All IDs valid (integers, in range)
 3. BFS connectivity — все ноды связаны со стартовой
-4. Budget: outer ≤ level-1, classSkills ≤ 6
+4. Budget: outer <= level-1, classSkills <= 6
 
 ```typescript
 // BE дополнительно:
@@ -107,15 +109,7 @@ Shared validator (`skill-tree-validation.ts`):
 // Deduplication: [...new Set(allocated)]
 ```
 
-### 9. Offline Gold Protection
-
-```typescript
-const elapsed = (now - player.lastSaveTime) / 1000;
-const seconds = Math.min(elapsed, OFFLINE_MAX_SECONDS); // cap 8 часов (28800 сек)
-if (seconds < OFFLINE_MIN_SECONDS) return { offlineGold: 0 }; // минимум 60 сек
-```
-
-### 10. Player Ownership на всех запросах
+### 9. Player Ownership на всех запросах
 
 Все DB запросы содержат `playerTelegramId = telegramId`:
 
@@ -125,6 +119,13 @@ charRepo.findOne({ where: { id: characterId, playerTelegramId: telegramId } })
 
 Невозможно получить доступ к данным другого игрока.
 
+### 10. WebSocket Auth
+
+JWT верифицируется при подключении к Socket.IO:
+- Токен из `client.handshake.auth.token` или `Authorization` header
+- Невалидный токен → disconnect
+- Mapping: socketId ↔ telegramId (один сокет на пользователя)
+
 ### 11. Audit Trail
 
 `CombatSession` entity сохраняется в PostgreSQL:
@@ -133,7 +134,18 @@ charRepo.findOne({ where: { id: characterId, playerTelegramId: telegramId } })
 
 Позволяет post-game анализ на аномалии.
 
-## Возможные доработки (чего нет)
+### 12. Anti-AFK в бою
+
+`MAX_PENDING_ATTACKS = 10` — максимум 10 атак монстра за один тик.
+Не позволяет накопить бесконечный timeBank.
+
+### 13. Disconnect Grace Period
+
+30 секунд grace period при дисконнекте.
+После 30с — автоматический flee (бой потерян, без наград).
+При reconnect: `lastEnemyAttackTime = now` — "прощение" пропущенных атак.
+
+## Возможные доработки (чего пока нет)
 
 - Нет server-side timing анализа (среднее время между тапами за сессию)
 - Нет anomaly detection (слишком быстрое прохождение карт)
