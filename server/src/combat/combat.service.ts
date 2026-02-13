@@ -611,6 +611,11 @@ export class CombatService {
     session.lastTapTime = now;
 
     let killed = false;
+    let xpGained = 0;
+    let leveledUp = false;
+    let charLevel = char.level;
+    let charXp = Number(char.xp);
+    let charXpToNext = Number(char.xpToNext);
 
     if (monster.currentHp <= 0) {
       monster.currentHp = 0;
@@ -623,6 +628,48 @@ export class CombatService {
         monster.xpReward / (1 + B.XP_LEVEL_SCALING_A * D * D),
       ));
       session.totalXpEarned += scaledXp;
+      xpGained = scaledXp;
+
+      // ── Award XP immediately to Character (per-kill) ──
+      const prevLevel = char.level;
+      char.xp = String(BigInt(char.xp) + BigInt(scaledXp));
+
+      while (
+        char.level < MAX_LEVEL &&
+        BigInt(char.xp) >= BigInt(char.xpToNext)
+      ) {
+        char.xp = String(BigInt(char.xp) - BigInt(char.xpToNext));
+        char.level++;
+        char.xpToNext = String(
+          Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, char.level - 1)),
+        );
+
+        // Apply class-based stat growth
+        const newStats = statsAtLevel(char.classId, char.level);
+        char.maxHp = newStats.hp;
+        char.hp = newStats.hp;
+        char.tapDamage = newStats.tapDamage;
+        char.critChance = newStats.critChance;
+        char.critMultiplier = newStats.critMultiplier;
+        char.dodgeChance = newStats.dodgeChance;
+        char.specialValue = specialAtLevel(char.classId, char.level);
+      }
+
+      // Clamp XP at max level
+      if (char.level >= MAX_LEVEL) {
+        char.xp = '0';
+      }
+
+      leveledUp = char.level > prevLevel;
+      charLevel = char.level;
+      charXp = Number(char.xp);
+      charXpToNext = Number(char.xpToNext);
+
+      // Update session's playerLevel so XP-scaling stays current
+      session.playerLevel = char.level;
+
+      // Persist character XP/level to DB immediately
+      await this.charRepo.save(char);
 
       session.currentIndex++;
       // Reset enemy attack timer for new monster
@@ -647,12 +694,19 @@ export class CombatService {
       playerHp: session.playerCurrentHp,
       playerMaxHp: session.playerMaxHp,
       playerDead: false,
+      // Per-kill XP fields
+      xpGained,
+      leveledUp,
+      level: charLevel,
+      xp: charXp,
+      xpToNext: charXpToNext,
     };
   }
 
   /**
    * Complete a combat session and award rewards.
-   * Gold → PlayerLeague, XP → Character, meta stats → Player.
+   * Gold → PlayerLeague (XP already awarded per-kill in processTap).
+   * Meta stats → Player, location/endgame progress → Character.
    */
   async completeSession(telegramId: string, sessionId: string) {
     const session = await this.redis.getJson<RedisCombatSession>(
@@ -695,57 +749,21 @@ export class CombatService {
     player.lastSaveTime = String(Date.now());
     await this.playerRepo.save(player);
 
-    // Award XP to character
+    // XP already awarded per-kill in processTap() — just read current char state
+    // and persist location/endgame progress
     const char = await this.charRepo.findOne({
       where: { id: session.characterId },
     });
-    let usedDailyBonus = false;
     let dailyBonusRemaining = DAILY_BONUS_WINS_MAX;
 
     if (char) {
-      // Check and apply daily bonus (x3 XP for first 3 wins)
+      // Update daily bonus counter
       const today = getUtcDateString();
       if (char.dailyBonusResetDate !== today) {
-        // New day — reset counter
         char.dailyBonusWinsUsed = 0;
         char.dailyBonusResetDate = today;
       }
-
-      let xpToAward = session.totalXpEarned;
-      if (char.dailyBonusWinsUsed < DAILY_BONUS_WINS_MAX) {
-        // Apply x3 XP bonus
-        xpToAward = session.totalXpEarned * DAILY_BONUS_XP_MULTIPLIER;
-        char.dailyBonusWinsUsed++;
-        usedDailyBonus = true;
-      }
       dailyBonusRemaining = Math.max(0, DAILY_BONUS_WINS_MAX - char.dailyBonusWinsUsed);
-
-      char.xp = String(BigInt(char.xp) + BigInt(xpToAward));
-      while (
-        char.level < MAX_LEVEL &&
-        BigInt(char.xp) >= BigInt(char.xpToNext)
-      ) {
-        char.xp = String(BigInt(char.xp) - BigInt(char.xpToNext));
-        char.level++;
-        char.xpToNext = String(
-          Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, char.level - 1)),
-        );
-
-        // Apply class-based stat growth
-        const newStats = statsAtLevel(char.classId, char.level);
-        char.maxHp = newStats.hp;
-        char.hp = newStats.hp;
-        char.tapDamage = newStats.tapDamage;
-        char.critChance = newStats.critChance;
-        char.critMultiplier = newStats.critMultiplier;
-        char.dodgeChance = newStats.dodgeChance;
-        char.specialValue = specialAtLevel(char.classId, char.level);
-      }
-
-      // Clamp XP at max level
-      if (char.level >= MAX_LEVEL) {
-        char.xp = '0';
-      }
 
       // Persist location completion for story mode
       if (session.mode === 'location' && session.locationId) {
@@ -825,9 +843,7 @@ export class CombatService {
 
     return {
       totalGold: session.totalGoldEarned,
-      totalXp: usedDailyBonus ? session.totalXpEarned * DAILY_BONUS_XP_MULTIPLIER : session.totalXpEarned,
-      baseXp: session.totalXpEarned,
-      xpMultiplier: usedDailyBonus ? DAILY_BONUS_XP_MULTIPLIER : 1,
+      totalXp: session.totalXpEarned,
       totalTaps: session.totalTaps,
       monstersKilled: session.monsterQueue.length,
       level: char ? char.level : undefined,
@@ -845,7 +861,6 @@ export class CombatService {
         bossKeyTier: d.bossKeyTier,
       })),
       locationId: session.locationId || null,
-      dailyBonusUsed: usedDailyBonus,
       dailyBonusRemaining,
     };
   }

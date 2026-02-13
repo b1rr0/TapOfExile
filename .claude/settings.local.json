@@ -56,7 +56,9 @@
       "Bash(cmd.exe /c \"cd /d D:\\\\programs\\\\TapOfExile\\\\shared && npx tsc skill-node-defs.ts --module commonjs --target ES2022 --esModuleInterop --declaration --outDir . 2>&1\")",
       "Bash(\"D:/programs/33Metro/bot/node_modules/.bin/tsc\" --noEmit --project \"D:/programs/33Metro/bot/tsconfig.json\")",
       "Bash(netstat:*)",
-      "Bash(wmic:*)"
+      "Bash(wmic:*)",
+      "WebFetch(domain:ux.pub)",
+      "Bash(py:*)"
     ]
   }
 }

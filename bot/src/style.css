@@ -572,6 +572,16 @@ body {
   animation: floatUp 1s ease-out forwards;
 }
 
+.float-xp {
+  position: absolute;
+  font-size: 16px;
+  font-weight: 700;
+  color: #b388ff;
+  text-shadow: 0 0 8px rgba(179,136,255,0.6), 0 1px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+  animation: floatUp 1s ease-out forwards;
+}
+
 .announce {
   position: absolute;
   top: 40%;
@@ -4540,6 +4550,10 @@ body {
   color: #aaa;
   font-weight: 600;
 }
+.combat-log-entry--xp {
+  color: #b388ff;
+  font-weight: 600;
+}
 .combat-log-entry--player-death {
   display: flex;
   align-items: center;
@@ -4598,6 +4612,11 @@ body {
 }
 .log-player-death {
   color: #ff4444;
+}
+.log-xp {
+  color: #b388ff;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(179,136,255,0.3);
 }
 
 /* ═══════════════════════════════════════════════

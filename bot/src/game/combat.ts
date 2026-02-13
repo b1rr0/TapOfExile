@@ -139,6 +139,15 @@ export class CombatManager {
       }
 
       if (result.killed) {
+        // Update local character state with per-kill XP from server
+        if (result.xpGained > 0) {
+          const char = this.state.getActiveCharacter();
+          if (char) {
+            char.level = result.level ?? char.level;
+            char.xp = result.xp ?? char.xp;
+            char.xpToNext = result.xpToNext ?? char.xpToNext;
+          }
+        }
         this._onMonsterDeath(result);
       }
     });
@@ -476,14 +485,37 @@ export class CombatManager {
     isComplete: boolean;
     currentMonster: any;
     monstersRemaining: number;
+    xpGained?: number;
+    leveledUp?: boolean;
+    level?: number;
+    xp?: number;
+    xpToNext?: number;
   }): void {
     this._deathCooldown = true;
     this._monstersKilled++;
 
     const gold = this.monster!.goldReward;
-    const xp = this.monster!.xpReward;
+    const xpGained = tapResult.xpGained || 0;
 
-    this.events.emit("monsterDied", { monster: this.monster, gold, xp });
+    this.events.emit("monsterDied", { monster: this.monster, gold, xp: xpGained });
+
+    // Emit per-kill XP for effects + combat log
+    if (xpGained > 0) {
+      this.events.emit("xpGained", { xp: xpGained });
+    }
+
+    // Emit level up (instant, from per-kill XP)
+    if (tapResult.leveledUp && tapResult.level) {
+      this.events.emit("levelUp", { level: tapResult.level });
+    }
+
+    // Update XP bar in HUD
+    if (tapResult.xp !== undefined && tapResult.xpToNext !== undefined) {
+      this.events.emit("xpChanged", {
+        xp: tapResult.xp,
+        xpToNext: tapResult.xpToNext,
+      });
+    }
 
     this.events.emit("locationWaveProgress", {
       current: this._monstersKilled,

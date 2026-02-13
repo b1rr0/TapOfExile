@@ -15,6 +15,7 @@ export interface Rarity {
 export interface MonsterType {
   name: string;
   cssClass: string;
+  skinId: string;
   minStage: number;
   bodyColor: string;
   eyeColor: string;
@@ -32,32 +33,32 @@ export const RARITIES: Record<string, Rarity> = {
 };
 
 export const MONSTER_TYPES: MonsterType[] = [
-  { name: 'Bandit', cssClass: 'monster-bandit', minStage: 1, bodyColor: '#8b6914', eyeColor: '#fff',
+  { name: 'Bandit', cssClass: 'monster-bandit', skinId: 'soldier', minStage: 1, bodyColor: '#8b6914', eyeColor: '#fff',
     resistance: { physical: 0.05 },
     attacks: MONSTER_ATTACKS.Bandit },
-  { name: 'Wild Boar', cssClass: 'monster-boar', minStage: 1, bodyColor: '#6b3a2a', eyeColor: '#ff4444',
+  { name: 'Wild Boar', cssClass: 'monster-boar', skinId: 'orc', minStage: 1, bodyColor: '#6b3a2a', eyeColor: '#ff4444',
     resistance: { physical: 0.10 },
     attacks: MONSTER_ATTACKS['Wild Boar'] },
-  { name: 'Forest Spirit', cssClass: 'monster-spirit', minStage: 3, bodyColor: '#2e7d32', eyeColor: '#aaffaa',
+  { name: 'Forest Spirit', cssClass: 'monster-spirit', skinId: 'blue_witch', minStage: 3, bodyColor: '#2e7d32', eyeColor: '#aaffaa',
     resistance: { cold: 0.15, physical: -0.10 },
     outgoingDamage: { cold: 0.60, pure: 0.40 },
     attacks: MONSTER_ATTACKS['Forest Spirit'] },
-  { name: 'Ronin', cssClass: 'monster-ronin', minStage: 5, bodyColor: '#4a4a6a', eyeColor: '#eee',
+  { name: 'Ronin', cssClass: 'monster-ronin', skinId: 'ronin_enemy', minStage: 5, bodyColor: '#4a4a6a', eyeColor: '#eee',
     resistance: { physical: 0.15, lightning: 0.05 },
     attacks: MONSTER_ATTACKS.Ronin },
-  { name: 'Oni', cssClass: 'monster-oni', minStage: 8, bodyColor: '#c41e3a', eyeColor: '#ffcc00',
+  { name: 'Oni', cssClass: 'monster-oni', skinId: 'king', minStage: 8, bodyColor: '#c41e3a', eyeColor: '#ffcc00',
     resistance: { fire: 0.25, physical: 0.10 },
     outgoingDamage: { fire: 0.70, physical: 0.30 },
     attacks: MONSTER_ATTACKS.Oni },
-  { name: 'Tengu', cssClass: 'monster-tengu', minStage: 12, bodyColor: '#1a237e', eyeColor: '#ff6600',
+  { name: 'Tengu', cssClass: 'monster-tengu', skinId: 'necromancer_2', minStage: 12, bodyColor: '#1a237e', eyeColor: '#ff6600',
     resistance: { lightning: 0.20, cold: 0.10 },
     outgoingDamage: { lightning: 0.80, physical: 0.20 },
     attacks: MONSTER_ATTACKS.Tengu },
-  { name: 'Dragon', cssClass: 'monster-dragon', minStage: 15, bodyColor: '#4a0072', eyeColor: '#ff0000',
+  { name: 'Dragon', cssClass: 'monster-dragon', skinId: 'paladin', minStage: 15, bodyColor: '#4a0072', eyeColor: '#ff0000',
     resistance: { fire: 0.40, physical: 0.15, lightning: 0.10 },
     outgoingDamage: { fire: 0.90, pure: 0.10 },
     attacks: MONSTER_ATTACKS.Dragon },
-  { name: 'Shogun', cssClass: 'monster-shogun', minStage: 20, bodyColor: '#b8860b', eyeColor: '#fff',
+  { name: 'Shogun', cssClass: 'monster-shogun', skinId: 'striker', minStage: 20, bodyColor: '#b8860b', eyeColor: '#fff',
     resistance: { physical: 0.30, cold: 0.15, fire: 0.10, lightning: 0.10 },
     outgoingDamage: { physical: 0.60, lightning: 0.30, pure: 0.10 },
     attacks: MONSTER_ATTACKS.Shogun },

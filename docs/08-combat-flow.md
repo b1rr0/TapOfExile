@@ -295,7 +295,9 @@ Fallback: `_tapping` сбрасывается через 2000ms если нет 
 5. `monster.currentHp -= breakdown.total`
 6. Если `currentHp <= 0`:
    - `killed = true`
-   - Начисление gold + xp (с level-scaling)
+   - Начисление gold в session (session.totalGoldEarned)
+   - **XP начисляется сразу в Character** (level-scaling, level up inline)
+   - `char.xp += scaledXp` → while loop level up → `charRepo.save(char)`
    - `currentIndex++`
    - `lastEnemyAttackTime = now` (сброс для нового монстра)
    - `nextAttackIn = getFirstAttackDelay(nextMonster)`
@@ -311,6 +313,10 @@ socket.emit("combat:tap-result", {
   currentMonster,       // следующий монстр (если killed)
   monstersRemaining,
   playerHp, playerMaxHp, playerDead,
+  // Per-kill XP (только при killed=true):
+  xpGained,             // сколько XP получено за этого монстра
+  leveledUp,            // true если произошёл level up
+  level, xp, xpToNext,  // актуальные значения после начисления
 })
 ```
 
@@ -327,7 +333,9 @@ if (killed && !isComplete) → stopCombatLoop  // ← пауза до entrance-d
 2. `monster.currentHp = result.monsterHp`
 3. Эмит `"damage"` → battle-scene: hero attack anim + enemy shake + HP bar update
 4. Эмит `"playerHpChanged"` → UI обновляет HP игрока
-5. Если `killed` → `_onMonsterDeath(result)`
+5. Если `killed`:
+   - Обновляет локальный char (level, xp, xpToNext) из ответа сервера
+   - → `_onMonsterDeath(result)`
 
 ---
 
@@ -338,12 +346,18 @@ if (killed && !isComplete) → stopCombatLoop  // ← пауза до entrance-d
 ```
 1. _deathCooldown = true         // блокировка тапов
 2. _monstersKilled++
-3. emit "monsterDied"            // → battle-scene: enemy.die()
-4. emit "locationWaveProgress"
+3. emit "monsterDied"            // → battle-scene: enemy.die() + gold floater
+4. emit "xpGained" { xp }       // → effects: фиолетовый "+N XP" floater
+                                 // → combat-log: фиолетовая запись "✦ +N XP"
+5. if (leveledUp):
+     emit "levelUp" { level }    // → effects: "LEVEL N!" announce
+                                 // → HUD: обновление Lv.N
+6. emit "xpChanged" { xp, xpToNext }  // → HUD: обновление XP бара
+7. emit "locationWaveProgress"
 
-5. setTimeout(SPAWN_DELAY_MS) {  // 1200ms
+8. setTimeout(SPAWN_DELAY_MS) {  // 1200ms
      if (isComplete) {
-       complete()                // завершить бой
+       complete()                // завершить бой → gold + loot
      } else {
        _setMonsterFromServer()   // спавн нового
        _deathCooldown = false    // разблокировка тапов
@@ -409,28 +423,23 @@ socket.emit("combat:complete", { sessionId })
 
 1. `stopCombatLoop(sessionId)`
 2. Проверка: все монстры убиты (`currentIndex >= monsterQueue.length`)
-3. **Награды**:
-   - Gold → `PlayerLeague.gold` (per-league пул)
-   - XP → Character (с daily bonus x3 для первых 3 побед/день)
-   - Meta stats → Player (`totalGold, totalKills, totalTaps`)
-4. **Level up** (если XP хватает):
-   - `xpToNext = XP_BASE * XP_GROWTH^(level-1)` (100 * 1.3^...)
-   - Обновление всех статов из class-stats
-   - MAX_LEVEL = 60
-5. **Location completion** → `char.completedLocations`
-6. **Map drops** (для endgame maps): `lootService.rollMapDrops()`
-7. **Audit record** → PostgreSQL (`CombatSession` entity, status='completed')
-8. **Cleanup Redis**: удаление сессии
+3. **Gold → `PlayerLeague.gold`** (per-league пул, начисляется ТОЛЬКО здесь)
+4. **XP уже начислен per-kill** в `processTap()` — НЕ дублируется
+5. **Meta stats** → Player (`totalGold, totalKills, totalTaps`)
+6. **Location completion** → `char.completedLocations`
+7. **Map drops** (для endgame maps): `lootService.rollMapDrops()`
+8. **Audit record** → PostgreSQL (`CombatSession` entity, status='completed')
+9. **Cleanup Redis**: удаление сессии
 
 ### Сервер → Клиент
 
 ```
 socket.emit("combat:completed", {
-  totalGold, totalXp, baseXp, xpMultiplier,
+  totalGold, totalXp,
   totalTaps, monstersKilled,
   level, xp, xpToNext, gold,
   mapDrops, locationId,
-  dailyBonusUsed, dailyBonusRemaining,
+  dailyBonusRemaining,
 })
 ```
 
@@ -456,7 +465,10 @@ gateway: stopCombatLoop() → playerDeath() → emit "combat:player-died"
 
 1. Сохраняет audit record: `status = 'died'`, `monstersKilled = currentIndex`
 2. Удаляет Redis сессию
-3. **Никаких наград** — всё потеряно
+3. **Gold потерян** — не записан в БД (был только в Redis-сессии)
+4. **Loot потерян** — дропы не ролятся
+5. **XP сохранён** — уже начислен per-kill в `processTap()`
+6. **XP Loss** — штраф опыта при смерти (lvl 40+, см. [02-rewards-after-map.md](./02-rewards-after-map.md))
 
 ### Клиент
 
@@ -476,7 +488,8 @@ _onPlayerDeath():
 Сервер: stopCombatLoop() → fleeCombat() → удаление Redis → emit "combat:fled"
 ```
 
-Никаких наград. Сессия удаляется.
+**Gold потерян, loot потерян. XP сохранён** (уже начислен per-kill).
+**XP Loss НЕ применяется** — штраф только при смерти.
 
 ---
 
@@ -677,10 +690,10 @@ _updatePlayerHp(hp, maxHp):
 | Event | Data | Когда |
 |-------|------|-------|
 | `combat:started` | `{sessionId, totalMonsters, currentMonster, playerHp, playerMaxHp}` | Бой создан |
-| `combat:tap-result` | `{damage, isCrit, monsterHp, killed, isComplete, currentMonster, playerHp, ...}` | Результат тапа |
+| `combat:tap-result` | `{damage, isCrit, monsterHp, killed, isComplete, currentMonster, playerHp, xpGained, leveledUp, level, xp, xpToNext, ...}` | Результат тапа (xp per-kill) |
 | `combat:enemy-attack` | `{attacks[], playerHp, playerMaxHp, playerDead}` | Атаки врага (каждые ~200ms тик) |
 | `combat:player-died` | `{sessionId}` | Игрок умер |
-| `combat:completed` | `{totalGold, totalXp, level, ...}` | Бой завершён, награды |
+| `combat:completed` | `{totalGold, totalXp, level, xp, xpToNext, gold, mapDrops, dailyBonusRemaining}` | Бой завершён, gold + loot |
 | `combat:fled` | `{success}` | Побег подтверждён |
 | `combat:reconnected` | `{sessionId, currentMonster, playerHp, ...}` | Сессия восстановлена |
 | `combat:error` | `{message}` | Ошибка |
@@ -799,13 +812,16 @@ interface RedisCombatSession {
   │  ~~~ бой: тапы + вражеские атаки ~~│                         │
   │                                    │                         │
   ├─ emit "tap" {killed, isComplete}──►│                         │
-  │◄── "tap-result" ──────────────────┤                         │
+  │                                    ├─ XP → char (per-kill)   │
+  │                                    ├─ charRepo.save()        │
+  │◄── "tap-result" {xpGained,level}──┤                         │
   │                                    ├─ stopCombatLoop()       │
+  ├─ "+N XP" floater (фиолетовый)     │                         │
   │                                    │                         │
   │  ~~~ SPAWN_DELAY (1200ms) ~~~~~~~~ │                         │
   │                                    │                         │
   ├─ emit "complete" ────────────────►│                         │
-  │                                    ├─ award gold/xp          │
+  │                                    ├─ award gold (only)      │
   │                                    ├─ save audit ───────────►│ DEL
   │◄── "combat:completed" ────────────┤                         │
   │                                    │                         │

@@ -25,6 +25,10 @@ interface MonsterDiedData {
   gold: number;
 }
 
+interface XpGainedData {
+  xp: number;
+}
+
 interface LevelUpData {
   level: number;
 }
@@ -52,6 +56,10 @@ export class Effects {
 
     this.events.on("monsterDied", (data: MonsterDiedData) => {
       this.showGoldDrop(data.gold);
+    });
+
+    this.events.on("xpGained", (data: XpGainedData) => {
+      this.showXpGain(data.xp);
     });
 
     this.events.on("levelUp", (data: LevelUpData) => {
@@ -125,6 +133,16 @@ export class Effects {
     el.textContent = `+${amount}g`;
     el.style.left = "65%";
     el.style.top = "60%";
+    this.layer.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  }
+
+  showXpGain(amount: number): void {
+    const el = document.createElement("div");
+    el.className = "float-xp";
+    el.textContent = `+${amount} XP`;
+    el.style.left = "65%";
+    el.style.top = "52%";
     this.layer.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
   }

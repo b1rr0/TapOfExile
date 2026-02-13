@@ -25,6 +25,7 @@ export class CombatLog {
   private _onEnemyAttack: ((data: any) => void) | null = null;
   private _onMonsterSpawned: ((data: any) => void) | null = null;
   private _onMonsterDied: ((data: any) => void) | null = null;
+  private _onXpGained: ((data: any) => void) | null = null;
   private _onPlayerDied: (() => void) | null = null;
 
   constructor(container: HTMLElement, events: EventBus) {
@@ -125,6 +126,16 @@ export class CombatLog {
     };
     this.events.on("monsterDied", this._onMonsterDied);
 
+    // XP gained per kill
+    this._onXpGained = (data: any) => {
+      this.addEntry({
+        type: 'xp_gained',
+        timestamp: Date.now(),
+        xpAmount: data.xp,
+      });
+    };
+    this.events.on("xpGained", this._onXpGained);
+
     // Player died
     this._onPlayerDied = () => {
       this.addEntry({
@@ -183,6 +194,7 @@ export class CombatLog {
     if (this._onEnemyAttack) this.events.off("enemyAttack", this._onEnemyAttack);
     if (this._onMonsterSpawned) this.events.off("monsterSpawned", this._onMonsterSpawned);
     if (this._onMonsterDied) this.events.off("monsterDied", this._onMonsterDied);
+    if (this._onXpGained) this.events.off("xpGained", this._onXpGained);
     if (this._onPlayerDied) this.events.off("playerDied", this._onPlayerDied);
     if (this.btnEl) this.btnEl.remove();
     if (this.panelEl) this.panelEl.remove();

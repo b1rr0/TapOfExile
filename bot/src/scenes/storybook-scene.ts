@@ -319,14 +319,16 @@ export class StorybookScene {
         ? "walk"
         : "idle";
 
-    const actionAnim: string =
-      role === "hero"
-        ? skin.animations.attack1
-          ? "attack1"
-          : "idle"
-        : skin.animations.death
-          ? "death"
-          : "idle";
+    // Pick action anim: for heroes use attack1, for enemies pick a random attack_*
+    let actionAnim: string;
+    if (role === "hero") {
+      actionAnim = skin.animations.attack1 ? "attack1" : "idle";
+    } else {
+      const attackAnims = Object.keys(skin.animations).filter(n => n.startsWith("attack_"));
+      actionAnim = attackAnims.length > 0
+        ? attackAnims[Math.floor(Math.random() * attackAnims.length)]
+        : skin.animations.death ? "death" : "idle";
+    }
 
     const cardData: CardData = {
       engine,

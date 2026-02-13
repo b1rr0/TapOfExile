@@ -471,11 +471,15 @@ export class BattleScene {
     // Skip attack visuals during entrance (hero still running)
     if (this._entranceActive) return;
 
-    // Enemy plays attack animation if available
-    if (this.useSprites && this.enemy && this.enemy.engine.hasAnimation("attack1")) {
-      this.enemy.play("attack1", {
-        onComplete: () => this.enemy!.play("idle"),
-      });
+    // Enemy plays a random attack animation if available
+    if (this.useSprites && this.enemy) {
+      const attacks = [...this.enemy.engine.anims.keys()].filter(n => n.startsWith("attack_"));
+      if (attacks.length > 0) {
+        const pick = attacks[Math.floor(Math.random() * attacks.length)];
+        this.enemy.play(pick, {
+          onComplete: () => this.enemy!.play("idle"),
+        });
+      }
     }
 
     // Hero takes hit: shake

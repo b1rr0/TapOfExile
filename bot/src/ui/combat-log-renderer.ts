@@ -12,13 +12,15 @@ import { ELEMENT_COLORS } from "@shared/types";
 /* ── Public types ─────────────────────────────────────── */
 
 export interface LogEntry {
-  type: 'player_attack' | 'enemy_attack' | 'dodge' | 'block' | 'monster_died' | 'player_died';
+  type: 'player_attack' | 'enemy_attack' | 'dodge' | 'block' | 'monster_died' | 'player_died' | 'xp_gained';
   timestamp: number;
   monsterName?: string;
   attackName?: string;
   damage?: number;
   breakdown?: DamageBreakdown | null;
   isCrit?: boolean;
+  /** XP amount gained (for xp_gained entries) */
+  xpAmount?: number;
 }
 
 /* ── Helpers ──────────────────────────────────────────── */
@@ -93,6 +95,11 @@ export function renderLogEntry(entry: LogEntry, startTime: number): HTMLDivEleme
     case 'monster_died': {
       el.className = "combat-log-entry combat-log-entry--separator";
       el.innerHTML = `<div class="combat-log-divider"></div>${t} <span class="log-death">\u2620 ${entry.monsterName} defeated</span><div class="combat-log-divider"></div>`;
+      break;
+    }
+    case 'xp_gained': {
+      el.className = "combat-log-entry combat-log-entry--xp";
+      el.innerHTML = `${t} <span class="log-xp">✦ +${entry.xpAmount} XP</span>`;
       break;
     }
     case 'player_died': {

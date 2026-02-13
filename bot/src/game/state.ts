@@ -270,6 +270,7 @@ export class GameState {
 
   /**
    * Update local state from combat completion response.
+   * Gold is awarded here (complete only). XP already applied per-kill.
    */
   updateFromCombatComplete(result: {
     totalGold: number;
@@ -280,14 +281,17 @@ export class GameState {
     gold?: number;
     mapDrops?: BagItem[];
     locationId?: string;
-    dailyBonusUsed?: boolean;
     dailyBonusRemaining?: number;
   }): void {
+    // Gold is awarded only on completion
     if (result.gold !== undefined) {
       this.data.gold = result.gold;
     }
 
     const char = this.getActiveCharacter();
+
+    // Sync final char state from server (XP already applied per-kill,
+    // but server sends authoritative final values)
     if (char && result.level !== undefined) {
       char.level = result.level;
       char.xp = result.xp ?? char.xp;
@@ -315,13 +319,6 @@ export class GameState {
 
     if (this.data.player) {
       this.events.emit("goldChanged", { gold: this.data.player.gold });
-      this.events.emit("xpChanged", {
-        xp: this.data.player.xp,
-        xpToNext: this.data.player.xpToNext,
-      });
-    }
-    if (result.level !== undefined && char) {
-      this.events.emit("levelUp", { level: result.level });
     }
     // Emit event for daily bonus update
     if (result.dailyBonusRemaining !== undefined) {

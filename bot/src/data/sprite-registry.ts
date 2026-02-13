@@ -293,10 +293,10 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
     name: "Necromancer",
     basePath: "/assets/enemy/necromancer/necromancer_1",
     animations: {
-      idle:  { json: "idle.json",   fps: 8,  loop: true },
-      run:   { json: "run.json",    fps: 10, loop: false },
-      death: { json: "death.json",  fps: 10, loop: false },
-      attack:{ json: "attack.json", fps: 12, loop: false },
+      idle:     { json: "idle.json",   fps: 8,  loop: true },
+      run:      { json: "run.json",    fps: 10, loop: false },
+      death:    { json: "death.json",  fps: 10, loop: false },
+      attack_1: { json: "attack.json", fps: 12, loop: false },
     },
     defaultSize: { w: 280, h: 224 },
     anchorOffsetY: 0.07,
@@ -308,17 +308,204 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
     name: "Night Born",
     basePath: "/assets/enemy/night_born/night_born_1",
     animations: {
-      idle:  { json: "idle.json",   fps: 8,  loop: true },
-      run:   { json: "run.json",    fps: 10, loop: false },
-      death: { json: "death.json",  fps: 10, loop: false },
-      attack:{ json: "attack.json", fps: 12, loop: false },
-      hurt:  { json: "hurt.json",   fps: 10, loop: false },
+      idle:     { json: "idle.json",   fps: 8,  loop: true },
+      run:      { json: "run.json",    fps: 10, loop: false },
+      death:    { json: "death.json",  fps: 10, loop: false },
+      attack_1: { json: "attack.json", fps: 12, loop: false },
+      hurt:     { json: "hurt.json",   fps: 10, loop: false },
     },
     defaultSize: { w: 200, h: 200 },
     anchorOffsetY: 0.025,
     scale: 1,
   },
+
+  // ─── New enemy skins ────────────────────────────────────
+
+  blue_witch: {
+    id: "blue_witch",
+    name: "Blue Witch",
+    basePath: "/assets/enemy/blue_witch",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 10, loop: false },
+      attack_1: { json: "attack_1.json", fps: 12, loop: false },
+      attack_2: { json: "attack_2.json", fps: 12, loop: false },
+      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+    },
+    defaultSize: { w: 64, h: 64 },
+    anchorOffsetY: 0,
+    scale: 3,
+  },
+
+  king: {
+    id: "king",
+    name: "King",
+    basePath: "/assets/enemy/king",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 12, loop: false },
+      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+      attack_2: { json: "attack_2.json", fps: 14, loop: false },
+    },
+    defaultSize: { w: 128, h: 128 },
+    anchorOffsetY: 0.1,
+    scale: 1.8,
+  },
+
+  knight_enemy: {
+    id: "knight_enemy",
+    name: "Dark Knight",
+    basePath: "/assets/enemy/knight_enemy",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 10, loop: false },
+      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+    },
+    defaultSize: { w: 64, h: 64 },
+    anchorOffsetY: 0,
+    scale: 2.8,
+  },
+
+  necromancer_2: {
+    id: "necromancer_2",
+    name: "Necromancer II",
+    basePath: "/assets/enemy/necromancer_2",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 12, loop: false },
+      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+    },
+    defaultSize: { w: 128, h: 128 },
+    anchorOffsetY: 0.15,
+    scale: 1.6,
+  },
+
+  orc: {
+    id: "orc",
+    name: "Orc",
+    basePath: "/assets/enemy/orc",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 10, loop: false },
+      attack_1: { json: "attack_1.json", fps: 12, loop: false },
+      attack_2: { json: "attack_2.json", fps: 12, loop: false },
+      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+    },
+    defaultSize: { w: 100, h: 100 },
+    anchorOffsetY: 0,
+    scale: 2.2,
+  },
+
+  paladin: {
+    id: "paladin",
+    name: "Paladin",
+    basePath: "/assets/enemy/paladin",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 12, loop: false },
+      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+    },
+    defaultSize: { w: 160, h: 128 },
+    anchorOffsetY: 0.1,
+    scale: 1.6,
+  },
+
+  ronin_enemy: {
+    id: "ronin_enemy",
+    name: "Ronin",
+    basePath: "/assets/enemy/ronin_enemy",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 10, loop: false },
+      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+      attack_2: { json: "attack_2.json", fps: 14, loop: false },
+    },
+    defaultSize: { w: 128, h: 96 },
+    anchorOffsetY: 0,
+    scale: 2,
+  },
+
+  reaper: {
+    id: "reaper",
+    name: "Reaper",
+    basePath: "/assets/enemy/reaper",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 12, loop: false },
+      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+      attack_2: { json: "attack_2.json", fps: 14, loop: false },
+    },
+    defaultSize: { w: 100, h: 96 },
+    anchorOffsetY: 0,
+    scale: 2,
+  },
+
+  soldier: {
+    id: "soldier",
+    name: "Soldier",
+    basePath: "/assets/enemy/soldier",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 10, loop: false },
+      attack_1: { json: "attack_1.json", fps: 12, loop: false },
+      attack_2: { json: "attack_2.json", fps: 12, loop: false },
+      attack_3: { json: "attack_3.json", fps: 12, loop: false },
+      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+    },
+    defaultSize: { w: 100, h: 100 },
+    anchorOffsetY: 0,
+    scale: 2.2,
+  },
+
+  striker: {
+    id: "striker",
+    name: "Striker",
+    basePath: "/assets/enemy/striker",
+    animations: {
+      idle:     { json: "idle.json",     fps: 8,  loop: true },
+      run:      { json: "run.json",      fps: 10, loop: false },
+      death:    { json: "death.json",    fps: 12, loop: false },
+      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+      attack_2: { json: "attack_2.json", fps: 12, loop: false },
+      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+    },
+    defaultSize: { w: 128, h: 96 },
+    anchorOffsetY: 0,
+    scale: 2,
+  },
 };
+
+// ─── Monster → Skin mapping (client-side fallback) ──────
+
+export const MONSTER_SKIN_MAP: Record<string, string> = {
+  Bandit: "soldier",
+  "Wild Boar": "orc",
+  "Forest Spirit": "blue_witch",
+  Ronin: "ronin_enemy",
+  Oni: "king",
+  Tengu: "necromancer_2",
+  Dragon: "paladin",
+  Shogun: "striker",
+};
+
+/**
+ * Get enemy skin ID for a monster name.
+ * Falls back to a random skin if no mapping exists.
+ */
+export function getSkinForMonster(monsterName: string): string {
+  if (MONSTER_SKIN_MAP[monsterName]) return MONSTER_SKIN_MAP[monsterName];
+  const allIds = Object.keys(ENEMY_SKINS);
+  return allIds[Math.floor(Math.random() * allIds.length)];
+}
 
 // ─── Lookup helpers ──────────────────────────────────────
 
