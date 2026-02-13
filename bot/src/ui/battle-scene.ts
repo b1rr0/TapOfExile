@@ -97,13 +97,6 @@ export class BattleScene {
   // ResizeObserver
   _resizeObserver?: ResizeObserver;
 
-  // Loading run animation (hero runs while waiting for WebSocket)
-  _loadingRunActive: boolean;
-  _loadingBgOffset: number;
-
-  // True once the first entrance has completed and entranceDone was emitted
-  _firstEntranceDone: boolean;
-
   /**
    * @param container
    * @param events — EventBus instance
@@ -150,11 +143,6 @@ export class BattleScene {
     this._totalMonsters = 0;
     this._currentMonsterIndex = 0;
 
-    // Loading run animation
-    this._loadingRunActive = true;
-    this._loadingBgOffset = 0;
-    this._firstEntranceDone = false;
-
     this._init();
     this._listen();
     this._tryLoadSprites();
@@ -165,11 +153,6 @@ export class BattleScene {
   _init(): void {
     this.container.innerHTML = `
       <canvas class="scene-canvas hidden" id="scene-canvas"></canvas>
-
-      <div class="battle-loading" id="battle-loading">
-        <div class="battle-loading__spinner"></div>
-        <div class="battle-loading__text">Loading...</div>
-      </div>
 
       <div class="monster-info hidden" id="monster-info">
         <div class="monster-name" id="monster-name"></div>
@@ -211,10 +194,6 @@ export class BattleScene {
 
       this.useSprites = true;
 
-      // Hide loading spinner
-      const loadingEl = this.container.querySelector("#battle-loading");
-      if (loadingEl) loadingEl.classList.add("hidden");
-
       // Show canvas
       this.sceneCanvas!.classList.remove("hidden");
       this._resizeCanvas();
@@ -223,14 +202,9 @@ export class BattleScene {
       // Background
       this.bgRenderer.setStage(this._currentStage);
 
-      // Start in loading-run mode: hero runs, enemy hidden
-      if (this._loadingRunActive) {
-        this.hero.play("run");
-        this.enemy._visible = false;
-      } else {
-        this.hero.play("idle");
-        this.enemy.play("idle");
-      }
+      // Start idle
+      this.hero.play("idle");
+      this.enemy.play("idle");
 
       // Draw first frame
       this._drawFrame();
@@ -253,14 +227,6 @@ export class BattleScene {
       this.hero = null;
       this.enemy = null;
       this.bgRenderer = null;
-      // Show error in loading area
-      const loadingEl = this.container.querySelector("#battle-loading");
-      if (loadingEl) {
-        const textEl = loadingEl.querySelector(".battle-loading__text");
-        if (textEl) textEl.textContent = "Failed to load sprites";
-        const spinnerEl = loadingEl.querySelector(".battle-loading__spinner");
-        if (spinnerEl) spinnerEl.classList.add("hidden");
-      }
       console.error("[BattleScene] Sprites not available:", err);
       console.error("[BattleScene] heroSkinId:", this._heroSkinId, "enemySkinId:", this._enemySkinId);
     }
@@ -298,26 +264,6 @@ export class BattleScene {
       this.hero!.update(dt);
       this.enemy!.update(dt);
 
-      // Loading-run: scroll background forward and always redraw
-      if (this._loadingRunActive) {
-        this._loadingBgOffset += dt * 120; // scroll speed px/s
-
-        // Auto-stop after 10 seconds
-        if (this._loadingBgOffset > 10 * 120) {
-          this.stopLoadingRun();
-        } else if (this.bgRenderer) {
-          const maxPan = this.bgRenderer.getMaxPan(this._canvasW, this._canvasH);
-          if (maxPan > 0) {
-            // Forward-only: wrap around when reaching the end
-            this.bgRenderer._cameraX = this._loadingBgOffset % maxPan;
-          }
-          this.bgRenderer._dirty = true;
-          this._drawFrame();
-        }
-        this._tickTimer = setTimeout(tick, TICK_MS);
-        return;
-      }
-
       // Hide monster info when enemy fades out
       if (!this.enemy!.visible) {
         this.monsterInfoEl!.classList.add("hidden");
@@ -339,11 +285,9 @@ export class BattleScene {
           this._entranceElapsed = 0;
           if (this.hero) this.hero.stopRunning();
 
-          // Signal server to start enemy attacks (first entrance only)
-          if (!this._firstEntranceDone) {
-            this._firstEntranceDone = true;
-            this.events.emit("entranceDone", {});
-          }
+          // Signal server to start/resume enemy attacks
+          console.log("[BattleScene] Entrance complete — emitting entranceDone");
+          this.events.emit("entranceDone", {});
         }
 
         this._drawFrame();
@@ -384,21 +328,9 @@ export class BattleScene {
       this.hero.draw(ctx, w, h, dpr);
     }
 
-    // 3. Enemy (hidden during loading-run via _visible=false)
+    // 3. Enemy
     if (this.enemy) {
       this.enemy.draw(ctx, w, h, dpr);
-    }
-
-    // 4. Loading text overlay
-    if (this._loadingRunActive) {
-      const fontSize = 14 * dpr;
-      ctx.save();
-      ctx.font = `600 ${fontSize}px -apple-system, sans-serif`;
-      ctx.fillStyle = "rgba(232, 224, 240, 0.7)";
-      ctx.textAlign = "center";
-      const dots = ".".repeat(Math.floor((this._loadingBgOffset / 40) % 4));
-      ctx.fillText(`Loading${dots}`, w / 2, h * 0.15);
-      ctx.restore();
     }
   }
 
@@ -433,10 +365,6 @@ export class BattleScene {
     this.events.on("playerDied", () => {
       this._onPlayerDied();
     });
-
-    this.events.on("combatReady", () => {
-      this.stopLoadingRun();
-    });
   }
 
   _onDamage(data: DamageData): void {
@@ -448,11 +376,8 @@ export class BattleScene {
       if (this.bgRenderer) {
         this.bgRenderer.snapCamera(this.bgRenderer._targetCameraX);
       }
-      // Signal server to start enemy attacks (first entrance only)
-      if (!this._firstEntranceDone) {
-        this._firstEntranceDone = true;
-        this.events.emit("entranceDone", {});
-      }
+      // Signal server to start/resume enemy attacks
+      this.events.emit("entranceDone", {});
     }
 
     // Hero attacks
@@ -501,23 +426,10 @@ export class BattleScene {
     if (this.useSprites && this.enemy) {
       this.enemy.spawn();
       this._startEntrance();
-    }
-  }
-
-  /**
-   * Stop the loading-run animation (called when combat is ready).
-   * Transitions hero to idle and shows enemy.
-   */
-  stopLoadingRun(): void {
-    if (!this._loadingRunActive) return;
-    this._loadingRunActive = false;
-    this._loadingBgOffset = 0;
-
-    // If sprites already loaded, transition to idle
-    if (this.useSprites) {
-      if (this.hero) this.hero.play("idle");
-      if (this.enemy) this.enemy.resetState();
-      if (this.bgRenderer) this.bgRenderer.snapCamera(0);
+    } else {
+      // No sprites — skip entrance, signal server immediately
+      console.log("[BattleScene] No sprites — skipping entrance, emitting entranceDone");
+      this.events.emit("entranceDone", {});
     }
   }
 
@@ -553,8 +465,8 @@ export class BattleScene {
   _onEnemyAttack(data: EnemyAttackData): void {
     if (data.dodged || data.blocked) return;
 
-    // Skip attack visuals during loading-run and entrance (hero still running)
-    if (this._loadingRunActive || this._entranceActive) return;
+    // Skip attack visuals during entrance (hero still running)
+    if (this._entranceActive) return;
 
     // Enemy plays attack animation if available
     if (this.useSprites && this.enemy && this.enemy.engine.hasAnimation("attack1")) {

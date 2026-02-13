@@ -230,6 +230,12 @@ export class CombatGateway
         } catch { /* already handled */ }
         client.emit('combat:player-died', { sessionId: data.sessionId });
         this.userSessions.delete(telegramId);
+      } else if (result.killed && !result.isComplete) {
+        // Monster killed but wave continues — pause attacks until
+        // the client finishes the new monster's entrance animation
+        // and sends 'combat:entrance-done'
+        this.stopCombatLoop(data.sessionId);
+        console.log(`[CombatGateway] Monster killed — loop paused, waiting for entrance-done (session=${data.sessionId})`);
       }
     } catch (err) {
       const msg = (err as Error).message;
@@ -303,7 +309,10 @@ export class CombatGateway
     if (!sessionId) return;
 
     // Only start if not already running (idempotent)
-    if (this.combatLoops.has(sessionId)) return;
+    if (this.combatLoops.has(sessionId)) {
+      console.log(`[CombatGateway] entrance-done ignored — loop already running for ${sessionId}`);
+      return;
+    }
 
     // Reset lastEnemyAttackTime so first attack uses fresh timing
     try {
@@ -311,6 +320,10 @@ export class CombatGateway
       if (session && session.playerId === telegramId) {
         session.lastEnemyAttackTime = Date.now();
         await this.combatService.saveSession(sessionId, session);
+        console.log(
+          `[CombatGateway] entrance-done: starting loop for session=${sessionId}, ` +
+          `monster #${session.currentIndex}, nextAttackIn=${session.nextAttackIn}ms`,
+        );
       }
     } catch { /* non-critical */ }
 

@@ -191,7 +191,10 @@ export class CombatManager {
    */
   signalEntranceDone(): void {
     if (this._socket && this._sessionId) {
+      console.log(`[CombatManager] Sending entrance-done for session=${this._sessionId}`);
       this._socket.emit("combat:entrance-done", { sessionId: this._sessionId });
+    } else {
+      console.warn(`[CombatManager] Cannot send entrance-done: socket=${!!this._socket}, session=${this._sessionId}`);
     }
   }
 
@@ -208,7 +211,7 @@ export class CombatManager {
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Start location timeout"));
-      }, 10000);
+      }, 30000);
 
       socket.once("combat:started", (result: any) => {
         clearTimeout(timeout);
@@ -274,7 +277,7 @@ export class CombatManager {
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Start map timeout"));
-      }, 10000);
+      }, 30000);
 
       socket.once("combat:started", (result: any) => {
         clearTimeout(timeout);

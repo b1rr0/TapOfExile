@@ -27,9 +27,9 @@ export function getSocket(): Socket {
     transports: ["polling", "websocket"],
     upgrade: true,
     reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 500,
-    timeout: 5000,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    timeout: 10000,
   });
 
   return socket;
@@ -45,7 +45,7 @@ export function preconnectSocket(): void {
 }
 
 /** Wait for the socket to be connected. Resolves immediately if already connected. */
-export function waitForConnection(sock: Socket, timeoutMs = 8000): Promise<void> {
+export function waitForConnection(sock: Socket, timeoutMs = 30000): Promise<void> {
   if (sock.connected) return Promise.resolve();
 
   return new Promise<void>((resolve, reject) => {

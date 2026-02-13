@@ -8,6 +8,38 @@ import { haptic } from "../utils/haptic.js";
 import { isActComplete, getBackgroundForLocation, getActModifiers, getLocationById, ACT_BACKGROUNDS } from "../data/locations.js";
 import type { SharedDeps, Location } from "../types.js";
 
+// ─── Loading screen flavor text (Hearthstone-style, rotates every 5s) ──
+const LOADING_TIPS: string[] = [
+  "Sharpening katanas...",
+  "Polishing shields...",
+  "Forging armor plates...",
+  "Gathering iron for arrows...",
+  "Dropped a gold coin...",
+  "Tripped over a rock...",
+  "Feeding the war horses...",
+  "Brewing healing potions...",
+  "Counting monster teeth...",
+  "Oiling the crossbow...",
+  "Lost a sock in the dungeon...",
+  "Arguing with the blacksmith...",
+  "Tightening bowstrings...",
+  "Checking for traps...",
+  "Waking up the mage...",
+  "Sorting gems by color...",
+  "Bribing the gate guard...",
+  "Sweeping the throne room...",
+  "Calibrating the catapult...",
+  "Chasing a runaway chicken...",
+  "Rolling for initiative...",
+  "Untangling the fishing net...",
+  "Teaching goblins manners...",
+  "Restringing the lute...",
+  "Negotiating with the dragon...",
+];
+
+const LOADING_TIP_INTERVAL = 5000;
+const LOADING_MAX_DURATION = 30000;
+
 /**
  * CombatScene — wraps the current battle flow into a single scene.
  *
@@ -32,6 +64,15 @@ export class CombatScene {
   _onLocationComplete: ((data: any) => void) | null;
   _onMapComplete: ((data: any) => void) | null;
   _onPlayerDied: (() => void) | null;
+  _onCombatReady: (() => void) | null;
+
+  // Loading overlay
+  _loadingEl: HTMLElement | null;
+  _loadingTipEl: HTMLElement | null;
+  _loadingTimerEl: HTMLElement | null;
+  _loadingTipInterval: ReturnType<typeof setInterval> | null;
+  _loadingTimerInterval: ReturnType<typeof setInterval> | null;
+  _loadingTimeout: ReturnType<typeof setTimeout> | null;
 
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
@@ -50,6 +91,14 @@ export class CombatScene {
     this._onLocationComplete = null;
     this._onMapComplete = null;
     this._onPlayerDied = null;
+    this._onCombatReady = null;
+
+    this._loadingEl = null;
+    this._loadingTipEl = null;
+    this._loadingTimerEl = null;
+    this._loadingTipInterval = null;
+    this._loadingTimerInterval = null;
+    this._loadingTimeout = null;
   }
 
   mount(params: Record<string, any> = {}): void {
@@ -196,6 +245,13 @@ export class CombatScene {
           </div>
         </div>
 
+        <div class="combat-loading-overlay" id="combat-loading-overlay">
+          <button class="combat-loading-overlay__close" id="combat-loading-close">&times;</button>
+          <div class="battle-loading__spinner"></div>
+          <div class="combat-loading-overlay__timer" id="combat-loading-timer">0s</div>
+          <div class="combat-loading-overlay__tip" id="combat-loading-tip"></div>
+        </div>
+
         ${modsHtml}
       </div>
     `;
@@ -203,6 +259,32 @@ export class CombatScene {
     const gameScreen = this.container.querySelector("#game-screen") as HTMLElement;
     const hudEl = this.container.querySelector("#hud") as HTMLElement;
     const battleEl = this.container.querySelector("#battle-scene") as HTMLElement;
+
+    // Start loading overlay (shown until server responds)
+    this._loadingEl = this.container.querySelector("#combat-loading-overlay");
+    this._loadingTipEl = this.container.querySelector("#combat-loading-tip");
+    this._loadingTimerEl = this.container.querySelector("#combat-loading-timer");
+    this._startLoadingOverlay();
+
+    // Close button → return to hideout
+    const loadingClose = this.container.querySelector("#combat-loading-close") as HTMLElement | null;
+    if (loadingClose) {
+      loadingClose.addEventListener("click", () => {
+        this._stopLoadingOverlay();
+        if (this.combat) {
+          this.combat.flee().catch(() => {});
+        }
+        if (this.sceneManager) {
+          this.sceneManager.switchTo("hideout");
+        }
+      });
+    }
+
+    // Hide loading overlay when server responds with combat:started
+    this._onCombatReady = () => {
+      this._stopLoadingOverlay();
+    };
+    this.events.on("combatReady", this._onCombatReady);
 
     this.combat = new CombatManager(this.state, this.events);
     this.hud = new HUD(hudEl, this.events);
@@ -407,6 +489,73 @@ export class CombatScene {
     }
   }
 
+  // ─── Loading overlay ──────────────────────────────────────
+
+  /** Pick a random tip different from the current one. */
+  private _randomTip(current: string): string {
+    if (LOADING_TIPS.length <= 1) return LOADING_TIPS[0] || "";
+    let next: string;
+    do {
+      next = LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)];
+    } while (next === current && LOADING_TIPS.length > 1);
+    return next;
+  }
+
+  /** Show the loading overlay and start rotating tips. */
+  _startLoadingOverlay(): void {
+    if (!this._loadingEl || !this._loadingTipEl) return;
+
+    this._loadingEl.classList.remove("hidden");
+
+    // Show first tip immediately
+    const first = LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)];
+    this._loadingTipEl.textContent = first;
+
+    // Timer counter (ticks every second)
+    let elapsed = 0;
+    if (this._loadingTimerEl) this._loadingTimerEl.textContent = "0s";
+    this._loadingTimerInterval = setInterval(() => {
+      elapsed++;
+      if (this._loadingTimerEl) this._loadingTimerEl.textContent = `${elapsed}s`;
+    }, 1000);
+
+    // Rotate every 5s with fade
+    this._loadingTipInterval = setInterval(() => {
+      if (!this._loadingTipEl) return;
+      const next = this._randomTip(this._loadingTipEl.textContent || "");
+      this._loadingTipEl.style.opacity = "0";
+      setTimeout(() => {
+        if (!this._loadingTipEl) return;
+        this._loadingTipEl.textContent = next;
+        this._loadingTipEl.style.opacity = "1";
+      }, 300);
+    }, LOADING_TIP_INTERVAL);
+
+    // Safety: force-hide after 30s
+    this._loadingTimeout = setTimeout(() => {
+      this._stopLoadingOverlay();
+    }, LOADING_MAX_DURATION);
+  }
+
+  /** Hide loading overlay and clear all timers. */
+  _stopLoadingOverlay(): void {
+    if (this._loadingTipInterval) {
+      clearInterval(this._loadingTipInterval);
+      this._loadingTipInterval = null;
+    }
+    if (this._loadingTimerInterval) {
+      clearInterval(this._loadingTimerInterval);
+      this._loadingTimerInterval = null;
+    }
+    if (this._loadingTimeout) {
+      clearTimeout(this._loadingTimeout);
+      this._loadingTimeout = null;
+    }
+    if (this._loadingEl) {
+      this._loadingEl.classList.add("hidden");
+    }
+  }
+
   unmount(): void {
     if (this._onLocationComplete) {
       this.events.off("locationComplete", this._onLocationComplete);
@@ -420,6 +569,13 @@ export class CombatScene {
       this.events.off("playerDied", this._onPlayerDied);
       this._onPlayerDied = null;
     }
+    if (this._onCombatReady) {
+      this.events.off("combatReady", this._onCombatReady);
+      this._onCombatReady = null;
+    }
+
+    // Clean up loading overlay timers
+    this._stopLoadingOverlay();
 
     if (this.battleScene) {
       this.battleScene.destroy();
