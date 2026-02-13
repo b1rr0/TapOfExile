@@ -1,0 +1,31 @@
+{ "frames": [
+   { "filename": "yellow_ninja #attack 0", "frame": { "x": 0, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 1", "frame": { "x": 128, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 2", "frame": { "x": 256, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 3", "frame": { "x": 384, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 4", "frame": { "x": 512, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 5", "frame": { "x": 640, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 6", "frame": { "x": 768, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 7", "frame": { "x": 896, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 8", "frame": { "x": 1024, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 9", "frame": { "x": 1152, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 10", "frame": { "x": 1280, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 11", "frame": { "x": 1408, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 12", "frame": { "x": 1536, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 13", "frame": { "x": 1664, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 14", "frame": { "x": 1792, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 15", "frame": { "x": 1920, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 16", "frame": { "x": 2048, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 17", "frame": { "x": 2176, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 18", "frame": { "x": 2304, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 },
+   { "filename": "yellow_ninja #attack 19", "frame": { "x": 2432, "y": 0, "w": 128, "h": 128 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 128, "h": 128 }, "sourceSize": { "w": 128, "h": 128 }, "duration": 100 }
+ ],
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3-rc6-x64",
+  "image": "attack.png",
+  "format": "RGBA8888",
+  "size": { "w": 2560, "h": 128 },
+  "scale": "1"
+ }
+}
