@@ -56,7 +56,7 @@ export class Equipment {
   _createToggleButton(): void {
     this._toggleBtn = document.createElement("button");
     this._toggleBtn.className = "equipment-toggle-btn";
-    this._toggleBtn.innerHTML = `<img class="equipment-toggle-icon" src="/src/assets/ui/icons/equipment.svg" alt="Equipment">`;
+    this._toggleBtn.innerHTML = `<img class="equipment-toggle-icon" src="/assets/ui/icons/equipment.svg" alt="Equipment">`;
     this._toggleBtn.title = "Equipment";
     this._toggleBtn.addEventListener("click", () => this.toggle());
 

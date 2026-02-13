@@ -8,6 +8,7 @@ import {
   ALL_LOCATIONS,
 } from "../data/locations.js";
 import { IS_TESTING } from "../main.js";
+import { preconnectSocket } from "../combat-socket.js";
 import type { SharedDeps, Location, ActModifier } from "../types.js";
 
 /**
@@ -99,6 +100,7 @@ export class MapScene {
       const locations: Location[] = getLocationsForAct(this._selectedAct);
       const location = locations.find((l) => l.id === locId);
       if (location) {
+        preconnectSocket(); // Start connecting before scene mount
         this.sceneManager.switchTo("combat", { location });
       }
     });
@@ -273,6 +275,8 @@ export class MapScene {
 
     const modsBanner = this._renderModifiersBanner();
 
+    let sideBranchSeparatorAdded = false;
+
     const cards = locations.map((loc) => {
       const isCompleted = completed.includes(loc.id);
       const isUnlocked = !loc.requiredLocationId || completed.includes(loc.requiredLocationId);
@@ -293,12 +297,24 @@ export class MapScene {
       }
 
       const scaled = getScaledRewards(loc);
+      const isSideBranch = loc.order > 8;
 
-      return `
-        <div class="location-card ${cardClass}" data-id="${loc.id}" data-status="${status}">
+      // Add side branch separator before first side quest
+      let separator = "";
+      if (isSideBranch && !sideBranchSeparatorAdded) {
+        sideBranchSeparatorAdded = true;
+        separator = `<div class="map-side-separator">
+          <div class="map-side-separator__line"></div>
+          <span class="map-side-separator__label">Side Quests</span>
+          <div class="map-side-separator__line"></div>
+        </div>`;
+      }
+
+      return `${separator}
+        <div class="location-card ${cardClass}${isSideBranch ? ' location-card--side' : ''}" data-id="${loc.id}" data-status="${status}">
           <div class="location-card__icon">${statusIcon}</div>
           <div class="location-card__info">
-            <div class="location-card__name">${loc.name}</div>
+            <div class="location-card__name">${loc.name}${isSideBranch ? ' <span class="location-card__side-tag">Side</span>' : ''}</div>
             <div class="location-card__desc">${loc.description}</div>
           </div>
           <div class="location-card__rewards">

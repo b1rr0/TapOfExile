@@ -266,7 +266,6 @@ export interface Scene {
 export interface GameEventMap {
   monsterSpawned: Monster;
   damage: { damage: number; damageBreakdown?: import("@shared/types").DamageBreakdown; isCrit: boolean; monster: Monster };
-  passiveDamage: { damage: number; monster: Monster };
   monsterDied: { monster: Monster; gold: number; xp: number };
   locationWaveProgress: { current: number; total: number };
   levelUp: { level: number };
@@ -275,8 +274,6 @@ export interface GameEventMap {
   locationComplete: { locationId: string; rewards: { gold: number; xp: number } };
   mapComplete: { mapConfig: MapConfig; totalGold: number; totalXp: number };
   mapDrops: BagItem[];
-  waveChanged: { stage: number; wave: number };
-  stageAdvanced: { stage: number };
   stateLoaded: GameData;
   characterChanged: Character;
   skinChanged: { charId: string; skinId: string };

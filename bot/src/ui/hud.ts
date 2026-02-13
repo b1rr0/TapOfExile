@@ -1,15 +1,9 @@
-import { formatNumber } from "../utils/format.js";
 import type { GameData } from "../types.js";
 
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
   off(event: string, callback: (...args: any[]) => void): void;
   emit(event: string, data?: unknown): void;
-}
-
-interface WaveChangedData {
-  stage: number;
-  wave: number;
 }
 
 interface LevelUpData {
@@ -27,7 +21,6 @@ export class HUD {
 
   stageEl: HTMLElement | null;
   levelEl: HTMLElement | null;
-  dpsEl: HTMLElement | null;
   xpFillEl: HTMLElement | null;
   xpTextEl: HTMLElement | null;
 
@@ -39,7 +32,6 @@ export class HUD {
 
     this.stageEl = container.querySelector("#stage-display");
     this.levelEl = document.querySelector("#level-display");
-    this.dpsEl = document.querySelector("#dps-display");
     this.xpFillEl = document.querySelector("#xp-bar-fill");
     this.xpTextEl = document.querySelector("#xp-bar-text");
 
@@ -50,13 +42,6 @@ export class HUD {
   }
 
   _listen(): void {
-    this.events.on("waveChanged", (data: WaveChangedData) => {
-      // In location mode the label is set once (room name + level) — don't overwrite
-      if (!this._fixedLabel) {
-        this.updateStage(data.stage, data.wave);
-      }
-    });
-
     this.events.on("levelUp", (data: LevelUpData) => {
       this.updateLevel(data.level);
     });
@@ -80,10 +65,6 @@ export class HUD {
 
   updateLevel(level: number): void {
     if (this.levelEl) this.levelEl.textContent = `Lv.${level}`;
-  }
-
-  updateDps(dps: number): void {
-    if (this.dpsEl) this.dpsEl.textContent = `DPS: ${formatNumber(dps)}`;
   }
 
   updateXp(xp: number, xpToNext: number): void {

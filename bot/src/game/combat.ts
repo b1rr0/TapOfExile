@@ -1,4 +1,4 @@
-import { getSocket, waitForConnection, disconnectSocket } from "../combat-socket.js";
+import { getSocket, waitForConnection } from "../combat-socket.js";
 import { B } from "../data/balance.js";
 import type { Socket } from "socket.io-client";
 import type { Monster, MapConfig, Location } from "../types.js";
@@ -46,6 +46,9 @@ export class CombatManager {
   // Player HP tracking (from server)
   private _playerHp: number;
   private _playerMaxHp: number;
+
+  // Event handler ref for cleanup
+  private _onEntranceDone: (() => void) | null = null;
 
   constructor(state: GameState, events: EventBus) {
     this.state = state;
@@ -159,9 +162,10 @@ export class CombatManager {
       });
     });
 
-    // Error handling
+    // Error handling — also reset tapping flag so the player isn't stuck
     this._socket.on("combat:error", (data: any) => {
       console.warn("[CombatManager] Socket error:", data.message);
+      this._tapping = false;
     });
 
     // Auto-reconnect: if we had a session, try to resume it
@@ -174,6 +178,21 @@ export class CombatManager {
     this._socket.on("disconnect", (reason: string) => {
       console.warn("[CombatManager] Disconnected:", reason);
     });
+
+    // BattleScene signals entrance finished → tell server to start enemy attacks
+    this._onEntranceDone = () => {
+      this.signalEntranceDone();
+    };
+    this.events.on("entranceDone", this._onEntranceDone);
+  }
+
+  /**
+   * Tell the server the entrance animation is done and enemy attacks can begin.
+   */
+  signalEntranceDone(): void {
+    if (this._socket && this._sessionId) {
+      this._socket.emit("combat:entrance-done", { sessionId: this._sessionId });
+    }
   }
 
   // ─── Location-based finite combat ─────────────────────────
@@ -207,6 +226,8 @@ export class CombatManager {
           current: 0,
           total: this._totalMonsters,
         });
+
+        this.events.emit("combatReady", {});
 
         if (result.currentMonster) {
           this._setMonsterFromServer(result.currentMonster);
@@ -272,6 +293,8 @@ export class CombatManager {
           total: this._totalMonsters,
         });
 
+        this.events.emit("combatReady", {});
+
         if (result.currentMonster) {
           this._setMonsterFromServer(result.currentMonster);
         }
@@ -303,10 +326,6 @@ export class CombatManager {
     setTimeout(() => {
       this._tapping = false;
     }, 2000);
-  }
-
-  applyPassiveDamage(): void {
-    // Passive DPS removed — kept as no-op for interface compatibility
   }
 
   // ─── Complete / Flee ──────────────────────────────────────
@@ -354,7 +373,12 @@ export class CombatManager {
   get playerHp(): number { return this._playerHp; }
   get playerMaxHp(): number { return this._playerMaxHp; }
 
+  private _playerDead = false;
+
   private _onPlayerDeath(): void {
+    // Guard against double-fire (both combat:enemy-attack and combat:player-died can call this)
+    if (this._playerDead) return;
+    this._playerDead = true;
     this.events.emit("playerDied", {});
     // Server handles death automatically (via the combat loop or tap handler)
     this._sessionId = null;
@@ -367,6 +391,10 @@ export class CombatManager {
    * Called by CombatScene on unmount.
    */
   cleanup(): void {
+    if (this._onEntranceDone) {
+      this.events.off("entranceDone", this._onEntranceDone);
+      this._onEntranceDone = null;
+    }
     if (this._socket) {
       this._socket.off("combat:enemy-attack");
       this._socket.off("combat:tap-result");
@@ -376,8 +404,10 @@ export class CombatManager {
       this._socket.off("combat:started");
       this._socket.off("combat:completed");
       this._socket.off("combat:fled");
+      this._socket.off("connect");
+      this._socket.off("disconnect");
     }
-    disconnectSocket();
+    // Keep socket alive — next combat reuses it instantly
     this._socket = null;
     this._sessionId = null;
     this._listenersAttached = false;

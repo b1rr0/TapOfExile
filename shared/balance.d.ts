@@ -46,6 +46,7 @@ export declare const B: {
     };
     XP_BASE: number;
     XP_GROWTH: number;
+    XP_LEVEL_SCALING_A: number;
     STARTING_STATS: {
         level: number;
         tapDamage: number;

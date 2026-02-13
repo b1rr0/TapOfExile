@@ -107,30 +107,30 @@ const REQUIREMENT_PATTERN: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 3, 5];
  */
 export const ACT_BACKGROUNDS: Record<number, string[]> = {
   1: [
-    "/src/assets/background/castle/img.png",
-    "/src/assets/background/castle/img_1.png",
-    "/src/assets/background/castle/img_2.png",
+    "/assets/background/castle/img.png",
+    "/assets/background/castle/img_1.png",
+    "/assets/background/castle/img_2.png",
   ],
   2: [
-    "/src/assets/background/meadow/meadov_with_castle.png",
-    "/src/assets/background/meadow/meadov_with_trees.png",
-    "/src/assets/background/meadow/meadov.png",
+    "/assets/background/meadow/meadov_with_castle.png",
+    "/assets/background/meadow/meadov_with_trees.png",
+    "/assets/background/meadow/meadov.png",
   ],
   3: [
-    "/src/assets/background/fields/field_empty.png",
-    "/src/assets/background/fields/field.png",
-    "/src/assets/background/fields/field_with_moountain.png",
+    "/assets/background/fields/field_empty.png",
+    "/assets/background/fields/field.png",
+    "/assets/background/fields/field_with_moountain.png",
   ],
   4: [
-    "/src/assets/background/snow_mountain/background_1.png",
-    "/src/assets/background/snow_mountain/background_2.png",
-    "/src/assets/background/snow_mountain/background_3.png",
-    "/src/assets/background/snow_mountain/background_4.png",
+    "/assets/background/snow_mountain/background_1.png",
+    "/assets/background/snow_mountain/background_2.png",
+    "/assets/background/snow_mountain/background_3.png",
+    "/assets/background/snow_mountain/background_4.png",
   ],
   5: [
-    "/src/assets/background/cave/alicia-magistrello-basic-cave.jpg",
-    "/src/assets/background/cave/alicia-magistrello-crystal-cave.jpg",
-    "/src/assets/background/cave/alicia-magistrello-poisonous-cave.jpg",
+    "/assets/background/cave/alicia-magistrello-basic-cave.jpg",
+    "/assets/background/cave/alicia-magistrello-crystal-cave.jpg",
+    "/assets/background/cave/alicia-magistrello-poisonous-cave.jpg",
   ],
 };
 

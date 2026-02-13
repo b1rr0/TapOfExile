@@ -26,6 +26,7 @@ import { StartLocationDto } from './dto/start-location.dto';
 import { StartMapDto } from './dto/start-map.dto';
 import { computeElementalDamage } from './elemental-damage';
 import { statsAtLevel, specialAtLevel, MAX_LEVEL, CLASS_DEFS } from '@shared/class-stats';
+import { pickRandomAttack } from '@shared/monster-attacks';
 import type { DamageBreakdown } from '@shared/types';
 
 export interface RedisCombatSession {
@@ -46,10 +47,14 @@ export interface RedisCombatSession {
   mapTier?: number;
   bossId?: string;
   direction?: string;
+  /** Player level at session start — for XP level-scaling */
+  playerLevel: number;
   // Enemy attack system
   playerCurrentHp: number;
   playerMaxHp: number;
   lastEnemyAttackTime: number;
+  /** Time (ms) until next enemy attack — per-attack speed system */
+  nextAttackIn: number;
 }
 
 export interface EnemyAttackResult {
@@ -57,6 +62,8 @@ export interface EnemyAttackResult {
   blocked?: boolean;
   damage: number;
   breakdown: DamageBreakdown | null;
+  /** Name of the attack used (for combat log) */
+  attackName?: string;
 }
 
 const SESSION_TTL = 1800; // 30 minutes
@@ -127,7 +134,72 @@ export class CombatService {
   }
 
   /**
+   * Validate that the character has access to the given location.
+   * Requirement pattern mirrors the client-side locations.ts logic:
+   *   - Orders 1-8: linear chain (order N requires order N-1 from same act)
+   *   - Order 9 requires order 3, order 10 requires order 5
+   *   - Act N requires act N-1 main chain (orders 1-8) to be complete
+   * Location IDs follow the pattern: act{N}_{snake_case_name}
+   */
+  private validateLocationAccess(
+    char: Character,
+    locationId: string,
+    locationOrder: number,
+    actNumber: number,
+  ): void {
+    const completed = char.completedLocations || [];
+
+    // Act 1, order 1 is always accessible
+    if (actNumber === 1 && locationOrder === 1) return;
+
+    // Already completed locations can always be replayed
+    if (completed.includes(locationId)) return;
+
+    // For act > 1, verify previous act's main chain (orders 1-8) is complete
+    if (actNumber > 1) {
+      const prevActPrefix = `act${actNumber - 1}_`;
+      const prevActMainCompleted = completed.filter(
+        (id) => id.startsWith(prevActPrefix),
+      );
+      // Need at least 8 main-chain completions from previous act
+      // (This is a soft check — exact IDs depend on location names,
+      //  but having ≥8 completed from previous act is a good proxy)
+      if (prevActMainCompleted.length < 8) {
+        throw new BadRequestException(
+          `Previous act (${actNumber - 1}) must be completed first`,
+        );
+      }
+    }
+
+    // Within the same act, check prerequisite order
+    // Requirement pattern: [0, 1, 2, 3, 4, 5, 6, 7, 3, 5]
+    const REQUIREMENT_ORDER: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 3, 5];
+    const reqOrder = REQUIREMENT_ORDER[locationOrder - 1] ?? 0;
+    if (reqOrder > 0) {
+      // The required location is in the same act, at the given order.
+      // We check if ANY location from this act with the required order is completed.
+      // Since location IDs are act-prefixed, we look through completedLocations.
+      const sameActPrefix = `act${actNumber}_`;
+      const sameActCompleted = completed.filter((id) =>
+        id.startsWith(sameActPrefix),
+      );
+
+      // We can't know exact ID without location catalog, but we can
+      // use the gateway data: client sends locationId, order, act.
+      // Better approach: count how many locations from this act are completed.
+      // If order-1 locations should be completed, check >= reqOrder completed.
+      // This works because locations are completed in sequence.
+      if (sameActCompleted.length < reqOrder) {
+        throw new BadRequestException(
+          `Must complete previous location (order ${reqOrder}) first`,
+        );
+      }
+    }
+  }
+
+  /**
    * Start a location combat session.
+   * Validates that the player has completed prerequisite locations.
    */
   async startLocation(telegramId: string, locationId: string, waves: any[], locationOrder: number, actNumber: number) {
     const { playerLeague } = await this.getActiveCharacterInfo(telegramId);
@@ -136,6 +208,9 @@ export class CombatService {
       where: { id: playerLeague.activeCharacterId! },
     });
     if (!char) throw new NotFoundException('Character not found');
+
+    // Validate location prerequisites
+    this.validateLocationAccess(char, locationId, locationOrder, actNumber);
 
     const queue = this.levelGen.buildMonsterQueue(
       waves,
@@ -160,9 +235,11 @@ export class CombatService {
       lastTapTime: 0,
       startedAt: now,
       locationId,
+      playerLevel: char.level,
       playerCurrentHp: char.maxHp,
       playerMaxHp: char.maxHp,
       lastEnemyAttackTime: now,
+      nextAttackIn: this.getFirstAttackDelay(queue[0]),
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -202,6 +279,7 @@ export class CombatService {
       tierHpMul,
       tierGoldMul,
       tierXpMul,
+      mapTier,
     );
 
     const now = Date.now();
@@ -222,9 +300,11 @@ export class CombatService {
       startedAt: now,
       mapTier,
       bossId,
+      playerLevel: char.level,
       playerCurrentHp: char.maxHp,
       playerMaxHp: char.maxHp,
       lastEnemyAttackTime: now,
+      nextAttackIn: this.getFirstAttackDelay(queue[0]),
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -325,7 +405,18 @@ export class CombatService {
   }
 
   /**
+   * Get initial attack delay for a monster (seconds → ms).
+   */
+  private getFirstAttackDelay(monster: ServerMonster | undefined): number {
+    if (!monster?.attacks?.length) return B.ENEMY_ATTACK_INTERVAL_MS;
+    // Average of the attack pool speeds, converted to ms
+    const avg = monster.attacks.reduce((s, a) => s + a.speed, 0) / monster.attacks.length;
+    return Math.round(avg * 1000);
+  }
+
+  /**
    * Calculate and apply accumulated enemy attacks since lastEnemyAttackTime.
+   * Uses per-attack speed and pause system when monster has attack pool.
    * Returns the list of individual attacks for the client to replay visually.
    */
   private processEnemyAttacks(
@@ -339,41 +430,55 @@ export class CombatService {
     }
 
     const elapsed = now - session.lastEnemyAttackTime;
-    const attackInterval = B.ENEMY_ATTACK_INTERVAL_MS;
-    let pendingAttacks = Math.floor(elapsed / attackInterval);
-    pendingAttacks = Math.min(pendingAttacks, B.MAX_PENDING_ATTACKS);
 
-    if (pendingAttacks <= 0) return { attacks: [], playerDead: false };
-
-    // Advance lastEnemyAttackTime by the number of attacks processed
-    session.lastEnemyAttackTime += pendingAttacks * attackInterval;
-
+    // Per-attack system: use nextAttackIn (ms) to determine when attack fires
+    const hasAttackPool = monster.attacks && monster.attacks.length > 0;
+    let timeBank = elapsed; // ms available to spend on attacks
     const attacks: EnemyAttackResult[] = [];
     const charResistance = char.resistance || {};
-    const monsterDmgProfile = monster.outgoingDamage || { physical: 1.0 };
+    let attackCount = 0;
 
-    for (let i = 0; i < pendingAttacks; i++) {
+    // Safety: ensure nextAttackIn is a valid positive number (guards against
+    // NaN, undefined, 0 from old Redis sessions or bad data)
+    if (!session.nextAttackIn || session.nextAttackIn <= 0 || isNaN(session.nextAttackIn)) {
+      session.nextAttackIn = this.getFirstAttackDelay(monster);
+    }
+
+    while (timeBank >= session.nextAttackIn && attackCount < B.MAX_PENDING_ATTACKS) {
       if (session.playerCurrentHp <= 0) break;
+
+      timeBank -= session.nextAttackIn;
+      attackCount++;
+
+      // Pick an attack from the pool (or use legacy fallback)
+      const chosenAttack = hasAttackPool ? pickRandomAttack(monster.attacks!) : null;
+      const dmgProfile = chosenAttack ? chosenAttack.damage : (monster.outgoingDamage || { physical: 1.0 });
+      const dmgMul = chosenAttack ? chosenAttack.damageMul : 1.0;
+      const attackName = chosenAttack ? chosenAttack.name : undefined;
 
       // Dodge check
       if (Math.random() < char.dodgeChance) {
-        attacks.push({ dodged: true, damage: 0, breakdown: null });
+        attacks.push({ dodged: true, damage: 0, breakdown: null, attackName });
+        // Next attack delay: attack speed (for next picked) — short for dodged
+        session.nextAttackIn = chosenAttack
+          ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
+          : B.ENEMY_ATTACK_INTERVAL_MS;
         continue;
       }
 
       // Warrior block check (class special: blockChance)
       const classDef = CLASS_DEFS[char.classId];
       if (classDef?.special.id === 'blockChance' && Math.random() < char.specialValue) {
-        attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null });
+        attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null, attackName });
+        session.nextAttackIn = chosenAttack
+          ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
+          : B.ENEMY_ATTACK_INTERVAL_MS;
         continue;
       }
 
-      // Compute elemental damage: monster's outgoing vs player's resistance
-      const breakdown = computeElementalDamage(
-        monster.scaledDamage,
-        monsterDmgProfile,
-        charResistance,
-      );
+      // Compute elemental damage: attack profile + multiplier vs player's resistance
+      const rawDamage = Math.floor(monster.scaledDamage * dmgMul);
+      const breakdown = computeElementalDamage(rawDamage, dmgProfile, charResistance);
 
       session.playerCurrentHp -= breakdown.total;
       if (session.playerCurrentHp < 0) session.playerCurrentHp = 0;
@@ -382,8 +487,20 @@ export class CombatService {
         dodged: false,
         damage: breakdown.total,
         breakdown,
+        attackName,
       });
+
+      // Set next attack delay: pauseAfter + next attack's speed
+      if (chosenAttack) {
+        const nextAtk = pickRandomAttack(monster.attacks!);
+        session.nextAttackIn = Math.round((chosenAttack.pauseAfter + nextAtk.speed) * 1000);
+      } else {
+        session.nextAttackIn = B.ENEMY_ATTACK_INTERVAL_MS;
+      }
     }
+
+    // Advance lastEnemyAttackTime by consumed time
+    session.lastEnemyAttackTime = now - timeBank;
 
     return {
       attacks,
@@ -499,10 +616,19 @@ export class CombatService {
       monster.currentHp = 0;
       killed = true;
       session.totalGoldEarned += monster.goldReward;
-      session.totalXpEarned += monster.xpReward;
+
+      // XP level-scaling: XP = BaseXP / (1 + a * D²)
+      const D = Math.abs(session.playerLevel - (monster.level || session.playerLevel));
+      const scaledXp = Math.max(1, Math.floor(
+        monster.xpReward / (1 + B.XP_LEVEL_SCALING_A * D * D),
+      ));
+      session.totalXpEarned += scaledXp;
+
       session.currentIndex++;
       // Reset enemy attack timer for new monster
       session.lastEnemyAttackTime = now;
+      const nextMonster = session.monsterQueue[session.currentIndex];
+      session.nextAttackIn = this.getFirstAttackDelay(nextMonster);
     }
 
     const isComplete = session.currentIndex >= session.monsterQueue.length;

@@ -41,6 +41,7 @@ exports.B = {
     },
     XP_BASE: 100,
     XP_GROWTH: 1.3,
+    XP_LEVEL_SCALING_A: 0.4,
     STARTING_STATS: {
         level: 1,
         tapDamage: 1,

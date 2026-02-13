@@ -1,6 +1,7 @@
 import { CombatManager } from "../game/combat.js";
 import { BattleScene } from "../ui/battle-scene.js";
 import { Effects } from "../ui/effects.js";
+import { CombatLog } from "../ui/combat-log.js";
 import { HUD } from "../ui/hud.js";
 import { Equipment } from "../ui/equipment.js";
 import { haptic } from "../utils/haptic.js";
@@ -22,11 +23,11 @@ export class CombatScene {
   combat: CombatManager | null;
   battleScene: BattleScene | null;
   effects: Effects | null;
+  combatLog: CombatLog | null;
   hud: HUD | null;
   equipment: Equipment | null;
 
-  // Intervals / refs
-  _dpsInterval: ReturnType<typeof setInterval> | null;
+  // Refs
   _tapHandler: (() => void) | null;
   _onLocationComplete: ((data: any) => void) | null;
   _onMapComplete: ((data: any) => void) | null;
@@ -41,10 +42,10 @@ export class CombatScene {
     this.combat = null;
     this.battleScene = null;
     this.effects = null;
+    this.combatLog = null;
     this.hud = null;
     this.equipment = null;
 
-    this._dpsInterval = null;
     this._tapHandler = null;
     this._onLocationComplete = null;
     this._onMapComplete = null;
@@ -69,9 +70,16 @@ export class CombatScene {
     } else {
       const locationName = params.location ? params.location.name : "Battle";
       const monsterLvl = params.location ? params.location.order : null;
-      stageLabel = monsterLvl
-        ? `${locationName} · Lv.${monsterLvl}`
-        : locationName;
+      const isSideQuest = params.location && params.location.order > 8;
+      if (isSideQuest) {
+        stageLabel = monsterLvl
+          ? `<span class="hud-side-tag">Side</span> ${locationName} · Lv.${monsterLvl}`
+          : `<span class="hud-side-tag">Side</span> ${locationName}`;
+      } else {
+        stageLabel = monsterLvl
+          ? `${locationName} · Lv.${monsterLvl}`
+          : locationName;
+      }
     }
 
     const actNumber: number = isMapMode
@@ -218,6 +226,7 @@ export class CombatScene {
 
     this.battleScene = new BattleScene(battleEl, this.events, { heroSkin, backgroundSrc });
     this.effects = new Effects(battleEl, this.events);
+    this.combatLog = new CombatLog(battleEl, this.events);
     this.equipment = new Equipment(gameScreen, this.events);
 
     const exitBtn = document.createElement("button");
@@ -280,32 +289,72 @@ export class CombatScene {
       if (coldResEl) coldResEl.textContent = `${res.cold || 0}%`;
     }
 
-    // Listen for player death
+    // Listen for player death — switch to death screen after brief delay.
+    // We capture combat log data IMMEDIATELY to avoid it being null if
+    // unmount() runs before the delayed scene switch (e.g. race with locationComplete).
+    // A second snapshot is taken 300ms later to include staggered enemyAttack events.
+    let _deathCaptured = false;
     this._onPlayerDied = () => {
+      if (_deathCaptured) return;          // guard against double-fire
+      _deathCaptured = true;
+
+      // Snapshot #1 — immediate (guaranteed non-null combatLog)
+      const combatLog = this.combatLog;
+      let killerName = combatLog ? combatLog.currentMonsterName : "Unknown";
+      let logEntries = combatLog ? [...combatLog.entries] : [];
+      let combatStartTime = combatLog ? combatLog.combatStartTime : Date.now();
+
+      // Snapshot #2 — after 300ms, picks up staggered enemyAttack events
+      setTimeout(() => {
+        const cl = this.combatLog;
+        if (cl) {
+          killerName = cl.currentMonsterName;
+          logEntries = [...cl.entries];
+          combatStartTime = cl.combatStartTime;
+        }
+      }, 300);
+
+      // Switch scene after 2s total
       setTimeout(() => {
         if (this.sceneManager) {
-          this.sceneManager.switchTo("hideout");
+          const combatTime = Date.now() - combatStartTime;
+          this.sceneManager.switchTo("death", {
+            heroSkinId: heroSkin,
+            killerName,
+            combatTime,
+            logEntries,
+            combatStartTime,
+          });
         }
       }, 2000);
     };
     this.events.on("playerDied", this._onPlayerDied);
 
+    // Snapshot act completion state BEFORE combat starts,
+    // so we can detect if this fight just completed the act.
+    const locActNumber = params.location ? params.location.act : 1;
+    const completedBefore: string[] = [...(this.state.data.locations?.completed || [])];
+    const wasActComplete = isActComplete(locActNumber, completedBefore);
+
     // Listen for location complete — server already persisted everything
     this._onLocationComplete = (data: any) => {
-      const completed: string[] = this.state.data.locations?.completed || [];
-      const locActNumber = params.location ? params.location.act : 1;
-
-      const wasAlreadyComplete = isActComplete(locActNumber, completed);
-      const isNowComplete = isActComplete(locActNumber, completed);
-      const actJustCompleted = !wasAlreadyComplete && isNowComplete;
+      const completedAfter: string[] = this.state.data.locations?.completed || [];
+      const isNowComplete = isActComplete(locActNumber, completedAfter);
+      const actJustCompleted = !wasActComplete && isNowComplete;
 
       const locName = params.location ? params.location.name : "Unknown";
+
+      // Snapshot combat log before scene teardown
+      const logEntries = this.combatLog ? [...this.combatLog.entries] : [];
+      const combatStartTime = this.combatLog ? this.combatLog.combatStartTime : Date.now();
 
       if (this.sceneManager) {
         this.sceneManager.switchTo("victory", {
           locationName: locName,
           rewards: data.rewards,
           actComplete: actJustCompleted ? locActNumber : null,
+          logEntries,
+          combatStartTime,
         });
       }
     };
@@ -322,12 +371,18 @@ export class CombatScene {
         ? mc.bossDef.name
         : `Tier ${tier} Map`;
 
+      // Snapshot combat log before scene teardown
+      const logEntries = this.combatLog ? [...this.combatLog.entries] : [];
+      const combatStartTime = this.combatLog ? this.combatLog.combatStartTime : Date.now();
+
       if (this.sceneManager) {
         this.sceneManager.switchTo("victory", {
           locationName: mapName,
           rewards: { gold: data.totalGold, xp: data.totalXp },
           mapDrops,
           isMapVictory: true,
+          logEntries,
+          combatStartTime,
         });
       }
     };
@@ -353,11 +408,6 @@ export class CombatScene {
   }
 
   unmount(): void {
-    if (this._dpsInterval) {
-      clearInterval(this._dpsInterval);
-      this._dpsInterval = null;
-    }
-
     if (this._onLocationComplete) {
       this.events.off("locationComplete", this._onLocationComplete);
       this._onLocationComplete = null;
@@ -374,6 +424,10 @@ export class CombatScene {
     if (this.battleScene) {
       this.battleScene.destroy();
       this.battleScene = null;
+    }
+    if (this.combatLog) {
+      this.combatLog.destroy();
+      this.combatLog = null;
     }
     if (this.equipment) {
       this.equipment.destroy();

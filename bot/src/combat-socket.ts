@@ -24,13 +24,24 @@ export function getSocket(): Socket {
 
   socket = io(`${WS_URL}/combat`, {
     auth: { token },
-    transports: ["websocket", "polling"],
+    transports: ["polling", "websocket"],
+    upgrade: true,
     reconnection: true,
     reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
+    reconnectionDelay: 500,
+    timeout: 5000,
   });
 
   return socket;
+}
+
+/**
+ * Start connecting early (before CombatScene mounts).
+ * If already connected or connecting, this is a no-op.
+ * CombatManager.getSocket() will reuse the same instance.
+ */
+export function preconnectSocket(): void {
+  getSocket();
 }
 
 /** Wait for the socket to be connected. Resolves immediately if already connected. */
@@ -39,32 +50,24 @@ export function waitForConnection(sock: Socket, timeoutMs = 8000): Promise<void>
 
   return new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      sock.off("connect", onConnect);
-      sock.off("connect_error", onError);
+      cleanup();
       reject(new Error("Socket connection timeout"));
     }, timeoutMs);
 
     const onConnect = () => {
-      clearTimeout(timeout);
-      sock.off("connect_error", onError);
+      cleanup();
       resolve();
     };
 
-    const onError = (err: Error) => {
+    // Don't reject on individual connect_error — Socket.IO will retry
+    // automatically (reconnection: true). Only the timeout rejects.
+
+    const cleanup = () => {
       clearTimeout(timeout);
       sock.off("connect", onConnect);
-      reject(new Error(`Socket connection failed: ${err.message}`));
     };
 
-    sock.once("connect", onConnect);
-    sock.once("connect_error", onError);
+    sock.on("connect", onConnect);
   });
 }
 
-export function disconnectSocket(): void {
-  if (socket) {
-    socket.removeAllListeners();
-    socket.disconnect();
-    socket = null;
-  }
-}

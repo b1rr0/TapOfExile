@@ -10,7 +10,7 @@
  */
 
 /** Default fallback background. */
-const DEFAULT_BG: string = "/src/assets/background/castle/img.png";
+const DEFAULT_BG: string = "/assets/background/castle/img.png";
 
 /** Extra scale for Act 1 backgrounds (castle) — 125% to fill the screen */
 const ACT1_EXTRA_SCALE = 1.25;

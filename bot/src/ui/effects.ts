@@ -1,6 +1,14 @@
 import type { DamageBreakdown, DamageElement } from "@shared/types";
 import { ELEMENT_COLORS } from "@shared/types";
 
+const ELEMENT_LABELS: Record<DamageElement, string> = {
+  physical: 'phys',
+  fire: 'fire',
+  lightning: 'ltn',
+  cold: 'cold',
+  pure: 'pure',
+};
+
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
   off(event: string, callback: (...args: any[]) => void): void;
@@ -19,10 +27,6 @@ interface MonsterDiedData {
 
 interface LevelUpData {
   level: number;
-}
-
-interface StageAdvancedData {
-  stage: number;
 }
 
 export class Effects {
@@ -54,10 +58,6 @@ export class Effects {
       this.showAnnounce(`LEVEL ${data.level}!`);
     });
 
-    this.events.on("stageAdvanced", (data: StageAdvancedData) => {
-      this.showAnnounce(`STAGE ${data.stage}`);
-    });
-
     this.events.on("enemyAttack", (data: any) => {
       if (data.dodged) {
         this.showPlayerStatus("DODGE", "#88ccff");
@@ -65,6 +65,10 @@ export class Effects {
         this.showPlayerStatus("BLOCK", "#ffcc00");
       } else if (data.damage > 0) {
         this.showPlayerDamage(data.damage);
+        // Show elemental damage breakdown near HP bar
+        if (data.breakdown) {
+          this.showHpBarDamage(data.breakdown, data.attackName);
+        }
       }
     });
   }
@@ -142,8 +146,8 @@ export class Effects {
     const el = document.createElement("div");
     el.className = "float-damage float-damage--incoming";
     el.textContent = `-${amount}`;
-    el.style.left = `${10 + Math.random() * 15}%`;
-    el.style.top = `${30 + Math.random() * 20}%`;
+    el.style.left = `${8 + Math.random() * 15}%`;
+    el.style.top = `${42 + Math.random() * 18}%`;
     el.style.color = "#ff4444";
     this.layer.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
@@ -158,5 +162,40 @@ export class Effects {
     el.style.color = color;
     this.layer.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
+  }
+
+  /**
+   * Show elemental damage breakdown near the player HP bar.
+   * Displays "-DMG type" chips that float up from the HP bar area.
+   */
+  showHpBarDamage(breakdown: DamageBreakdown, attackName?: string): void {
+    const hpBar = document.querySelector(".action-bar__hp-bar") as HTMLElement | null;
+    if (!hpBar) return;
+
+    // Remove old hp-damage chips if too many
+    const existing = hpBar.querySelectorAll(".hp-dmg-chip");
+    if (existing.length >= 4) {
+      existing[0].remove();
+    }
+
+    const elements: DamageElement[] = ['physical', 'fire', 'lightning', 'cold', 'pure'];
+    const parts: string[] = [];
+
+    for (const elem of elements) {
+      const amount = breakdown[elem];
+      if (!amount || amount <= 0) continue;
+      parts.push(`<span style="color:${ELEMENT_COLORS[elem]}">-${amount} ${ELEMENT_LABELS[elem]}</span>`);
+    }
+
+    if (parts.length === 0) return;
+
+    const chip = document.createElement("div");
+    chip.className = "hp-dmg-chip";
+    chip.innerHTML = parts.join(' ');
+    if (attackName) {
+      chip.innerHTML = `<span class="hp-dmg-chip__name">${attackName}</span> ` + chip.innerHTML;
+    }
+    hpBar.appendChild(chip);
+    chip.addEventListener("animationend", () => chip.remove());
   }
 }

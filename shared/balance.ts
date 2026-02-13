@@ -63,6 +63,9 @@ export const B = {
   XP_BASE: 100,                     // xpToNext = XP_BASE * XP_GROWTH^(level-1)
   XP_GROWTH: 1.3,
 
+  /** XP level-scaling: XP = BaseXP / (1 + a*D²), D = |playerLevel - enemyLevel| */
+  XP_LEVEL_SCALING_A: 0.4,
+
   /** Legacy fallback — class-specific stats in shared/class-stats.ts */
   STARTING_STATS: {
     level: 1,

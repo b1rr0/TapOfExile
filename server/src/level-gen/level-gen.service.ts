@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { B } from '../shared/constants/balance.constants';
 import type { ElementalResistance, ElementalDamage, ResistableElement } from '@shared/types';
+import type { MonsterAttack } from '@shared/monster-attacks';
 import { MONSTER_TYPES, RARITIES, Rarity } from './monster-types';
 
 export interface ServerMonster {
@@ -11,9 +12,13 @@ export interface ServerMonster {
   currentHp: number;
   goldReward: number;
   xpReward: number;
+  /** Effective location level — used for XP scaling vs player level */
+  level: number;
   resistance: ElementalResistance;
   outgoingDamage: ElementalDamage;
   scaledDamage: number;
+  /** Attack pool for per-attack variety */
+  attacks?: MonsterAttack[];
 }
 
 export interface MonsterSpawn {
@@ -71,6 +76,9 @@ export class LevelGenService {
     const dmgMax = Math.ceil(baseDmg * (1 + B.MONSTER_DMG_RANDOM));
     const scaledDamage = randInt(dmgMin, dmgMax);
 
+    // Enemy level: (act-1)*10 + order, so act1/order1 = 1, act5/order10 = 50
+    const monsterLevel = (actNumber - 1) * 10 + locationOrder;
+
     return {
       name: type.name,
       type: type.name,
@@ -79,9 +87,11 @@ export class LevelGenService {
       currentHp: hp,
       goldReward: gold,
       xpReward: xp,
+      level: monsterLevel,
       resistance,
       outgoingDamage: type.outgoingDamage || { physical: 1.0 },
       scaledDamage,
+      attacks: type.attacks,
     };
   }
 
@@ -95,6 +105,7 @@ export class LevelGenService {
     tierHpMul: number,
     tierGoldMul: number,
     tierXpMul: number,
+    mapTier: number = 1,
   ): ServerMonster {
     const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
     const rarity = RARITIES[rarityId] || RARITIES.common;
@@ -126,6 +137,9 @@ export class LevelGenService {
     const dmgMax = Math.ceil(baseDmg * (1 + B.MONSTER_DMG_RANDOM));
     const scaledDamage = randInt(dmgMin, dmgMax);
 
+    // Endgame map enemy level: 40 (story cap) + tier*1.2, so tier1≈41, tier10=52
+    const monsterLevel = 40 + Math.round(mapTier * 1.2);
+
     return {
       name: type.name,
       type: type.name,
@@ -134,9 +148,11 @@ export class LevelGenService {
       currentHp: hp,
       goldReward: gold,
       xpReward: xp,
+      level: monsterLevel,
       resistance,
       outgoingDamage: type.outgoingDamage || { physical: 1.0 },
       scaledDamage,
+      attacks: type.attacks,
     };
   }
 
@@ -172,6 +188,7 @@ export class LevelGenService {
     tierHpMul?: number,
     tierGoldMul?: number,
     tierXpMul?: number,
+    mapTier?: number,
   ): ServerMonster[] {
     const queue: ServerMonster[] = [];
     const isMap = tierHpMul !== undefined;
@@ -187,6 +204,7 @@ export class LevelGenService {
                 tierHpMul!,
                 tierGoldMul!,
                 tierXpMul!,
+                mapTier,
               ),
             );
           } else {

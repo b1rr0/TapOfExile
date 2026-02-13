@@ -8,6 +8,7 @@ import {
   getBossMapWaves,
 } from "../data/endgame-maps.js";
 import { getLocationById, getActModifiers } from "../data/locations.js";
+import { preconnectSocket } from "../combat-socket.js";
 import type { SharedDeps, BagItem } from "../types.js";
 
 /**
@@ -314,6 +315,8 @@ export class MapDeviceScene {
 
     // Server will consume the key from bag via startMap API
     // Pass mapKeyItemId to combat scene for server-side consumption
+    preconnectSocket(); // Start connecting before scene mount
+
     if (key.type === MAP_KEY_TYPES.boss) {
       const bossDef = getBossDef(key.bossId!);
       const bkt = getBossKeyTierDef(key.bossKeyTier || 1);

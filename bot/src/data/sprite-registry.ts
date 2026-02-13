@@ -33,7 +33,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "samurai_1",
     name: "Samurai",
     classId: "samurai",
-    basePath: "/src/assets/characters/samurai/samurai_1",
+    basePath: "/assets/characters/samurai/samurai_1",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 14, loop: false },
@@ -49,7 +49,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "samurai_2",
     name: "Samurai II",
     classId: "samurai",
-    basePath: "/src/assets/characters/samurai/samurai_2",
+    basePath: "/assets/characters/samurai/samurai_2",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 14, loop: false },
@@ -66,7 +66,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "samurai_3",
     name: "Samurai III",
     classId: "samurai",
-    basePath: "/src/assets/characters/samurai/samurai_3",
+    basePath: "/assets/characters/samurai/samurai_3",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 14, loop: false },
@@ -85,7 +85,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "knight_1",
     name: "Knight",
     classId: "warrior",
-    basePath: "/src/assets/characters/knight/knight_1",
+    basePath: "/assets/characters/knight/knight_1",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -103,7 +103,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "knight_2",
     name: "Knight II",
     classId: "warrior",
-    basePath: "/src/assets/characters/knight/knight_2",
+    basePath: "/assets/characters/knight/knight_2",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -120,7 +120,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "knight_3",
     name: "Knight III",
     classId: "warrior",
-    basePath: "/src/assets/characters/knight/knight_3",
+    basePath: "/assets/characters/knight/knight_3",
     animations: {
       idle:    { json: "idle.json",      fps: 6,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -135,7 +135,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "knight_4",
     name: "Knight IV",
     classId: "warrior",
-    basePath: "/src/assets/characters/knight/knight_4",
+    basePath: "/assets/characters/knight/knight_4",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -154,7 +154,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "wizard_1",
     name: "Wizard",
     classId: "mage",
-    basePath: "/src/assets/characters/wizard/wizard_1",
+    basePath: "/assets/characters/wizard/wizard_1",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -171,7 +171,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "wizard_2",
     name: "Wizard II",
     classId: "mage",
-    basePath: "/src/assets/characters/wizard/wizard_2",
+    basePath: "/assets/characters/wizard/wizard_2",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -190,7 +190,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "archer_1",
     name: "Archer",
     classId: "archer",
-    basePath: "/src/assets/characters/archer/archer_1",
+    basePath: "/assets/characters/archer/archer_1",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -208,7 +208,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "archer_2",
     name: "Archer II",
     classId: "archer",
-    basePath: "/src/assets/characters/archer/archer_2",
+    basePath: "/assets/characters/archer/archer_2",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -226,7 +226,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "archer_3",
     name: "Archer III",
     classId: "archer",
-    basePath: "/src/assets/characters/archer/archer_3",
+    basePath: "/assets/characters/archer/archer_3",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -242,7 +242,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "archer_4",
     name: "Archer IV",
     classId: "archer",
-    basePath: "/src/assets/characters/archer/archer_4/Character",
+    basePath: "/assets/characters/archer/archer_4/Character",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
       attack1: { json: "attack_1.json",  fps: 12, loop: false },
@@ -262,7 +262,7 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
   goblin_black: {
     id: "goblin_black",
     name: "Goblin Scout",
-    basePath: "/src/assets/enemy/goblin/goblin_black",
+    basePath: "/assets/enemy/goblin/goblin_black",
     animations: {
       run:   { json: "run.json",   fps: 10, loop: false },
       idle:  { json: "idle.json",  fps: 8,  loop: true },
@@ -276,7 +276,7 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
   yellow_ninja: {
     id: "yellow_ninja",
     name: "Yellow Ninja",
-    basePath: "/src/assets/enemy/ninja/yellow_ninja",
+    basePath: "/assets/enemy/ninja/yellow_ninja",
     animations: {
       idle:  { json: "idle.json",  fps: 8,  loop: true },
       run:   { json: "walk.json",  fps: 10, loop: false },
@@ -291,7 +291,7 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
   necromancer_1: {
     id: "necromancer_1",
     name: "Necromancer",
-    basePath: "/src/assets/enemy/necromancer/necromancer_1",
+    basePath: "/assets/enemy/necromancer/necromancer_1",
     animations: {
       idle:  { json: "idle.json",   fps: 8,  loop: true },
       run:   { json: "run.json",    fps: 10, loop: false },
@@ -306,7 +306,7 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
   night_born_1: {
     id: "night_born_1",
     name: "Night Born",
-    basePath: "/src/assets/enemy/night_born/night_born_1",
+    basePath: "/assets/enemy/night_born/night_born_1",
     animations: {
       idle:  { json: "idle.json",   fps: 8,  loop: true },
       run:   { json: "run.json",    fps: 10, loop: false },

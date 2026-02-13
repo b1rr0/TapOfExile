@@ -129,6 +129,23 @@ export class CombatGateway
 
   // ─── Start combat ─────────────────────────────────────────
 
+  /**
+   * Clean up any stale combat session for the given user.
+   * Stops the loop and flees the old session so a new one can start.
+   */
+  private async cleanupStaleSession(telegramId: string): Promise<void> {
+    const oldSessionId = this.userSessions.get(telegramId);
+    if (!oldSessionId) return;
+
+    this.stopCombatLoop(oldSessionId);
+    try {
+      await this.combatService.fleeCombat(telegramId, oldSessionId);
+    } catch {
+      /* session may already be gone */
+    }
+    this.userSessions.delete(telegramId);
+  }
+
   @SubscribeMessage('combat:start-location')
   async handleStartLocation(
     @ConnectedSocket() client: Socket,
@@ -138,6 +155,9 @@ export class CombatGateway
     if (!telegramId) return;
 
     try {
+      // Clean up any stale session before starting a new one
+      await this.cleanupStaleSession(telegramId);
+
       const result = await this.combatService.startLocation(
         telegramId,
         data.locationId,
@@ -147,7 +167,7 @@ export class CombatGateway
       );
 
       this.userSessions.set(telegramId, result.sessionId);
-      this.startCombatLoop(result.sessionId, telegramId);
+      // Combat loop deferred — starts when client sends combat:entrance-done
 
       client.emit('combat:started', result);
     } catch (err) {
@@ -166,13 +186,16 @@ export class CombatGateway
     if (!telegramId) return;
 
     try {
+      // Clean up any stale session before starting a new one
+      await this.cleanupStaleSession(telegramId);
+
       const result = await this.combatService.startMapByDto(telegramId, {
         mapKeyItemId: data.mapKeyItemId,
         direction: data.direction,
       } as any);
 
       this.userSessions.set(telegramId, result.sessionId);
-      this.startCombatLoop(result.sessionId, telegramId);
+      // Combat loop deferred — starts when client sends combat:entrance-done
 
       client.emit('combat:started', result);
     } catch (err) {
@@ -264,6 +287,34 @@ export class CombatGateway
         message: (err as Error).message || 'Flee failed',
       });
     }
+  }
+
+  // ─── Entrance done (client ready for enemy attacks) ──────
+
+  @SubscribeMessage('combat:entrance-done')
+  async handleEntranceDone(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { sessionId: string },
+  ) {
+    const telegramId = this.socketUsers.get(client.id);
+    if (!telegramId) return;
+
+    const sessionId = data?.sessionId || this.userSessions.get(telegramId);
+    if (!sessionId) return;
+
+    // Only start if not already running (idempotent)
+    if (this.combatLoops.has(sessionId)) return;
+
+    // Reset lastEnemyAttackTime so first attack uses fresh timing
+    try {
+      const session = await this.combatService.getSession(sessionId);
+      if (session && session.playerId === telegramId) {
+        session.lastEnemyAttackTime = Date.now();
+        await this.combatService.saveSession(sessionId, session);
+      }
+    } catch { /* non-critical */ }
+
+    this.startCombatLoop(sessionId, telegramId);
   }
 
   // ─── Reconnect ────────────────────────────────────────────
@@ -361,7 +412,7 @@ export class CombatGateway
       } catch (err) {
         console.error('[CombatGateway] Loop error:', err);
       }
-    }, B.ENEMY_ATTACK_INTERVAL_MS);
+    }, 200); // 200ms tick — supports per-attack speeds from 0.3s to 3s
 
     this.combatLoops.set(sessionId, interval);
   }

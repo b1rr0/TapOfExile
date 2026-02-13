@@ -192,7 +192,7 @@ export class SkillTreeScene {
       // Class image (clipped to circle — image is large so circle is inscribed in it)
       const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
       const imgSize = em.r * 2.6;
-      img.setAttribute("href", `./src/assets/${em.img}`);
+      img.setAttribute("href", `/assets/${em.img}`);
       img.setAttribute("x", String(em.cx - imgSize / 2));
       img.setAttribute("y", String(em.cy - imgSize / 2));
       img.setAttribute("width", String(imgSize));
