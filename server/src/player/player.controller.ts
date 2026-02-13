@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
@@ -17,9 +17,4 @@ export class PlayerController {
     return this.playerService.getPlayerState(telegramId);
   }
 
-  @Post('claim-offline')
-  @ApiOperation({ summary: 'Claim offline passive gold earnings' })
-  async claimOfflineGold(@CurrentUser('telegramId') telegramId: string) {
-    return this.playerService.claimOfflineGold(telegramId);
-  }
 }

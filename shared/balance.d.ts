@@ -54,9 +54,6 @@ export declare const B: {
         critMultiplier: number;
         passiveDps: number;
     };
-    OFFLINE_MAX_SECONDS: number;
-    OFFLINE_MIN_SECONDS: number;
-    OFFLINE_DPS_RATE: number;
     SPAWN_DELAY_MS: number;
     PASSIVE_DPS_TICK_MS: number;
     ENDGAME_STARTER_KEYS: number;

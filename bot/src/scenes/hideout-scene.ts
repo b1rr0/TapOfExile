@@ -150,7 +150,7 @@ export class HideoutScene {
               <div class="xp-bar__fill" id="hideout-xp-fill" style="width:${player.xpToNext > 0 ? (player.xp / player.xpToNext * 100) : 0}%"></div>
               <div class="xp-bar__text" id="hideout-xp-text">${player.xp} / ${player.xpToNext}</div>
             </div>
-            <div class="daily-bonus-indicator" id="daily-bonus-indicator">
+            <div class="daily-bonus-indicator" id="daily-bonus-indicator" style="${(char?.dailyBonusRemaining ?? 3) <= 0 ? 'display:none' : ''}">
               <span class="daily-bonus-indicator__star">&#x2B50;</span>
               <span class="daily-bonus-indicator__count" id="daily-bonus-count">${char?.dailyBonusRemaining ?? 3}</span>
               <div class="daily-bonus-indicator__tooltip">
@@ -318,11 +318,12 @@ export class HideoutScene {
     if (countEl) countEl.textContent = String(remaining);
     if (tooltipCountEl) tooltipCountEl.textContent = String(remaining);
 
-    // Add visual feedback when bonus is depleted
+    // Hide indicator entirely when bonus is depleted
     if (this._dailyBonusEl) {
       if (remaining <= 0) {
-        this._dailyBonusEl.classList.add("daily-bonus-indicator--depleted");
+        (this._dailyBonusEl as HTMLElement).style.display = "none";
       } else {
+        (this._dailyBonusEl as HTMLElement).style.display = "";
         this._dailyBonusEl.classList.remove("daily-bonus-indicator--depleted");
       }
     }

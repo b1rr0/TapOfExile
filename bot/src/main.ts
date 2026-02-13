@@ -34,35 +34,7 @@ const state = new GameState(events);
     // 1. Auth + load state from server
     await state.load();
 
-    // 2. Offline progress check
-    if (state.data.activeCharacterId) {
-      try {
-        const offline = await state.claimOfflineGold();
-        if (offline.offlineGold > 0) {
-          const offlineEl = document.getElementById("offline-popup") as HTMLElement;
-          const offlineGoldEl = document.getElementById("offline-gold") as HTMLElement;
-          const claimBtn = document.getElementById("offline-claim") as HTMLButtonElement;
-
-          if (offlineEl && offlineGoldEl && claimBtn) {
-            offlineGoldEl.textContent = String(offline.offlineGold);
-            offlineEl.classList.remove("hidden");
-
-            claimBtn.addEventListener(
-              "click",
-              () => {
-                offlineEl.classList.add("hidden");
-                events.emit("goldChanged", { gold: state.data.gold });
-              },
-              { once: true },
-            );
-          }
-        }
-      } catch (err) {
-        console.warn("[Main] Failed to claim offline gold:", err);
-      }
-    }
-
-    // 3. Hide loading screen
+    // 2. Hide loading screen
     const loadingEl = document.getElementById("loading-screen") as HTMLElement;
     if (loadingEl) loadingEl.classList.add("hidden");
 

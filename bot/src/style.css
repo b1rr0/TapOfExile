@@ -1611,59 +1611,6 @@ body {
   50% { transform: scale(1.05); }
 }
 
-/* === Popup === */
-.popup {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.7);
-  z-index: 50;
-  transition: opacity 0.3s;
-}
-
-.popup.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.popup-content {
-  background: var(--game-bg2);
-  border: 2px solid var(--game-accent);
-  border-radius: 16px;
-  padding: 32px 24px;
-  text-align: center;
-  max-width: 280px;
-}
-
-.popup-content h2 {
-  font-size: 22px;
-  color: var(--game-gold);
-  margin-bottom: 12px;
-}
-
-.popup-content p {
-  font-size: 14px;
-  color: var(--game-text);
-  margin-bottom: 20px;
-}
-
-.popup-button {
-  padding: 12px 32px;
-  border: none;
-  border-radius: 8px;
-  background: var(--game-accent);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.popup-button:active {
-  transform: scale(0.95);
-}
-
 /* =============================================
    EQUIPMENT  — Pure CSS, mobile-first layout
    ============================================= */

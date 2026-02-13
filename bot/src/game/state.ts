@@ -165,22 +165,6 @@ export class GameState {
     this.events.emit("stateLoaded", this.data);
   }
 
-  /* ── Offline Progress ───────────────────────────────── */
-
-  /**
-   * Claim offline gold from server.
-   */
-  async claimOfflineGold(): Promise<{ offlineGold: number; seconds: number }> {
-    const result = await api.player.claimOfflineGold();
-    if (result.offlineGold > 0 && result.gold) {
-      this.data.gold = Number(result.gold);
-      if (this.data.player) {
-        (this.data.player as any).gold = this.data.gold;
-      }
-    }
-    return { offlineGold: result.offlineGold, seconds: result.seconds };
-  }
-
   /* ── Character helpers ──────────────────────────────── */
 
   hasCharacters(): boolean {

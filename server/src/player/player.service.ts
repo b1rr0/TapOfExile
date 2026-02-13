@@ -4,9 +4,6 @@ import { Repository } from 'typeorm';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 
-const OFFLINE_MAX_SECONDS = 28800; // 8 hours
-const OFFLINE_MIN_SECONDS = 60;
-const OFFLINE_DPS_RATE = 0.5;
 const DAILY_BONUS_WINS_MAX = 3;
 
 /**
@@ -204,48 +201,4 @@ export class PlayerService {
     await this.playerRepo.save(player);
   }
 
-  /**
-   * Calculate and claim offline gold.
-   * Uses lastSaveTime to determine elapsed time, active character's tapDamage.
-   */
-  async claimOfflineGold(telegramId: string) {
-    const player = await this.getPlayer(telegramId);
-    const pl = await this.getActivePlayerLeague(telegramId);
-
-    if (!pl.activeCharacterId) {
-      return { offlineGold: 0, seconds: 0 };
-    }
-
-    // Find active character to get tapDamage for offline earnings
-    const char = (pl.characters || []).find(
-      (c) => c.id === pl.activeCharacterId,
-    );
-    if (!char || char.tapDamage <= 0) {
-      return { offlineGold: 0, seconds: 0 };
-    }
-
-    const now = Date.now();
-    const elapsed = (now - Number(player.lastSaveTime)) / 1000;
-    const seconds = Math.min(elapsed, OFFLINE_MAX_SECONDS);
-
-    if (seconds < OFFLINE_MIN_SECONDS) {
-      return { offlineGold: 0, seconds: 0 };
-    }
-
-    const offlineGold = Math.floor(char.tapDamage * seconds * OFFLINE_DPS_RATE);
-    if (offlineGold <= 0) {
-      return { offlineGold: 0, seconds: 0 };
-    }
-
-    // Award the gold
-    pl.gold = String(BigInt(pl.gold) + BigInt(offlineGold));
-    await this.playerLeagueRepo.save(pl);
-
-    // Update lastSaveTime
-    player.lastSaveTime = String(now);
-    player.totalGold = String(BigInt(player.totalGold) + BigInt(offlineGold));
-    await this.playerRepo.save(player);
-
-    return { offlineGold, seconds: Math.floor(seconds), gold: pl.gold };
-  }
 }

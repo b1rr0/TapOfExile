@@ -130,12 +130,6 @@ export const player = {
   getState() {
     return get("/player");
   },
-
-  claimOfflineGold() {
-    return post<{ offlineGold: number; seconds: number; gold?: string }>(
-      "/player/claim-offline",
-    );
-  },
 };
 
 /* ── Characters ────────────────────────────────────────── */

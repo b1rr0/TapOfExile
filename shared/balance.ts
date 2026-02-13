@@ -74,11 +74,6 @@ export const B = {
     critMultiplier: 1.5,
   },
 
-  /* ── Offline progress ─────────────────────── */
-  OFFLINE_MAX_SECONDS: 28800,        // 8 hours
-  OFFLINE_MIN_SECONDS: 10,
-  OFFLINE_DPS_RATE: 0.5,             // 50% of tapDamage (offline earnings)
-
   /* ── Combat timers ────────────────────────── */
   SPAWN_DELAY_MS: 1200,
 
