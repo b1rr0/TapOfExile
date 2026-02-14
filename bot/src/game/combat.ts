@@ -477,6 +477,8 @@ export class CombatManager {
       goldReward: serverMonster.goldReward || 0,
       xpReward: serverMonster.xpReward || 0,
       resistance: serverMonster.resistance || {},
+      skinId: serverMonster.skinId || "",
+      skinVariant: serverMonster.skinVariant || "",
     };
     this.events.emit("monsterSpawned", this.monster);
   }

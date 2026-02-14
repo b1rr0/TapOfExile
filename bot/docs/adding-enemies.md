@@ -28,10 +28,10 @@ All three are required for the full battle lifecycle:
 
 ### 2. Create asset folder
 
-Place files in a new folder under `src/assets/enemy/`:
+Place files in a new folder under `public/assets/enemy/`:
 
 ```
-src/assets/enemy/your_enemy_id/
+public/assets/enemy/your_enemy_id/v0/
   ├── idle.json
   ├── idle.png
   ├── run.json
@@ -40,50 +40,64 @@ src/assets/enemy/your_enemy_id/
   └── death.png
 ```
 
-The folder name becomes the skin ID.
+The folder name becomes the skin ID. Use `v0/` subfolder for the base variant.
 
 ### 3. Register the skin
 
-Open `src/data/sprite-registry.js` and add an entry to `ENEMY_SKINS`:
+Open `src/data/sprite-registry.ts` and add an entry to `ENEMY_SKINS`:
 
-```js
-export const ENEMY_SKINS = {
+```ts
+export const ENEMY_SKINS: Record<string, SkinConfig> = {
   // ... existing skins ...
 
   your_enemy_id: {
     id: "your_enemy_id",
     name: "Your Enemy Display Name",
-    basePath: "/src/assets/enemy/your_enemy_id",
+    basePath: "/assets/enemy/your_enemy_id/v0",
     animations: {
       idle:  { json: "idle.json",  fps: 8,  loop: true },
       run:   { json: "run.json",   fps: 10, loop: false },
       death: { json: "death.json", fps: 10, loop: false },
     },
     defaultSize: { w: 210, h: 210 },  // adjust to your sprite
+    anchorOffsetY: 0,
+    scale: 1,
   },
 };
 ```
 
-### 4. Use the skin
+### 4. Generate color variants
 
-In `main.js` (or wherever BattleScene is created), pass the skin ID:
+Run the recolor script to auto-generate 7 color variants:
 
-```js
-const battleScene = new BattleScene(
-  document.getElementById("battle-scene"),
-  events,
-  { enemySkin: "your_enemy_id" }
-);
+```bash
+node scripts/recolor-enemies.js
 ```
 
-### 5. Adjust size and position (optional)
+This creates `v1_crimson/`, `v2_emerald/`, etc. next to `v0/`.
+
+Then add your skin ID to `VARIANT_BASES` in `sprite-registry.ts` so variants are registered automatically.
+
+### 5. Use the skin
+
+Map your monster type to the skin ID in `monster-types.ts` (server) and `MONSTER_SKIN_MAP` (client):
+
+```ts
+// server/src/level-gen/monster-types.ts
+{ name: 'YourMonster', skinId: 'your_enemy_id', ... }
+
+// bot/src/data/sprite-registry.ts → MONSTER_SKIN_MAP
+YourMonster: "your_enemy_id",
+```
+
+### 6. Adjust size and position (optional)
 
 The `defaultSize` in the registry controls how big the enemy is drawn.
 - `w` and `h` are in CSS pixels (before DPR scaling)
 - The original goblin uses `210x210`
 
 You can also pass overrides when creating EnemyCharacter:
-```js
+```ts
 const enemy = new EnemyCharacter(skin, {
   w: 180,           // custom width
   h: 240,           // custom height
@@ -125,8 +139,10 @@ hit() → shake(6px) → decays at 80px/s
 ## Checklist
 
 - [ ] Aseprite export: JSON Array + PNG for `idle`, `run`, `death`
-- [ ] Folder created: `src/assets/enemy/<skin_id>/`
-- [ ] Entry added to `ENEMY_SKINS` in `sprite-registry.js`
+- [ ] Folder created: `public/assets/enemy/<skin_id>/v0/`
+- [ ] Entry added to `ENEMY_SKINS` in `sprite-registry.ts`
+- [ ] Skin ID added to `VARIANT_BASES` for auto color variants
+- [ ] `node scripts/recolor-enemies.js` run to generate variants
 - [ ] All 3 required animations defined
 - [ ] `defaultSize` set to match your sprite proportions
 - [ ] Enemy faces RIGHT in the source sprites (flipped in-game)

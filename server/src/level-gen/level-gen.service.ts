@@ -19,12 +19,18 @@ export interface ServerMonster {
   scaledDamage: number;
   /** Attack pool for per-attack variety */
   attacks?: MonsterAttack[];
+  /** Skin ID for the enemy sprite (e.g. "soldier", "orc") */
+  skinId: string;
+  /** Color variant subfolder (e.g. "v0", "v1_crimson") — empty = base skin */
+  skinVariant: string;
 }
 
 export interface MonsterSpawn {
   type: string;
   count: number;
   rarity: string;
+  /** Color variant subfolder (e.g. "v1_crimson") — omit for base skin */
+  skinVariant?: string;
 }
 
 export interface Wave {
@@ -46,6 +52,7 @@ export class LevelGenService {
     locationOrder: number,
     rarityId: string = 'common',
     actNumber: number = 1,
+    skinVariant: string = '',
   ): ServerMonster {
     const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
     const rarity = RARITIES[rarityId] || RARITIES.common;
@@ -92,6 +99,8 @@ export class LevelGenService {
       outgoingDamage: type.outgoingDamage || { physical: 1.0 },
       scaledDamage,
       attacks: type.attacks,
+      skinId: type.skinId,
+      skinVariant,
     };
   }
 
@@ -106,6 +115,7 @@ export class LevelGenService {
     tierGoldMul: number,
     tierXpMul: number,
     mapTier: number = 1,
+    skinVariant: string = '',
   ): ServerMonster {
     const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
     const rarity = RARITIES[rarityId] || RARITIES.common;
@@ -153,6 +163,8 @@ export class LevelGenService {
       outgoingDamage: type.outgoingDamage || { physical: 1.0 },
       scaledDamage,
       attacks: type.attacks,
+      skinId: type.skinId,
+      skinVariant,
     };
   }
 
@@ -196,6 +208,7 @@ export class LevelGenService {
     for (const wave of waves) {
       for (const spawn of wave.monsters) {
         for (let i = 0; i < spawn.count; i++) {
+          const variant = spawn.skinVariant || '';
           if (isMap) {
             queue.push(
               this.createMonsterForMap(
@@ -205,6 +218,7 @@ export class LevelGenService {
                 tierGoldMul!,
                 tierXpMul!,
                 mapTier,
+                variant,
               ),
             );
           } else {
@@ -214,6 +228,7 @@ export class LevelGenService {
                 locationOrder!,
                 spawn.rarity,
                 actNumber!,
+                variant,
               ),
             );
           }

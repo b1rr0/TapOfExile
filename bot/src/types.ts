@@ -171,6 +171,10 @@ export interface Monster {
   goldReward: number;
   xpReward: number;
   resistance?: import("@shared/types").ElementalResistance;
+  /** Skin ID for the enemy sprite (e.g. "soldier", "orc") */
+  skinId?: string;
+  /** Color variant subfolder (e.g. "v0", "v1_crimson") */
+  skinVariant?: string;
 }
 
 // ── Location Types ───────────────────────────────────────

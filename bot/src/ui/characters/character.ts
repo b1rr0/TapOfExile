@@ -246,13 +246,28 @@ export class Character {
 
   /**
    * Draw the character on the canvas.
+   *
+   * When the current animation's frame size differs from idle (e.g. attack
+   * sprites on a wider canvas), the destination rect is scaled proportionally
+   * so the sprite keeps correct proportions while feet stay on the ground.
    */
   draw(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number, dpr: number): void {
     if (!this._visible || !this.engine.loaded) return;
 
     const s = this._scale;
-    const w = this._baseW * dpr * 1.56 * s;
-    const h = this._baseH * dpr * 1.56 * s;
+    const baseW = this._baseW * dpr * 1.56 * s;
+    const baseH = this._baseH * dpr * 1.56 * s;
+
+    // Scale destination rect if current frame differs from idle frame size.
+    // This keeps attack sprites (often larger canvas) correctly proportioned.
+    let w = baseW;
+    let h = baseH;
+    const idleSize = this.engine.getAnimFrameSize("idle");
+    const curSize = this.engine.getFrameSize();
+    if (idleSize && curSize && (curSize.w !== idleSize.w || curSize.h !== idleSize.h)) {
+      w = baseW * (curSize.w / idleSize.w);
+      h = baseH * (curSize.h / idleSize.h);
+    }
 
     // Resolve X position
     let x: number;
@@ -271,7 +286,9 @@ export class Character {
     // Center sprite horizontally: x points to character midpoint
     x -= w / 2;
 
-    // Y: anchor to ground line, shift down by empty space below feet
+    // Y: anchor to ground line, shift down by empty space below feet.
+    // Uses baseH for ground-line calculation so feet stay pinned regardless
+    // of current animation frame size.
     const y = canvasH * this._groundLine - h + h * this._anchorOffsetY;
 
     // Draw with optional alpha (death fade)

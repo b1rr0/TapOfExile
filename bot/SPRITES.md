@@ -154,13 +154,13 @@ Required animations:
 ### Step 2: Place Files
 
 ```
-bot/src/assets/enemy/<type>/<variant>/
+bot/public/assets/enemy/<type>/<variant>/
 ```
 
 Example for a skeleton enemy:
 
 ```
-bot/src/assets/enemy/skeleton/skeleton_warrior/
+bot/public/assets/enemy/skeleton/skeleton_warrior/
   idle.json
   idle.png
   run.json
@@ -180,7 +180,7 @@ export const ENEMY_SKINS = {
   skeleton_warrior: {
     id: "skeleton_warrior",
     name: "Skeleton Warrior",
-    basePath: "/src/assets/enemy/skeleton/skeleton_warrior",
+    basePath: "/assets/enemy/skeleton/skeleton_warrior",
     animations: {
       run:   { json: "run.json",   fps: 10, loop: false },
       idle:  { json: "idle.json",  fps: 8,  loop: true },

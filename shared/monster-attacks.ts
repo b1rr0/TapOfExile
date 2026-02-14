@@ -22,6 +22,60 @@ export interface MonsterAttack {
 }
 
 export const MONSTER_ATTACKS: Record<string, MonsterAttack[]> = {
+  // ── Goblin ─────────────────────────────────────────────
+  Goblin: [
+    { name: 'Shiv',          damage: { physical: 1.0 },                       damageMul: 0.6,  speed: 0.5,  pauseAfter: 0.2, weight: 35 },
+    { name: 'Claw Scratch',  damage: { physical: 1.0 },                       damageMul: 0.4,  speed: 0.3,  pauseAfter: 0.15, weight: 30 },
+    { name: 'Rock Throw',    damage: { physical: 0.9, cold: 0.1 },           damageMul: 0.8,  speed: 1.0,  pauseAfter: 0.5, weight: 20 },
+    { name: 'Sneak Attack',  damage: { physical: 1.0 },                       damageMul: 1.4,  speed: 2.0,  pauseAfter: 1.0, weight: 10 },
+    { name: 'Bite',          damage: { physical: 1.0 },                       damageMul: 0.3,  speed: 0.3,  pauseAfter: 0.15, weight: 5 },
+  ],
+
+  // ── Ninja ──────────────────────────────────────────────
+  Ninja: [
+    { name: 'Shuriken',      damage: { physical: 0.8, lightning: 0.2 },      damageMul: 0.9,  speed: 0.7,  pauseAfter: 0.3, weight: 30 },
+    { name: 'Shadow Strike',  damage: { physical: 0.6, pure: 0.4 },          damageMul: 1.5,  speed: 2.0,  pauseAfter: 1.2, weight: 15 },
+    { name: 'Kunai Barrage',  damage: { physical: 1.0 },                      damageMul: 0.5,  speed: 0.4,  pauseAfter: 0.2, weight: 25 },
+    { name: 'Smoke Bomb',     damage: { cold: 0.5, physical: 0.5 },          damageMul: 0.7,  speed: 1.2,  pauseAfter: 0.8, weight: 15 },
+    { name: 'Vanish Slash',   damage: { physical: 0.9, pure: 0.1 },          damageMul: 1.8,  speed: 2.5,  pauseAfter: 1.5, weight: 15 },
+  ],
+
+  // ── Necromancer ────────────────────────────────────────
+  Necromancer: [
+    { name: 'Dark Bolt',      damage: { cold: 0.6, pure: 0.4 },              damageMul: 1.0,  speed: 1.0,  pauseAfter: 0.6, weight: 30 },
+    { name: 'Soul Drain',     damage: { pure: 1.0 },                          damageMul: 0.8,  speed: 1.5,  pauseAfter: 1.0, weight: 20 },
+    { name: 'Bone Spear',     damage: { physical: 0.7, cold: 0.3 },          damageMul: 1.2,  speed: 1.2,  pauseAfter: 0.7, weight: 20 },
+    { name: 'Corpse Explosion', damage: { fire: 0.5, physical: 0.5 },        damageMul: 1.6,  speed: 2.2,  pauseAfter: 1.5, weight: 15 },
+    { name: 'Wither',         damage: { cold: 0.8, pure: 0.2 },              damageMul: 0.5,  speed: 0.6,  pauseAfter: 0.3, weight: 15 },
+  ],
+
+  // ── Night Born ─────────────────────────────────────────
+  'Night Born': [
+    { name: 'Shadow Claw',    damage: { physical: 0.5, cold: 0.5 },          damageMul: 1.0,  speed: 0.8,  pauseAfter: 0.5, weight: 30 },
+    { name: 'Dark Pulse',     damage: { cold: 0.7, pure: 0.3 },              damageMul: 1.3,  speed: 1.5,  pauseAfter: 1.0, weight: 20 },
+    { name: 'Night Fang',     damage: { physical: 0.8, cold: 0.2 },          damageMul: 0.7,  speed: 0.5,  pauseAfter: 0.3, weight: 25 },
+    { name: 'Void Scream',    damage: { pure: 0.8, cold: 0.2 },              damageMul: 1.7,  speed: 2.5,  pauseAfter: 1.5, weight: 10 },
+    { name: 'Leech Touch',    damage: { cold: 0.6, pure: 0.4 },              damageMul: 0.6,  speed: 0.6,  pauseAfter: 0.4, weight: 15 },
+  ],
+
+  // ── Dark Knight ────────────────────────────────────────
+  'Dark Knight': [
+    { name: 'Cleave',         damage: { physical: 0.9, fire: 0.1 },          damageMul: 1.1,  speed: 1.0,  pauseAfter: 0.6, weight: 30 },
+    { name: 'Shield Slam',    damage: { physical: 1.0 },                      damageMul: 0.8,  speed: 0.7,  pauseAfter: 0.4, weight: 25 },
+    { name: 'Dark Judgment',  damage: { physical: 0.5, pure: 0.5 },          damageMul: 1.8,  speed: 2.5,  pauseAfter: 1.5, weight: 10 },
+    { name: 'Overhead Smash', damage: { physical: 1.0 },                      damageMul: 1.4,  speed: 1.8,  pauseAfter: 1.0, weight: 15 },
+    { name: 'Quick Slash',    damage: { physical: 0.8, lightning: 0.2 },     damageMul: 0.6,  speed: 0.5,  pauseAfter: 0.3, weight: 20 },
+  ],
+
+  // ── Reaper ─────────────────────────────────────────────
+  Reaper: [
+    { name: 'Scythe Sweep',   damage: { physical: 0.4, pure: 0.6 },         damageMul: 1.2,  speed: 1.2,  pauseAfter: 0.8, weight: 25 },
+    { name: 'Death Mark',     damage: { pure: 1.0 },                          damageMul: 2.0,  speed: 3.0,  pauseAfter: 2.0, weight: 10 },
+    { name: 'Soul Reap',      damage: { cold: 0.3, pure: 0.7 },              damageMul: 1.0,  speed: 1.0,  pauseAfter: 0.5, weight: 25 },
+    { name: 'Phantom Slash',  damage: { physical: 0.5, pure: 0.5 },          damageMul: 0.8,  speed: 0.6,  pauseAfter: 0.3, weight: 25 },
+    { name: 'Harvest',        damage: { pure: 0.8, cold: 0.2 },              damageMul: 1.5,  speed: 2.0,  pauseAfter: 1.2, weight: 15 },
+  ],
+
   // ── Bandit ─────────────────────────────────────────────
   Bandit: [
     { name: 'Slash',        damage: { physical: 1.0 },                       damageMul: 1.0,  speed: 1.0,  pauseAfter: 0.5, weight: 40 },

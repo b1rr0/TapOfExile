@@ -1,7 +1,7 @@
 import { BackgroundRenderer } from "./background-renderer.js";
 import { HeroCharacter } from "./characters/hero-character.js";
 import { EnemyCharacter } from "./characters/enemy-character.js";
-import { getHeroSkin, getEnemySkin } from "../data/sprite-registry.js";
+import { getHeroSkin, getEnemySkin, getSkinForMonster, resolveEnemySkin } from "../data/sprite-registry.js";
 import type { Monster, Rarity, SkinConfig } from "../types.js";
 
 /**
@@ -179,11 +179,14 @@ export class BattleScene {
 
   async _tryLoadSprites(): Promise<void> {
     try {
+      // Capture the skin ID at call time — _enemySkinId may change while we await
+      const initialEnemySkinId = this._enemySkinId;
+
       const heroSkin = getHeroSkin(this._heroSkinId) as SkinConfig | undefined;
-      const enemySkin = getEnemySkin(this._enemySkinId) as SkinConfig | undefined;
+      const enemySkin = getEnemySkin(initialEnemySkinId) as SkinConfig | undefined;
 
       if (!heroSkin) throw new Error(`Hero skin not found: ${this._heroSkinId}`);
-      if (!enemySkin) throw new Error(`Enemy skin not found: ${this._enemySkinId}`);
+      if (!enemySkin) throw new Error(`Enemy skin not found: ${initialEnemySkinId}`);
 
       this.hero = new HeroCharacter(heroSkin);
       this.enemy = new EnemyCharacter(enemySkin);
@@ -205,6 +208,17 @@ export class BattleScene {
       // Background
       this.bgRenderer.setStage(this._currentStage);
 
+      // If the desired enemy skin changed while we were loading (e.g. monsterSpawned
+      // arrived during the await), reload with the correct skin now.
+      if (this._enemySkinId !== initialEnemySkinId) {
+        const correctSkin = getEnemySkin(this._enemySkinId) as SkinConfig | undefined;
+        if (correctSkin) {
+          this.enemy = new EnemyCharacter(correctSkin);
+          await this.enemy.load();
+          console.log(`[BattleScene] Skin changed during load: ${initialEnemySkinId} → ${this._enemySkinId}`);
+        }
+      }
+
       // Start idle
       this.hero.play("idle");
       this.enemy.play("idle");
@@ -224,7 +238,7 @@ export class BattleScene {
       });
       this._resizeObserver.observe(this.container);
 
-      console.log(`[BattleScene] Loaded hero=${heroSkin.name}, enemy=${enemySkin.name}`);
+      console.log(`[BattleScene] Loaded hero=${heroSkin.name}, enemy=${this.enemy ? this._enemySkinId : "none"}`);
     } catch (err) {
       this.useSprites = false;
       this.hero = null;
@@ -426,11 +440,39 @@ export class BattleScene {
     this._updateHp(monster);
     this.monsterInfoEl!.classList.remove("hidden");
 
+    // Resolve the correct skin + variant for this monster
+    const targetSkinId = resolveEnemySkin(monster.skinId || "", monster.skinVariant || "", monster.name);
+
+    // Always track desired skin — _tryLoadSprites picks it up if still loading
+    this._enemySkinId = targetSkinId;
+
+    // Swap enemy sprite if skin changed (non-blocking: load in background)
+    if (this.useSprites && this.enemy) {
+      const currentSkinId = this.enemy.skinId || "";
+      if (targetSkinId !== currentSkinId) {
+        const newSkin = getEnemySkin(targetSkinId) as SkinConfig | undefined;
+        if (newSkin) {
+          const fresh = new EnemyCharacter(newSkin);
+          fresh.load().then(() => {
+            // Only apply if we haven't moved to yet another skin
+            if (this._enemySkinId === targetSkinId) {
+              this.enemy = fresh;
+              this.enemy.play("idle");
+              this.enemy.spawn();
+            }
+          }).catch(() => {
+            console.warn(`[BattleScene] Failed to load skin: ${targetSkinId}`);
+          });
+        }
+      }
+    }
+
     if (this.useSprites && this.enemy) {
       this.enemy.spawn();
       this._startEntrance();
     } else {
-      // No sprites — skip entrance, signal server immediately
+      // No sprites yet — skip entrance, signal server immediately.
+      // _tryLoadSprites will pick up the correct _enemySkinId when it finishes.
       console.log("[BattleScene] No sprites — skipping entrance, emitting entranceDone");
       this.events.emit("entranceDone", {});
     }
@@ -471,21 +513,27 @@ export class BattleScene {
     // Skip attack visuals during entrance (hero still running)
     if (this._entranceActive) return;
 
+    const applyHit = (): void => {
+      if (this.hero) this.hero.shake(4);
+    };
+
     // Enemy plays a random attack animation if available
     if (this.useSprites && this.enemy) {
       const attacks = [...this.enemy.engine.anims.keys()].filter(n => n.startsWith("attack_"));
       if (attacks.length > 0) {
         const pick = attacks[Math.floor(Math.random() * attacks.length)];
         this.enemy.play(pick, {
-          onComplete: () => this.enemy!.play("idle"),
+          onComplete: () => {
+            this.enemy!.play("idle");
+            applyHit();
+          },
         });
+        return;
       }
     }
 
-    // Hero takes hit: shake
-    if (this.hero) {
-      this.hero.shake(4);
-    }
+    // No attack animation — delay hit by 500ms
+    setTimeout(applyHit, 500);
   }
 
   _updatePlayerHp(hp: number, maxHp: number): void {

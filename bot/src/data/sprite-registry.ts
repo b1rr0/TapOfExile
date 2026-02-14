@@ -21,7 +21,24 @@
  *  @property {number} scale          — visual scale multiplier (1 = unchanged)
  */
 
-import type { SkinConfig } from "../types.js";
+import type { SkinConfig, AnimationConfig } from "../types.js";
+
+// ── Animation atom constants ────────────────────────────
+// Shared animation configs to avoid duplication across enemy skins.
+// Attack fps is per-enemy: fps = frameCount / 0.7 so every attack lasts ~0.7s.
+
+const a_idle:       AnimationConfig = { json: "idle.json",     fps: 8,  loop: true };
+const a_run:        AnimationConfig = { json: "run.json",      fps: 10, loop: false };
+const a_death_10:   AnimationConfig = { json: "death.json",    fps: 10, loop: false };
+const a_death_12:   AnimationConfig = { json: "death.json",    fps: 12, loop: false };
+const a_hurt:       AnimationConfig = { json: "hurt.json",     fps: 10, loop: false };
+// Non-standard filenames (old skins)
+const a_walk:       AnimationConfig = { json: "walk.json",     fps: 10, loop: false };
+
+/** Helper: create attack AnimationConfig with fps tuned for 0.7s duration. */
+const atk = (json: string, frames: number): AnimationConfig => ({
+  json, fps: Math.round(frames / 0.7), loop: false,
+});
 
 // ─── Hero Skins ──────────────────────────────────────────
 
@@ -259,234 +276,291 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
 // ─── Enemy Skins ─────────────────────────────────────────
 
 export const ENEMY_SKINS: Record<string, SkinConfig> = {
+
+  // ─── Old skins (non-standard filenames) ──────────────────
+  // fps for attacks: frameCount / 0.7 → all attacks last ~0.7s
+
   goblin_black: {
-    id: "goblin_black",
-    name: "Goblin Scout",
+    id: "goblin_black", name: "Goblin Scout",
     basePath: "/assets/enemy/goblin/goblin_black",
     animations: {
-      run:   { json: "run.json",   fps: 10, loop: false },
-      idle:  { json: "idle.json",  fps: 8,  loop: true },
-      death: { json: "death.json", fps: 10, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10,
+      attack_1: atk("hit.json", 3),                          // 3 frames → 4 fps
     },
-    defaultSize: { w: 210, h: 210 },
-    anchorOffsetY: 0.297,
-    scale: 1,
+    defaultSize: { w: 210, h: 210 }, anchorOffsetY: 0.297, scale: 1,
   },
 
   yellow_ninja: {
-    id: "yellow_ninja",
-    name: "Yellow Ninja",
+    id: "yellow_ninja", name: "Yellow Ninja",
     basePath: "/assets/enemy/ninja/yellow_ninja",
     animations: {
-      idle:  { json: "idle.json",  fps: 8,  loop: true },
-      run:   { json: "walk.json",  fps: 10, loop: false },
-      death: { json: "death.json", fps: 10, loop: false },
-      hit:   { json: "hit.json",   fps: 10, loop: false },
+      idle: a_idle, run: a_walk, death: a_death_10,
+      hit: a_hurt,                                            // take-hit anim (not attack)
+      attack_1: atk("attack.json", 20),                      // 20 frames → 29 fps
     },
-    defaultSize: { w: 256, h: 256 },
-    anchorOffsetY: 0.25,
-    scale: 1,
+    defaultSize: { w: 256, h: 256 }, anchorOffsetY: 0.25, scale: 1,
   },
 
   necromancer_1: {
-    id: "necromancer_1",
-    name: "Necromancer",
+    id: "necromancer_1", name: "Necromancer",
     basePath: "/assets/enemy/necromancer/necromancer_1",
     animations: {
-      idle:     { json: "idle.json",   fps: 8,  loop: true },
-      run:      { json: "run.json",    fps: 10, loop: false },
-      death:    { json: "death.json",  fps: 10, loop: false },
-      attack_1: { json: "attack.json", fps: 12, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10,
+      attack_1: atk("attack.json", 14),                      // 14 frames → 20 fps
     },
-    defaultSize: { w: 280, h: 224 },
-    anchorOffsetY: 0.07,
-    scale: 1,
+    defaultSize: { w: 280, h: 224 }, anchorOffsetY: 0.07, scale: 1,
   },
 
   night_born_1: {
-    id: "night_born_1",
-    name: "Night Born",
+    id: "night_born_1", name: "Night Born",
     basePath: "/assets/enemy/night_born/night_born_1",
     animations: {
-      idle:     { json: "idle.json",   fps: 8,  loop: true },
-      run:      { json: "run.json",    fps: 10, loop: false },
-      death:    { json: "death.json",  fps: 10, loop: false },
-      attack_1: { json: "attack.json", fps: 12, loop: false },
-      hurt:     { json: "hurt.json",   fps: 10, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10, hurt: a_hurt,
+      attack_1: atk("attack.json", 10),                      // 10 frames → 14 fps
     },
-    defaultSize: { w: 200, h: 200 },
-    anchorOffsetY: 0.025,
-    scale: 1,
+    defaultSize: { w: 200, h: 200 }, anchorOffsetY: 0.025, scale: 1,
   },
 
-  // ─── New enemy skins ────────────────────────────────────
+  // ─── New skins (standard filenames) ──────────────────────
 
   blue_witch: {
-    id: "blue_witch",
-    name: "Blue Witch",
-    basePath: "/assets/enemy/blue_witch",
+    id: "blue_witch", name: "Blue Witch",
+    basePath: "/assets/enemy/blue_witch/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 10, loop: false },
-      attack_1: { json: "attack_1.json", fps: 12, loop: false },
-      attack_2: { json: "attack_2.json", fps: 12, loop: false },
-      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10, hurt: a_hurt,
+      attack_1: atk("attack_1.json", 9),                     // 9 frames → 13 fps
+      attack_2: atk("attack_2.json", 5),                     // 5 frames → 7 fps
     },
-    defaultSize: { w: 64, h: 64 },
-    anchorOffsetY: 0,
-    scale: 3,
+    defaultSize: { w: 64, h: 64 }, anchorOffsetY: 0, scale: 3,
   },
 
   king: {
-    id: "king",
-    name: "King",
-    basePath: "/assets/enemy/king",
+    id: "king", name: "King",
+    basePath: "/assets/enemy/king/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 12, loop: false },
-      attack_1: { json: "attack_1.json", fps: 14, loop: false },
-      attack_2: { json: "attack_2.json", fps: 14, loop: false },
+      idle: a_idle, run: a_run, death: a_death_12,
+      attack_1: atk("attack_1.json", 30),                    // 30 frames → 43 fps
+      attack_2: atk("attack_2.json", 72),                    // 72 frames → 103 fps
     },
-    defaultSize: { w: 128, h: 128 },
-    anchorOffsetY: 0.1,
-    scale: 1.8,
+    defaultSize: { w: 128, h: 128 }, anchorOffsetY: 0.1, scale: 1.8,
   },
 
   knight_enemy: {
-    id: "knight_enemy",
-    name: "Dark Knight",
-    basePath: "/assets/enemy/knight_enemy",
+    id: "knight_enemy", name: "Dark Knight",
+    basePath: "/assets/enemy/knight_enemy/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 10, loop: false },
-      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10,
+      attack_1: atk("attack_1.json", 66),                    // 66 frames → 94 fps
     },
-    defaultSize: { w: 64, h: 64 },
-    anchorOffsetY: 0,
-    scale: 2.8,
+    defaultSize: { w: 64, h: 64 }, anchorOffsetY: 0, scale: 2.8,
   },
 
   necromancer_2: {
-    id: "necromancer_2",
-    name: "Necromancer II",
-    basePath: "/assets/enemy/necromancer_2",
+    id: "necromancer_2", name: "Necromancer II",
+    basePath: "/assets/enemy/necromancer_2/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 12, loop: false },
-      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+      idle: a_idle, run: a_run, death: a_death_12,
+      attack_1: atk("attack_1.json", 47),                    // 47 frames → 67 fps
     },
-    defaultSize: { w: 128, h: 128 },
-    anchorOffsetY: 0.15,
-    scale: 1.6,
+    defaultSize: { w: 128, h: 128 }, anchorOffsetY: 0.15, scale: 1.6,
   },
 
   orc: {
-    id: "orc",
-    name: "Orc",
-    basePath: "/assets/enemy/orc",
+    id: "orc", name: "Orc",
+    basePath: "/assets/enemy/orc/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 10, loop: false },
-      attack_1: { json: "attack_1.json", fps: 12, loop: false },
-      attack_2: { json: "attack_2.json", fps: 12, loop: false },
-      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10, hurt: a_hurt,
+      attack_1: atk("attack_1.json", 6),                     // 6 frames → 9 fps
+      attack_2: atk("attack_2.json", 6),                     // 6 frames → 9 fps
     },
-    defaultSize: { w: 100, h: 100 },
-    anchorOffsetY: 0,
-    scale: 2.2,
+    defaultSize: { w: 100, h: 100 }, anchorOffsetY: 0, scale: 2.2,
   },
 
   paladin: {
-    id: "paladin",
-    name: "Paladin",
-    basePath: "/assets/enemy/paladin",
+    id: "paladin", name: "Paladin",
+    basePath: "/assets/enemy/paladin/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 12, loop: false },
-      attack_1: { json: "attack_1.json", fps: 14, loop: false },
+      idle: a_idle, run: a_run, death: a_death_12,
+      attack_1: atk("attack_1.json", 63),                    // 63 frames → 90 fps
     },
-    defaultSize: { w: 160, h: 128 },
-    anchorOffsetY: 0.1,
-    scale: 1.6,
+    defaultSize: { w: 160, h: 128 }, anchorOffsetY: 0.1, scale: 1.6,
   },
 
   ronin_enemy: {
-    id: "ronin_enemy",
-    name: "Ronin",
-    basePath: "/assets/enemy/ronin_enemy",
+    id: "ronin_enemy", name: "Ronin",
+    basePath: "/assets/enemy/ronin_enemy/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 10, loop: false },
-      attack_1: { json: "attack_1.json", fps: 14, loop: false },
-      attack_2: { json: "attack_2.json", fps: 14, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10,
+      attack_1: atk("attack_1.json", 25),                    // 25 frames → 36 fps
+      attack_2: atk("attack_2.json", 25),                    // 25 frames → 36 fps
     },
-    defaultSize: { w: 128, h: 96 },
-    anchorOffsetY: 0,
-    scale: 2,
+    defaultSize: { w: 64, h: 64 }, anchorOffsetY: 0.15, scale: 4,
   },
 
   reaper: {
-    id: "reaper",
-    name: "Reaper",
-    basePath: "/assets/enemy/reaper",
+    id: "reaper", name: "Reaper",
+    basePath: "/assets/enemy/reaper/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 12, loop: false },
-      attack_1: { json: "attack_1.json", fps: 14, loop: false },
-      attack_2: { json: "attack_2.json", fps: 14, loop: false },
+      idle: a_idle, run: a_run, death: a_death_12,
+      attack_1: atk("attack_1.json", 51),                    // 51 frames → 73 fps
+      attack_2: atk("attack_2.json", 51),                    // 51 frames → 73 fps
     },
-    defaultSize: { w: 100, h: 96 },
-    anchorOffsetY: 0,
-    scale: 2,
+    defaultSize: { w: 100, h: 96 }, anchorOffsetY: 0, scale: 2,
   },
 
   soldier: {
-    id: "soldier",
-    name: "Soldier",
-    basePath: "/assets/enemy/soldier",
+    id: "soldier", name: "Soldier",
+    basePath: "/assets/enemy/soldier/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 10, loop: false },
-      attack_1: { json: "attack_1.json", fps: 12, loop: false },
-      attack_2: { json: "attack_2.json", fps: 12, loop: false },
-      attack_3: { json: "attack_3.json", fps: 12, loop: false },
-      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+      idle: a_idle, run: a_run, death: a_death_10, hurt: a_hurt,
+      attack_1: atk("attack_1.json", 6),                     // 6 frames → 9 fps
+      attack_2: atk("attack_2.json", 6),                     // 6 frames → 9 fps
+      attack_3: atk("attack_3.json", 9),                     // 9 frames → 13 fps
     },
-    defaultSize: { w: 100, h: 100 },
-    anchorOffsetY: 0,
-    scale: 2.2,
+    defaultSize: { w: 100, h: 100 }, anchorOffsetY: 0.45, scale: 3.3,
   },
 
   striker: {
-    id: "striker",
-    name: "Striker",
-    basePath: "/assets/enemy/striker",
+    id: "striker", name: "Striker",
+    basePath: "/assets/enemy/striker/v0",
     animations: {
-      idle:     { json: "idle.json",     fps: 8,  loop: true },
-      run:      { json: "run.json",      fps: 10, loop: false },
-      death:    { json: "death.json",    fps: 12, loop: false },
-      attack_1: { json: "attack_1.json", fps: 14, loop: false },
-      attack_2: { json: "attack_2.json", fps: 12, loop: false },
-      hurt:     { json: "hurt.json",     fps: 10, loop: false },
+      idle: a_idle, run: a_run, death: a_death_12, hurt: a_hurt,
+      attack_1: atk("attack_1.json", 16),                    // 16 frames → 23 fps
+      attack_2: atk("attack_2.json", 12),                    // 12 frames → 17 fps
     },
-    defaultSize: { w: 128, h: 96 },
-    anchorOffsetY: 0,
-    scale: 2,
+    defaultSize: { w: 128, h: 96 }, anchorOffsetY: 0, scale: 2,
   },
 };
+
+// ─── Variant skin helper ─────────────────────────────────
+// Generates a variant skin entry from a base skin, overriding only the basePath.
+
+// ─── Register color variants for all enemy skins ─────────
+// Pattern: {baseId}__{color} → parent folder + /v{N}_{color} subfolder
+// Base skins already point to /v0, so we go up one level for variants.
+
+const VARIANT_COLORS = [
+  { suffix: "crimson",  sub: "v1_crimson",  label: "Crimson" },
+  { suffix: "emerald",  sub: "v2_emerald",  label: "Emerald" },
+  { suffix: "azure",    sub: "v3_azure",    label: "Azure" },
+  { suffix: "golden",   sub: "v4_golden",   label: "Golden" },
+  { suffix: "violet",   sub: "v5_violet",   label: "Violet" },
+  { suffix: "frost",    sub: "v6_frost",    label: "Frost" },
+  { suffix: "shadow",   sub: "v7_shadow",   label: "Shadow" },
+] as const;
+
+// Skins that use v0/v1_crimson subfolder pattern (basePath ends with /v0)
+const VARIANT_BASES = [
+  "blue_witch", "king", "knight_enemy", "necromancer_2",
+  "orc", "paladin", "reaper", "ronin_enemy", "soldier", "striker",
+] as const;
+
+for (const baseId of VARIANT_BASES) {
+  const base = ENEMY_SKINS[baseId];
+  if (!base) continue;
+  // basePath = "/assets/enemy/soldier/v0" → parentPath = "/assets/enemy/soldier"
+  const parentPath = base.basePath.replace(/\/v0$/, "");
+  for (const v of VARIANT_COLORS) {
+    const vid = `${baseId}__${v.sub}`;
+    ENEMY_SKINS[vid] = {
+      ...base,
+      id: vid,
+      name: `${v.label} ${base.name}`,
+      basePath: `${parentPath}/${v.sub}`,
+    };
+  }
+}
+
+// Goblin uses different naming: goblin_black is base, color variants are direct subfolders
+const GOBLIN_VARIANTS = [
+  { id: "goblin_azure",   sub: "goblin_azure",   label: "Azure Goblin" },
+  { id: "goblin_crimson",  sub: "goblin_crimson",  label: "Crimson Goblin" },
+  { id: "goblin_emerald",  sub: "goblin_emerald",  label: "Emerald Goblin" },
+  { id: "goblin_frost",    sub: "goblin_frost",    label: "Frost Goblin" },
+  { id: "goblin_golden",   sub: "goblin_golden",   label: "Golden Goblin" },
+  { id: "goblin_shadow",   sub: "goblin_shadow",   label: "Shadow Goblin" },
+  { id: "goblin_violet",   sub: "goblin_violet",   label: "Violet Goblin" },
+] as const;
+
+// Goblin variant paths: sibling folders under /assets/enemy/goblin/
+for (const gv of GOBLIN_VARIANTS) {
+  ENEMY_SKINS[gv.id] = {
+    ...ENEMY_SKINS.goblin_black,
+    id: gv.id,
+    name: gv.label,
+    basePath: `/assets/enemy/goblin/${gv.sub}`,
+  };
+}
+
+// Ninja uses yellow_ninja as base, variants are sibling subfolders
+const NINJA_VARIANTS = [
+  { id: "ninja_azure",    sub: "yellow_azure",    label: "Azure Ninja" },
+  { id: "ninja_crimson",   sub: "yellow_crimson",   label: "Crimson Ninja" },
+  { id: "ninja_emerald",   sub: "yellow_emerald",   label: "Emerald Ninja" },
+  { id: "ninja_frost",     sub: "yellow_frost",     label: "Frost Ninja" },
+  { id: "ninja_golden",    sub: "yellow_golden",    label: "Golden Ninja" },
+  { id: "ninja_shadow",    sub: "yellow_shadow",    label: "Shadow Ninja" },
+  { id: "ninja_violet",    sub: "yellow_violet",    label: "Violet Ninja" },
+] as const;
+
+for (const nv of NINJA_VARIANTS) {
+  ENEMY_SKINS[nv.id] = {
+    ...ENEMY_SKINS.yellow_ninja,
+    id: nv.id,
+    name: nv.label,
+    basePath: `/assets/enemy/ninja/${nv.sub}`,
+  };
+}
+
+// Necromancer_1 variants (folders: necromancer_azure, necromancer_crimson, etc.)
+const NECRO1_VARIANTS = [
+  { id: "necromancer_1_azure",   sub: "necromancer_azure",   label: "Azure Necromancer" },
+  { id: "necromancer_1_crimson",  sub: "necromancer_crimson",  label: "Crimson Necromancer" },
+  { id: "necromancer_1_emerald",  sub: "necromancer_emerald",  label: "Emerald Necromancer" },
+  { id: "necromancer_1_frost",    sub: "necromancer_frost",    label: "Frost Necromancer" },
+  { id: "necromancer_1_golden",   sub: "necromancer_golden",   label: "Golden Necromancer" },
+  { id: "necromancer_1_shadow",   sub: "necromancer_shadow",   label: "Shadow Necromancer" },
+  { id: "necromancer_1_violet",   sub: "necromancer_violet",   label: "Violet Necromancer" },
+] as const;
+
+for (const nv of NECRO1_VARIANTS) {
+  ENEMY_SKINS[nv.id] = {
+    ...ENEMY_SKINS.necromancer_1,
+    id: nv.id,
+    name: nv.label,
+    basePath: `/assets/enemy/necromancer/${nv.sub}`,
+  };
+}
+
+// Night Born variants (folders: night_born_azure, night_born_crimson, etc.)
+const NB_VARIANTS = [
+  { id: "night_born_azure",   sub: "night_born_azure",   label: "Azure Night Born" },
+  { id: "night_born_crimson",  sub: "night_born_crimson",  label: "Crimson Night Born" },
+  { id: "night_born_emerald",  sub: "night_born_emerald",  label: "Emerald Night Born" },
+  { id: "night_born_frost",    sub: "night_born_frost",    label: "Frost Night Born" },
+  { id: "night_born_golden",   sub: "night_born_golden",   label: "Golden Night Born" },
+  { id: "night_born_shadow",   sub: "night_born_shadow",   label: "Shadow Night Born" },
+  { id: "night_born_violet",   sub: "night_born_violet",   label: "Violet Night Born" },
+] as const;
+
+for (const nv of NB_VARIANTS) {
+  ENEMY_SKINS[nv.id] = {
+    ...ENEMY_SKINS.night_born_1,
+    id: nv.id,
+    name: nv.label,
+    basePath: `/assets/enemy/night_born/${nv.sub}`,
+  };
+}
 
 // ─── Monster → Skin mapping (client-side fallback) ──────
 
 export const MONSTER_SKIN_MAP: Record<string, string> = {
+  Goblin: "goblin_black",
+  Ninja: "yellow_ninja",
+  Necromancer: "necromancer_1",
+  "Night Born": "night_born_1",
+  "Dark Knight": "knight_enemy",
+  Reaper: "reaper",
   Bandit: "soldier",
   "Wild Boar": "orc",
   "Forest Spirit": "blue_witch",
@@ -505,6 +579,30 @@ export function getSkinForMonster(monsterName: string): string {
   if (MONSTER_SKIN_MAP[monsterName]) return MONSTER_SKIN_MAP[monsterName];
   const allIds = Object.keys(ENEMY_SKINS);
   return allIds[Math.floor(Math.random() * allIds.length)];
+}
+
+/**
+ * Resolve the actual registered skin ID from server-provided skinId + skinVariant.
+ *
+ * The server sends:
+ *   skinId: "soldier"         (base skin ID)
+ *   skinVariant: "v1_crimson" (subfolder variant)
+ *
+ * This function returns the registered key like "soldier__v1_crimson".
+ * Falls back to base skinId → MONSTER_SKIN_MAP → first skin in registry.
+ */
+export function resolveEnemySkin(skinId: string, skinVariant: string, monsterName: string): string {
+  // Try exact variant key (e.g. "soldier__v1_crimson")
+  if (skinId && skinVariant) {
+    const variantKey = `${skinId}__${skinVariant}`;
+    if (ENEMY_SKINS[variantKey]) return variantKey;
+    // Also try direct variant ID (for goblin/ninja/necro1/nightborn special naming)
+    if (ENEMY_SKINS[skinVariant]) return skinVariant;
+  }
+  // Try base skinId
+  if (skinId && ENEMY_SKINS[skinId]) return skinId;
+  // Fall back to name-based mapping
+  return getSkinForMonster(monsterName);
 }
 
 // ─── Lookup helpers ──────────────────────────────────────

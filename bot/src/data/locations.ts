@@ -20,77 +20,376 @@
 import { B } from "./balance.js";
 import type { Location, Wave, ActDefinition, ActModifier } from "../types.js";
 
-/* ── Wave templates (reused across acts) ──────────────────── */
+/* ── Per-act wave templates ───────────────────────────────
+ *
+ * Each act has unique enemy composition matching its theme + story.
+ * skinVariant on boss entries gives them a distinct color.
+ *
+ * Monster types available:
+ *   Goblin (goblin), Ninja (yellow_ninja), Bandit (soldier),
+ *   Wild Boar (orc), Forest Spirit (blue_witch), Ronin (ronin_enemy),
+ *   Necromancer (necromancer_1), Night Born (night_born_1),
+ *   Dark Knight (knight_enemy), Oni (king), Tengu (necromancer_2),
+ *   Dragon (paladin), Reaper (reaper), Shogun (striker)
+ * ──────────────────────────────────────────────────────── */
 
-const WAVE_TEMPLATES: Wave[][] = [
-  // order 1 — 4 waves, easy
+/* ── ACT 1: The Castle ─── Goblins, Bandits, Ninja — Boss: Dark Knight (golden) */
+const ACT1_WAVES: Wave[][] = [
+  // order 1 — Castle Gate
+  [
+    { monsters: [{ type: "Goblin", count: 4, rarity: "common" }] },
+    { monsters: [{ type: "Goblin", count: 3, rarity: "common" }, { type: "Bandit", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Bandit", count: 3, rarity: "common" }, { type: "Goblin", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Bandit", count: 1, rarity: "epic" }] },
+  ],
+  // order 2 — Outer Ward
+  [
+    { monsters: [{ type: "Bandit", count: 3, rarity: "common" }, { type: "Goblin", count: 3, rarity: "common" }] },
+    { monsters: [{ type: "Goblin", count: 2, rarity: "rare", skinVariant: "goblin_crimson" }, { type: "Bandit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ninja", count: 1, rarity: "epic" }] },
+  ],
+  // order 3 — Dungeon Entrance
+  [
+    { monsters: [{ type: "Goblin", count: 4, rarity: "common", skinVariant: "goblin_emerald" }, { type: "Bandit", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Ninja", count: 3, rarity: "common" }, { type: "Goblin", count: 1, rarity: "rare" }] },
+    { monsters: [{ type: "Bandit", count: 2, rarity: "rare" }, { type: "Ninja", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ninja", count: 1, rarity: "epic" }] },
+  ],
+  // order 4 — Armory Hall
+  [
+    { monsters: [{ type: "Ninja", count: 4, rarity: "common" }, { type: "Goblin", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Bandit", count: 3, rarity: "rare" }, { type: "Ninja", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ninja", count: 1, rarity: "epic", skinVariant: "ninja_crimson" }, { type: "Bandit", count: 2, rarity: "rare" }] },
+  ],
+  // order 5 — Servants Quarters (mid-boss)
+  [
+    { monsters: [{ type: "Bandit", count: 4, rarity: "common" }, { type: "Ninja", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Ninja", count: 3, rarity: "rare", skinVariant: "ninja_shadow" }, { type: "Bandit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ninja", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Ronin", count: 1, rarity: "boss", skinVariant: "ronin_enemy__v1_crimson" }] },
+  ],
+  // order 6 — Grand Hall
+  [
+    { monsters: [{ type: "Bandit", count: 3, rarity: "common", skinVariant: "soldier__v3_azure" }, { type: "Ronin", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Ronin", count: 3, rarity: "rare" }, { type: "Ninja", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ronin", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Dark Knight", count: 1, rarity: "boss", skinVariant: "knight_enemy__v3_azure" }] },
+  ],
+  // order 7 — Tower Ascent
+  [
+    { monsters: [{ type: "Ronin", count: 3, rarity: "common" }, { type: "Dark Knight", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Dark Knight", count: 3, rarity: "rare" }, { type: "Ronin", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Dark Knight", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Oni", count: 1, rarity: "boss", skinVariant: "king__v1_crimson" }] },
+  ],
+  // order 8 — Shogun's Chamber (act boss)
+  [
+    { monsters: [{ type: "Ninja", count: 4, rarity: "common", skinVariant: "ninja_golden" }, { type: "Ronin", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Dark Knight", count: 3, rarity: "rare" }, { type: "Ronin", count: 1, rarity: "rare" }] },
+    { monsters: [{ type: "Dark Knight", count: 2, rarity: "epic", skinVariant: "knight_enemy__v1_crimson" }, { type: "Ronin", count: 1, rarity: "epic" }] },
+    { monsters: [{ type: "Shogun", count: 1, rarity: "boss", skinVariant: "striker__v4_golden" }] },
+  ],
+  // order 9 — Hidden Treasury (side)
+  [
+    { monsters: [{ type: "Goblin", count: 5, rarity: "common", skinVariant: "goblin_golden" }] },
+    { monsters: [{ type: "Goblin", count: 3, rarity: "rare", skinVariant: "goblin_golden" }, { type: "Ninja", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ninja", count: 2, rarity: "epic", skinVariant: "ninja_golden" }, { type: "Goblin", count: 1, rarity: "epic", skinVariant: "goblin_golden" }] },
+  ],
+  // order 10 — Castle Dungeon (side boss)
+  [
+    { monsters: [{ type: "Goblin", count: 5, rarity: "common", skinVariant: "goblin_shadow" }, { type: "Bandit", count: 3, rarity: "common" }] },
+    { monsters: [{ type: "Ninja", count: 4, rarity: "rare", skinVariant: "ninja_shadow" }, { type: "Goblin", count: 2, rarity: "rare", skinVariant: "goblin_shadow" }] },
+    { monsters: [{ type: "Dark Knight", count: 3, rarity: "epic", skinVariant: "knight_enemy__v7_shadow" }] },
+    { monsters: [{ type: "Dark Knight", count: 1, rarity: "boss", skinVariant: "knight_enemy__v7_shadow" }] },
+  ],
+];
+
+/* ── ACT 2: Open Meadow ─── Bandits, Wild Boar, Forest Spirit — Boss: Necromancer (crimson) */
+const ACT2_WAVES: Wave[][] = [
+  // order 1 — Castle Outskirts
   [
     { monsters: [{ type: "Bandit", count: 4, rarity: "common" }] },
     { monsters: [{ type: "Wild Boar", count: 3, rarity: "common" }, { type: "Bandit", count: 2, rarity: "common" }] },
     { monsters: [{ type: "Wild Boar", count: 2, rarity: "rare" }, { type: "Bandit", count: 3, rarity: "common" }] },
-    { monsters: [{ type: "Bandit", count: 1, rarity: "epic" }] },
+    { monsters: [{ type: "Bandit", count: 1, rarity: "epic", skinVariant: "soldier__v2_emerald" }] },
   ],
-  // order 2 — 3 waves
+  // order 2 — Flower Fields
   [
-    { monsters: [{ type: "Bandit", count: 3, rarity: "common" }, { type: "Wild Boar", count: 3, rarity: "common" }] },
-    { monsters: [{ type: "Wild Boar", count: 2, rarity: "rare" }, { type: "Bandit", count: 2, rarity: "rare" }] },
-    { monsters: [{ type: "Ronin", count: 1, rarity: "epic" }] },
-  ],
-  // order 3 — 4 waves
-  [
-    { monsters: [{ type: "Wild Boar", count: 4, rarity: "common" }, { type: "Bandit", count: 2, rarity: "common" }] },
-    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "common" }, { type: "Wild Boar", count: 1, rarity: "rare" }] },
-    { monsters: [{ type: "Bandit", count: 2, rarity: "rare" }, { type: "Forest Spirit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Wild Boar", count: 3, rarity: "common" }, { type: "Goblin", count: 3, rarity: "common", skinVariant: "goblin_emerald" }] },
+    { monsters: [{ type: "Wild Boar", count: 2, rarity: "rare", skinVariant: "orc__v2_emerald" }, { type: "Bandit", count: 2, rarity: "rare" }] },
     { monsters: [{ type: "Forest Spirit", count: 1, rarity: "epic" }] },
   ],
-  // order 4 — 3 waves
+  // order 3 — Old Mill
+  [
+    { monsters: [{ type: "Bandit", count: 4, rarity: "common" }, { type: "Wild Boar", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "common" }, { type: "Wild Boar", count: 1, rarity: "rare" }] },
+    { monsters: [{ type: "Bandit", count: 2, rarity: "rare", skinVariant: "soldier__v2_emerald" }, { type: "Forest Spirit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Forest Spirit", count: 1, rarity: "epic" }] },
+  ],
+  // order 4 — Riverside Path
   [
     { monsters: [{ type: "Forest Spirit", count: 4, rarity: "common" }, { type: "Wild Boar", count: 2, rarity: "common" }] },
     { monsters: [{ type: "Wild Boar", count: 3, rarity: "rare" }, { type: "Forest Spirit", count: 2, rarity: "rare" }] },
-    { monsters: [{ type: "Forest Spirit", count: 1, rarity: "epic" }, { type: "Bandit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Forest Spirit", count: 1, rarity: "epic", skinVariant: "blue_witch__v2_emerald" }, { type: "Bandit", count: 2, rarity: "rare" }] },
   ],
-  // order 5 — 4 waves, first boss
+  // order 5 — Woodcutter's Camp (mid-boss)
   [
-    { monsters: [{ type: "Bandit", count: 4, rarity: "common" }, { type: "Ronin", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Bandit", count: 4, rarity: "common", skinVariant: "soldier__v2_emerald" }, { type: "Wild Boar", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Wild Boar", count: 3, rarity: "rare" }, { type: "Bandit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Forest Spirit", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Wild Boar", count: 1, rarity: "boss", skinVariant: "orc__v1_crimson" }] },
+  ],
+  // order 6 — Sacred Grove
+  [
+    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "common" }, { type: "Necromancer", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Necromancer", count: 3, rarity: "rare", skinVariant: "necromancer_1_emerald" }, { type: "Forest Spirit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Necromancer", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Forest Spirit", count: 1, rarity: "boss", skinVariant: "blue_witch__v2_emerald" }] },
+  ],
+  // order 7 — Bandit Hideout
+  [
+    { monsters: [{ type: "Bandit", count: 3, rarity: "common" }, { type: "Ronin", count: 2, rarity: "common" }] },
     { monsters: [{ type: "Ronin", count: 3, rarity: "rare" }, { type: "Bandit", count: 2, rarity: "rare" }] },
     { monsters: [{ type: "Ronin", count: 2, rarity: "epic" }] },
-    { monsters: [{ type: "Oni", count: 1, rarity: "boss" }] },
+    { monsters: [{ type: "Ronin", count: 1, rarity: "boss", skinVariant: "ronin_enemy__v2_emerald" }] },
   ],
-  // order 6 — 4 waves
+  // order 8 — Meadow's End (act boss)
   [
-    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "common" }, { type: "Oni", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Forest Spirit", count: 4, rarity: "common" }, { type: "Necromancer", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ronin", count: 3, rarity: "rare" }, { type: "Forest Spirit", count: 1, rarity: "rare" }] },
+    { monsters: [{ type: "Necromancer", count: 2, rarity: "epic", skinVariant: "necromancer_1_crimson" }, { type: "Ronin", count: 1, rarity: "epic" }] },
+    { monsters: [{ type: "Necromancer", count: 1, rarity: "boss", skinVariant: "necromancer_1_crimson" }] },
+  ],
+  // order 9 — Hidden Glade (side)
+  [
+    { monsters: [{ type: "Forest Spirit", count: 5, rarity: "common", skinVariant: "blue_witch__v5_violet" }] },
+    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "rare", skinVariant: "blue_witch__v5_violet" }, { type: "Wild Boar", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Forest Spirit", count: 2, rarity: "epic" }, { type: "Necromancer", count: 1, rarity: "epic" }] },
+  ],
+  // order 10 — Shepherd's Watch (side boss)
+  [
+    { monsters: [{ type: "Bandit", count: 5, rarity: "common" }, { type: "Wild Boar", count: 3, rarity: "common" }] },
+    { monsters: [{ type: "Wild Boar", count: 4, rarity: "rare", skinVariant: "orc__v2_emerald" }, { type: "Bandit", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Ronin", count: 3, rarity: "epic" }] },
+    { monsters: [{ type: "Oni", count: 1, rarity: "boss", skinVariant: "king__v2_emerald" }] },
+  ],
+];
+
+/* ── ACT 3: The Fields ─── Ronin, Ninja, Wild Boar, Dark Knight — Boss: Oni (shadow) */
+const ACT3_WAVES: Wave[][] = [
+  // order 1 — Open Steppe
+  [
+    { monsters: [{ type: "Wild Boar", count: 4, rarity: "common", skinVariant: "orc__v1_crimson" }] },
+    { monsters: [{ type: "Ronin", count: 3, rarity: "common" }, { type: "Wild Boar", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Ronin", count: 2, rarity: "rare" }, { type: "Ninja", count: 3, rarity: "common", skinVariant: "ninja_crimson" }] },
+    { monsters: [{ type: "Ronin", count: 1, rarity: "epic" }] },
+  ],
+  // order 2 — Scorched Farmland
+  [
+    { monsters: [{ type: "Bandit", count: 3, rarity: "common", skinVariant: "soldier__v1_crimson" }, { type: "Ninja", count: 3, rarity: "common" }] },
+    { monsters: [{ type: "Ninja", count: 2, rarity: "rare", skinVariant: "ninja_crimson" }, { type: "Ronin", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Dark Knight", count: 1, rarity: "epic" }] },
+  ],
+  // order 3 — Windswept Plateau
+  [
+    { monsters: [{ type: "Ronin", count: 4, rarity: "common" }, { type: "Wild Boar", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Dark Knight", count: 3, rarity: "common" }, { type: "Ronin", count: 1, rarity: "rare" }] },
+    { monsters: [{ type: "Ninja", count: 2, rarity: "rare" }, { type: "Dark Knight", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Dark Knight", count: 1, rarity: "epic", skinVariant: "knight_enemy__v1_crimson" }] },
+  ],
+  // order 4 — Dry Riverbed
+  [
+    { monsters: [{ type: "Wild Boar", count: 4, rarity: "common" }, { type: "Ronin", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Ronin", count: 3, rarity: "rare" }, { type: "Wild Boar", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Oni", count: 1, rarity: "epic" }, { type: "Ronin", count: 2, rarity: "rare" }] },
+  ],
+  // order 5 — Nomad Encampment (mid-boss)
+  [
+    { monsters: [{ type: "Ninja", count: 4, rarity: "common" }, { type: "Ronin", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Ronin", count: 3, rarity: "rare" }, { type: "Dark Knight", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Oni", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Oni", count: 1, rarity: "boss", skinVariant: "king__v1_crimson" }] },
+  ],
+  // order 6 — Stone Ruins
+  [
+    { monsters: [{ type: "Dark Knight", count: 3, rarity: "common", skinVariant: "knight_enemy__v1_crimson" }, { type: "Oni", count: 2, rarity: "common" }] },
     { monsters: [{ type: "Oni", count: 3, rarity: "rare" }, { type: "Ronin", count: 2, rarity: "rare" }] },
     { monsters: [{ type: "Oni", count: 2, rarity: "epic" }] },
-    { monsters: [{ type: "Tengu", count: 1, rarity: "boss" }] },
+    { monsters: [{ type: "Tengu", count: 1, rarity: "boss", skinVariant: "necromancer_2__v1_crimson" }] },
   ],
-  // order 7 — 4 waves
+  // order 7 — Warlord's Camp
   [
     { monsters: [{ type: "Oni", count: 3, rarity: "common" }, { type: "Tengu", count: 2, rarity: "common" }] },
     { monsters: [{ type: "Tengu", count: 3, rarity: "rare" }, { type: "Oni", count: 2, rarity: "rare" }] },
     { monsters: [{ type: "Tengu", count: 2, rarity: "epic" }] },
-    { monsters: [{ type: "Dragon", count: 1, rarity: "boss" }] },
+    { monsters: [{ type: "Dragon", count: 1, rarity: "boss", skinVariant: "paladin__v1_crimson" }] },
   ],
-  // order 8 — 4 waves, act boss
+  // order 8 — Mountain Gate (act boss)
   [
     { monsters: [{ type: "Ronin", count: 4, rarity: "common" }, { type: "Oni", count: 2, rarity: "rare" }] },
     { monsters: [{ type: "Tengu", count: 3, rarity: "rare" }, { type: "Dragon", count: 1, rarity: "rare" }] },
     { monsters: [{ type: "Dragon", count: 2, rarity: "epic" }, { type: "Tengu", count: 1, rarity: "epic" }] },
-    { monsters: [{ type: "Shogun", count: 1, rarity: "boss" }] },
+    { monsters: [{ type: "Shogun", count: 1, rarity: "boss", skinVariant: "striker__v7_shadow" }] },
   ],
-  // order 9 — 3 waves, side branch
+  // order 9 — Hidden Oasis (side)
   [
-    { monsters: [{ type: "Forest Spirit", count: 5, rarity: "common" }] },
-    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "rare" }, { type: "Ronin", count: 2, rarity: "rare" }] },
-    { monsters: [{ type: "Forest Spirit", count: 2, rarity: "epic" }, { type: "Tengu", count: 1, rarity: "epic" }] },
+    { monsters: [{ type: "Wild Boar", count: 5, rarity: "common", skinVariant: "orc__v3_azure" }] },
+    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "rare" }, { type: "Wild Boar", count: 2, rarity: "rare", skinVariant: "orc__v3_azure" }] },
+    { monsters: [{ type: "Forest Spirit", count: 2, rarity: "epic", skinVariant: "blue_witch__v3_azure" }, { type: "Ronin", count: 1, rarity: "epic" }] },
   ],
-  // order 10 — 4 waves, side branch boss
+  // order 10 — Mercenary Outpost (side boss)
   [
-    { monsters: [{ type: "Bandit", count: 5, rarity: "common" }, { type: "Ronin", count: 3, rarity: "common" }] },
+    { monsters: [{ type: "Bandit", count: 5, rarity: "common", skinVariant: "soldier__v1_crimson" }, { type: "Ronin", count: 3, rarity: "common" }] },
     { monsters: [{ type: "Ronin", count: 4, rarity: "rare" }, { type: "Bandit", count: 2, rarity: "rare" }] },
     { monsters: [{ type: "Oni", count: 3, rarity: "epic" }] },
-    { monsters: [{ type: "Oni", count: 1, rarity: "boss" }] },
+    { monsters: [{ type: "Oni", count: 1, rarity: "boss", skinVariant: "king__v7_shadow" }] },
   ],
 ];
+
+/* ── ACT 4: Snow Mountain ─── Forest Spirit (frost), Tengu, Night Born — Boss: Dragon (frost) */
+const ACT4_WAVES: Wave[][] = [
+  // order 1 — Frozen Trail
+  [
+    { monsters: [{ type: "Wild Boar", count: 4, rarity: "common", skinVariant: "orc__v6_frost" }] },
+    { monsters: [{ type: "Forest Spirit", count: 3, rarity: "common", skinVariant: "blue_witch__v6_frost" }, { type: "Wild Boar", count: 2, rarity: "common", skinVariant: "orc__v6_frost" }] },
+    { monsters: [{ type: "Forest Spirit", count: 2, rarity: "rare", skinVariant: "blue_witch__v6_frost" }, { type: "Goblin", count: 3, rarity: "common", skinVariant: "goblin_frost" }] },
+    { monsters: [{ type: "Forest Spirit", count: 1, rarity: "epic", skinVariant: "blue_witch__v6_frost" }] },
+  ],
+  // order 2 — Ice Bridge
+  [
+    { monsters: [{ type: "Night Born", count: 3, rarity: "common" }, { type: "Forest Spirit", count: 3, rarity: "common", skinVariant: "blue_witch__v6_frost" }] },
+    { monsters: [{ type: "Night Born", count: 2, rarity: "rare", skinVariant: "night_born_frost" }, { type: "Forest Spirit", count: 2, rarity: "rare", skinVariant: "blue_witch__v6_frost" }] },
+    { monsters: [{ type: "Night Born", count: 1, rarity: "epic" }] },
+  ],
+  // order 3 — Blizzard Pass
+  [
+    { monsters: [{ type: "Night Born", count: 4, rarity: "common", skinVariant: "night_born_frost" }, { type: "Ninja", count: 2, rarity: "common", skinVariant: "ninja_frost" }] },
+    { monsters: [{ type: "Tengu", count: 3, rarity: "common" }, { type: "Night Born", count: 1, rarity: "rare" }] },
+    { monsters: [{ type: "Ninja", count: 2, rarity: "rare", skinVariant: "ninja_frost" }, { type: "Tengu", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Tengu", count: 1, rarity: "epic" }] },
+  ],
+  // order 4 — Avalanche Valley
+  [
+    { monsters: [{ type: "Tengu", count: 4, rarity: "common" }, { type: "Night Born", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Night Born", count: 3, rarity: "rare" }, { type: "Tengu", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Tengu", count: 1, rarity: "epic", skinVariant: "necromancer_2__v6_frost" }, { type: "Night Born", count: 2, rarity: "rare" }] },
+  ],
+  // order 5 — Yeti's Domain (mid-boss)
+  [
+    { monsters: [{ type: "Wild Boar", count: 4, rarity: "common", skinVariant: "orc__v6_frost" }, { type: "Night Born", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Night Born", count: 3, rarity: "rare" }, { type: "Wild Boar", count: 2, rarity: "rare", skinVariant: "orc__v6_frost" }] },
+    { monsters: [{ type: "Night Born", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Wild Boar", count: 1, rarity: "boss", skinVariant: "orc__v6_frost" }] },
+  ],
+  // order 6 — Frost Temple
+  [
+    { monsters: [{ type: "Night Born", count: 3, rarity: "common", skinVariant: "night_born_azure" }, { type: "Necromancer", count: 2, rarity: "common", skinVariant: "necromancer_1_frost" }] },
+    { monsters: [{ type: "Necromancer", count: 3, rarity: "rare", skinVariant: "necromancer_1_frost" }, { type: "Night Born", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Necromancer", count: 2, rarity: "epic", skinVariant: "necromancer_1_frost" }] },
+    { monsters: [{ type: "Necromancer", count: 1, rarity: "boss", skinVariant: "necromancer_1_frost" }] },
+  ],
+  // order 7 — Dragon's Peak
+  [
+    { monsters: [{ type: "Tengu", count: 3, rarity: "common" }, { type: "Dragon", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Dragon", count: 3, rarity: "rare" }, { type: "Tengu", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Dragon", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Dragon", count: 1, rarity: "boss", skinVariant: "paladin__v6_frost" }] },
+  ],
+  // order 8 — Summit Fortress (act boss)
+  [
+    { monsters: [{ type: "Night Born", count: 4, rarity: "common" }, { type: "Tengu", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Dragon", count: 3, rarity: "rare" }, { type: "Night Born", count: 1, rarity: "rare", skinVariant: "night_born_frost" }] },
+    { monsters: [{ type: "Dragon", count: 2, rarity: "epic", skinVariant: "paladin__v6_frost" }, { type: "Tengu", count: 1, rarity: "epic" }] },
+    { monsters: [{ type: "Shogun", count: 1, rarity: "boss", skinVariant: "striker__v6_frost" }] },
+  ],
+  // order 9 — Crystal Cavern (side)
+  [
+    { monsters: [{ type: "Night Born", count: 5, rarity: "common", skinVariant: "night_born_azure" }] },
+    { monsters: [{ type: "Night Born", count: 3, rarity: "rare", skinVariant: "night_born_azure" }, { type: "Forest Spirit", count: 2, rarity: "rare", skinVariant: "blue_witch__v3_azure" }] },
+    { monsters: [{ type: "Night Born", count: 2, rarity: "epic", skinVariant: "night_born_azure" }, { type: "Tengu", count: 1, rarity: "epic", skinVariant: "necromancer_2__v3_azure" }] },
+  ],
+  // order 10 — Frozen Shrine (side boss)
+  [
+    { monsters: [{ type: "Forest Spirit", count: 5, rarity: "common", skinVariant: "blue_witch__v6_frost" }, { type: "Night Born", count: 3, rarity: "common", skinVariant: "night_born_frost" }] },
+    { monsters: [{ type: "Night Born", count: 4, rarity: "rare", skinVariant: "night_born_frost" }, { type: "Forest Spirit", count: 2, rarity: "rare", skinVariant: "blue_witch__v6_frost" }] },
+    { monsters: [{ type: "Tengu", count: 3, rarity: "epic", skinVariant: "necromancer_2__v6_frost" }] },
+    { monsters: [{ type: "Tengu", count: 1, rarity: "boss", skinVariant: "necromancer_2__v6_frost" }] },
+  ],
+];
+
+/* ── ACT 5: The Depths ─── Reaper, Night Born (shadow), Necromancer (violet) — Boss: Shogun (golden) */
+const ACT5_WAVES: Wave[][] = [
+  // order 1 — Cave Mouth
+  [
+    { monsters: [{ type: "Night Born", count: 4, rarity: "common", skinVariant: "night_born_shadow" }] },
+    { monsters: [{ type: "Goblin", count: 3, rarity: "common", skinVariant: "goblin_shadow" }, { type: "Night Born", count: 2, rarity: "common", skinVariant: "night_born_shadow" }] },
+    { monsters: [{ type: "Night Born", count: 2, rarity: "rare", skinVariant: "night_born_shadow" }, { type: "Goblin", count: 3, rarity: "common", skinVariant: "goblin_shadow" }] },
+    { monsters: [{ type: "Night Born", count: 1, rarity: "epic", skinVariant: "night_born_shadow" }] },
+  ],
+  // order 2 — Crystal Tunnels
+  [
+    { monsters: [{ type: "Night Born", count: 3, rarity: "common", skinVariant: "night_born_violet" }, { type: "Necromancer", count: 3, rarity: "common", skinVariant: "necromancer_1_violet" }] },
+    { monsters: [{ type: "Necromancer", count: 2, rarity: "rare", skinVariant: "necromancer_1_violet" }, { type: "Night Born", count: 2, rarity: "rare", skinVariant: "night_born_violet" }] },
+    { monsters: [{ type: "Necromancer", count: 1, rarity: "epic", skinVariant: "necromancer_1_violet" }] },
+  ],
+  // order 3 — Underground River
+  [
+    { monsters: [{ type: "Reaper", count: 4, rarity: "common" }, { type: "Night Born", count: 2, rarity: "common", skinVariant: "night_born_shadow" }] },
+    { monsters: [{ type: "Necromancer", count: 3, rarity: "common", skinVariant: "necromancer_1_shadow" }, { type: "Reaper", count: 1, rarity: "rare" }] },
+    { monsters: [{ type: "Night Born", count: 2, rarity: "rare", skinVariant: "night_born_shadow" }, { type: "Reaper", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Reaper", count: 1, rarity: "epic", skinVariant: "reaper__v5_violet" }] },
+  ],
+  // order 4 — Fungal Grotto
+  [
+    { monsters: [{ type: "Necromancer", count: 4, rarity: "common", skinVariant: "necromancer_1_emerald" }, { type: "Night Born", count: 2, rarity: "common", skinVariant: "night_born_emerald" }] },
+    { monsters: [{ type: "Night Born", count: 3, rarity: "rare", skinVariant: "night_born_emerald" }, { type: "Necromancer", count: 2, rarity: "rare", skinVariant: "necromancer_1_emerald" }] },
+    { monsters: [{ type: "Necromancer", count: 1, rarity: "epic", skinVariant: "necromancer_1_emerald" }, { type: "Reaper", count: 2, rarity: "rare" }] },
+  ],
+  // order 5 — Bone Chamber (mid-boss)
+  [
+    { monsters: [{ type: "Reaper", count: 4, rarity: "common" }, { type: "Night Born", count: 2, rarity: "common", skinVariant: "night_born_shadow" }] },
+    { monsters: [{ type: "Reaper", count: 3, rarity: "rare", skinVariant: "reaper__v7_shadow" }, { type: "Necromancer", count: 2, rarity: "rare", skinVariant: "necromancer_1_shadow" }] },
+    { monsters: [{ type: "Reaper", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Reaper", count: 1, rarity: "boss", skinVariant: "reaper__v5_violet" }] },
+  ],
+  // order 6 — Lava Vein
+  [
+    { monsters: [{ type: "Oni", count: 3, rarity: "common", skinVariant: "king__v1_crimson" }, { type: "Dragon", count: 2, rarity: "common" }] },
+    { monsters: [{ type: "Dragon", count: 3, rarity: "rare", skinVariant: "paladin__v1_crimson" }, { type: "Oni", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Dragon", count: 2, rarity: "epic" }] },
+    { monsters: [{ type: "Dragon", count: 1, rarity: "boss", skinVariant: "paladin__v1_crimson" }] },
+  ],
+  // order 7 — Abyssal Rift
+  [
+    { monsters: [{ type: "Reaper", count: 3, rarity: "common", skinVariant: "reaper__v7_shadow" }, { type: "Tengu", count: 2, rarity: "common", skinVariant: "necromancer_2__v7_shadow" }] },
+    { monsters: [{ type: "Tengu", count: 3, rarity: "rare", skinVariant: "necromancer_2__v7_shadow" }, { type: "Reaper", count: 2, rarity: "rare" }] },
+    { monsters: [{ type: "Reaper", count: 2, rarity: "epic", skinVariant: "reaper__v7_shadow" }] },
+    { monsters: [{ type: "Dark Knight", count: 1, rarity: "boss", skinVariant: "knight_enemy__v5_violet" }] },
+  ],
+  // order 8 — Heart of the Mountain (act boss)
+  [
+    { monsters: [{ type: "Reaper", count: 4, rarity: "common" }, { type: "Dragon", count: 2, rarity: "rare", skinVariant: "paladin__v7_shadow" }] },
+    { monsters: [{ type: "Dark Knight", count: 3, rarity: "rare", skinVariant: "knight_enemy__v7_shadow" }, { type: "Reaper", count: 1, rarity: "rare", skinVariant: "reaper__v5_violet" }] },
+    { monsters: [{ type: "Dragon", count: 2, rarity: "epic", skinVariant: "paladin__v7_shadow" }, { type: "Reaper", count: 1, rarity: "epic", skinVariant: "reaper__v7_shadow" }] },
+    { monsters: [{ type: "Shogun", count: 1, rarity: "boss", skinVariant: "striker__v4_golden" }] },
+  ],
+  // order 9 — Hidden Grotto (side)
+  [
+    { monsters: [{ type: "Necromancer", count: 5, rarity: "common", skinVariant: "necromancer_1_golden" }] },
+    { monsters: [{ type: "Necromancer", count: 3, rarity: "rare", skinVariant: "necromancer_1_golden" }, { type: "Reaper", count: 2, rarity: "rare", skinVariant: "reaper__v4_golden" }] },
+    { monsters: [{ type: "Reaper", count: 2, rarity: "epic", skinVariant: "reaper__v4_golden" }, { type: "Necromancer", count: 1, rarity: "epic", skinVariant: "necromancer_1_golden" }] },
+  ],
+  // order 10 — Poison Depths (side boss)
+  [
+    { monsters: [{ type: "Night Born", count: 5, rarity: "common", skinVariant: "night_born_emerald" }, { type: "Necromancer", count: 3, rarity: "common", skinVariant: "necromancer_1_emerald" }] },
+    { monsters: [{ type: "Necromancer", count: 4, rarity: "rare", skinVariant: "necromancer_1_emerald" }, { type: "Night Born", count: 2, rarity: "rare", skinVariant: "night_born_emerald" }] },
+    { monsters: [{ type: "Reaper", count: 3, rarity: "epic", skinVariant: "reaper__v2_emerald" }] },
+    { monsters: [{ type: "Reaper", count: 1, rarity: "boss", skinVariant: "reaper__v2_emerald" }] },
+  ],
+];
+
+/** Per-act wave tables (index 0 = act 1, etc.) */
+const ACT_WAVE_TABLES: Wave[][][] = [ACT1_WAVES, ACT2_WAVES, ACT3_WAVES, ACT4_WAVES, ACT5_WAVES];
 
 /** Base rewards per order slot — defined in balance.ts */
 
@@ -301,6 +600,8 @@ function buildActLocations(actNumber: number): Location[] {
       requiredLocationId = prefix + reqBaseId;
     }
 
+    const actWaves = ACT_WAVE_TABLES[actNumber - 1] || ACT_WAVE_TABLES[0];
+
     return {
       id,
       name: loc.name,
@@ -308,7 +609,7 @@ function buildActLocations(actNumber: number): Location[] {
       order,
       act: actNumber,
       requiredLocationId,
-      waves: WAVE_TEMPLATES[i],
+      waves: actWaves[i],
       rewards: B.LOCATION_REWARDS[i],
     };
   });

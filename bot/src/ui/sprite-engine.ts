@@ -208,6 +208,26 @@ export class SpriteEngine {
     }
   }
 
+  /**
+   * Returns the source frame size {w, h} of the current animation's frames.
+   * All frames in a single animation share the same size (Aseprite standard).
+   */
+  getFrameSize(): { w: number; h: number } | null {
+    if (!this.current) return null;
+    const f = this.current.frames[0];
+    return { w: f.w, h: f.h };
+  }
+
+  /**
+   * Returns the source frame size {w, h} of a named animation (e.g. "idle").
+   */
+  getAnimFrameSize(name: string): { w: number; h: number } | null {
+    const anim = this.anims.get(name);
+    if (!anim || anim.frames.length === 0) return null;
+    const f = anim.frames[0];
+    return { w: f.w, h: f.h };
+  }
+
   isPlaying(): boolean {
     return this.playing;
   }

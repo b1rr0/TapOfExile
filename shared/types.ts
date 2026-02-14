@@ -64,6 +64,8 @@ export interface MonsterSpawn {
   type: string;
   count: number;
   rarity: string;
+  /** Color variant subfolder (e.g. "v1_crimson") — omit for base skin */
+  skinVariant?: string;
 }
 
 export interface Wave {
