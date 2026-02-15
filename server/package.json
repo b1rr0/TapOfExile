@@ -12,7 +12,9 @@
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/database/data-source.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
-    "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts"
+    "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
+    "test": "jest --config jest.config.ts",
+    "test:drops": "jest --config jest.config.ts src/tests/drop-rates.spec.ts --verbose"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.0",
@@ -44,9 +46,12 @@
     "@nestjs/cli": "^10.4.0",
     "@nestjs/schematics": "^10.2.0",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.6.0"

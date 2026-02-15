@@ -34,7 +34,7 @@ export class PlayerService {
   }
 
   /**
-   * Get the player's active PlayerLeague (with characters + bag).
+   * Get the player's active PlayerLeague (with characters, equipment, items).
    */
   async getActivePlayerLeague(telegramId: string): Promise<PlayerLeague> {
     const player = await this.getPlayer(telegramId);
@@ -48,7 +48,13 @@ export class PlayerService {
         playerTelegramId: telegramId,
         leagueId: player.activeLeagueId,
       },
-      relations: ['league', 'characters', 'bag'],
+      relations: [
+        'league',
+        'characters',
+        'characters.equipmentSlots',
+        'characters.equipmentSlots.item',
+        'items',
+      ],
     });
 
     if (!pl) {
@@ -59,12 +65,18 @@ export class PlayerService {
   }
 
   /**
-   * Get all PlayerLeagues for a player (with characters).
+   * Get all PlayerLeagues for a player (with characters + equipment + items).
    */
   async getAllPlayerLeagues(telegramId: string): Promise<PlayerLeague[]> {
     return this.playerLeagueRepo.find({
       where: { playerTelegramId: telegramId },
-      relations: ['league', 'characters', 'bag'],
+      relations: [
+        'league',
+        'characters',
+        'characters.equipmentSlots',
+        'characters.equipmentSlots.item',
+        'items',
+      ],
     });
   }
 
@@ -84,6 +96,22 @@ export class PlayerService {
         // Calculate daily bonus remaining
         const bonusUsed = c.dailyBonusResetDate === today ? c.dailyBonusWinsUsed : 0;
         const dailyBonusRemaining = DAILY_BONUS_WINS_MAX - bonusUsed;
+
+        // Build equipment map from EquipmentSlot relations (same shape as old JSONB)
+        const equipmentMap: Record<string, any> = {};
+        for (const slot of c.equipmentSlots || []) {
+          if (slot.item) {
+            equipmentMap[slot.slotId] = {
+              bagItemId: slot.item.id,
+              flaskType: slot.item.flaskType,
+              quality: slot.item.quality,
+              name: slot.item.name,
+              maxCharges: slot.item.maxCharges,
+              currentCharges: slot.item.currentCharges,
+              healPercent: slot.item.healPercent,
+            };
+          }
+        }
 
         allCharacters.push({
           id: c.id,
@@ -118,7 +146,7 @@ export class PlayerService {
           },
           inventory: {
             items: [],
-            equipment: c.equipment,
+            equipment: equipmentMap,
           },
           endgame: {
             unlocked: c.endgameUnlocked,
@@ -142,21 +170,27 @@ export class PlayerService {
         type: pl.league?.type,
       },
       characters: allCharacters,
-      // Bag is per-league (shared among all characters in the league)
-      bag: (pl.bag || []).map((item) => ({
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        quality: item.quality,
-        level: item.level,
-        icon: item.icon,
-        acquiredAt: Number(item.acquiredAt),
-        tier: item.tier,
-        locationId: item.locationId,
-        locationAct: item.locationAct,
-        bossId: item.bossId,
-        bossKeyTier: item.bossKeyTier,
-      })),
+      // Bag: only items with status='bag' (per-league, shared among characters)
+      bag: (pl.items || [])
+        .filter((item) => item.status === 'bag')
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          quality: item.quality,
+          level: item.level,
+          icon: item.icon,
+          acquiredAt: Number(item.acquiredAt),
+          tier: item.tier,
+          locationId: item.locationId,
+          locationAct: item.locationAct,
+          bossId: item.bossId,
+          bossKeyTier: item.bossKeyTier,
+          flaskType: item.flaskType,
+          maxCharges: item.maxCharges,
+          currentCharges: item.currentCharges,
+          healPercent: item.healPercent,
+        })),
       meta: {
         lastSaveTime: Number(player.lastSaveTime),
         totalTaps: Number(player.totalTaps),

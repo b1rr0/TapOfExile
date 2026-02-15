@@ -3,11 +3,13 @@ import {
   PrimaryColumn,
   Column,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import type { ElementalDamage, ElementalResistance } from '@shared/types';
 import { Player } from './player.entity';
 import { PlayerLeague } from './player-league.entity';
+import { EquipmentSlot } from './equipment-slot.entity';
 
 @Entity('characters')
 export class Character {
@@ -102,9 +104,9 @@ export class Character {
   @Column({ type: 'int', default: 1 })
   currentAct: number;
 
-  // Inventory (character-bound equipment)
-  @Column({ type: 'jsonb', default: '{}' })
-  equipment: Record<string, unknown>;
+  // Equipment slots (relational — replaces old JSONB equipment column)
+  @OneToMany(() => EquipmentSlot, (es) => es.character, { cascade: true })
+  equipmentSlots: EquipmentSlot[];
 
   // Endgame state
   @Column({ type: 'boolean', default: false })

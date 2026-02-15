@@ -171,6 +171,22 @@ export class CombatManager {
       });
     });
 
+    // Potion used — update HP and notify UI
+    this._socket.on("combat:potion-used", (result: any) => {
+      this._playerHp = result.playerHp;
+      this._playerMaxHp = result.playerMaxHp ?? this._playerMaxHp;
+      this.events.emit("playerHpChanged", {
+        hp: this._playerHp,
+        maxHp: this._playerMaxHp,
+      });
+      this.events.emit("potionUsed", {
+        slot: result.slot,
+        healAmount: result.healAmount,
+        remainingCharges: result.remainingCharges,
+        maxCharges: result.maxCharges,
+      });
+    });
+
     // Error handling — also reset tapping flag so the player isn't stuck
     this._socket.on("combat:error", (data: any) => {
       console.warn("[CombatManager] Socket error:", data.message);
@@ -364,6 +380,16 @@ export class CombatManager {
     return this._mapConfig !== null;
   }
 
+  // ─── Potion ──────────────────────────────────────────────────
+
+  usePotion(slot: 'consumable-1' | 'consumable-2'): void {
+    if (!this._sessionId || !this._socket) return;
+    this._socket.emit("combat:use-potion", {
+      sessionId: this._sessionId,
+      slot,
+    });
+  }
+
   // ─── Tap ────────────────────────────────────────────────────
 
   handleTap(): void {
@@ -450,6 +476,7 @@ export class CombatManager {
       this._socket.off("combat:tap-result");
       this._socket.off("combat:player-died");
       this._socket.off("combat:reconnected");
+      this._socket.off("combat:potion-used");
       this._socket.off("combat:error");
       this._socket.off("combat:started");
       this._socket.off("combat:completed");
@@ -542,6 +569,7 @@ export class CombatManager {
             this.events.emit("locationComplete", {
               locationId: result.locationId || this._location?.id,
               rewards: { gold: result.totalGold, xp: result.totalXp },
+              mapDrops: result.mapDrops || [],
             });
           }
         } catch (err) {

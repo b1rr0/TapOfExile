@@ -14,7 +14,8 @@ import { Character } from '../shared/entities/character.entity';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { CombatSession } from '../shared/entities/combat-session.entity';
-import { BagItem } from '../shared/entities/bag-item.entity';
+import { Item } from '../shared/entities/item.entity';
+import { EquipmentSlot } from '../shared/entities/equipment-slot.entity';
 import { B } from '../shared/constants/balance.constants';
 import {
   getTierDef,
@@ -27,7 +28,42 @@ import { StartMapDto } from './dto/start-map.dto';
 import { computeElementalDamage } from './elemental-damage';
 import { statsAtLevel, specialAtLevel, MAX_LEVEL, CLASS_DEFS } from '@shared/class-stats';
 import { pickRandomAttack } from '@shared/monster-attacks';
-import type { DamageBreakdown } from '@shared/types';
+import type { DamageBreakdown, ElementalDamage, ElementalResistance } from '@shared/types';
+import {
+  rollLoot,
+  getLootPool,
+  getFlaskDef,
+  QUALITY_CHARGES,
+  type LootEntry,
+} from '@shared/potion-drops';
+
+/** Cached character stats — loaded once at combat start, used from Redis for 0 DB hits. */
+export interface CachedCharStats {
+  tapDamage: number;
+  critChance: number;
+  critMultiplier: number;
+  dodgeChance: number;
+  specialValue: number;
+  classId: string;
+  elementalDamage: ElementalDamage;
+  resistance: ElementalResistance;
+  level: number;
+  xp: string;
+  xpToNext: string;
+  maxHp: number;
+  hp: number;
+}
+
+/** Cached potion data — stored in Redis session for 0 DB hits during combat. */
+export interface CachedPotion {
+  itemId: string;
+  flaskType: string;
+  quality: string;
+  name: string;
+  maxCharges: number;
+  currentCharges: number;
+  healPercent: number;
+}
 
 export interface RedisCombatSession {
   id: string;
@@ -44,6 +80,8 @@ export interface RedisCombatSession {
   lastTapTime: number;
   startedAt: number;
   locationId?: string;
+  /** Act number (1-5) for location mode — used for potion drop tables */
+  locationAct?: number;
   mapTier?: number;
   bossId?: string;
   direction?: string;
@@ -55,6 +93,15 @@ export interface RedisCombatSession {
   lastEnemyAttackTime: number;
   /** Time (ms) until next enemy attack — per-attack speed system */
   nextAttackIn: number;
+  /** Cached character stats — 0 DB hits in processTap/processEnemyTick */
+  cachedStats: CachedCharStats;
+  /** Equipped potions — 0 DB hits in usePotion */
+  equippedPotions: {
+    'consumable-1': CachedPotion | null;
+    'consumable-2': CachedPotion | null;
+  };
+  /** Track if any potion charges changed (for persist at combat end) */
+  potionChargesChanged: boolean;
 }
 
 export interface EnemyAttackResult {
@@ -93,8 +140,10 @@ export class CombatService {
     private playerLeagueRepo: Repository<PlayerLeague>,
     @InjectRepository(CombatSession)
     private sessionRepo: Repository<CombatSession>,
-    @InjectRepository(BagItem)
-    private bagRepo: Repository<BagItem>,
+    @InjectRepository(Item)
+    private itemRepo: Repository<Item>,
+    @InjectRepository(EquipmentSlot)
+    private equipSlotRepo: Repository<EquipmentSlot>,
   ) {}
 
   sessionKey(id: string) {
@@ -198,6 +247,79 @@ export class CombatService {
   }
 
   /**
+   * Build CachedCharStats from a Character entity.
+   */
+  private buildCachedStats(char: Character): CachedCharStats {
+    return {
+      tapDamage: char.tapDamage,
+      critChance: char.critChance,
+      critMultiplier: char.critMultiplier,
+      dodgeChance: char.dodgeChance,
+      specialValue: char.specialValue,
+      classId: char.classId,
+      elementalDamage: char.elementalDamage || { physical: 1.0 },
+      resistance: char.resistance || {},
+      level: char.level,
+      xp: char.xp,
+      xpToNext: char.xpToNext,
+      maxHp: char.maxHp,
+      hp: char.hp,
+    };
+  }
+
+  /**
+   * Load equipped potions from equipment_slots for a character.
+   */
+  private async buildEquippedPotions(
+    characterId: string,
+  ): Promise<{ 'consumable-1': CachedPotion | null; 'consumable-2': CachedPotion | null }> {
+    const result: { 'consumable-1': CachedPotion | null; 'consumable-2': CachedPotion | null } = {
+      'consumable-1': null,
+      'consumable-2': null,
+    };
+
+    const slots = await this.equipSlotRepo.find({
+      where: { characterId },
+      relations: ['item'],
+    });
+
+    for (const slot of slots) {
+      if (
+        (slot.slotId === 'consumable-1' || slot.slotId === 'consumable-2') &&
+        slot.item &&
+        slot.item.type === 'potion'
+      ) {
+        result[slot.slotId] = {
+          itemId: slot.item.id,
+          flaskType: slot.item.flaskType!,
+          quality: slot.item.quality,
+          name: slot.item.name,
+          maxCharges: slot.item.maxCharges!,
+          currentCharges: slot.item.currentCharges!,
+          healPercent: slot.item.healPercent!,
+        };
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Persist potion charge changes from Redis back to the items table.
+   */
+  private async persistPotionCharges(session: RedisCombatSession): Promise<void> {
+    if (!session.potionChargesChanged) return;
+    for (const slot of ['consumable-1', 'consumable-2'] as const) {
+      const potion = session.equippedPotions[slot];
+      if (potion) {
+        await this.itemRepo.update(potion.itemId, {
+          currentCharges: potion.currentCharges,
+        });
+      }
+    }
+  }
+
+  /**
    * Start a location combat session.
    * Validates that the player has completed prerequisite locations.
    */
@@ -218,6 +340,10 @@ export class CombatService {
       actNumber,
     );
 
+    // Cache stats + potions at combat start (only DB reads happen here)
+    const cachedStats = this.buildCachedStats(char);
+    const equippedPotions = await this.buildEquippedPotions(char.id);
+
     const now = Date.now();
     const sessionId = uuidv4();
     const session: RedisCombatSession = {
@@ -235,11 +361,15 @@ export class CombatService {
       lastTapTime: 0,
       startedAt: now,
       locationId,
+      locationAct: actNumber,
       playerLevel: char.level,
       playerCurrentHp: char.maxHp,
       playerMaxHp: char.maxHp,
       lastEnemyAttackTime: now,
       nextAttackIn: this.getFirstAttackDelay(queue[0]),
+      cachedStats,
+      equippedPotions,
+      potionChargesChanged: false,
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -282,6 +412,10 @@ export class CombatService {
       mapTier,
     );
 
+    // Cache stats + potions at combat start
+    const cachedStats = this.buildCachedStats(char);
+    const equippedPotions = await this.buildEquippedPotions(char.id);
+
     const now = Date.now();
     const sessionId = uuidv4();
     const session: RedisCombatSession = {
@@ -305,6 +439,9 @@ export class CombatService {
       playerMaxHp: char.maxHp,
       lastEnemyAttackTime: now,
       nextAttackIn: this.getFirstAttackDelay(queue[0]),
+      cachedStats,
+      equippedPotions,
+      potionChargesChanged: false,
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -338,8 +475,8 @@ export class CombatService {
     const { playerLeague } = await this.getActiveCharacterInfo(telegramId);
 
     // Find the map key in bag
-    const key = await this.bagRepo.findOne({
-      where: { id: dto.mapKeyItemId, playerLeagueId: playerLeague.id },
+    const key = await this.itemRepo.findOne({
+      where: { id: dto.mapKeyItemId, playerLeagueId: playerLeague.id, status: 'bag' },
     });
     if (!key) {
       throw new NotFoundException('Map key not found in bag');
@@ -372,8 +509,8 @@ export class CombatService {
       waves = sharedGetWavesForTier(mapTier);
     }
 
-    // Remove the key from bag
-    await this.bagRepo.remove(key);
+    // Remove the key from bag (consumed)
+    await this.itemRepo.remove(key);
 
     // Start the combat session
     const result = await this.startMap(
@@ -421,7 +558,7 @@ export class CombatService {
    */
   private processEnemyAttacks(
     session: RedisCombatSession,
-    char: Character,
+    stats: CachedCharStats,
     now: number,
   ): { attacks: EnemyAttackResult[]; playerDead: boolean } {
     const monster = session.monsterQueue[session.currentIndex];
@@ -435,7 +572,7 @@ export class CombatService {
     const hasAttackPool = monster.attacks && monster.attacks.length > 0;
     let timeBank = elapsed; // ms available to spend on attacks
     const attacks: EnemyAttackResult[] = [];
-    const charResistance = char.resistance || {};
+    const charResistance = stats.resistance || {};
     let attackCount = 0;
 
     // Safety: ensure nextAttackIn is a valid positive number (guards against
@@ -457,7 +594,7 @@ export class CombatService {
       const attackName = chosenAttack ? chosenAttack.name : undefined;
 
       // Dodge check
-      if (Math.random() < char.dodgeChance) {
+      if (Math.random() < stats.dodgeChance) {
         attacks.push({ dodged: true, damage: 0, breakdown: null, attackName });
         // Next attack delay: attack speed (for next picked) — short for dodged
         session.nextAttackIn = chosenAttack
@@ -467,8 +604,8 @@ export class CombatService {
       }
 
       // Warrior block check (class special: blockChance)
-      const classDef = CLASS_DEFS[char.classId];
-      if (classDef?.special.id === 'blockChance' && Math.random() < char.specialValue) {
+      const classDef = CLASS_DEFS[stats.classId];
+      if (classDef?.special.id === 'blockChance' && Math.random() < stats.specialValue) {
         attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null, attackName });
         session.nextAttackIn = chosenAttack
           ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
@@ -528,12 +665,8 @@ export class CombatService {
       return { attacks: [], playerHp: 0, playerMaxHp: session.playerMaxHp, playerDead: true };
     }
 
-    const char = await this.charRepo.findOne({
-      where: { id: session.characterId },
-    });
-    if (!char) return null;
-
-    const { attacks, playerDead } = this.processEnemyAttacks(session, char, Date.now());
+    // Use cached stats from Redis — ZERO DB hit
+    const { attacks, playerDead } = this.processEnemyAttacks(session, session.cachedStats, Date.now());
 
     // Persist updated HP and lastEnemyAttackTime
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -582,17 +715,14 @@ export class CombatService {
       };
     }
 
-    // Get character stats from DB (server-authoritative)
-    const char = await this.charRepo.findOne({
-      where: { id: session.characterId },
-    });
-    if (!char) throw new NotFoundException('Character not found');
+    // Use cached stats from Redis — ZERO DB read
+    const stats = session.cachedStats;
 
     // Calculate raw damage (before elemental split)
-    const isCrit = Math.random() < char.critChance;
-    let rawDamage = char.tapDamage;
+    const isCrit = Math.random() < stats.critChance;
+    let rawDamage = stats.tapDamage;
     if (isCrit) {
-      rawDamage = Math.floor(rawDamage * char.critMultiplier);
+      rawDamage = Math.floor(rawDamage * stats.critMultiplier);
     }
 
     // Apply damage to current monster
@@ -602,7 +732,7 @@ export class CombatService {
     }
 
     // Elemental damage: split by profile, reduce by resistance
-    const damageProfile = char.elementalDamage || { physical: 1.0 };
+    const damageProfile = stats.elementalDamage || { physical: 1.0 };
     const monsterResistance = monster.resistance || {};
     const breakdown = computeElementalDamage(rawDamage, damageProfile, monsterResistance);
 
@@ -613,9 +743,9 @@ export class CombatService {
     let killed = false;
     let xpGained = 0;
     let leveledUp = false;
-    let charLevel = char.level;
-    let charXp = Number(char.xp);
-    let charXpToNext = Number(char.xpToNext);
+    let charLevel = stats.level;
+    let charXp = Number(stats.xp);
+    let charXpToNext = Number(stats.xpToNext);
 
     if (monster.currentHp <= 0) {
       monster.currentHp = 0;
@@ -630,46 +760,70 @@ export class CombatService {
       session.totalXpEarned += scaledXp;
       xpGained = scaledXp;
 
-      // ── Award XP immediately to Character (per-kill) ──
-      const prevLevel = char.level;
-      char.xp = String(BigInt(char.xp) + BigInt(scaledXp));
+      // ── Award XP immediately (update cached stats in-place) ──
+      const prevLevel = stats.level;
+      stats.xp = String(BigInt(stats.xp) + BigInt(scaledXp));
 
       while (
-        char.level < MAX_LEVEL &&
-        BigInt(char.xp) >= BigInt(char.xpToNext)
+        stats.level < MAX_LEVEL &&
+        BigInt(stats.xp) >= BigInt(stats.xpToNext)
       ) {
-        char.xp = String(BigInt(char.xp) - BigInt(char.xpToNext));
-        char.level++;
-        char.xpToNext = String(
-          Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, char.level - 1)),
+        stats.xp = String(BigInt(stats.xp) - BigInt(stats.xpToNext));
+        stats.level++;
+        stats.xpToNext = String(
+          Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, stats.level - 1)),
         );
 
         // Apply class-based stat growth
-        const newStats = statsAtLevel(char.classId, char.level);
-        char.maxHp = newStats.hp;
-        char.hp = newStats.hp;
-        char.tapDamage = newStats.tapDamage;
-        char.critChance = newStats.critChance;
-        char.critMultiplier = newStats.critMultiplier;
-        char.dodgeChance = newStats.dodgeChance;
-        char.specialValue = specialAtLevel(char.classId, char.level);
+        const newStatsForLevel = statsAtLevel(stats.classId, stats.level);
+        stats.maxHp = newStatsForLevel.hp;
+        stats.hp = newStatsForLevel.hp;
+        stats.tapDamage = newStatsForLevel.tapDamage;
+        stats.critChance = newStatsForLevel.critChance;
+        stats.critMultiplier = newStatsForLevel.critMultiplier;
+        stats.dodgeChance = newStatsForLevel.dodgeChance;
+        stats.specialValue = specialAtLevel(stats.classId, stats.level);
       }
 
       // Clamp XP at max level
-      if (char.level >= MAX_LEVEL) {
-        char.xp = '0';
+      if (stats.level >= MAX_LEVEL) {
+        stats.xp = '0';
       }
 
-      leveledUp = char.level > prevLevel;
-      charLevel = char.level;
-      charXp = Number(char.xp);
-      charXpToNext = Number(char.xpToNext);
+      leveledUp = stats.level > prevLevel;
+      charLevel = stats.level;
+      charXp = Number(stats.xp);
+      charXpToNext = Number(stats.xpToNext);
 
       // Update session's playerLevel so XP-scaling stays current
-      session.playerLevel = char.level;
+      session.playerLevel = stats.level;
 
-      // Persist character XP/level to DB immediately
-      await this.charRepo.save(char);
+      // Also update playerMaxHp if leveled up (for heal calculations)
+      if (leveledUp) {
+        session.playerMaxHp = stats.maxHp;
+      }
+
+      // Persist XP/level to DB (only DB write in hot path)
+      if (leveledUp) {
+        await this.charRepo.update(session.characterId, {
+          level: stats.level,
+          xp: stats.xp,
+          xpToNext: stats.xpToNext,
+          maxHp: stats.maxHp,
+          hp: stats.hp,
+          tapDamage: stats.tapDamage,
+          critChance: stats.critChance,
+          critMultiplier: stats.critMultiplier,
+          dodgeChance: stats.dodgeChance,
+          specialValue: stats.specialValue,
+        });
+      } else {
+        await this.charRepo.update(session.characterId, {
+          xp: stats.xp,
+          level: stats.level,
+          xpToNext: stats.xpToNext,
+        });
+      }
 
       session.currentIndex++;
       // Reset enemy attack timer for new monster
@@ -800,8 +954,11 @@ export class CombatService {
       await this.charRepo.save(char);
     }
 
+    // Persist potion charge changes to items table
+    await this.persistPotionCharges(session);
+
     // Roll and persist map drops for endgame sessions
-    let mapDrops: Partial<BagItem>[] = [];
+    let mapDrops: Partial<Item>[] = [];
     if (session.mode === 'map' || session.mode === 'boss_map') {
       const isBoss = session.mode === 'boss_map';
       const direction = session.direction || session.bossId || null;
@@ -814,6 +971,42 @@ export class CombatService {
         await this.lootService.addItemsToBag(
           session.playerLeagueId,
           mapDrops,
+        );
+      }
+    }
+
+    // Roll loot drops (3 independent rolls, ALL combat modes)
+    let lootDrops: Partial<Item>[] = [];
+    {
+      const actOrTier = session.mode === 'location'
+        ? (session.locationAct || 1)
+        : (session.mapTier || 1);
+      const pool = getLootPool(session.mode, actOrTier);
+      const wonEntries = rollLoot(pool);
+
+      for (const entry of wonEntries) {
+        if (entry.result.type === 'potion') {
+          const flask = getFlaskDef(entry.result.flaskType);
+          const maxCharges = QUALITY_CHARGES[entry.result.quality] ?? 2;
+          lootDrops.push({
+            id: `potion_${entry.result.flaskType}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            name: flask.name,
+            type: 'potion',
+            quality: entry.result.quality,
+            flaskType: entry.result.flaskType,
+            maxCharges,
+            currentCharges: maxCharges,
+            healPercent: flask.healPercent,
+            icon: 'potion',
+            acquiredAt: String(Date.now()),
+          });
+        }
+      }
+
+      if (lootDrops.length > 0) {
+        await this.lootService.addItemsToBag(
+          session.playerLeagueId,
+          lootDrops,
         );
       }
     }
@@ -846,11 +1039,11 @@ export class CombatService {
       totalXp: session.totalXpEarned,
       totalTaps: session.totalTaps,
       monstersKilled: session.monsterQueue.length,
-      level: char ? char.level : undefined,
-      xp: char ? Number(char.xp) : undefined,
-      xpToNext: char ? Number(char.xpToNext) : undefined,
+      level: char ? char.level : session.cachedStats.level,
+      xp: char ? Number(char.xp) : Number(session.cachedStats.xp),
+      xpToNext: char ? Number(char.xpToNext) : Number(session.cachedStats.xpToNext),
       gold: Number(playerLeague.gold),
-      mapDrops: mapDrops.map((d) => ({
+      mapDrops: [...mapDrops, ...lootDrops].map((d) => ({
         id: d.id,
         name: d.name,
         type: d.type,
@@ -859,6 +1052,10 @@ export class CombatService {
         icon: d.icon,
         bossId: d.bossId,
         bossKeyTier: d.bossKeyTier,
+        flaskType: d.flaskType,
+        maxCharges: d.maxCharges,
+        currentCharges: d.currentCharges,
+        healPercent: d.healPercent,
       })),
       locationId: session.locationId || null,
       dailyBonusRemaining,
@@ -867,6 +1064,7 @@ export class CombatService {
 
   /**
    * Flee from combat (abandon session, no rewards).
+   * Potion charges consumed during the run are still spent.
    */
   async fleeCombat(telegramId: string, sessionId: string) {
     const session = await this.redis.getJson<RedisCombatSession>(
@@ -875,6 +1073,9 @@ export class CombatService {
     if (!session || session.playerId !== telegramId) {
       throw new NotFoundException('Combat session not found');
     }
+
+    // Persist potion charge changes
+    await this.persistPotionCharges(session);
 
     await this.redis.del(this.sessionKey(sessionId));
 
@@ -891,6 +1092,9 @@ export class CombatService {
     if (!session || session.playerId !== telegramId) {
       throw new NotFoundException('Combat session not found');
     }
+
+    // Persist potion charge changes
+    await this.persistPotionCharges(session);
 
     // Save audit record with 'died' status
     const auditSession = this.sessionRepo.create({
@@ -915,5 +1119,61 @@ export class CombatService {
     await this.redis.del(this.sessionKey(sessionId));
 
     return { success: true };
+  }
+
+  // ─── Potion usage ──────────────────────────────────────
+
+  /**
+   * Use a potion from an equipment consumable slot during combat.
+   * Redis-only — ZERO DB hits. Charges persisted at combat end.
+   */
+  async usePotion(
+    telegramId: string,
+    sessionId: string,
+    slot: 'consumable-1' | 'consumable-2',
+  ) {
+    const session = await this.redis.getJson<RedisCombatSession>(
+      this.sessionKey(sessionId),
+    );
+    if (!session || session.playerId !== telegramId) {
+      throw new NotFoundException('Combat session not found');
+    }
+    if (session.playerCurrentHp <= 0) {
+      throw new BadRequestException('Player is dead');
+    }
+
+    // Read from cached potion data — ZERO DB hit
+    const potionData = session.equippedPotions[slot];
+    if (!potionData || !potionData.flaskType) {
+      throw new BadRequestException('No potion in that slot');
+    }
+    if (potionData.currentCharges <= 0) {
+      throw new BadRequestException('No charges remaining');
+    }
+
+    // Calculate heal
+    const healAmount = Math.floor(session.playerMaxHp * potionData.healPercent);
+    const oldHp = session.playerCurrentHp;
+    session.playerCurrentHp = Math.min(
+      session.playerMaxHp,
+      session.playerCurrentHp + healAmount,
+    );
+    const actualHeal = session.playerCurrentHp - oldHp;
+
+    // Decrement charges in Redis only
+    potionData.currentCharges--;
+    session.potionChargesChanged = true;
+
+    // Persist to Redis — ZERO DB write
+    await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
+
+    return {
+      slot,
+      healAmount: actualHeal,
+      playerHp: session.playerCurrentHp,
+      playerMaxHp: session.playerMaxHp,
+      remainingCharges: potionData.currentCharges,
+      maxCharges: potionData.maxCharges,
+    };
   }
 }

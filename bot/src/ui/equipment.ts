@@ -170,9 +170,10 @@ export class Equipment {
     };
     this.events.on("goldChanged", this._onGoldChanged);
 
-    // Sync initial gold when state is loaded
+    // Sync initial gold + potion slots when state is loaded
     this._onStateLoaded = (state: GameData): void => {
       if (this._goldEl && state.player) this._goldEl.textContent = String(state.player.gold);
+      this._renderPotionSlots(state);
     };
     this.events.on("stateLoaded", this._onStateLoaded);
 
@@ -224,6 +225,37 @@ export class Equipment {
     this._el!.addEventListener("transitionend", onDone);
 
     this.events.emit("equipmentClosed");
+  }
+
+  /** Render equipped potions in consumable slots. */
+  _renderPotionSlots(state: GameData): void {
+    if (!this._el) return;
+
+    // Find active character's equipment
+    const chars = state.characters || [];
+    const activeId = state.activeCharacterId;
+    const active = activeId ? chars.find((c: any) => c.id === activeId) : null;
+    const equipment = (active?.inventory?.equipment || {}) as Record<string, any>;
+
+    const slots = ['consumable-1', 'consumable-2'] as const;
+    for (const slotId of slots) {
+      const slotEl = this._el.querySelector(`[data-slot="${slotId}"]`) as HTMLElement | null;
+      if (!slotEl) continue;
+
+      const potionData = equipment[slotId];
+      const iconEl = slotEl.querySelector('.inv-slot__icon') as HTMLElement | null;
+      if (!iconEl) continue;
+
+      if (potionData && potionData.flaskType) {
+        const charges = potionData.currentCharges || 0;
+        const maxCharges = potionData.maxCharges || 0;
+        iconEl.innerHTML = `<img src="/assets/potions/${potionData.flaskType}/red_${Math.min(charges, 5)}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+        const labelEl = slotEl.querySelector('.inv-slot__label') as HTMLElement | null;
+        if (labelEl) {
+          labelEl.textContent = charges > 0 ? `${charges}/${maxCharges}` : slotId === 'consumable-1' ? 'Q' : 'E';
+        }
+      }
+    }
   }
 
   destroy(): void {

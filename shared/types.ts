@@ -118,7 +118,7 @@ export interface DropSettings {
   };
 }
 
-// ── Bag item (plain data shape, NOT entity) ──────────────
+// ── Item (plain data shape, NOT entity) ──────────────────
 
 export interface BagItemData {
   id: string;
@@ -133,4 +133,18 @@ export interface BagItemData {
   locationAct?: number;
   bossId?: string;
   bossKeyTier?: number;
+
+  /** Item status: 'bag' | 'equipped' | future: 'trade' */
+  status?: string;
+  /** Extensible properties for type-specific data (future gear stats, etc.) */
+  properties?: Record<string, unknown>;
+
+  /** Potion-specific fields (type = 'potion') */
+  flaskType?: string;
+  /** Max sips — determined by quality (common=2, rare=3, epic=4, legendary=5). */
+  maxCharges?: number;
+  /** Remaining sips (starts at maxCharges, decrements on use). */
+  currentCharges?: number;
+  /** Fraction of maxHp healed per sip (e.g. 0.12 = 12%). */
+  healPercent?: number;
 }

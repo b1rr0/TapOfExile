@@ -444,6 +444,30 @@ export class CombatGateway
     }
   }
 
+  // ─── Potion usage ───────────────────────────────────────────
+
+  @SubscribeMessage('combat:use-potion')
+  async handleUsePotion(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { sessionId: string; slot: 'consumable-1' | 'consumable-2' },
+  ) {
+    const telegramId = this.socketUsers.get(client.id);
+    if (!telegramId) return;
+
+    try {
+      const result = await this.combatService.usePotion(
+        telegramId,
+        data.sessionId,
+        data.slot,
+      );
+      client.emit('combat:potion-used', result);
+    } catch (err) {
+      client.emit('combat:error', {
+        message: (err as Error).message || 'Potion failed',
+      });
+    }
+  }
+
   // ─── Combat loop ──────────────────────────────────────────
 
   private startCombatLoop(sessionId: string, telegramId: string): void {

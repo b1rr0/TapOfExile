@@ -11,11 +11,12 @@ import { Character } from '../shared/entities/character.entity';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { CombatSession } from '../shared/entities/combat-session.entity';
-import { BagItem } from '../shared/entities/bag-item.entity';
+import { Item } from '../shared/entities/item.entity';
+import { EquipmentSlot } from '../shared/entities/equipment-slot.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Character, Player, PlayerLeague, CombatSession, BagItem]),
+    TypeOrmModule.forFeature([Character, Player, PlayerLeague, CombatSession, Item, EquipmentSlot]),
     LevelGenModule,
     LootModule,
     EndgameModule,

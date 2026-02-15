@@ -65,6 +65,7 @@ export class CombatScene {
   _onMapComplete: ((data: any) => void) | null;
   _onPlayerDied: (() => void) | null;
   _onCombatReady: (() => void) | null;
+  _onPotionUsed: ((data: any) => void) | null;
 
   // Loading overlay
   _loadingEl: HTMLElement | null;
@@ -92,6 +93,7 @@ export class CombatScene {
     this._onMapComplete = null;
     this._onPlayerDied = null;
     this._onCombatReady = null;
+    this._onPotionUsed = null;
 
     this._loadingEl = null;
     this._loadingTipEl = null;
@@ -377,6 +379,9 @@ export class CombatScene {
       if (coldResEl) coldResEl.textContent = `${res.cold || 0}%`;
     }
 
+    // ── Wire potion buttons ──────────────────────────────────
+    this._initPotionSlots(activeChar);
+
     // Listen for player death — switch to death screen after brief delay.
     // We capture combat log data IMMEDIATELY to avoid it being null if
     // unmount() runs before the delayed scene switch (e.g. race with locationComplete).
@@ -441,6 +446,7 @@ export class CombatScene {
           locationName: locName,
           rewards: data.rewards,
           actComplete: actJustCompleted ? locActNumber : null,
+          mapDrops: data.mapDrops || [],
           logEntries,
           combatStartTime,
         });
@@ -493,6 +499,94 @@ export class CombatScene {
         if (this.sceneManager) this.sceneManager.switchTo("hideout");
       });
     }
+  }
+
+  // ─── Potion slots ───────────────────────────────────────────
+
+  /**
+   * Initialize potion buttons in the action bar.
+   * Reads equipped potions from character.equipment and wires click handlers.
+   */
+  private _initPotionSlots(activeChar: any): void {
+    const pot0 = this.container.querySelector("#potion-0") as HTMLButtonElement | null;
+    const pot1 = this.container.querySelector("#potion-1") as HTMLButtonElement | null;
+    const equipment = (activeChar?.inventory?.equipment || {}) as Record<string, any>;
+
+    this._setupPotionBtn(pot0, equipment["consumable-1"], "consumable-1");
+    this._setupPotionBtn(pot1, equipment["consumable-2"], "consumable-2");
+
+    // Listen for potion used events to update UI
+    this._onPotionUsed = (data: any) => {
+      const btn = data.slot === "consumable-1" ? pot0 : pot1;
+      if (!btn) return;
+
+      const countEl = btn.querySelector(".action-slot__count") as HTMLElement | null;
+      if (countEl) {
+        countEl.textContent = data.remainingCharges > 0
+          ? `${data.remainingCharges}/${data.maxCharges}`
+          : "";
+      }
+
+      // Update sprite to show new charge level
+      const img = btn.querySelector(".potion-sprite") as HTMLImageElement | null;
+      if (img && data.remainingCharges > 0) {
+        const flaskType = btn.dataset.flaskType || "";
+        img.src = `/assets/potions/${flaskType}/red_${data.remainingCharges}.png`;
+      } else if (img && data.remainingCharges <= 0) {
+        // Empty — grey out
+        btn.classList.add("action-slot--empty");
+        img.style.opacity = "0.3";
+      }
+    };
+    this.events.on("potionUsed", this._onPotionUsed);
+  }
+
+  private _setupPotionBtn(
+    btn: HTMLButtonElement | null,
+    potionData: any,
+    slot: "consumable-1" | "consumable-2",
+  ): void {
+    if (!btn) return;
+
+    if (!potionData || !potionData.flaskType) {
+      btn.classList.add("action-slot--empty");
+      return;
+    }
+
+    const charges = potionData.currentCharges || 0;
+    const maxCharges = potionData.maxCharges || 0;
+    const flaskType = potionData.flaskType;
+
+    // Store flaskType on button for later updates
+    btn.dataset.flaskType = flaskType;
+
+    // Show potion sprite
+    const img = document.createElement("img");
+    img.src = `/assets/potions/${flaskType}/red_${Math.min(charges, 5)}.png`;
+    img.className = "potion-sprite";
+    img.style.width = "24px";
+    img.style.height = "24px";
+    img.style.imageRendering = "pixelated";
+    btn.prepend(img);
+
+    // Show charge count
+    const countEl = btn.querySelector(".action-slot__count") as HTMLElement | null;
+    if (countEl && charges > 0) {
+      countEl.textContent = `${charges}/${maxCharges}`;
+    }
+
+    if (charges <= 0) {
+      btn.classList.add("action-slot--empty");
+      return;
+    }
+
+    // Click handler — use potion (stopPropagation to not trigger tap-attack)
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (this.combat) {
+        this.combat.usePotion(slot);
+      }
+    });
   }
 
   // ─── Loading overlay ──────────────────────────────────────
@@ -578,6 +672,10 @@ export class CombatScene {
     if (this._onCombatReady) {
       this.events.off("combatReady", this._onCombatReady);
       this._onCombatReady = null;
+    }
+    if (this._onPotionUsed) {
+      this.events.off("potionUsed", this._onPotionUsed);
+      this._onPotionUsed = null;
     }
 
     // Clean up loading overlay timers

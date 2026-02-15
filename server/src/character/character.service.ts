@@ -163,7 +163,6 @@ export class CharacterService {
       completedLocations: [],
       currentLocation: null,
       currentAct: 1,
-      equipment: {},
       endgameUnlocked: false,
       completedBosses: [],
       highestTierCompleted: 0,

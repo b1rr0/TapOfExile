@@ -65,12 +65,18 @@ export class VictoryScene {
     // Loot drops section
     let dropsHtml = "";
     if (mapDrops.length > 0) {
-      const dropItems = mapDrops.map((d: BagItem) =>
-        `<div class="victory-drop victory-drop--${d.quality}">
-          <span class="victory-drop__icon">${d.icon}</span>
+      const dropItems = mapDrops.map((d: any) => {
+        let iconHtml = `<span class="victory-drop__icon">${d.icon ?? ''}</span>`;
+        // Render potion sprite if flaskType is available
+        if (d.type === 'potion' && d.flaskType) {
+          const charges = Math.min(d.maxCharges ?? 2, 5);
+          iconHtml = `<img class="victory-drop__icon" src="/assets/potions/${d.flaskType}/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+        }
+        return `<div class="victory-drop victory-drop--${d.quality}">
+          ${iconHtml}
           <span class="victory-drop__name">${d.name}</span>
-        </div>`
-      ).join("");
+        </div>`;
+      }).join("");
       dropsHtml = `
         <div class="victory-drops">
           <div class="victory-drops__title">Loot</div>

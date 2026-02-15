@@ -66,6 +66,12 @@ export class Effects {
       this.showAnnounce(`LEVEL ${data.level}!`);
     });
 
+    this.events.on("potionUsed", (data: any) => {
+      if (data.healAmount > 0) {
+        this.showHeal(data.healAmount);
+      }
+    });
+
     this.events.on("enemyAttack", (data: any) => {
       if (data.dodged) {
         this.showPlayerStatus("DODGE", "#88ccff");
@@ -125,6 +131,17 @@ export class Effects {
       el.addEventListener("animationend", () => el.remove());
       offsetIndex++;
     }
+  }
+
+  showHeal(amount: number): void {
+    const el = document.createElement("div");
+    el.className = "float-damage float-damage--heal";
+    el.textContent = `+${amount}`;
+    el.style.left = `${10 + Math.random() * 15}%`;
+    el.style.top = `${35 + Math.random() * 10}%`;
+    el.style.color = "#44ff44";
+    this.layer.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
   }
 
   showGoldDrop(amount: number): void {

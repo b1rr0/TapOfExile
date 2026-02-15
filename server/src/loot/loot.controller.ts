@@ -1,7 +1,9 @@
 import {
   Controller,
   Get,
+  Post,
   Delete,
+  Body,
   Param,
   UseGuards,
 } from '@nestjs/common';
@@ -36,6 +38,39 @@ export class LootController {
   ) {
     const pl = await this.playerService.getActivePlayerLeague(telegramId);
     await this.lootService.removeItem(pl.id, itemId);
+    return { success: true };
+  }
+
+  @Post('equip-potion')
+  @ApiOperation({ summary: 'Equip a potion from bag to consumable slot' })
+  async equipPotion(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body() body: { itemId?: string; bagItemId?: string; slot: 'consumable-1' | 'consumable-2' },
+  ) {
+    const pl = await this.playerService.getActivePlayerLeague(telegramId);
+    const itemId = body.itemId || body.bagItemId;
+    if (!itemId) throw new Error('itemId or bagItemId is required');
+    await this.lootService.equipPotion(
+      pl.id,
+      pl.activeCharacterId!,
+      itemId,
+      body.slot,
+    );
+    return { success: true };
+  }
+
+  @Post('unequip-potion')
+  @ApiOperation({ summary: 'Unequip a potion from consumable slot back to bag' })
+  async unequipPotion(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body() body: { slot: 'consumable-1' | 'consumable-2' },
+  ) {
+    const pl = await this.playerService.getActivePlayerLeague(telegramId);
+    await this.lootService.unequipPotion(
+      pl.id,
+      pl.activeCharacterId!,
+      body.slot,
+    );
     return { success: true };
   }
 }

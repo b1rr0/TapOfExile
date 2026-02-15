@@ -208,6 +208,14 @@ export const loot = {
   discardItem(itemId: string) {
     return del(`/loot/bag/${itemId}`);
   },
+
+  equipPotion(bagItemId: string, slot: string) {
+    return post("/loot/equip-potion", { bagItemId, slot });
+  },
+
+  unequipPotion(slot: string) {
+    return post("/loot/unequip-potion", { slot });
+  },
 };
 
 /* ── Skill Tree ────────────────────────────────────────── */

@@ -5,7 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { League } from '../shared/entities/league.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { Character } from '../shared/entities/character.entity';
-import { BagItem } from '../shared/entities/bag-item.entity';
+import { Item } from '../shared/entities/item.entity';
 import { Player } from '../shared/entities/player.entity';
 import { LeagueService, JP_MONTH_NAMES } from './league.service';
 import {
@@ -24,8 +24,8 @@ export class LeagueMigrationService {
     private playerLeagueRepo: Repository<PlayerLeague>,
     @InjectRepository(Character)
     private charRepo: Repository<Character>,
-    @InjectRepository(BagItem)
-    private bagRepo: Repository<BagItem>,
+    @InjectRepository(Item)
+    private itemRepo: Repository<Item>,
     @InjectRepository(Player)
     private playerRepo: Repository<Player>,
     private leagueService: LeagueService,
@@ -59,7 +59,7 @@ export class LeagueMigrationService {
       this.logger.log(
         `Migration complete: ${result.playersTransferred} players, ` +
           `${result.charactersTransferred} characters, ` +
-          `${result.bagItemsTransferred} bag items transferred.`,
+          `${result.itemsTransferred} items transferred.`,
       );
 
       // Create next monthly league
@@ -107,7 +107,7 @@ export class LeagueMigrationService {
       await this.leagueService.getAllPlayerLeaguesForLeague(monthlyLeagueId);
 
     let totalCharacters = 0;
-    let totalBagItems = 0;
+    let totalItems = 0;
     let totalGold = 0n;
     const playerResults: LeagueTransferPlayerResult[] = [];
 
@@ -125,7 +125,7 @@ export class LeagueMigrationService {
         );
         playerResults.push(result);
         totalCharacters += result.charactersMoved;
-        totalBagItems += result.bagItemsMoved;
+        totalItems += result.itemsMoved;
         totalGold += BigInt(result.goldMerged);
       }
 
@@ -160,7 +160,7 @@ export class LeagueMigrationService {
     return {
       playersTransferred: playerResults.length,
       charactersTransferred: totalCharacters,
-      bagItemsTransferred: totalBagItems,
+      itemsTransferred: totalItems,
       goldTransferred: totalGold,
       sourceLeagueId: monthlyLeagueId,
       targetLeagueId: standard.id,
@@ -215,13 +215,13 @@ export class LeagueMigrationService {
       .where('playerLeagueId = :plId', { plId: monthlyPl.id })
       .execute();
 
-    // Transfer bag items
-    const bagCount = await queryRunner.manager.count(BagItem, {
+    // Transfer items
+    const itemCount = await queryRunner.manager.count(Item, {
       where: { playerLeagueId: monthlyPl.id },
     });
     await queryRunner.manager
       .createQueryBuilder()
-      .update(BagItem)
+      .update(Item)
       .set({ playerLeagueId: standardPl.id })
       .where('playerLeagueId = :plId', { plId: monthlyPl.id })
       .execute();
@@ -233,7 +233,7 @@ export class LeagueMigrationService {
       telegramId,
       goldMerged: String(monthlyPl.gold),
       charactersMoved: charCount,
-      bagItemsMoved: bagCount,
+      itemsMoved: itemCount,
     };
   }
 

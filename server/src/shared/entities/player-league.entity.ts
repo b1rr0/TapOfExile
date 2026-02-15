@@ -11,7 +11,7 @@ import {
 import { Player } from './player.entity';
 import { League } from './league.entity';
 import { Character } from './character.entity';
-import { BagItem } from './bag-item.entity';
+import { Item } from './item.entity';
 
 @Entity('player_leagues')
 @Unique(['playerTelegramId', 'leagueId'])
@@ -49,6 +49,6 @@ export class PlayerLeague {
   @OneToMany(() => Character, (char) => char.playerLeague, { cascade: true })
   characters: Character[];
 
-  @OneToMany(() => BagItem, (item) => item.playerLeague, { cascade: true })
-  bag: BagItem[];
+  @OneToMany(() => Item, (item) => item.playerLeague, { cascade: true })
+  items: Item[];
 }
