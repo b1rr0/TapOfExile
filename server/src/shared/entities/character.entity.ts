@@ -125,6 +125,10 @@ export class Character {
   @Column({ type: 'jsonb', default: '[]' })
   allocatedNodes: number[];
 
+  // Dojo best all-time total damage (10s round)
+  @Column({ type: 'int', default: 0 })
+  dojoBestDamage: number;
+
   // Daily bonus wins — first 3 wins per day give x3 XP
   @Column({ type: 'int', default: 0 })
   dailyBonusWinsUsed: number;

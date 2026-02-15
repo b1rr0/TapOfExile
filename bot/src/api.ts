@@ -234,6 +234,50 @@ export const skillTree = {
   },
 };
 
+/* ── Friends ───────────────────────────────────────────── */
+
+export const friends = {
+  search(query: string) {
+    return get(`/friends/search?q=${encodeURIComponent(query)}`);
+  },
+
+  sendRequest(fromCharacterId: string, toCharacterId: string) {
+    return post('/friends/request', { fromCharacterId, toCharacterId });
+  },
+
+  getIncoming(characterId: string) {
+    return get(`/friends/requests?characterId=${characterId}`);
+  },
+
+  respond(friendshipId: string, accept: boolean) {
+    return post('/friends/respond', { friendshipId, accept });
+  },
+
+  list(characterId: string) {
+    return get(`/friends?characterId=${characterId}`);
+  },
+
+  remove(friendshipId: string) {
+    return del(`/friends/${friendshipId}`);
+  },
+
+  getEquipment(friendCharacterId: string, myCharacterId: string) {
+    return get(`/friends/${friendCharacterId}/equipment?myCharacterId=${myCharacterId}`);
+  },
+
+  submitDojo(characterId: string, totalDamage: number) {
+    return post('/friends/dojo', { characterId, totalDamage });
+  },
+
+  dojoLeaderboard(characterId: string) {
+    return get(`/friends/dojo-leaderboard?characterId=${characterId}`);
+  },
+
+  dojoGlobal(characterId: string) {
+    return get(`/friends/dojo-global?characterId=${characterId}`);
+  },
+};
+
 /* ── Default export ────────────────────────────────────── */
 
 export const api = {
@@ -244,4 +288,5 @@ export const api = {
   endgame,
   loot,
   skillTree,
+  friends,
 };

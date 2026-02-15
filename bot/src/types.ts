@@ -86,6 +86,11 @@ export interface BagItem {
   locationAct?: number;
   bossId?: string;
   bossKeyTier?: number;
+  /** Potion-specific fields */
+  flaskType?: string;
+  maxCharges?: number;
+  currentCharges?: number;
+  healPercent?: number;
 }
 
 export interface Character {

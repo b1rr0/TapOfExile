@@ -1,5 +1,6 @@
 import { Equipment } from "../ui/equipment.js";
 import { ChestPanel } from "../ui/chest-panel.js";
+import { FriendsPanel } from "../ui/friends-panel.js";
 import { IS_TESTING } from "../main.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { getCharacterClass } from "../data/character-classes.js";
@@ -25,6 +26,7 @@ export class HideoutScene {
 
   equipment: Equipment | null;
   chestPanel: ChestPanel | null;
+  friendsPanel: FriendsPanel | null;
   _goldHandler: ((data: any) => void) | null;
   _levelHandler: ((data: any) => void) | null;
   _xpHandler: (() => void) | null;
@@ -55,6 +57,7 @@ export class HideoutScene {
 
     this.equipment = null;
     this.chestPanel = null;
+    this.friendsPanel = null;
     this._goldHandler = null;
     this._levelHandler = null;
     this._xpHandler = null;
@@ -177,6 +180,14 @@ export class HideoutScene {
               <span class="hideout-btn__icon">&#x1F333;</span>
               <span class="hideout-btn__label">Tree</span>
             </button>
+            <button class="hideout-btn hideout-btn--friends" id="hideout-friends-btn">
+              <span class="hideout-btn__icon">&#x1F465;</span>
+              <span class="hideout-btn__label">Friends</span>
+            </button>
+            <button class="hideout-btn hideout-btn--dojo" id="hideout-dojo-btn">
+              <span class="hideout-btn__icon">&#x1F94B;</span>
+              <span class="hideout-btn__label">Dojo</span>
+            </button>
           </div>
         </div>
       </div>
@@ -194,8 +205,9 @@ export class HideoutScene {
 
     // Overlays (attached to hideout root)
     const hideoutEl = this.container.querySelector(".hideout") as HTMLElement;
-    this.equipment = new Equipment(hideoutEl, this.events);
+    this.equipment = new Equipment(hideoutEl, this.events, this.state);
     this.chestPanel = new ChestPanel(hideoutEl, this.events, this.state);
+    this.friendsPanel = new FriendsPanel(hideoutEl, this.events, this.state);
 
     // -- Bottom nav buttons --------------------------------
     (this.container.querySelector("#hideout-map-btn") as HTMLButtonElement).addEventListener("click", () => {
@@ -212,6 +224,14 @@ export class HideoutScene {
 
     (this.container.querySelector("#hideout-tree-btn") as HTMLButtonElement).addEventListener("click", () => {
       if (this.sceneManager) this.sceneManager.switchTo("skillTree");
+    });
+
+    (this.container.querySelector("#hideout-friends-btn") as HTMLButtonElement).addEventListener("click", () => {
+      if (this.friendsPanel) this.friendsPanel.toggle();
+    });
+
+    (this.container.querySelector("#hideout-dojo-btn") as HTMLButtonElement).addEventListener("click", () => {
+      if (this.sceneManager) this.sceneManager.switchTo("dojo");
     });
 
     // -- Stats button --------------------------------------
@@ -560,6 +580,10 @@ export class HideoutScene {
     if (this.chestPanel) {
       this.chestPanel.destroy();
       this.chestPanel = null;
+    }
+    if (this.friendsPanel) {
+      this.friendsPanel.destroy();
+      this.friendsPanel = null;
     }
     this._xpFill = null;
     this._xpText = null;

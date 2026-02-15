@@ -4,6 +4,10 @@
  * Pure CSS layout (no background image). Optimised for mobile (portrait).
  * Opens/closes with a toggle button visible on the battle scene.
  *
+ * Potion slots are interactive:
+ * - Clicking a filled slot opens a mini-modal with info + "Unequip" button.
+ * - Clicking an empty slot shows a hint.
+ *
  * Slot layout (mobile-friendly grid, armor spans 2 rows):
  *  Row 1:  Left Hand |  Head    | Right Hand
  *  Row 2:  (empty)   |  Armor   | Amulet
@@ -13,6 +17,8 @@
  */
 
 import type { GameData } from "../types.js";
+import { loot } from "../api.js";
+import { QUALITY_COLORS } from "./item-tooltip.js";
 
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
@@ -24,32 +30,50 @@ interface GoldChangedData {
   gold: number;
 }
 
+interface GameState {
+  data: GameData;
+}
+
 export class Equipment {
   container: HTMLElement;
   events: EventBus;
+  state: GameState;
   isOpen: boolean;
   _el: HTMLElement | null;
   _toggleBtn: HTMLButtonElement | null;
   _goldEl: HTMLElement | null;
+  _potionModalEl: HTMLElement | null;
   _onGoldChanged: ((data: GoldChangedData) => void) | null;
   _onStateLoaded: ((state: GameData) => void) | null;
+  /** Cached equipment data for slot clicks */
+  _equipment: Record<string, any>;
 
   /**
    * @param container — #app or game screen element
    * @param events — EventBus
+   * @param state — GameState for initial render
    */
-  constructor(container: HTMLElement, events: EventBus) {
+  constructor(container: HTMLElement, events: EventBus, state: GameState) {
     this.container = container;
     this.events = events;
+    this.state = state;
     this.isOpen = false;
     this._el = null;
     this._toggleBtn = null;
     this._goldEl = null;
+    this._potionModalEl = null;
     this._onGoldChanged = null;
     this._onStateLoaded = null;
+    this._equipment = {};
 
     this._createToggleButton();
     this._createPanel();
+
+    // Render immediately from current state (stateLoaded may have already fired)
+    this._renderPotionSlots(this.state.data);
+    if (this._goldEl && this.state.data.player) {
+      (this._goldEl as HTMLElement).textContent = String(this.state.data.player.gold);
+    }
   }
 
   /** Create the equipment open button (visible during gameplay). */
@@ -86,7 +110,7 @@ export class Equipment {
 
         <h2 class="equipment-title">Equipment</h2>
 
-        <!-- Equipment grid (3 cols × 4 rows, armor spans rows 2-3) -->
+        <!-- Equipment grid (3 cols x 4 rows, armor spans rows 2-3) -->
         <div class="inv-grid">
 
           <!-- Row 1: left hand, head, right hand -->
@@ -156,6 +180,11 @@ export class Equipment {
             <span class="inv-slot__label">E</span>
           </div>
         </div>
+
+        <!-- Potion slot mini-modal -->
+        <div class="equip-potion-modal hidden" id="equip-potion-modal">
+          <div class="equip-potion-modal__content" id="equip-potion-modal-content"></div>
+        </div>
       </div>
     `;
 
@@ -163,6 +192,7 @@ export class Equipment {
 
     // Gold display ref
     this._goldEl = this._el.querySelector("#equipment-gold");
+    this._potionModalEl = this._el.querySelector("#equip-potion-modal");
 
     // Listen for gold changes
     this._onGoldChanged = (data: GoldChangedData): void => {
@@ -186,6 +216,84 @@ export class Equipment {
     this._el.addEventListener("click", (e: MouseEvent) => {
       if (e.target === this._el) this.close();
     });
+
+    // Potion slot click handlers
+    const consumablesRow = this._el.querySelector(".inv-consumables");
+    if (consumablesRow) {
+      consumablesRow.addEventListener("click", (e: Event) => {
+        const slotEl = (e.target as HTMLElement).closest(".inv-slot--potion") as HTMLElement | null;
+        if (!slotEl) return;
+        const slotId = slotEl.dataset.slot;
+        if (!slotId) return;
+        this._onPotionSlotClick(slotId);
+      });
+    }
+  }
+
+  /** Handle click on a potion slot in equipment panel. */
+  _onPotionSlotClick(slotId: string): void {
+    const potionData = this._equipment[slotId];
+    if (!potionData || !potionData.flaskType) {
+      // Empty slot — show hint
+      this._showPotionModal(`
+        <div class="equip-potion-modal__hint">Equip potions from Chest</div>
+        <button class="equip-potion-modal__close-btn">OK</button>
+      `);
+      return;
+    }
+
+    // Filled slot — show potion info + unequip button
+    const q = QUALITY_COLORS[potionData.quality] || QUALITY_COLORS.common;
+    const healPct = Math.round((potionData.healPercent || 0) * 100);
+    const charges = potionData.currentCharges || 0;
+    const maxCharges = potionData.maxCharges || 0;
+    const spriteIdx = Math.min(Math.max(charges, 1), 5);
+
+    this._showPotionModal(`
+      <div class="equip-potion-modal__sprite">
+        <img src="/assets/potions/${potionData.flaskType}/red_${spriteIdx}.png"
+             style="width:48px;height:48px;image-rendering:pixelated">
+      </div>
+      <div class="equip-potion-modal__name" style="color:${q.color}">${potionData.name || potionData.flaskType}</div>
+      <div class="equip-potion-modal__quality" style="color:${q.color}">${q.label}</div>
+      <div class="equip-potion-modal__stat">Heal: ${healPct}% HP</div>
+      <div class="equip-potion-modal__stat">Charges: ${charges}/${maxCharges}</div>
+      <button class="equip-potion-modal__unequip-btn" data-slot="${slotId}">Unequip</button>
+      <button class="equip-potion-modal__close-btn">Close</button>
+    `);
+
+    // Wire unequip button
+    const unequipBtn = this._potionModalEl!.querySelector(".equip-potion-modal__unequip-btn");
+    if (unequipBtn) {
+      unequipBtn.addEventListener("click", async () => {
+        try {
+          await loot.unequipPotion(slotId);
+          this._hidePotionModal();
+          this.events.emit("equipmentChanged");
+        } catch (err) {
+          console.error("[Equipment] Unequip failed:", err);
+        }
+      });
+    }
+  }
+
+  _showPotionModal(html: string): void {
+    if (!this._potionModalEl) return;
+    const contentEl = this._potionModalEl.querySelector("#equip-potion-modal-content")!;
+    contentEl.innerHTML = html;
+    this._potionModalEl.classList.remove("hidden");
+
+    // Wire close button
+    const closeBtn = contentEl.querySelector(".equip-potion-modal__close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => this._hidePotionModal());
+    }
+  }
+
+  _hidePotionModal(): void {
+    if (this._potionModalEl) {
+      this._potionModalEl.classList.add("hidden");
+    }
   }
 
   /** Toggle open/close. */
@@ -202,6 +310,12 @@ export class Equipment {
     if (this.isOpen) return;
     this.isOpen = true;
 
+    // Always re-render from latest state when opening
+    this._renderPotionSlots(this.state.data);
+    if (this._goldEl && this.state.data.player) {
+      this._goldEl.textContent = String(this.state.data.player.gold);
+    }
+
     this._el!.classList.remove("hidden", "equipment-closing");
     void this._el!.offsetHeight;
     this._el!.classList.add("equipment-visible");
@@ -213,6 +327,7 @@ export class Equipment {
   close(): void {
     if (!this.isOpen) return;
     this.isOpen = false;
+    this._hidePotionModal();
 
     this._el!.classList.remove("equipment-visible");
     this._el!.classList.add("equipment-closing");
@@ -236,6 +351,7 @@ export class Equipment {
     const activeId = state.activeCharacterId;
     const active = activeId ? chars.find((c: any) => c.id === activeId) : null;
     const equipment = (active?.inventory?.equipment || {}) as Record<string, any>;
+    this._equipment = equipment;
 
     const slots = ['consumable-1', 'consumable-2'] as const;
     for (const slotId of slots) {
@@ -249,11 +365,21 @@ export class Equipment {
       if (potionData && potionData.flaskType) {
         const charges = potionData.currentCharges || 0;
         const maxCharges = potionData.maxCharges || 0;
-        iconEl.innerHTML = `<img src="/assets/potions/${potionData.flaskType}/red_${Math.min(charges, 5)}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+        const spriteIdx = Math.min(Math.max(charges, 1), 5);
+        iconEl.innerHTML = `<img src="/assets/potions/${potionData.flaskType}/red_${spriteIdx}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
         const labelEl = slotEl.querySelector('.inv-slot__label') as HTMLElement | null;
         if (labelEl) {
           labelEl.textContent = charges > 0 ? `${charges}/${maxCharges}` : slotId === 'consumable-1' ? 'Q' : 'E';
         }
+        slotEl.classList.remove("inv-slot--potion-empty");
+      } else {
+        // Empty slot — reset to default
+        iconEl.innerHTML = "&#x1F9EA;";
+        const labelEl = slotEl.querySelector('.inv-slot__label') as HTMLElement | null;
+        if (labelEl) {
+          labelEl.textContent = slotId === 'consumable-1' ? 'Q' : 'E';
+        }
+        slotEl.classList.add("inv-slot--potion-empty");
       }
     }
   }

@@ -107,7 +107,7 @@ export class PlayerService {
               quality: slot.item.quality,
               name: slot.item.name,
               maxCharges: slot.item.maxCharges,
-              currentCharges: slot.item.currentCharges,
+              currentCharges: slot.item.maxCharges, // always full outside combat
               healPercent: slot.item.healPercent,
             };
           }

@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Player } from './shared/entities/player.entity';
+import { LastSeenInterceptor } from './auth/interceptors/last-seen.interceptor';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
@@ -12,6 +16,7 @@ import { LootModule } from './loot/loot.module';
 import { SkillTreeModule } from './skill-tree/skill-tree.module';
 import { EndgameModule } from './endgame/endgame.module';
 import { LeagueModule } from './league/league.module';
+import { FriendsModule } from './friends/friends.module';
 
 @Module({
   imports: [
@@ -28,6 +33,14 @@ import { LeagueModule } from './league/league.module';
     SkillTreeModule,
     EndgameModule,
     LeagueModule,
+    FriendsModule,
+    TypeOrmModule.forFeature([Player]),
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LastSeenInterceptor,
+    },
   ],
 })
 export class AppModule {}

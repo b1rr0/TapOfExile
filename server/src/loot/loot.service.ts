@@ -139,8 +139,11 @@ export class LootService {
       await this.equipSlotRepo.remove(existingSlot);
     }
 
-    // 3. Equip new item: flip status + create equipment slot
+    // 3. Equip new item: refill charges, flip status + create equipment slot
     item.status = 'equipped';
+    if (item.maxCharges) {
+      item.currentCharges = item.maxCharges;
+    }
     await this.itemRepo.save(item);
 
     const equipSlot = this.equipSlotRepo.create({

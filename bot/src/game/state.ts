@@ -130,6 +130,10 @@ export class GameState {
       locationAct: item.locationAct,
       bossId: item.bossId,
       bossKeyTier: item.bossKeyTier,
+      flaskType: item.flaskType,
+      maxCharges: item.maxCharges,
+      currentCharges: item.currentCharges,
+      healPercent: item.healPercent,
     }));
 
     this.data.meta = {
@@ -256,6 +260,10 @@ export class GameState {
       locationAct: item.locationAct,
       bossId: item.bossId,
       bossKeyTier: item.bossKeyTier,
+      flaskType: item.flaskType,
+      maxCharges: item.maxCharges,
+      currentCharges: item.currentCharges,
+      healPercent: item.healPercent,
     }));
   }
 

@@ -38,6 +38,10 @@ export class Player {
   @Column({ type: 'bigint', default: 0 })
   lastSaveTime: string;
 
+  // Last time the player made any authenticated API request
+  @Column({ type: 'timestamp', nullable: true })
+  lastSeenAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

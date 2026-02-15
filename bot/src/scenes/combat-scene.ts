@@ -317,7 +317,7 @@ export class CombatScene {
     });
     this.effects = new Effects(battleEl, this.events);
     this.combatLog = new CombatLog(battleEl, this.events);
-    this.equipment = new Equipment(gameScreen, this.events);
+    this.equipment = new Equipment(gameScreen, this.events, this.state);
 
     const exitBtn = document.createElement("button");
     exitBtn.className = "battle-exit-btn";
@@ -562,7 +562,7 @@ export class CombatScene {
 
     // Show potion sprite
     const img = document.createElement("img");
-    img.src = `/assets/potions/${flaskType}/red_${Math.min(charges, 5)}.png`;
+    img.src = `/assets/potions/${flaskType}/red_${Math.min(Math.max(charges, 1), 5)}.png`;
     img.className = "potion-sprite";
     img.style.width = "24px";
     img.style.height = "24px";

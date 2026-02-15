@@ -100,8 +100,11 @@ export interface RedisCombatSession {
     'consumable-1': CachedPotion | null;
     'consumable-2': CachedPotion | null;
   };
-  /** Track if any potion charges changed (for persist at combat end) */
-  potionChargesChanged: boolean;
+  /**
+   * @deprecated Charges are no longer persisted to DB — they reset every combat.
+   * Kept for Redis session shape compatibility during rolling deploys.
+   */
+  potionChargesChanged?: boolean;
 }
 
 export interface EnemyAttackResult {
@@ -289,13 +292,15 @@ export class CombatService {
         slot.item &&
         slot.item.type === 'potion'
       ) {
+        const maxCharges = slot.item.maxCharges!;
+        // Potions always start combat fully charged (charges live in Redis only)
         result[slot.slotId] = {
           itemId: slot.item.id,
           flaskType: slot.item.flaskType!,
           quality: slot.item.quality,
           name: slot.item.name,
-          maxCharges: slot.item.maxCharges!,
-          currentCharges: slot.item.currentCharges!,
+          maxCharges,
+          currentCharges: maxCharges,
           healPercent: slot.item.healPercent!,
         };
       }
@@ -304,20 +309,8 @@ export class CombatService {
     return result;
   }
 
-  /**
-   * Persist potion charge changes from Redis back to the items table.
-   */
-  private async persistPotionCharges(session: RedisCombatSession): Promise<void> {
-    if (!session.potionChargesChanged) return;
-    for (const slot of ['consumable-1', 'consumable-2'] as const) {
-      const potion = session.equippedPotions[slot];
-      if (potion) {
-        await this.itemRepo.update(potion.itemId, {
-          currentCharges: potion.currentCharges,
-        });
-      }
-    }
-  }
+  // Potion charges are NOT persisted to DB — they reset to max every combat.
+  // Charge tracking lives only in the Redis session during active combat.
 
   /**
    * Start a location combat session.
@@ -369,7 +362,7 @@ export class CombatService {
       nextAttackIn: this.getFirstAttackDelay(queue[0]),
       cachedStats,
       equippedPotions,
-      potionChargesChanged: false,
+      potionChargesChanged: false, // deprecated — kept for Redis compat
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -441,7 +434,7 @@ export class CombatService {
       nextAttackIn: this.getFirstAttackDelay(queue[0]),
       cachedStats,
       equippedPotions,
-      potionChargesChanged: false,
+      potionChargesChanged: false, // deprecated — kept for Redis compat
     };
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
@@ -954,9 +947,6 @@ export class CombatService {
       await this.charRepo.save(char);
     }
 
-    // Persist potion charge changes to items table
-    await this.persistPotionCharges(session);
-
     // Roll and persist map drops for endgame sessions
     let mapDrops: Partial<Item>[] = [];
     if (session.mode === 'map' || session.mode === 'boss_map') {
@@ -1074,9 +1064,6 @@ export class CombatService {
       throw new NotFoundException('Combat session not found');
     }
 
-    // Persist potion charge changes
-    await this.persistPotionCharges(session);
-
     await this.redis.del(this.sessionKey(sessionId));
 
     return { success: true };
@@ -1092,9 +1079,6 @@ export class CombatService {
     if (!session || session.playerId !== telegramId) {
       throw new NotFoundException('Combat session not found');
     }
-
-    // Persist potion charge changes
-    await this.persistPotionCharges(session);
 
     // Save audit record with 'died' status
     const auditSession = this.sessionRepo.create({
@@ -1160,9 +1144,8 @@ export class CombatService {
     );
     const actualHeal = session.playerCurrentHp - oldHp;
 
-    // Decrement charges in Redis only
+    // Decrement charges in Redis only (never persisted to DB)
     potionData.currentCharges--;
-    session.potionChargesChanged = true;
 
     // Persist to Redis — ZERO DB write
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);

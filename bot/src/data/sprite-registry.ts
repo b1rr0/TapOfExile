@@ -430,6 +430,17 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
     },
     defaultSize: { w: 128, h: 96 }, anchorOffsetY: 0, scale: 2,
   },
+
+  training_dummy: {
+    id: "training_dummy", name: "Training Dummy",
+    basePath: "/assets/enemy/dummy",
+    animations: {
+      idle:  { json: "idle.json",  fps: 4,  loop: true },
+      hurt:  { json: "hurt.json",  fps: 10, loop: false },
+      death: { json: "death.json", fps: 10, loop: false },
+    },
+    defaultSize: { w: 32, h: 32 }, anchorOffsetY: 0, scale: 5,
+  },
 };
 
 // ─── Variant skin helper ─────────────────────────────────
