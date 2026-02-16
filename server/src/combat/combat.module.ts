@@ -13,10 +13,11 @@ import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { CombatSession } from '../shared/entities/combat-session.entity';
 import { Item } from '../shared/entities/item.entity';
 import { EquipmentSlot } from '../shared/entities/equipment-slot.entity';
+import { DojoRecord } from '../shared/entities/dojo-record.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Character, Player, PlayerLeague, CombatSession, Item, EquipmentSlot]),
+    TypeOrmModule.forFeature([Character, Player, PlayerLeague, CombatSession, Item, EquipmentSlot, DojoRecord]),
     LevelGenModule,
     LootModule,
     EndgameModule,

@@ -296,59 +296,24 @@ export class FriendsService {
     };
   }
 
-  /** Submit dojo best damage — upsert into denormalized dojo_records */
+  /**
+   * @deprecated Dojo scoring now happens server-side via WebSocket (combat gateway).
+   * This endpoint is kept for backward compatibility — returns current best without
+   * accepting new scores. Old clients won't break but can't submit fake scores.
+   */
   async submitDojo(
     telegramId: string,
     characterId: string,
-    totalDamage: number,
+    _totalDamage: number,
   ) {
     const char = await this.characterRepo.findOne({
       where: { id: characterId, playerTelegramId: telegramId },
-      relations: ['player'],
     });
     if (!char) {
       throw new ForbiddenException('Character not owned by you');
     }
 
-    // Also update Character.dojoBestDamage for backward compat
-    if (totalDamage > char.dojoBestDamage) {
-      char.dojoBestDamage = totalDamage;
-      await this.characterRepo.save(char);
-    }
-
-    // Upsert denormalized record
-    let record = await this.dojoRecordRepo.findOne({
-      where: { characterId },
-    });
-
-    const tgUsername = char.player?.telegramUsername || null;
-
-    if (!record) {
-      record = this.dojoRecordRepo.create({
-        characterId,
-        playerTelegramId: char.playerTelegramId,
-        telegramUsername: tgUsername,
-        nickname: char.nickname,
-        classId: char.classId,
-        skinId: char.skinId,
-        level: char.level,
-        bestDamage: totalDamage,
-      });
-      await this.dojoRecordRepo.save(record);
-    } else {
-      // Always update denormalized fields
-      record.telegramUsername = tgUsername;
-      record.nickname = char.nickname;
-      record.classId = char.classId;
-      record.skinId = char.skinId;
-      record.level = char.level;
-      if (totalDamage > record.bestDamage) {
-        record.bestDamage = totalDamage;
-      }
-      await this.dojoRecordRepo.save(record);
-    }
-
-    return { bestDamage: record.bestDamage };
+    return { bestDamage: char.dojoBestDamage || 0 };
   }
 
   /** Friends dojo leaderboard: self + friends from dojo_records (no extra JOINs) */

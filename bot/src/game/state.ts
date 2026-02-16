@@ -21,6 +21,18 @@ function createDefault(): GameData {
   };
 }
 
+/** Custom error thrown when player is banned — caught by main.ts to show ban screen. */
+export class BannedError extends Error {
+  bannedUntil: number;
+  banReason: string;
+  constructor(bannedUntil: number, banReason: string) {
+    super("Player is banned");
+    this.name = "BannedError";
+    this.bannedUntil = bannedUntil;
+    this.banReason = banReason;
+  }
+}
+
 /* ── GameState (server-backed) ────────────────────────── */
 
 export class GameState {
@@ -42,6 +54,7 @@ export class GameState {
 
   /**
    * Authenticate via Telegram, join league if needed, load full state.
+   * Throws BannedError if player is banned — caller must catch and show ban screen.
    */
   async load(): Promise<void> {
     const tg = (window as any).Telegram?.WebApp;
@@ -54,6 +67,11 @@ export class GameState {
 
     // 1. Authenticate
     const authResult = await api.auth.login(initData);
+
+    // Ban check at auth level
+    if (authResult.player.banned) {
+      throw new BannedError(authResult.player.bannedUntil!, authResult.player.banReason!);
+    }
 
     // 2. Load available leagues
     const { leagues: leagueList } = await api.leagues.list();
@@ -82,9 +100,15 @@ export class GameState {
 
   /**
    * Re-fetch the full player state from server and populate local cache.
+   * Throws BannedError if player got banned mid-session.
    */
   async refreshState(): Promise<void> {
     const state = await api.player.getState();
+
+    // Ban check at state level (might be banned mid-session)
+    if (state.banned) {
+      throw new BannedError(state.bannedUntil, state.banReason);
+    }
 
     this.data.gold = Number(state.gold);
     this.data.activeCharacterId = state.activeCharacterId;

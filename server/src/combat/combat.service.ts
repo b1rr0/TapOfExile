@@ -16,6 +16,7 @@ import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { CombatSession } from '../shared/entities/combat-session.entity';
 import { Item } from '../shared/entities/item.entity';
 import { EquipmentSlot } from '../shared/entities/equipment-slot.entity';
+import { DojoRecord } from '../shared/entities/dojo-record.entity';
 import { B } from '../shared/constants/balance.constants';
 import {
   getTierDef,
@@ -72,7 +73,7 @@ export interface RedisCombatSession {
   characterId: string;
   leagueId: string;
   playerLeagueId: string;
-  mode: 'location' | 'map' | 'boss_map';
+  mode: 'location' | 'map' | 'boss_map' | 'dojo';
   monsterQueue: ServerMonster[];
   currentIndex: number;
   totalGoldEarned: number;
@@ -108,6 +109,12 @@ export interface RedisCombatSession {
   potionChargesChanged?: boolean;
   /** Active skill cooldown tracking: skillId → last cast timestamp (ms) */
   skillCooldowns?: Record<string, number>;
+  /** Dojo-specific: server timestamp when fight ends */
+  dojoEndsAt?: number;
+  /** Dojo-specific: accumulated total damage */
+  dojoTotalDamage?: number;
+  /** Dojo-specific: number of taps */
+  dojoTotalTaps?: number;
 }
 
 export interface EnemyAttackResult {
@@ -150,10 +157,87 @@ export class CombatService {
     private itemRepo: Repository<Item>,
     @InjectRepository(EquipmentSlot)
     private equipSlotRepo: Repository<EquipmentSlot>,
+    @InjectRepository(DojoRecord)
+    private dojoRecordRepo: Repository<DojoRecord>,
   ) {}
 
   sessionKey(id: string) {
     return `combat:session:${id}`;
+  }
+
+  // ─── Anti-cheat helpers ───────────────────────────────────
+
+  private msgWindowKey(telegramId: string, windowIndex: number): string {
+    return `anticheat:msgs:${telegramId}:${windowIndex}`;
+  }
+  private banKey(telegramId: string): string {
+    return `anticheat:ban:${telegramId}`;
+  }
+
+  /** Check if a player is currently banned. Fast path: Redis. Fallback: DB. */
+  async isPlayerBanned(telegramId: string): Promise<{ banned: boolean; expiresAt?: number }> {
+    const banData = await this.redis.getJson<{ reason: string; bannedAt: number; expiresAt: number }>(
+      this.banKey(telegramId),
+    );
+    if (banData && banData.expiresAt > Date.now()) {
+      return { banned: true, expiresAt: banData.expiresAt };
+    }
+
+    // Fallback: DB (Redis may have been flushed)
+    const player = await this.playerRepo.findOne({ where: { telegramId } });
+    if (player?.bannedUntil && player.bannedUntil.getTime() > Date.now()) {
+      const remainingTtl = Math.ceil((player.bannedUntil.getTime() - Date.now()) / 1000);
+      await this.redis.setJson(this.banKey(telegramId), {
+        reason: player.banReason || 'rate_limit',
+        bannedAt: Date.now(),
+        expiresAt: player.bannedUntil.getTime(),
+      }, remainingTtl);
+      return { banned: true, expiresAt: player.bannedUntil.getTime() };
+    }
+
+    return { banned: false };
+  }
+
+  /**
+   * Universal rate limiter — called for EVERY socket message.
+   * >30 messages in any 3-second window = instant ban.
+   * Returns true if the player was just banned.
+   */
+  async checkMessageRate(telegramId: string): Promise<boolean> {
+    const windowIndex = Math.floor(Date.now() / B.ANTICHEAT_WINDOW_MS);
+    const key = this.msgWindowKey(telegramId, windowIndex);
+
+    const count = await this.redis.incr(key);
+    if (count === 1) {
+      await this.redis.expire(key, 10);
+    }
+
+    if (count <= B.ANTICHEAT_MSG_LIMIT) return false;
+
+    await this.banPlayer(telegramId, 'rate_limit_exceeded');
+    return true;
+  }
+
+  /** Ban a player for 1 day. */
+  private async banPlayer(telegramId: string, reason: string): Promise<void> {
+    const now = Date.now();
+    const expiresAt = now + B.ANTICHEAT_BAN_DURATION_MS;
+    const ttlSeconds = Math.ceil(B.ANTICHEAT_BAN_DURATION_MS / 1000);
+
+    await this.redis.setJson(this.banKey(telegramId), {
+      reason,
+      bannedAt: now,
+      expiresAt,
+    }, ttlSeconds);
+
+    await this.playerRepo.update(telegramId, {
+      bannedUntil: new Date(expiresAt),
+      banReason: reason,
+    });
+
+    console.warn(
+      `[AntiCheat] BANNED player ${telegramId} for "${reason}" until ${new Date(expiresAt).toISOString()}`,
+    );
   }
 
   /** Read a combat session from Redis (used by gateway for reconnect). */
@@ -974,7 +1058,7 @@ export class CombatService {
       const actOrTier = session.mode === 'location'
         ? (session.locationAct || 1)
         : (session.mapTier || 1);
-      const pool = getLootPool(session.mode, actOrTier);
+      const pool = getLootPool(session.mode as 'location' | 'map' | 'boss_map', actOrTier);
       const wonEntries = rollLoot(pool);
 
       for (const entry of wonEntries) {
@@ -1106,6 +1190,191 @@ export class CombatService {
     await this.redis.del(this.sessionKey(sessionId));
 
     return { success: true };
+  }
+
+  // ─── Dojo (server-authoritative training dummy) ──────────
+
+  /**
+   * Start a dojo training session — minimal setup, no monsters or enemy attacks.
+   */
+  async startDojo(telegramId: string): Promise<{
+    sessionId: string;
+    dojoEndsAt: number;
+  }> {
+    const { playerLeague } = await this.getActiveCharacterInfo(telegramId);
+
+    const char = await this.charRepo.findOne({
+      where: { id: playerLeague.activeCharacterId! },
+    });
+    if (!char) throw new NotFoundException('Character not found');
+
+    const cachedStats = this.buildCachedStats(char);
+    const now = Date.now();
+    const dojoEndsAt = now + B.DOJO_COUNTDOWN_MS + B.DOJO_ROUND_MS;
+    const sessionId = uuidv4();
+
+    const session: RedisCombatSession = {
+      id: sessionId,
+      playerId: telegramId,
+      characterId: playerLeague.activeCharacterId!,
+      leagueId: playerLeague.leagueId,
+      playerLeagueId: playerLeague.id,
+      mode: 'dojo',
+      monsterQueue: [],
+      currentIndex: 0,
+      totalGoldEarned: 0,
+      totalXpEarned: 0,
+      totalTaps: 0,
+      lastTapTime: 0,
+      startedAt: now,
+      playerLevel: char.level,
+      playerCurrentHp: char.maxHp,
+      playerMaxHp: char.maxHp,
+      lastEnemyAttackTime: now,
+      nextAttackIn: 0,
+      cachedStats,
+      equippedPotions: { 'consumable-1': null, 'consumable-2': null },
+      dojoEndsAt,
+      dojoTotalDamage: 0,
+      dojoTotalTaps: 0,
+    };
+
+    await this.redis.setJson(this.sessionKey(sessionId), session, B.DOJO_SESSION_TTL);
+
+    return { sessionId, dojoEndsAt };
+  }
+
+  /**
+   * Process a tap in dojo mode — server-authoritative damage, no monster HP.
+   */
+  async processDojoTap(telegramId: string, sessionId: string) {
+    const session = await this.redis.getJson<RedisCombatSession>(
+      this.sessionKey(sessionId),
+    );
+    if (!session || session.playerId !== telegramId || session.mode !== 'dojo') {
+      throw new NotFoundException('Dojo session not found');
+    }
+
+    const now = Date.now();
+
+    // Check if time is up
+    if (now >= session.dojoEndsAt!) {
+      return {
+        damage: 0,
+        damageBreakdown: null,
+        isCrit: false,
+        totalDamage: session.dojoTotalDamage!,
+        totalTaps: session.dojoTotalTaps!,
+        dojoEnded: true,
+        timeLeftMs: 0,
+      };
+    }
+
+    // Rate limit: min 50ms between taps
+    if (now - session.lastTapTime < MIN_TAP_INTERVAL_MS) {
+      throw new BadRequestException('Tap too fast');
+    }
+
+    const stats = session.cachedStats;
+    const isCrit = Math.random() < stats.critChance;
+    let rawDamage = stats.tapDamage;
+    if (isCrit) {
+      rawDamage = Math.floor(rawDamage * stats.critMultiplier);
+    }
+
+    // Elemental damage vs zero resistance (training dummy)
+    const damageProfile = stats.elementalDamage || { physical: 1.0 };
+    const breakdown = computeElementalDamage(rawDamage, damageProfile, {});
+
+    session.dojoTotalDamage! += breakdown.total;
+    session.dojoTotalTaps! += 1;
+    session.lastTapTime = now;
+
+    const timeLeftMs = Math.max(0, session.dojoEndsAt! - now);
+
+    await this.redis.setJson(this.sessionKey(sessionId), session, B.DOJO_SESSION_TTL);
+
+    return {
+      damage: breakdown.total,
+      damageBreakdown: breakdown,
+      isCrit,
+      totalDamage: session.dojoTotalDamage!,
+      totalTaps: session.dojoTotalTaps!,
+      dojoEnded: false,
+      timeLeftMs,
+    };
+  }
+
+  /**
+   * Complete a dojo session — persist best score, clean up.
+   */
+  async completeDojo(telegramId: string, sessionId: string) {
+    const session = await this.redis.getJson<RedisCombatSession>(
+      this.sessionKey(sessionId),
+    );
+    if (!session || session.playerId !== telegramId || session.mode !== 'dojo') {
+      throw new NotFoundException('Dojo session not found');
+    }
+
+    const totalDamage = session.dojoTotalDamage || 0;
+    const totalTaps = session.dojoTotalTaps || 0;
+    const dps = totalDamage > 0 ? Math.round(totalDamage / (B.DOJO_ROUND_MS / 1000)) : 0;
+
+    const char = await this.charRepo.findOne({
+      where: { id: session.characterId },
+      relations: ['player'],
+    });
+
+    let bestDamage = totalDamage;
+    let isNewBest = false;
+
+    if (char) {
+      if (totalDamage > char.dojoBestDamage) {
+        char.dojoBestDamage = totalDamage;
+        isNewBest = true;
+        await this.charRepo.save(char);
+      }
+      bestDamage = char.dojoBestDamage;
+
+      await this.upsertDojoRecord(char, totalDamage);
+    }
+
+    await this.redis.del(this.sessionKey(sessionId));
+
+    return { totalDamage, totalTaps, dps, bestDamage, isNewBest };
+  }
+
+  /** Upsert dojo leaderboard record (denormalized table). */
+  private async upsertDojoRecord(char: Character, totalDamage: number): Promise<void> {
+    let record = await this.dojoRecordRepo.findOne({
+      where: { characterId: char.id },
+    });
+
+    const tgUsername = char.player?.telegramUsername || null;
+
+    if (!record) {
+      record = this.dojoRecordRepo.create({
+        characterId: char.id,
+        playerTelegramId: char.playerTelegramId,
+        telegramUsername: tgUsername,
+        nickname: char.nickname,
+        classId: char.classId,
+        skinId: char.skinId,
+        level: char.level,
+        bestDamage: totalDamage,
+      });
+      await this.dojoRecordRepo.save(record);
+    } else {
+      record.telegramUsername = tgUsername;
+      record.nickname = char.nickname;
+      record.classId = char.classId;
+      record.skinId = char.skinId;
+      record.level = char.level;
+      if (totalDamage > record.bestDamage) {
+        record.bestDamage = totalDamage;
+      }
+      await this.dojoRecordRepo.save(record);
+    }
   }
 
   // ─── Potion usage ──────────────────────────────────────

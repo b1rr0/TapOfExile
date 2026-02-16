@@ -35,12 +35,49 @@ export class CombatGateway
   private userSockets = new Map<string, string>();
   /** telegramId -> sessionId */
   private userSessions = new Map<string, string>();
+  /** sessionId -> session mode (avoids extra Redis read on every tap) */
+  private sessionModes = new Map<string, string>();
+  /** Per-dojo session auto-complete timers */
+  private dojoTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(
     private combatService: CombatService,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
+
+  // ─── Universal rate limiter ─────────────────────────────
+
+  /**
+   * Check message rate for all socket events.
+   * Returns true if the player was banned (caller should return immediately).
+   */
+  private async rateLimitCheck(client: Socket, telegramId: string): Promise<boolean> {
+    try {
+      const wasBanned = await this.combatService.checkMessageRate(telegramId);
+      if (wasBanned) {
+        const sessionId = this.userSessions.get(telegramId);
+        if (sessionId) {
+          this.stopCombatLoop(sessionId);
+          this.stopDojoTimer(sessionId);
+          this.sessionModes.delete(sessionId);
+          try {
+            await this.combatService.fleeCombat(telegramId, sessionId);
+          } catch { /* session may already be gone */ }
+          this.userSessions.delete(telegramId);
+        }
+        const banCheck = await this.combatService.isPlayerBanned(telegramId);
+        client.emit('combat:banned', {
+          expiresAt: banCheck.expiresAt,
+          reason: 'rate_limit_exceeded',
+        });
+        return true;
+      }
+    } catch {
+      // Swallow Redis failures — don't block gameplay
+    }
+    return false;
+  }
 
   // ─── Connection lifecycle ─────────────────────────────────
 
@@ -67,6 +104,17 @@ export class CombatGateway
       }
 
       const telegramId: string = payload.sub;
+
+      // Check ban before allowing connection
+      const banCheck = await this.combatService.isPlayerBanned(telegramId);
+      if (banCheck.banned) {
+        client.emit('combat:banned', {
+          expiresAt: banCheck.expiresAt,
+          reason: 'rate_limit_exceeded',
+        });
+        client.disconnect();
+        return;
+      }
 
       // Map socket <-> user
       this.socketUsers.set(client.id, telegramId);
@@ -104,20 +152,29 @@ export class CombatGateway
     // Pause combat loop
     this.stopCombatLoop(sessionId);
 
-    // Start grace period — if player doesn't reconnect, flee
+    // Start grace period — if player doesn't reconnect, flee/complete
+    const mode = this.sessionModes.get(sessionId);
     const timer = setTimeout(async () => {
       this.disconnectTimers.delete(telegramId);
       const sid = this.userSessions.get(telegramId);
       if (sid) {
         try {
-          await this.combatService.fleeCombat(telegramId, sid);
+          const sMode = this.sessionModes.get(sid);
+          if (sMode === 'dojo') {
+            // Save dojo score on disconnect
+            await this.combatService.completeDojo(telegramId, sid);
+          } else {
+            await this.combatService.fleeCombat(telegramId, sid);
+          }
         } catch {
           /* session may already be gone */
         }
+        this.stopDojoTimer(sid);
+        this.sessionModes.delete(sid);
         this.userSessions.delete(telegramId);
       }
       console.log(
-        `[CombatGateway] Grace period expired for ${telegramId}, session fled`,
+        `[CombatGateway] Grace period expired for ${telegramId}, session ${mode === 'dojo' ? 'completed' : 'fled'}`,
       );
     }, DISCONNECT_GRACE_MS);
 
@@ -155,6 +212,8 @@ export class CombatGateway
     if (!oldSessionId) return;
 
     this.stopCombatLoop(oldSessionId);
+    this.stopDojoTimer(oldSessionId);
+    this.sessionModes.delete(oldSessionId);
     try {
       await this.combatService.fleeCombat(telegramId, oldSessionId);
     } catch {
@@ -171,6 +230,15 @@ export class CombatGateway
     const telegramId = await this.resolveUser(client);
     if (!telegramId) {
       client.emit('combat:error', { message: 'Auth not ready — please retry' });
+      return;
+    }
+
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
+    // Ban check
+    const banCheck = await this.combatService.isPlayerBanned(telegramId);
+    if (banCheck.banned) {
+      client.emit('combat:banned', { expiresAt: banCheck.expiresAt, reason: 'rate_limit_exceeded' });
       return;
     }
 
@@ -193,6 +261,7 @@ export class CombatGateway
           return;
         }
         // Session exists in map but not in Redis — clean up
+        this.sessionModes.delete(existingSessionId);
         this.userSessions.delete(telegramId);
       }
 
@@ -205,6 +274,7 @@ export class CombatGateway
       );
 
       this.userSessions.set(telegramId, result.sessionId);
+      this.sessionModes.set(result.sessionId, 'location');
       // Combat loop deferred — starts when client sends combat:entrance-done
 
       client.emit('combat:started', result);
@@ -226,9 +296,17 @@ export class CombatGateway
       return;
     }
 
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
+    // Ban check
+    const banCheck = await this.combatService.isPlayerBanned(telegramId);
+    if (banCheck.banned) {
+      client.emit('combat:banned', { expiresAt: banCheck.expiresAt, reason: 'rate_limit_exceeded' });
+      return;
+    }
+
     try {
       // If the user already has an active session, re-send its state
-      // (client retry after transport upgrade — the first response was lost)
       const existingSessionId = this.userSessions.get(telegramId);
       if (existingSessionId) {
         const existing = await this.combatService.getSession(existingSessionId);
@@ -244,7 +322,7 @@ export class CombatGateway
           });
           return;
         }
-        // Session exists in map but not in Redis — clean up
+        this.sessionModes.delete(existingSessionId);
         this.userSessions.delete(telegramId);
       }
 
@@ -254,12 +332,96 @@ export class CombatGateway
       } as any);
 
       this.userSessions.set(telegramId, result.sessionId);
-      // Combat loop deferred — starts when client sends combat:entrance-done
+      this.sessionModes.set(result.sessionId, 'map');
 
       client.emit('combat:started', result);
     } catch (err) {
       client.emit('combat:error', {
         message: (err as Error).message || 'Failed to start map',
+      });
+    }
+  }
+
+  // ─── Start dojo ────────────────────────────────────────────
+
+  @SubscribeMessage('combat:start-dojo')
+  async handleStartDojo(
+    @ConnectedSocket() client: Socket,
+  ) {
+    const telegramId = await this.resolveUser(client);
+    if (!telegramId) {
+      client.emit('combat:error', { message: 'Auth not ready — please retry' });
+      return;
+    }
+
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
+    const banCheck = await this.combatService.isPlayerBanned(telegramId);
+    if (banCheck.banned) {
+      client.emit('combat:banned', { expiresAt: banCheck.expiresAt, reason: 'rate_limit_exceeded' });
+      return;
+    }
+
+    try {
+      await this.cleanupStaleSession(telegramId);
+
+      const result = await this.combatService.startDojo(telegramId);
+
+      this.userSessions.set(telegramId, result.sessionId);
+      this.sessionModes.set(result.sessionId, 'dojo');
+
+      client.emit('combat:dojo-started', {
+        sessionId: result.sessionId,
+        dojoEndsAt: result.dojoEndsAt,
+      });
+
+      // Auto-complete timer: fires when dojo round ends
+      const dojoTimer = setTimeout(async () => {
+        this.dojoTimers.delete(result.sessionId);
+        if (this.userSessions.get(telegramId) !== result.sessionId) return;
+
+        try {
+          const completionResult = await this.combatService.completeDojo(telegramId, result.sessionId);
+          this.userSessions.delete(telegramId);
+          this.sessionModes.delete(result.sessionId);
+
+          const socketId = this.userSockets.get(telegramId);
+          if (socketId) {
+            this.server.to(socketId).emit('combat:dojo-completed', completionResult);
+          }
+        } catch { /* session already completed by client */ }
+      }, B.DOJO_COUNTDOWN_MS + B.DOJO_ROUND_MS + 500);
+
+      this.dojoTimers.set(result.sessionId, dojoTimer);
+    } catch (err) {
+      client.emit('combat:error', {
+        message: (err as Error).message || 'Failed to start dojo',
+      });
+    }
+  }
+
+  // ─── Complete dojo ─────────────────────────────────────────
+
+  @SubscribeMessage('combat:complete-dojo')
+  async handleCompleteDojo(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { sessionId: string },
+  ) {
+    const telegramId = this.socketUsers.get(client.id);
+    if (!telegramId) return;
+
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
+    try {
+      this.stopDojoTimer(data.sessionId);
+      const result = await this.combatService.completeDojo(telegramId, data.sessionId);
+      this.userSessions.delete(telegramId);
+      this.sessionModes.delete(data.sessionId);
+
+      client.emit('combat:dojo-completed', result);
+    } catch (err) {
+      client.emit('combat:error', {
+        message: (err as Error).message || 'Failed to complete dojo',
       });
     }
   }
@@ -274,6 +436,43 @@ export class CombatGateway
     const telegramId = this.socketUsers.get(client.id);
     if (!telegramId) return;
 
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
+    // Check session mode to route dojo vs combat
+    const mode = this.sessionModes.get(data.sessionId);
+
+    if (mode === 'dojo') {
+      try {
+        const dojoResult = await this.combatService.processDojoTap(
+          telegramId,
+          data.sessionId,
+        );
+
+        client.emit('combat:tap-result', dojoResult);
+
+        // If dojo ended (timer expired), auto-complete
+        if (dojoResult.dojoEnded) {
+          this.stopDojoTimer(data.sessionId);
+          try {
+            const completionResult = await this.combatService.completeDojo(
+              telegramId,
+              data.sessionId,
+            );
+            this.userSessions.delete(telegramId);
+            this.sessionModes.delete(data.sessionId);
+            client.emit('combat:dojo-completed', completionResult);
+          } catch { /* already completed */ }
+        }
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (!msg?.includes('Tap too fast')) {
+          client.emit('combat:error', { message: msg || 'Tap failed' });
+        }
+      }
+      return;
+    }
+
+    // Regular combat tap
     try {
       const result = await this.combatService.processTap(
         telegramId,
@@ -289,16 +488,14 @@ export class CombatGateway
         } catch { /* already handled */ }
         client.emit('combat:player-died', { sessionId: data.sessionId });
         this.userSessions.delete(telegramId);
+        this.sessionModes.delete(data.sessionId);
       } else if (result.killed && !result.isComplete) {
-        // Monster killed but wave continues — pause attacks until
-        // the client finishes the new monster's entrance animation
-        // and sends 'combat:entrance-done'
+        // Monster killed but wave continues — pause attacks until entrance-done
         this.stopCombatLoop(data.sessionId);
         console.log(`[CombatGateway] Monster killed — loop paused, waiting for entrance-done (session=${data.sessionId})`);
       }
     } catch (err) {
       const msg = (err as Error).message;
-      // Don't spam errors for "tap too fast"
       if (!msg?.includes('Tap too fast')) {
         client.emit('combat:error', { message: msg || 'Tap failed' });
       }
@@ -315,6 +512,8 @@ export class CombatGateway
     const telegramId = this.socketUsers.get(client.id);
     if (!telegramId) return;
 
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
     try {
       this.stopCombatLoop(data.sessionId);
       const result = await this.combatService.completeSession(
@@ -322,6 +521,7 @@ export class CombatGateway
         data.sessionId,
       );
       this.userSessions.delete(telegramId);
+      this.sessionModes.delete(data.sessionId);
 
       client.emit('combat:completed', result);
     } catch (err) {
@@ -341,10 +541,14 @@ export class CombatGateway
     const telegramId = this.socketUsers.get(client.id);
     if (!telegramId) return;
 
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
     try {
       this.stopCombatLoop(data.sessionId);
+      this.stopDojoTimer(data.sessionId);
       await this.combatService.fleeCombat(telegramId, data.sessionId);
       this.userSessions.delete(telegramId);
+      this.sessionModes.delete(data.sessionId);
 
       client.emit('combat:fled', { success: true });
     } catch (err) {
@@ -363,6 +567,8 @@ export class CombatGateway
   ) {
     const telegramId = this.socketUsers.get(client.id);
     if (!telegramId) return;
+
+    if (await this.rateLimitCheck(client, telegramId)) return;
 
     const sessionId = data?.sessionId || this.userSessions.get(telegramId);
     if (!sessionId) return;
@@ -399,6 +605,8 @@ export class CombatGateway
     const telegramId = this.socketUsers.get(client.id);
     if (!telegramId) return;
 
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
     try {
       // Cancel disconnect grace timer
       const timer = this.disconnectTimers.get(telegramId);
@@ -420,7 +628,11 @@ export class CombatGateway
 
       // Restore user-session mapping and restart loop
       this.userSessions.set(telegramId, data.sessionId);
-      this.startCombatLoop(data.sessionId, telegramId);
+      this.sessionModes.set(data.sessionId, session.mode);
+
+      if (session.mode !== 'dojo') {
+        this.startCombatLoop(data.sessionId, telegramId);
+      }
 
       const currentMonster = session.monsterQueue[session.currentIndex] || null;
 
@@ -454,6 +666,8 @@ export class CombatGateway
     const telegramId = this.socketUsers.get(client.id);
     if (!telegramId) return;
 
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
     try {
       const result = await this.combatService.usePotion(
         telegramId,
@@ -478,6 +692,8 @@ export class CombatGateway
     const telegramId = this.socketUsers.get(client.id);
     if (!telegramId) return;
 
+    if (await this.rateLimitCheck(client, telegramId)) return;
+
     try {
       const result = await this.combatService.castSkill(
         telegramId,
@@ -494,6 +710,7 @@ export class CombatGateway
         } catch { /* already handled */ }
         client.emit('combat:player-died', { sessionId: data.sessionId });
         this.userSessions.delete(telegramId);
+        this.sessionModes.delete(data.sessionId);
       } else if (result.killed && !result.isComplete) {
         // Monster killed — pause attacks until entrance-done
         this.stopCombatLoop(data.sessionId);
@@ -542,6 +759,7 @@ export class CombatGateway
           } catch { /* already handled */ }
           this.server.to(socketId).emit('combat:player-died', { sessionId });
           this.userSessions.delete(telegramId);
+          this.sessionModes.delete(sessionId);
         }
       } catch (err) {
         console.error('[CombatGateway] Loop error:', err);
@@ -556,6 +774,14 @@ export class CombatGateway
     if (interval) {
       clearInterval(interval);
       this.combatLoops.delete(sessionId);
+    }
+  }
+
+  private stopDojoTimer(sessionId: string): void {
+    const timer = this.dojoTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      this.dojoTimers.delete(sessionId);
     }
   }
 }

@@ -91,7 +91,9 @@
       "Bash(D:\\\\programs\\\\33Metro\\\\bot\\\\node_modules\\\\.bin\\\\tsc:*)",
       "Bash(cmd /c \"cd /d D:\\\\programs\\\\33Metro\\\\bot && npx tsc --noEmit 2>&1\")",
       "Bash(cmd /c \"cd /d D:\\\\programs\\\\33Metro\\\\server && npx tsc --noEmit 2>&1\")",
-      "Bash(app \")"
+      "Bash(app \")",
+      "Bash(pg_isready:*)",
+      "Bash(docker stop:*)"
     ]
   }
 }

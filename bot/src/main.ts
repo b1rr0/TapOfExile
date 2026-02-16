@@ -1,5 +1,5 @@
 import { EventBus } from "./game/events.js";
-import { GameState } from "./game/state.js";
+import { GameState, BannedError } from "./game/state.js";
 import { SceneManager } from "./scenes/scene-manager.js";
 import { CombatScene } from "./scenes/combat-scene.js";
 import { HideoutScene } from "./scenes/hideout-scene.js";
@@ -96,6 +96,39 @@ function showSubscriptionGate(onSubscribed: () => void): void {
   });
 }
 
+/* ── Ban screen ──────────────────────────────────────── */
+
+function showBanScreen(bannedUntil: number, reason: string): void {
+  const loadingEl = document.getElementById("loading-screen") as HTMLElement;
+  const sceneEl = document.getElementById("scene-container") as HTMLElement;
+  if (sceneEl) sceneEl.innerHTML = "";
+  if (!loadingEl) return;
+
+  loadingEl.classList.remove("hidden");
+
+  const expiresDate = new Date(bannedUntil);
+  const hoursLeft = Math.max(1, Math.ceil((bannedUntil - Date.now()) / 3_600_000));
+
+  loadingEl.innerHTML = `
+    <div class="ban-screen">
+      <div class="ban-screen__icon">⛔</div>
+      <h2 class="ban-screen__title">Account Suspended</h2>
+      <p class="ban-screen__reason">Suspicious activity detected</p>
+      <div class="ban-screen__timer">
+        <span>Expires in ~${hoursLeft}h</span>
+        <span class="ban-screen__date">${expiresDate.toLocaleString()}</span>
+      </div>
+      <p class="ban-screen__info">
+        Your account has been temporarily suspended for violating game rules.
+        Please try again after the ban expires.
+      </p>
+      <button class="ban-screen__btn" onclick="location.reload()">
+        Check Again
+      </button>
+    </div>
+  `;
+}
+
 /* ── Game startup ───────────────────────────────────── */
 
 function startGame(): void {
@@ -147,6 +180,13 @@ function startGame(): void {
       showSubscriptionGate(() => startGame());
     }
   } catch (err) {
+    // Ban check — show full-screen ban instead of game
+    if (err instanceof BannedError) {
+      console.warn("[Main] Player is banned until", new Date(err.bannedUntil));
+      showBanScreen(err.bannedUntil, err.banReason);
+      return;
+    }
+
     console.error("[Main] Failed to load game:", err);
     const loadingEl = document.getElementById("loading-screen");
     if (loadingEl) {

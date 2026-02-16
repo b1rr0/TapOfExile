@@ -54,7 +54,15 @@ bot.command("help", (ctx) => {
   );
 });
 
-bot.launch();
+bot.launch().then(() => {
+  bot.telegram.setChatMenuButton({
+    menuButton: {
+      type: "web_app",
+      text: "Play",
+      web_app: { url: WEBAPP_URL },
+    },
+  });
+});
 console.log("Bot is running...");
 
 process.once("SIGINT", () => bot.stop("SIGINT"));

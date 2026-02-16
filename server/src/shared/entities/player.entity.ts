@@ -48,6 +48,12 @@ export class Player {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @Column({ type: 'timestamp', nullable: true })
+  bannedUntil: Date | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  banReason: string | null;
+
   @OneToMany(() => PlayerLeague, (pl) => pl.player, { cascade: true })
   playerLeagues: PlayerLeague[];
 }

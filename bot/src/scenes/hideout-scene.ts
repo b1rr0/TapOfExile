@@ -8,6 +8,7 @@ import { SpriteEngine } from "../ui/sprite-engine.js";
 import { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
 import { ELEMENT_COLORS } from "@shared/types";
 import type { SharedDeps, SkinConfig, Character } from "../types.js";
+import { music } from "../ui/music.js";
 
 /**
  * HideoutScene — home hub screen.
@@ -110,6 +111,11 @@ export class HideoutScene {
           </div>
 
           <span class="hideout-topbar__title">Hideout</span>
+
+          <!-- Music toggle -->
+          <button class="hideout-music-btn" id="hideout-music-btn" title="Toggle music">
+            ${music.enabled ? "&#x1F50A;" : "&#x1F507;"}
+          </button>
 
           <!-- Settings dropdown -->
           <div class="hideout-topbar__dropdown" id="settings-dropdown">
@@ -237,6 +243,16 @@ export class HideoutScene {
     if (statsBtn) {
       statsBtn.addEventListener("click", () => this._openStatsOverlay());
     }
+
+    // -- Music toggle --------------------------------------
+    const musicBtn = this.container.querySelector("#hideout-music-btn") as HTMLButtonElement | null;
+    if (musicBtn) {
+      musicBtn.addEventListener("click", () => {
+        const on = music.toggle();
+        musicBtn.innerHTML = on ? "&#x1F50A;" : "&#x1F507;";
+      });
+    }
+    music.play("/assets/music/ToE main theme.mp3");
 
     // -- Top bar dropdowns ---------------------------------
     this._wireDropdown("shop-toggle", "shop-menu", {

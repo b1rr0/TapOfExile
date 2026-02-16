@@ -82,9 +82,21 @@ export class PlayerService {
 
   /**
    * Get full player state with ALL characters from ALL leagues.
+   * Includes ban status — client must check and block game if banned.
    */
   async getPlayerState(telegramId: string) {
     const player = await this.getPlayer(telegramId);
+
+    // Ban check — return ban info before loading heavy data
+    const isBanned = player.bannedUntil && player.bannedUntil.getTime() > Date.now();
+    if (isBanned) {
+      return {
+        banned: true,
+        bannedUntil: player.bannedUntil!.getTime(),
+        banReason: player.banReason || 'rate_limit',
+      };
+    }
+
     const pl = await this.getActivePlayerLeague(telegramId);
     const allPlayerLeagues = await this.getAllPlayerLeagues(telegramId);
 
@@ -161,6 +173,7 @@ export class PlayerService {
     }
 
     return {
+      banned: false,
       gold: pl.gold,
       activeLeagueId: player.activeLeagueId,
       activeCharacterId: pl.activeCharacterId,

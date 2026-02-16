@@ -6,12 +6,14 @@ import { BackgroundRenderer } from "../ui/background-renderer.js";
 import { renderActionBarHTML, initPotionSlots, initKeyboardHandler } from "../ui/action-bar.js";
 import { haptic } from "../utils/haptic.js";
 import { friends } from "../api.js";
+import { getSocket, waitForConnection } from "../combat-socket.js";
+import { B } from "../data/balance.js";
+import type { Socket } from "socket.io-client";
 import type { SharedDeps, SkinConfig } from "../types.js";
 
 const DOJO_BG = "/assets/background/dojo/vecteezy_dojo-illustration_149158.jpg";
 const DUMMY_SKIN_ID = "training_dummy";
-const COUNTDOWN_SECONDS = 3;
-const ROUND_SECONDS = 10;
+const COUNTDOWN_SECONDS = B.DOJO_COUNTDOWN_MS / 1000;
 
 /** localStorage key prefix for best DPS per character */
 const BEST_KEY_PREFIX = "dojo_best_";
@@ -31,11 +33,13 @@ function saveBestDamage(charId: string, damage: number): void {
 /**
  * DojoScene — training dummy DPS test mode with landing menu + friends leaderboard.
  *
- * Flow:
+ * Flow (server-authoritative via WebSocket):
  *  1. Landing screen (dojo bg + "Start Challenge" / "Leaderboard" buttons)
- *  2. 3-second countdown overlay
- *  3. 10-second damage phase (tap to attack)
- *  4. Results overlay → back to landing
+ *  2. Connect socket → emit combat:start-dojo → wait for combat:dojo-started
+ *  3. 3-second countdown overlay
+ *  4. 10-second damage phase (tap → emit combat:tap → server calculates damage → combat:tap-result)
+ *  5. Timer expires → emit combat:complete-dojo → combat:dojo-completed with server results
+ *  6. Results overlay → back to landing
  */
 export class DojoScene {
   container: HTMLElement;
@@ -59,14 +63,19 @@ export class DojoScene {
   _phase: "landing" | "loading" | "countdown" | "fight" | "results" | "leaderboard";
   _countdownValue: number;
   _countdownTimer: ReturnType<typeof setInterval> | null;
-  _fightTimer: ReturnType<typeof setInterval> | null;
-  _fightTimeLeft: number;
+  _serverTimerInterval: ReturnType<typeof setInterval> | null;
   _totalDamage: number;
   _tapCount: number;
+  _lastTapTime: number;
   _charId: string;
   _bestDamage: number;
   _spritesLoaded: boolean;
   _heroSkinId: string;
+
+  // Socket state
+  _socket: Socket | null;
+  _sessionId: string | null;
+  _dojoEndsAt: number | null;
 
   // Leaderboard
   _activeTab: "friends" | "global";
@@ -100,15 +109,19 @@ export class DojoScene {
     this._phase = "landing";
     this._countdownValue = COUNTDOWN_SECONDS;
     this._countdownTimer = null;
-    this._fightTimer = null;
-    this._fightTimeLeft = ROUND_SECONDS;
+    this._serverTimerInterval = null;
     this._totalDamage = 0;
     this._tapCount = 0;
+    this._lastTapTime = 0;
     this._charId = "";
     this._bestDamage = 0;
     this._spritesLoaded = false;
     this._heroSkinId = "";
     this._activeTab = "friends";
+
+    this._socket = null;
+    this._sessionId = null;
+    this._dojoEndsAt = null;
 
     this._overlayEl = null;
     this._bestEl = null;
@@ -139,6 +152,7 @@ export class DojoScene {
   _showLanding(): void {
     this._phase = "landing";
     this._stopTimers();
+    this._cleanupDojoSocket();
 
     this.container.innerHTML = `
       <div class="dojo-landing" style="background-image: url('${DOJO_BG}')">
@@ -167,16 +181,18 @@ export class DojoScene {
     });
   }
 
-  // ─── Start Challenge (load sprites → countdown → fight) ──
+  // ─── Start Challenge (connect socket → load sprites → countdown → fight) ──
 
-  _startChallenge(): void {
+  async _startChallenge(): Promise<void> {
     const char = this.state.getActiveCharacter();
     if (!char) return;
 
     this._totalDamage = 0;
     this._tapCount = 0;
-    this._fightTimeLeft = ROUND_SECONDS;
+    this._lastTapTime = 0;
     this._countdownValue = COUNTDOWN_SECONDS;
+    this._sessionId = null;
+    this._dojoEndsAt = null;
     this._phase = "loading";
 
     this.container.innerHTML = `
@@ -188,7 +204,7 @@ export class DojoScene {
         </div>
 
         <div class="dojo-fight-hud" id="dojo-fight-hud">
-          <div class="dojo-timer" id="dojo-timer">${ROUND_SECONDS}s</div>
+          <div class="dojo-timer" id="dojo-timer">--</div>
           <div class="dojo-damage" id="dojo-damage">0</div>
         </div>
 
@@ -207,7 +223,7 @@ export class DojoScene {
         })}
 
         <div class="dojo-overlay" id="dojo-overlay">
-          <div class="dojo-overlay__text" id="dojo-overlay-text">Loading...</div>
+          <div class="dojo-overlay__text" id="dojo-overlay-text">Connecting...</div>
         </div>
       </div>
     `;
@@ -223,6 +239,7 @@ export class DojoScene {
       this._stopTimers();
       this._destroySprites();
       this._cleanupActionBar();
+      this._cleanupDojoSocket();
       this._showLanding();
     });
 
@@ -247,6 +264,18 @@ export class DojoScene {
       onTap: () => this._onTap(),
     });
 
+    // Connect socket and request dojo session
+    try {
+      this._socket = await getSocket();
+      await waitForConnection(this._socket);
+      this._setupDojoSocketListeners();
+      this._socket.emit("combat:start-dojo", {});
+    } catch (err) {
+      console.error("[DojoScene] Socket connection failed:", err);
+      this._showOverlay("Connection failed. Tap to retry.");
+      return;
+    }
+
     // Load sprites (or reuse if already loaded with same skin)
     if (this._spritesLoaded && this._heroSkinId === char.skinId) {
       this._setupCanvasForFight();
@@ -255,6 +284,125 @@ export class DojoScene {
       this._loadSprites(char.skinId);
     }
   }
+
+  // ─── Socket Listeners ──────────────────────────────────
+
+  _setupDojoSocketListeners(): void {
+    if (!this._socket) return;
+
+    this._socket.on("combat:dojo-started", (data: { sessionId: string; dojoEndsAt: number }) => {
+      this._sessionId = data.sessionId;
+      this._dojoEndsAt = data.dojoEndsAt;
+
+      // If sprites are loaded, start countdown; otherwise _setupCanvasForFight will call it
+      if (this._spritesLoaded && this._phase === "loading") {
+        this._setupCanvasForFight();
+      }
+    });
+
+    this._socket.on("combat:tap-result", (data: {
+      damage: number;
+      isCrit: boolean;
+      damageBreakdown?: Record<string, number>;
+      totalDamage: number;
+      totalTaps: number;
+      dojoEnded: boolean;
+      timeLeftMs: number;
+    }) => {
+      if (this._phase !== "fight") return;
+
+      // Update from server (authoritative)
+      this._totalDamage = data.totalDamage;
+      this._tapCount = data.totalTaps;
+
+      // Hero attack animation
+      if (this._hero) this._hero.attack();
+
+      // Enemy hurt animation
+      if (this._enemy) {
+        if (this._enemy.engine.hasAnimation("hurt")) {
+          this._enemy.play("hurt", {
+            onComplete: () => this._enemy?.play("idle"),
+          });
+        }
+        this._enemy.hit();
+      }
+
+      // Haptic feedback
+      haptic("light");
+
+      // Update HUD
+      this._updateHud();
+
+      // Float damage number
+      this._spawnDmgFloat(data.damage, data.isCrit);
+
+      // Server says time's up
+      if (data.dojoEnded) {
+        this._emitCompleteDojo();
+      }
+    });
+
+    this._socket.on("combat:dojo-completed", (data: {
+      totalDamage: number;
+      totalTaps: number;
+      dps: number;
+      bestDamage: number;
+      isNewBest: boolean;
+    }) => {
+      // Guard against double-fire (server auto-complete + client complete-dojo)
+      if (this._phase === "results") return;
+      this._stopServerTimer();
+      this._endFight(data);
+    });
+
+    this._socket.on("combat:error", (data: { message: string }) => {
+      console.error("[DojoScene] Server error:", data.message);
+      if (this._phase === "loading") {
+        this._showOverlay("Error: " + data.message);
+      }
+    });
+
+    this._socket.on("combat:banned", (data: { expiresAt: number; reason: string }) => {
+      this._stopTimers();
+      this._sessionId = null;
+      if (this._overlayEl) {
+        this._overlayEl.classList.remove("dojo-overlay--hidden");
+        const hours = Math.ceil((data.expiresAt - Date.now()) / 3_600_000);
+        this._overlayEl.innerHTML = `
+          <div class="dojo-results">
+            <div class="dojo-results__title" style="color:#e74c3c">Banned</div>
+            <div class="dojo-results__row">
+              <span>Suspicious activity detected</span>
+            </div>
+            <div class="dojo-results__row">
+              <span>Expires in ~${hours}h</span>
+            </div>
+            <div class="dojo-results__buttons">
+              <button class="dojo-results__btn dojo-results__btn--back" id="dojo-ban-back">Return to Hideout</button>
+            </div>
+          </div>
+        `;
+        this._overlayEl.querySelector("#dojo-ban-back")?.addEventListener("click", () => {
+          this.sceneManager.switchTo("hideout");
+        });
+      }
+    });
+  }
+
+  _cleanupDojoSocket(): void {
+    if (!this._socket) return;
+    this._socket.off("combat:dojo-started");
+    this._socket.off("combat:tap-result");
+    this._socket.off("combat:dojo-completed");
+    this._socket.off("combat:error");
+    this._socket.off("combat:banned");
+    this._socket = null;
+    this._sessionId = null;
+    this._dojoEndsAt = null;
+  }
+
+  // ─── Sprite Loading ────────────────────────────────────
 
   async _loadSprites(heroSkinId: string): Promise<void> {
     try {
@@ -291,6 +439,9 @@ export class DojoScene {
   }
 
   _setupCanvasForFight(): void {
+    // Wait for both sprites AND server session
+    if (!this._spritesLoaded || !this._sessionId) return;
+
     // Reset sprite states
     if (this._enemy) {
       this._enemy.resetState();
@@ -408,63 +559,51 @@ export class DojoScene {
     this._phase = "fight";
     this._totalDamage = 0;
     this._tapCount = 0;
-    this._fightTimeLeft = ROUND_SECONDS;
+    this._lastTapTime = 0;
     this._updateHud();
 
-    this._fightTimer = setInterval(() => {
-      this._fightTimeLeft--;
-      if (this._timerEl) this._timerEl.textContent = `${this._fightTimeLeft}s`;
+    // Timer derived from server's dojoEndsAt (100ms interval for smooth countdown)
+    this._serverTimerInterval = setInterval(() => {
+      if (!this._dojoEndsAt) return;
+      const timeLeftMs = this._dojoEndsAt - Date.now();
+      const secsLeft = Math.max(0, Math.ceil(timeLeftMs / 1000));
 
-      if (this._fightTimeLeft <= 0) {
-        clearInterval(this._fightTimer!);
-        this._fightTimer = null;
-        this._endFight();
+      if (this._timerEl) this._timerEl.textContent = `${secsLeft}s`;
+
+      if (timeLeftMs <= 0) {
+        this._stopServerTimer();
+        this._emitCompleteDojo();
       }
-    }, 1000);
+    }, 100);
+  }
+
+  _emitCompleteDojo(): void {
+    if (!this._socket || !this._sessionId) return;
+    this._socket.emit("combat:complete-dojo", { sessionId: this._sessionId });
+  }
+
+  _stopServerTimer(): void {
+    if (this._serverTimerInterval) {
+      clearInterval(this._serverTimerInterval);
+      this._serverTimerInterval = null;
+    }
   }
 
   _onTap(): void {
     if (this._phase !== "fight") return;
+    if (!this._socket || !this._sessionId) return;
 
-    const char = this.state.getActiveCharacter();
-    if (!char) return;
+    // Client-side rate limit: max 10 taps/sec (100ms between taps) for UX smoothing
+    const now = performance.now();
+    if (now - this._lastTapTime < 100) return;
+    this._lastTapTime = now;
 
-    // Calculate damage (same logic as server: tapDamage with crit)
-    let dmg = char.tapDamage || 1;
-    const isCrit = Math.random() < (char.critChance || 0);
-    if (isCrit) {
-      dmg = Math.floor(dmg * (char.critMultiplier || 1.5));
-    }
-
-    this._totalDamage += dmg;
-    this._tapCount++;
-
-    // Hero attack animation
-    if (this._hero) this._hero.attack();
-
-    // Enemy hurt animation
-    if (this._enemy) {
-      if (this._enemy.engine.hasAnimation("hurt")) {
-        this._enemy.play("hurt", {
-          onComplete: () => this._enemy?.play("idle"),
-        });
-      }
-      this._enemy.hit();
-    }
-
-    // Haptic feedback
-    haptic("light");
-
-    // Update HUD
-    this._updateHud();
-
-    // Float damage number
-    this._spawnDmgFloat(dmg, isCrit);
+    // Emit tap to server (server calculates damage)
+    this._socket.emit("combat:tap", { sessionId: this._sessionId });
   }
 
   _updateHud(): void {
     if (this._dmgEl) this._dmgEl.textContent = this._formatDmg(this._totalDamage);
-    if (this._timerEl) this._timerEl.textContent = `${this._fightTimeLeft}s`;
   }
 
   _spawnDmgFloat(dmg: number, isCrit: boolean): void {
@@ -488,28 +627,27 @@ export class DojoScene {
 
   // ─── End Fight ──────────────────────────────────────────
 
-  _endFight(): void {
+  _endFight(result: {
+    totalDamage: number;
+    totalTaps: number;
+    dps: number;
+    bestDamage: number;
+    isNewBest: boolean;
+  }): void {
     this._phase = "results";
+    this._stopServerTimer();
 
-    // Check and save best (local)
-    let isNewBest = false;
-    if (this._totalDamage > this._bestDamage) {
-      this._bestDamage = this._totalDamage;
-      saveBestDamage(this._charId, this._bestDamage);
-      isNewBest = true;
-      if (this._bestEl) {
-        this._bestEl.textContent = `Best: ${this._formatDmg(this._bestDamage)}`;
-      }
+    // Update local best cache
+    this._totalDamage = result.totalDamage;
+    this._tapCount = result.totalTaps;
+    this._bestDamage = result.bestDamage;
+    saveBestDamage(this._charId, result.bestDamage);
+
+    if (this._bestEl) {
+      this._bestEl.textContent = `Best: ${this._formatDmg(result.bestDamage)}`;
     }
 
-    // Submit to server (fire-and-forget)
-    friends.submitDojo(this._charId, this._totalDamage).catch(() => {});
-
-    const dps = this._tapCount > 0
-      ? Math.round(this._totalDamage / ROUND_SECONDS)
-      : 0;
-
-    this._showResults(this._totalDamage, dps, this._tapCount, isNewBest);
+    this._showResults(result.totalDamage, result.dps, result.totalTaps, result.isNewBest);
   }
 
   _showResults(total: number, dps: number, taps: number, isNewBest: boolean): void {
@@ -553,6 +691,7 @@ export class DojoScene {
       this._stopTimers();
       this._destroySprites();
       this._cleanupActionBar();
+      this._cleanupDojoSocket();
       this._showLeaderboard();
     });
 
@@ -564,7 +703,9 @@ export class DojoScene {
   _resetRound(): void {
     this._totalDamage = 0;
     this._tapCount = 0;
-    this._fightTimeLeft = ROUND_SECONDS;
+    this._lastTapTime = 0;
+    this._sessionId = null;
+    this._dojoEndsAt = null;
     this._updateHud();
 
     // Reset enemy sprite state
@@ -576,7 +717,20 @@ export class DojoScene {
       this._hero.play("idle");
     }
 
-    this._startCountdown();
+    // Request new dojo session from server
+    if (this._socket) {
+      this._showOverlay("Starting...");
+
+      // Replace the dojo-started listener with a one-shot that starts countdown
+      this._socket.off("combat:dojo-started");
+      this._socket.once("combat:dojo-started", (data: { sessionId: string; dojoEndsAt: number }) => {
+        this._sessionId = data.sessionId;
+        this._dojoEndsAt = data.dojoEndsAt;
+        this._startCountdown();
+      });
+
+      this._socket.emit("combat:start-dojo", {});
+    }
   }
 
   // ─── Leaderboard ─────────────────────────────────────────
@@ -710,10 +864,7 @@ export class DojoScene {
       clearInterval(this._countdownTimer);
       this._countdownTimer = null;
     }
-    if (this._fightTimer) {
-      clearInterval(this._fightTimer);
-      this._fightTimer = null;
-    }
+    this._stopServerTimer();
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
       this._resizeObserver = null;
@@ -744,6 +895,7 @@ export class DojoScene {
     this._stopTimers();
     this._destroySprites();
     this._cleanupActionBar();
+    this._cleanupDojoSocket();
 
     this._overlayEl = null;
     this._bestEl = null;

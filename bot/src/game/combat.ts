@@ -235,6 +235,13 @@ export class CombatManager {
       this._tapping = false;
     });
 
+    // Ban detection — server-side anti-cheat triggered
+    this._socket.on("combat:banned", (data: { expiresAt: number; reason: string }) => {
+      console.warn("[CombatManager] Player banned:", data.reason, "until", new Date(data.expiresAt));
+      this._sessionId = null;
+      this.events.emit("playerBanned", data);
+    });
+
     // Auto-reconnect: if we had a session, try to resume it
     this._socket.on("connect", () => {
       if (this._sessionId) {
@@ -528,6 +535,7 @@ export class CombatManager {
       this._socket.off("combat:reconnected");
       this._socket.off("combat:potion-used");
       this._socket.off("combat:error");
+      this._socket.off("combat:banned");
       this._socket.off("combat:started");
       this._socket.off("combat:completed");
       this._socket.off("combat:fled");

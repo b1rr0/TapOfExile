@@ -210,11 +210,15 @@ export class AuthService {
 
   /**
    * Authenticate via Telegram initData: validate → find/create player → issue tokens.
+   * Returns ban info if player is currently banned.
    */
   async authenticateTelegram(initData: string) {
     const tgUser = this.validateTelegramInitData(initData);
     const player = await this.findOrCreatePlayer(tgUser);
     const tokens = await this.issueTokens(player);
+
+    // Ban check
+    const isBanned = player.bannedUntil && player.bannedUntil.getTime() > Date.now();
 
     return {
       ...tokens,
@@ -224,6 +228,9 @@ export class AuthService {
         firstName: player.telegramFirstName,
         activeLeagueId: player.activeLeagueId,
         gameVersion: player.gameVersion,
+        banned: isBanned ? true : false,
+        bannedUntil: isBanned ? player.bannedUntil!.getTime() : null,
+        banReason: isBanned ? (player.banReason || 'rate_limit') : null,
       },
     };
   }

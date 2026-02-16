@@ -116,4 +116,14 @@ export const B = {
   SKILL_FIREBALL_DMG_MULTIPLIER: 5,    // 5× tapDamage
   SKILL_SWORD_THROW_COOLDOWN_MS: 3000,
   SKILL_SWORD_THROW_DMG_MULTIPLIER: 4, // 4× tapDamage, physical
+
+  /* ── Anti-cheat ──────────────────────────── */
+  ANTICHEAT_WINDOW_MS: 3000,              // 3-second counting window
+  ANTICHEAT_MSG_LIMIT: 30,               // max socket messages per 3-sec window
+  ANTICHEAT_BAN_DURATION_MS: 86_400_000,  // 1 day (24h)
+
+  /* ── Dojo ──────────────────────────────── */
+  DOJO_COUNTDOWN_MS: 3_000,              // 3-second countdown before fight
+  DOJO_ROUND_MS: 10_000,                 // 10-second fight
+  DOJO_SESSION_TTL: 60,                  // Redis TTL (1 min)
 };

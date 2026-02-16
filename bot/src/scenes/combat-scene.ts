@@ -68,6 +68,7 @@ export class CombatScene {
   _onCombatReady: (() => void) | null;
   _cleanupPotions: (() => void) | null;
   _cleanupKeyboard: (() => void) | null;
+  _onPlayerBanned: ((data: any) => void) | null;
 
   // Loading overlay
   _loadingEl: HTMLElement | null;
@@ -97,6 +98,7 @@ export class CombatScene {
     this._onCombatReady = null;
     this._cleanupPotions = null;
     this._cleanupKeyboard = null;
+    this._onPlayerBanned = null;
 
     this._loadingEl = null;
     this._loadingTipEl = null;
@@ -185,6 +187,14 @@ export class CombatScene {
               <button class="flee-confirm-btn flee-confirm-btn--cancel" id="flee-cancel">Stay</button>
               <button class="flee-confirm-btn flee-confirm-btn--leave" id="flee-leave">Leave</button>
             </div>
+          </div>
+        </div>
+
+        <div class="ban-overlay ban-overlay--hidden" id="ban-overlay">
+          <div class="ban-overlay-box">
+            <p class="ban-overlay-title">Temporarily Suspended</p>
+            <p class="ban-overlay-text">Abnormal tap rate detected.<br>Banned until <span id="ban-until-time"></span></p>
+            <button class="ban-overlay-btn" id="ban-leave-btn">Return to Hideout</button>
           </div>
         </div>
 
@@ -311,6 +321,23 @@ export class CombatScene {
       if (this.combat) {
         this.combat.flee().catch((err) => console.warn("[CombatScene] Flee failed:", err));
       }
+      if (this.sceneManager) {
+        this.sceneManager.switchTo("hideout");
+      }
+    });
+
+    // ── Ban overlay ─────────────────────────────────────────
+    const banOverlay = this.container.querySelector("#ban-overlay") as HTMLElement;
+    const banLeaveBtn = this.container.querySelector("#ban-leave-btn") as HTMLButtonElement;
+    const banUntilTime = this.container.querySelector("#ban-until-time") as HTMLElement;
+
+    this._onPlayerBanned = (data: { expiresAt: number }) => {
+      banUntilTime.textContent = new Date(data.expiresAt).toLocaleString();
+      banOverlay.classList.remove("ban-overlay--hidden");
+    };
+    this.events.on("playerBanned", this._onPlayerBanned);
+
+    banLeaveBtn.addEventListener("click", () => {
       if (this.sceneManager) {
         this.sceneManager.switchTo("hideout");
       }
@@ -526,6 +553,10 @@ export class CombatScene {
     if (this._onCombatReady) {
       this.events.off("combatReady", this._onCombatReady);
       this._onCombatReady = null;
+    }
+    if (this._onPlayerBanned) {
+      this.events.off("playerBanned", this._onPlayerBanned);
+      this._onPlayerBanned = null;
     }
     // Clean up action bar (potions + keyboard)
     this._cleanupPotions?.();

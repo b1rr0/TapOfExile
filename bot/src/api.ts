@@ -108,6 +108,9 @@ export const auth = {
         firstName: string | null;
         activeLeagueId: string | null;
         gameVersion: number;
+        banned: boolean;
+        bannedUntil: number | null;
+        banReason: string | null;
       };
     }>("/auth/telegram", { initData });
     accessToken = data.accessToken;
