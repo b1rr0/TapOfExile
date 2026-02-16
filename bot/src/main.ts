@@ -13,6 +13,7 @@ import { MapDeviceScene } from "./scenes/map-device-scene.js";
 import { SkillTreeScene } from "./scenes/skill-tree-scene.js";
 import { DeathScene } from "./scenes/death-scene.js";
 import { DojoScene } from "./scenes/dojo-scene.js";
+import { api } from "./api.js";
 
 // Feature flags — re-exported from config to avoid circular imports
 export { IS_TESTING } from "./config.js";
@@ -30,45 +31,123 @@ if (tg) {
 const events = new EventBus();
 const state = new GameState(events);
 
+/* ── Channel subscription gate ──────────────────────── */
+
+function showSubscriptionGate(onSubscribed: () => void): void {
+  const loadingEl = document.getElementById("loading-screen") as HTMLElement;
+  if (!loadingEl) return;
+
+  loadingEl.classList.remove("hidden");
+  loadingEl.innerHTML = `
+    <div style="text-align: center; padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+      <div style="font-size: 40px; font-weight: 800; letter-spacing: 3px; color: var(--game-accent2);
+        text-shadow: 0 0 20px rgba(200, 160, 255, 0.4);">Tap of Exile</div>
+      <div style="font-size: 16px; color: var(--game-text); opacity: 0.6;">Samurai Idle</div>
+
+      <div style="margin-top: 24px; font-size: 15px; color: var(--game-text); opacity: 0.85; line-height: 1.5;">
+        Subscribe to our channel<br>to start playing
+      </div>
+
+      <a href="https://t.me/tap_of_exile" target="_blank"
+         style="display: flex; align-items: center; justify-content: center; gap: 8px;
+           width: 260px; padding: 14px 0; border-radius: 12px; font-size: 16px; font-weight: 700;
+           color: #fff; background: linear-gradient(135deg, #229ED9, #1a7ab5); text-decoration: none;
+           box-shadow: 0 4px 15px rgba(34,158,217,0.35);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.74 3.99-1.74 6.65-2.89 7.99-3.44 3.81-1.58 4.6-1.86 5.12-1.87.11 0 .37.03.53.17.14.12.18.28.2.45-.01.06.01.24 0 .38z"/>
+        </svg>
+        Tap of Exile Channel
+      </a>
+
+      <button id="check-sub-btn"
+        style="width: 260px; padding: 14px 0; border-radius: 12px; font-size: 18px; font-weight: 800;
+          color: #fff; background: linear-gradient(135deg, var(--game-accent), #7b2f9e); border: none;
+          cursor: pointer; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(155,89,182,0.4);
+          text-transform: uppercase;">
+        Play
+      </button>
+
+      <div id="sub-error" style="color: #f66; font-size: 13px; min-height: 20px;"></div>
+    </div>
+  `;
+
+  const checkBtn = document.getElementById("check-sub-btn") as HTMLButtonElement;
+  const errorEl = document.getElementById("sub-error") as HTMLElement;
+
+  checkBtn.addEventListener("click", async () => {
+    checkBtn.disabled = true;
+    checkBtn.textContent = "Checking...";
+    errorEl.textContent = "";
+
+    try {
+      const { subscribed } = await api.auth.checkChannel();
+      if (subscribed) {
+        onSubscribed();
+      } else {
+        errorEl.textContent = "You are not subscribed yet. Please join the channel first!";
+        checkBtn.disabled = false;
+        checkBtn.textContent = "PLAY";
+      }
+    } catch {
+      errorEl.textContent = "Could not verify. Try again.";
+      checkBtn.disabled = false;
+      checkBtn.textContent = "PLAY";
+    }
+  });
+}
+
+/* ── Game startup ───────────────────────────────────── */
+
+function startGame(): void {
+  const loadingEl = document.getElementById("loading-screen") as HTMLElement;
+  if (loadingEl) loadingEl.classList.add("hidden");
+
+  const sceneContainer = document.getElementById("scene-container") as HTMLElement;
+  const sceneManager = new SceneManager(sceneContainer, { events, state, sceneManager: null as any });
+  sceneManager.deps.sceneManager = sceneManager;
+
+  sceneManager.register("characterCreate", CharacterCreateScene);
+  sceneManager.register("characterSelect", CharacterSelectScene);
+  sceneManager.register("combat", CombatScene);
+  sceneManager.register("hideout", HideoutScene);
+  sceneManager.register("map", MapScene);
+  sceneManager.register("victory", VictoryScene);
+  sceneManager.register("skinShop", SkinShopScene);
+  sceneManager.register("mapDevice", MapDeviceScene);
+  sceneManager.register("skillTree", SkillTreeScene);
+  sceneManager.register("death", DeathScene);
+  sceneManager.register("dojo", DojoScene);
+  sceneManager.register("storybook", StorybookScene);
+
+  if (!state.hasCharacters()) {
+    sceneManager.switchTo("characterCreate");
+  } else if (!state.data.activeCharacterId) {
+    sceneManager.switchTo("characterSelect");
+  } else {
+    sceneManager.switchTo("hideout");
+  }
+}
+
 // Async bootstrap
 (async () => {
   try {
     // 1. Auth + load state from server
     await state.load();
 
-    // 2. Hide loading screen
-    const loadingEl = document.getElementById("loading-screen") as HTMLElement;
-    if (loadingEl) loadingEl.classList.add("hidden");
-
-    // 4. Scene manager
-    const sceneContainer = document.getElementById("scene-container") as HTMLElement;
-    const sceneManager = new SceneManager(sceneContainer, { events, state, sceneManager: null as any });
-    sceneManager.deps.sceneManager = sceneManager;
-
-    sceneManager.register("characterCreate", CharacterCreateScene);
-    sceneManager.register("characterSelect", CharacterSelectScene);
-    sceneManager.register("combat", CombatScene);
-    sceneManager.register("hideout", HideoutScene);
-    sceneManager.register("map", MapScene);
-    sceneManager.register("victory", VictoryScene);
-    sceneManager.register("skinShop", SkinShopScene);
-    sceneManager.register("mapDevice", MapDeviceScene);
-    sceneManager.register("skillTree", SkillTreeScene);
-    sceneManager.register("death", DeathScene);
-    sceneManager.register("dojo", DojoScene);
-    sceneManager.register("storybook", StorybookScene);
-
-    // 5. Route to starting scene based on character state
-    if (!state.hasCharacters()) {
-      sceneManager.switchTo("characterCreate");
-    } else if (!state.data.activeCharacterId) {
-      sceneManager.switchTo("characterSelect");
-    } else {
-      sceneManager.switchTo("hideout");
+    // 2. Check channel subscription
+    try {
+      const { subscribed } = await api.auth.checkChannel();
+      if (subscribed) {
+        startGame();
+      } else {
+        showSubscriptionGate(() => startGame());
+      }
+    } catch {
+      // If check fails, show gate to be safe
+      showSubscriptionGate(() => startGame());
     }
   } catch (err) {
     console.error("[Main] Failed to load game:", err);
-    // Show error on loading screen
     const loadingEl = document.getElementById("loading-screen");
     if (loadingEl) {
       loadingEl.innerHTML = `

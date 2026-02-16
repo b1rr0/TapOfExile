@@ -1,9 +1,10 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { TelegramAuthDto } from './dto/telegram-auth.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { JwtAuthGuard } from './auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -21,5 +22,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token' })
   async refreshToken(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshAccessToken(dto.refreshToken);
+  }
+
+  @Get('check-channel')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Check if user is subscribed to the Telegram channel' })
+  async checkChannel(@Request() req: any) {
+    return this.authService.checkChannelMembership(req.user.telegramId);
   }
 }

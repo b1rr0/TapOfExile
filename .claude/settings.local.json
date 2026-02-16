@@ -90,7 +90,8 @@
       "Bash(powershell -File - <<'PS'\nAdd-Type -AssemblyName System.Drawing\n$img = [System.Drawing.Image]::FromFile\\(\"D:\\\\programs\\\\33Metro\\\\bot\\\\public\\\\assets\\\\skils_sprites\\\\sword_throw\\\\Sword_sprite.png\"\\)\n$w = $img.Width\n$h = $img.Height\nWrite-Host \"$w x $h\"\n$img.Dispose\\(\\)\nPS)",
       "Bash(D:\\\\programs\\\\33Metro\\\\bot\\\\node_modules\\\\.bin\\\\tsc:*)",
       "Bash(cmd /c \"cd /d D:\\\\programs\\\\33Metro\\\\bot && npx tsc --noEmit 2>&1\")",
-      "Bash(cmd /c \"cd /d D:\\\\programs\\\\33Metro\\\\server && npx tsc --noEmit 2>&1\")"
+      "Bash(cmd /c \"cd /d D:\\\\programs\\\\33Metro\\\\server && npx tsc --noEmit 2>&1\")",
+      "Bash(app \")"
     ]
   }
 }

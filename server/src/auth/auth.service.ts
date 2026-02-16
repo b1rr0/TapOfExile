@@ -173,6 +173,42 @@ export class AuthService {
   }
 
   /**
+   * Check if a user is subscribed to the required Telegram channel.
+   * Uses Telegram Bot API getChatMember.
+   */
+  async checkChannelMembership(telegramId: string): Promise<{ subscribed: boolean }> {
+    const chatId = '@tap_of_exile';
+    const url = `https://api.telegram.org/bot${this.botToken}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${telegramId}`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+
+      console.log(`[Auth] checkChannelMembership user=${telegramId}`, JSON.stringify(data));
+
+      if (data.ok) {
+        const status: string = data.result?.status;
+        // creator = owner, administrator, member = subscribed
+        // restricted with is_member = true is also subscribed
+        if (['member', 'administrator', 'creator'].includes(status)) {
+          return { subscribed: true };
+        }
+        if (status === 'restricted' && data.result?.is_member) {
+          return { subscribed: true };
+        }
+        return { subscribed: false };
+      }
+
+      console.warn(`[Auth] Telegram API error:`, JSON.stringify(data));
+      return { subscribed: false };
+    } catch (err) {
+      console.error(`[Auth] checkChannelMembership fetch error:`, err);
+      // If Telegram API is unreachable, allow through to avoid blocking
+      return { subscribed: true };
+    }
+  }
+
+  /**
    * Authenticate via Telegram initData: validate → find/create player → issue tokens.
    */
   async authenticateTelegram(initData: string) {

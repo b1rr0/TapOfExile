@@ -122,6 +122,10 @@ export const auth = {
   isAuthenticated() {
     return !!accessToken;
   },
+
+  checkChannel() {
+    return get<{ subscribed: boolean }>("/auth/check-channel");
+  },
 };
 
 /* ── Player ────────────────────────────────────────────── */

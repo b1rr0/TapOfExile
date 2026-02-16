@@ -36,7 +36,7 @@ bot.command("start", (ctx) => {
       inline_keyboard: [
         [
           {
-            text: "🚇 Play Tap of Exile",
+            text: "⚔️ Play Tap of Exile ⚔️",
             web_app: { url: WEBAPP_URL },
           },
         ],
