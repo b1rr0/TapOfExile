@@ -29,6 +29,7 @@ import { computeElementalDamage } from './elemental-damage';
 import { statsAtLevel, specialAtLevel, MAX_LEVEL, CLASS_DEFS } from '@shared/class-stats';
 import { pickRandomAttack } from '@shared/monster-attacks';
 import type { DamageBreakdown, ElementalDamage, ElementalResistance } from '@shared/types';
+import { ACTIVE_SKILLS, type ActiveSkillId } from '@shared/active-skills';
 import {
   rollLoot,
   getLootPool,
@@ -105,6 +106,8 @@ export interface RedisCombatSession {
    * Kept for Redis session shape compatibility during rolling deploys.
    */
   potionChargesChanged?: boolean;
+  /** Active skill cooldown tracking: skillId → last cast timestamp (ms) */
+  skillCooldowns?: Record<string, number>;
 }
 
 export interface EnemyAttackResult {
@@ -1157,6 +1160,170 @@ export class CombatService {
       playerMaxHp: session.playerMaxHp,
       remainingCharges: potionData.currentCharges,
       maxCharges: potionData.maxCharges,
+    };
+  }
+
+  // ─── Active skill casting ──────────────────────────────
+
+  /**
+   * Cast an active skill — server-authoritative with cooldown validation.
+   * Damage = tapDamage × skill.damageMultiplier, using the skill's elemental profile.
+   */
+  async castSkill(telegramId: string, sessionId: string, skillId: string) {
+    const skillDef = ACTIVE_SKILLS[skillId as ActiveSkillId];
+    if (!skillDef) {
+      throw new BadRequestException(`Unknown skill: ${skillId}`);
+    }
+
+    const session = await this.redis.getJson<RedisCombatSession>(
+      this.sessionKey(sessionId),
+    );
+    if (!session || session.playerId !== telegramId) {
+      throw new NotFoundException('Combat session not found');
+    }
+
+    // Player dead — reject
+    if (session.playerCurrentHp <= 0) {
+      throw new BadRequestException('Player is dead');
+    }
+
+    // Cooldown check (server-authoritative anti-cheat)
+    const now = Date.now();
+    if (!session.skillCooldowns) session.skillCooldowns = {};
+    const lastCast = session.skillCooldowns[skillId] || 0;
+    if (now - lastCast < skillDef.cooldownMs) {
+      throw new BadRequestException('Skill on cooldown');
+    }
+
+    const stats = session.cachedStats;
+    const monster = session.monsterQueue[session.currentIndex];
+    if (!monster) {
+      throw new BadRequestException('No monster to attack');
+    }
+
+    // Crit roll (uses same crit stats as tap)
+    const isCrit = Math.random() < stats.critChance;
+    let rawDamage = Math.floor(stats.tapDamage * skillDef.damageMultiplier);
+    if (isCrit) {
+      rawDamage = Math.floor(rawDamage * stats.critMultiplier);
+    }
+
+    // Elemental damage using skill's profile vs monster resistance
+    const monsterResistance = monster.resistance || {};
+    const breakdown = computeElementalDamage(rawDamage, skillDef.elementalProfile, monsterResistance);
+
+    monster.currentHp -= breakdown.total;
+    session.skillCooldowns[skillId] = now;
+
+    let killed = false;
+    let xpGained = 0;
+    let leveledUp = false;
+    let charLevel = stats.level;
+    let charXp = Number(stats.xp);
+    let charXpToNext = Number(stats.xpToNext);
+
+    if (monster.currentHp <= 0) {
+      monster.currentHp = 0;
+      killed = true;
+      session.totalGoldEarned += monster.goldReward;
+
+      // XP level-scaling (same as processTap)
+      const D = Math.abs(session.playerLevel - (monster.level || session.playerLevel));
+      const scaledXp = Math.max(1, Math.floor(
+        monster.xpReward / (1 + B.XP_LEVEL_SCALING_A * D * D),
+      ));
+      session.totalXpEarned += scaledXp;
+      xpGained = scaledXp;
+
+      // Award XP immediately (same logic as processTap)
+      const prevLevel = stats.level;
+      stats.xp = String(BigInt(stats.xp) + BigInt(scaledXp));
+
+      while (
+        stats.level < MAX_LEVEL &&
+        BigInt(stats.xp) >= BigInt(stats.xpToNext)
+      ) {
+        stats.xp = String(BigInt(stats.xp) - BigInt(stats.xpToNext));
+        stats.level++;
+        stats.xpToNext = String(
+          Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, stats.level - 1)),
+        );
+
+        const newStatsForLevel = statsAtLevel(stats.classId, stats.level);
+        stats.maxHp = newStatsForLevel.hp;
+        stats.hp = newStatsForLevel.hp;
+        stats.tapDamage = newStatsForLevel.tapDamage;
+        stats.critChance = newStatsForLevel.critChance;
+        stats.critMultiplier = newStatsForLevel.critMultiplier;
+        stats.dodgeChance = newStatsForLevel.dodgeChance;
+        stats.specialValue = specialAtLevel(stats.classId, stats.level);
+      }
+
+      if (stats.level >= MAX_LEVEL) {
+        stats.xp = '0';
+      }
+
+      leveledUp = stats.level > prevLevel;
+      charLevel = stats.level;
+      charXp = Number(stats.xp);
+      charXpToNext = Number(stats.xpToNext);
+
+      session.playerLevel = stats.level;
+      if (leveledUp) {
+        session.playerMaxHp = stats.maxHp;
+      }
+
+      // Persist XP/level to DB
+      if (leveledUp) {
+        await this.charRepo.update(session.characterId, {
+          level: stats.level,
+          xp: stats.xp,
+          xpToNext: stats.xpToNext,
+          maxHp: stats.maxHp,
+          hp: stats.hp,
+          tapDamage: stats.tapDamage,
+          critChance: stats.critChance,
+          critMultiplier: stats.critMultiplier,
+          dodgeChance: stats.dodgeChance,
+          specialValue: stats.specialValue,
+        });
+      } else {
+        await this.charRepo.update(session.characterId, {
+          xp: stats.xp,
+          level: stats.level,
+          xpToNext: stats.xpToNext,
+        });
+      }
+
+      session.currentIndex++;
+      session.lastEnemyAttackTime = now;
+      const nextMonster = session.monsterQueue[session.currentIndex];
+      session.nextAttackIn = this.getFirstAttackDelay(nextMonster);
+    }
+
+    const isComplete = session.currentIndex >= session.monsterQueue.length;
+    await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
+
+    return {
+      skillId,
+      damage: breakdown.total,
+      damageBreakdown: breakdown,
+      isCrit,
+      monsterHp: monster.currentHp,
+      monsterMaxHp: monster.maxHp,
+      killed,
+      isComplete,
+      currentMonster: !isComplete ? session.monsterQueue[session.currentIndex] : null,
+      monstersRemaining: session.monsterQueue.length - session.currentIndex,
+      playerHp: session.playerCurrentHp,
+      playerMaxHp: session.playerMaxHp,
+      playerDead: false,
+      xpGained,
+      leveledUp,
+      level: charLevel,
+      xp: charXp,
+      xpToNext: charXpToNext,
+      cooldownUntil: now + skillDef.cooldownMs,
     };
   }
 }

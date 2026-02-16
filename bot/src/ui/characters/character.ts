@@ -255,8 +255,8 @@ export class Character {
     if (!this._visible || !this.engine.loaded) return;
 
     const s = this._scale;
-    const baseW = this._baseW * dpr * 1.56 * s;
-    const baseH = this._baseH * dpr * 1.56 * s;
+    const baseW = this._baseW * dpr * 1.092 * s;
+    const baseH = this._baseH * dpr * 1.092 * s;
 
     // Scale destination rect if current frame differs from idle frame size.
     // This keeps attack sprites (often larger canvas) correctly proportioned.
@@ -288,8 +288,8 @@ export class Character {
 
     // Y: anchor to ground line, shift down by empty space below feet.
     // Uses baseH for ground-line calculation so feet stay pinned regardless
-    // of current animation frame size.
-    const y = canvasH * this._groundLine - h + h * this._anchorOffsetY;
+    // of current animation frame size. Extra +10px nudge downward.
+    const y = canvasH * this._groundLine - h + h * this._anchorOffsetY + 10 * dpr;
 
     // Draw with optional alpha (death fade)
     if (this._dying && this._deathAlpha < 1) {

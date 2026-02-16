@@ -1,0 +1,108 @@
+{
+  "frames": [
+    {
+      "filename": "fireball 0",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 512,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 512,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 512,
+        "h": 256
+      },
+      "duration": 200
+    },
+    {
+      "filename": "fireball 1",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 512,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 512,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 512,
+        "h": 256
+      },
+      "duration": 200
+    },
+    {
+      "filename": "fireball 2",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 512,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 512,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 512,
+        "h": 256
+      },
+      "duration": 200
+    },
+    {
+      "filename": "fireball 3",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 512,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 512,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 512,
+        "h": 256
+      },
+      "duration": 200
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "image": "fire_sprite.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 1024
+    },
+    "scale": "1",
+    "skill": {
+      "renderType": "projectile",
+      "renderDurationMs": 800,
+      "drawW": 220,
+      "drawH": 110
+    }
+  }
+}

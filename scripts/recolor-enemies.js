@@ -25,8 +25,18 @@ const VARIANTS = [
   { name: 'shadow',   hueShift: 300, satMul: 0.6, brightAdd: -20, tint: [100, 50, 90],   outline: [150, 70, 140]  },
 ];
 
-const ENEMY_DIR = path.join(__dirname, '..', 'bot', 'public', 'assets', 'enemy');
+const DEFAULT_DIR = path.join(__dirname, '..', 'bot', 'public', 'assets', 'enemy');
 const DARK_THRESHOLD = 0.70; // 70%+ low-chroma pixels → use tinting mode
+
+// Support --dir <path> to recolor any sprite folder (e.g. skils_sprites)
+function getTargetDir() {
+  const idx = process.argv.indexOf('--dir');
+  if (idx !== -1 && process.argv[idx + 1]) {
+    return path.resolve(process.argv[idx + 1]);
+  }
+  return DEFAULT_DIR;
+}
+const ENEMY_DIR = getTargetDir();
 
 // ─── Color helpers ───────────────────────────────────────────────
 

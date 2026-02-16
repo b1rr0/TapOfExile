@@ -1037,7 +1037,7 @@ body {
   flex-direction: column;
   background:
     radial-gradient(ellipse at center, rgba(26, 16, 37, 0.3) 0%, rgba(13, 5, 16, 0.6) 60%, rgba(5, 2, 8, 0.85) 100%),
-    url('/assets/background/meadow/meadov_with_castle.png');
+    url('/assets/background/hideout/hidout_1.png');
   background-size: 125% 125%;
   background-position: center center;
   background-repeat: no-repeat;
@@ -4068,6 +4068,41 @@ body {
   color: #ef9a9a;
 }
 
+/* ── Skill viewer variant controls ── */
+
+.sb-skill-variant-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sb-skill-variant-arrow {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sb-skill-variant-arrow:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sb-skill-variant-label {
+  color: #ffd54f;
+  font-size: 0.95rem;
+  font-weight: 600;
+  min-width: 5rem;
+  text-align: center;
+}
+
+
 /* ═══════════════════════════════════════════════════════
    MAP DEVICE SCENE — Endgame map key selection
    ═══════════════════════════════════════════════════════ */
@@ -5396,7 +5431,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.75);
 }
 
 .dojo-landing > * {
@@ -5417,7 +5452,8 @@ body {
   text-align: center;
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--game-text);
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
 .dojo-landing__best {
@@ -5491,7 +5527,7 @@ body {
   flex: 1;
   padding: 10px 0;
   border: none;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--game-muted);
   font-size: 0.9rem;
   font-weight: 600;
@@ -5509,8 +5545,8 @@ body {
 }
 
 .dojo-lb-tab--active {
-  background: rgba(155, 89, 182, 0.15);
-  color: var(--game-text);
+  background: rgba(155, 89, 182, 0.3);
+  color: #fff;
   border-bottom-color: var(--game-accent);
 }
 
@@ -5530,13 +5566,13 @@ body {
   gap: 10px;
   padding: 10px 12px;
   margin-bottom: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(10, 5, 20, 0.7);
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dojo-leaderboard__row--self {
-  background: rgba(155, 89, 182, 0.15);
+  background: rgba(155, 89, 182, 0.3);
   border-color: var(--game-accent);
 }
 
@@ -5545,6 +5581,7 @@ body {
   font-weight: 700;
   color: var(--game-gold);
   min-width: 32px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .dojo-leaderboard__icon {
@@ -5561,15 +5598,21 @@ body {
 .dojo-leaderboard__name {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--game-text);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .dojo-leaderboard__meta {
   font-size: 0.75rem;
-  color: var(--game-muted);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dojo-leaderboard__tg {
+  color: #5dade2;
+  font-size: 0.7rem;
 }
 
 .dojo-leaderboard__dmg {
@@ -5578,6 +5621,7 @@ body {
   color: var(--game-gold);
   min-width: 50px;
   text-align: right;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -5736,6 +5780,11 @@ body {
 .friends-item__meta {
   font-size: 0.75rem;
   color: var(--game-muted);
+}
+
+.friends-item__tg {
+  color: #3498db;
+  font-size: 0.7rem;
 }
 
 .friends-item__status {
@@ -6016,6 +6065,12 @@ body {
 .friends-profile__meta {
   font-size: 0.85rem;
   color: var(--game-muted);
+}
+
+.friends-profile__tg {
+  font-size: 0.8rem;
+  color: #3498db;
+  margin-top: 2px;
 }
 
 .friends-profile__section-title {

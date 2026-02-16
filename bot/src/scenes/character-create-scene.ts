@@ -2,7 +2,7 @@ import { listCharacterClasses } from "../data/character-classes.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
 import { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
-import { IS_TESTING } from "../main.js";
+import { IS_TESTING } from "../config.js";
 import type { SharedDeps, SkinConfig } from "../types.js";
 
 /**

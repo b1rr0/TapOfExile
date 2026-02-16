@@ -72,6 +72,14 @@ export class Effects {
       }
     });
 
+    this.events.on("skillHit", (data: any) => {
+      if (data.damageBreakdown) {
+        this.showElementalDamage(data.damageBreakdown, data.isCrit);
+      } else if (data.damage > 0) {
+        this.showDamageNumber(data.damage, data.isCrit);
+      }
+    });
+
     this.events.on("enemyAttack", (data: any) => {
       if (data.dodged) {
         this.showPlayerStatus("DODGE", "#88ccff");

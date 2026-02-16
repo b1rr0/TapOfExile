@@ -3,6 +3,7 @@ import { getCharacterClass } from "../data/character-classes.js";
 import { HeroCharacter } from "../ui/characters/hero-character.js";
 import { EnemyCharacter } from "../ui/characters/enemy-character.js";
 import { BackgroundRenderer } from "../ui/background-renderer.js";
+import { renderActionBarHTML, initPotionSlots, initKeyboardHandler } from "../ui/action-bar.js";
 import { haptic } from "../utils/haptic.js";
 import { friends } from "../api.js";
 import type { SharedDeps, SkinConfig } from "../types.js";
@@ -76,6 +77,8 @@ export class DojoScene {
   _timerEl: HTMLElement | null;
   _dmgEl: HTMLElement | null;
   _tapHandler: ((e: MouseEvent) => void) | null;
+  _cleanupKeyboard: (() => void) | null;
+  _cleanupPotions: (() => void) | null;
 
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
@@ -112,6 +115,8 @@ export class DojoScene {
     this._timerEl = null;
     this._dmgEl = null;
     this._tapHandler = null;
+    this._cleanupKeyboard = null;
+    this._cleanupPotions = null;
   }
 
   mount(_params: Record<string, unknown> = {}): void {
@@ -174,11 +179,6 @@ export class DojoScene {
     this._countdownValue = COUNTDOWN_SECONDS;
     this._phase = "loading";
 
-    const playerLevel = char.level || 1;
-    const playerXp = char.xp || 0;
-    const playerXpToNext = char.xpToNext || 100;
-    const res = char.resistance || {};
-
     this.container.innerHTML = `
       <div class="dojo">
         <div class="dojo-topbar">
@@ -196,75 +196,15 @@ export class DojoScene {
           <canvas class="dojo-canvas" id="dojo-canvas"></canvas>
         </div>
 
-        <div class="action-bar">
-          <div class="action-bar__xp-row">
-            <span id="level-display" class="action-bar__level">Lv.${playerLevel}</span>
-            <div class="xp-bar action-bar__xp" id="xp-bar">
-              <div class="xp-bar__fill" id="xp-bar-fill" style="width:${playerXpToNext > 0 ? (playerXp / playerXpToNext * 100) : 0}%"></div>
-              <div class="xp-bar__text" id="xp-bar-text">${playerXp} / ${playerXpToNext}</div>
-            </div>
-          </div>
-          <div class="action-bar__abilities">
-            <button class="action-slot action-slot--ability" id="ability-0" data-slot="0">
-              <span class="action-slot__key">1</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-            <button class="action-slot action-slot--ability" id="ability-1" data-slot="1">
-              <span class="action-slot__key">2</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-            <button class="action-slot action-slot--ability" id="ability-2" data-slot="2">
-              <span class="action-slot__key">3</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-            <button class="action-slot action-slot--ability" id="ability-3" data-slot="3">
-              <span class="action-slot__key">4</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-          </div>
-          <div class="action-bar__bottom">
-            <div class="action-bar__stats">
-              <div class="action-bar__hp-bar">
-                <div class="action-bar__hp-fill" id="player-hp-fill"></div>
-                <span class="action-bar__hp-text" id="player-hp-text">${char.maxHp || char.hp || 100} / ${char.maxHp || char.hp || 100}</span>
-              </div>
-              <div class="action-bar__defense">
-                <div class="action-bar__stat">
-                  <span class="action-bar__stat-icon">\uD83D\uDEE1\uFE0F</span>
-                  <span class="action-bar__stat-value" id="player-armor">${res.physical || 0}</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--dodge">
-                  <span class="action-bar__stat-icon">\uD83D\uDCA8</span>
-                  <span class="action-bar__stat-value" id="player-dodge">${Math.round((char.dodgeChance || 0) * 100)}%</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--fire">
-                  <span class="action-bar__stat-icon">\uD83D\uDD25</span>
-                  <span class="action-bar__stat-value" id="player-fire-res">${res.fire || 0}%</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--lightning">
-                  <span class="action-bar__stat-icon">\u26A1</span>
-                  <span class="action-bar__stat-value" id="player-lightning-res">${res.lightning || 0}%</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--cold">
-                  <span class="action-bar__stat-icon">\u2744\uFE0F</span>
-                  <span class="action-bar__stat-value" id="player-cold-res">${res.cold || 0}%</span>
-                </div>
-              </div>
-            </div>
-            <div class="action-bar__potions">
-              <button class="action-slot action-slot--potion" id="potion-0" data-potion="0">
-                <span class="action-slot__key">Q</span>
-                <span class="action-slot__count"></span>
-                <div class="action-slot__cooldown"></div>
-              </button>
-              <button class="action-slot action-slot--potion" id="potion-1" data-potion="1">
-                <span class="action-slot__key">E</span>
-                <span class="action-slot__count"></span>
-                <div class="action-slot__cooldown"></div>
-              </button>
-            </div>
-          </div>
-        </div>
+        ${renderActionBarHTML({
+          level: char.level || 1,
+          xp: char.xp || 0,
+          xpToNext: char.xpToNext || 100,
+          maxHp: char.maxHp || char.hp || 100,
+          hp: char.hp || 100,
+          dodgeChance: char.dodgeChance || 0,
+          resistance: char.resistance,
+        })}
 
         <div class="dojo-overlay" id="dojo-overlay">
           <div class="dojo-overlay__text" id="dojo-overlay-text">Loading...</div>
@@ -282,6 +222,7 @@ export class DojoScene {
     this.container.querySelector("#dojo-back")!.addEventListener("click", () => {
       this._stopTimers();
       this._destroySprites();
+      this._cleanupActionBar();
       this._showLanding();
     });
 
@@ -292,6 +233,19 @@ export class DojoScene {
       this._onTap();
     };
     arena.addEventListener("click", this._tapHandler);
+
+    // Potions (display-only, no server session in Dojo)
+    this._cleanupPotions = initPotionSlots({
+      container: this.container,
+      equipment: char?.inventory?.equipment || {},
+      onUsePotion: null,
+      events: null,
+    });
+
+    // Keyboard (Space → tap)
+    this._cleanupKeyboard = initKeyboardHandler(this.container, {
+      onTap: () => this._onTap(),
+    });
 
     // Load sprites (or reuse if already loaded with same skin)
     if (this._spritesLoaded && this._heroSkinId === char.skinId) {
@@ -598,6 +552,7 @@ export class DojoScene {
     this._overlayEl.querySelector("#dojo-results-top")!.addEventListener("click", () => {
       this._stopTimers();
       this._destroySprites();
+      this._cleanupActionBar();
       this._showLeaderboard();
     });
 
@@ -699,13 +654,14 @@ export class DojoScene {
       lbEl.innerHTML = list.map((entry: any) => {
         const cls = getCharacterClass(entry.classId);
         const selfClass = entry.isSelf ? " dojo-leaderboard__row--self" : "";
+        const tgTag = entry.telegramUsername ? `<span class="dojo-leaderboard__tg">@${entry.telegramUsername}</span>` : "";
         return `
           <div class="dojo-leaderboard__row${selfClass}">
             <span class="dojo-leaderboard__rank">#${entry.rank}</span>
             <span class="dojo-leaderboard__icon">${cls?.icon || "?"}</span>
             <div class="dojo-leaderboard__info">
               <span class="dojo-leaderboard__name">${entry.nickname}${entry.isSelf ? " (you)" : ""}</span>
-              <span class="dojo-leaderboard__meta">${cls?.name || entry.classId} &middot; Lv.${entry.level}</span>
+              <span class="dojo-leaderboard__meta">${cls?.name || entry.classId} &middot; Lv.${entry.level}${tgTag ? " &middot; " + tgTag : ""}</span>
             </div>
             <span class="dojo-leaderboard__dmg">${entry.bestDamage > 0 ? this._formatDmg(entry.bestDamage) : "---"}</span>
           </div>
@@ -715,6 +671,13 @@ export class DojoScene {
       console.error("[DojoScene] Leaderboard failed:", err);
       lbEl.innerHTML = `<div class="friends-empty">Failed to load leaderboard</div>`;
     }
+  }
+
+  _cleanupActionBar(): void {
+    this._cleanupKeyboard?.();
+    this._cleanupKeyboard = null;
+    this._cleanupPotions?.();
+    this._cleanupPotions = null;
   }
 
   // ─── Overlay Helpers ────────────────────────────────────
@@ -780,6 +743,7 @@ export class DojoScene {
   unmount(): void {
     this._stopTimers();
     this._destroySprites();
+    this._cleanupActionBar();
 
     this._overlayEl = null;
     this._bestEl = null;

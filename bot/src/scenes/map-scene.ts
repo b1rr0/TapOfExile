@@ -7,7 +7,7 @@ import {
   ACT_DEFINITIONS,
   ALL_LOCATIONS,
 } from "../data/locations.js";
-import { IS_TESTING } from "../main.js";
+import { IS_TESTING } from "../config.js";
 import { preconnectSocket } from "../combat-socket.js";
 import type { SharedDeps, Location, ActModifier } from "../types.js";
 

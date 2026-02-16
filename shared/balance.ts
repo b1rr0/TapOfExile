@@ -110,4 +110,10 @@ export const B = {
 
   /** Hard cap for any single resistance value. */
   RESISTANCE_CAP: 0.75,
+
+  /* ── Active skills ──────────────────────────── */
+  SKILL_FIREBALL_COOLDOWN_MS: 3000,
+  SKILL_FIREBALL_DMG_MULTIPLIER: 5,    // 5× tapDamage
+  SKILL_SWORD_THROW_COOLDOWN_MS: 3000,
+  SKILL_SWORD_THROW_DMG_MULTIPLIER: 4, // 4× tapDamage, physical
 };

@@ -1,7 +1,7 @@
 import { Equipment } from "../ui/equipment.js";
 import { ChestPanel } from "../ui/chest-panel.js";
 import { FriendsPanel } from "../ui/friends-panel.js";
-import { IS_TESTING } from "../main.js";
+import { IS_TESTING } from "../config.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { getCharacterClass } from "../data/character-classes.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
@@ -121,11 +121,9 @@ export class HideoutScene {
               <button class="hideout-dropdown__item" data-action="heroes">
                 <span class="hideout-dropdown__icon">&#x1F464;</span> Heroes
               </button>
-              ${IS_TESTING ? `
               <button class="hideout-dropdown__item" data-action="storybook">
                 <span class="hideout-dropdown__icon">&#x1F3A8;</span> Storybook
               </button>
-              ` : ""}
             </div>
           </div>
         </div>
@@ -423,7 +421,8 @@ export class HideoutScene {
     const dw = frameW * scale;
     const dh = frameH * scale;
     const dx = (w - dw) / 2;
-    const dy = h - dh - h * 0.08;
+    const dpr = window.devicePixelRatio || 1;
+    const dy = h - dh - h * 0.08 + 10 * dpr;
 
     this._heroEngine!.drawFrame(ctx, dx, dy, dw, dh, false);
   }

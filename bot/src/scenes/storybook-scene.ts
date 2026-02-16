@@ -1,5 +1,8 @@
 import { SpriteEngine } from "../ui/sprite-engine.js";
 import { BackgroundRenderer } from "../ui/background-renderer.js";
+import { ProjectileLayer } from "../ui/projectile-layer.js";
+import { HeroCharacter } from "../ui/characters/hero-character.js";
+import { EnemyCharacter } from "../ui/characters/enemy-character.js";
 import {
   HERO_SKINS,
   ENEMY_SKINS,
@@ -13,6 +16,8 @@ import {
   ACT_BACKGROUNDS,
   getActModifiers,
 } from "../data/locations.js";
+import { ACTIVE_SKILLS } from "@shared/active-skills.js";
+import type { ActiveSkillId } from "@shared/active-skills.js";
 import type { SharedDeps, SkinConfig, ActModifier } from "../types.js";
 
 /**
@@ -77,6 +82,14 @@ const CATEGORIES: CategoryDef[] = [
     role: "location",
     getSkins: () => [], // handled separately
   },
+  {
+    id: "skills",
+    label: "Skills",
+    icon: "\uD83D\uDD25",
+    description: "Skill projectile previews",
+    role: "skill",
+    getSkins: () => [], // handled separately
+  },
 ];
 
 // -- Internal interfaces ----------------------------------
@@ -121,6 +134,25 @@ interface LocSceneData {
   loaded: boolean;
 }
 
+// -- Skill viewer types -----------------------------------
+
+const SKILL_VARIANTS = [
+  { suffix: "v0", label: "Original" },
+  { suffix: "v1_crimson", label: "Crimson" },
+  { suffix: "v2_emerald", label: "Emerald" },
+  { suffix: "v3_azure", label: "Azure" },
+  { suffix: "v4_golden", label: "Golden" },
+  { suffix: "v5_violet", label: "Violet" },
+  { suffix: "v6_frost", label: "Frost" },
+  { suffix: "v7_shadow", label: "Shadow" },
+];
+
+interface SkillEntry {
+  id: ActiveSkillId;
+  name: string;
+  variants: { suffix: string; label: string; jsonPath: string }[];
+}
+
 // -- Scene ------------------------------------------------
 
 export class StorybookScene {
@@ -145,6 +177,27 @@ export class StorybookScene {
   _locCanvasH: number;
   _locOpen: boolean;
 
+  /** Skill fullscreen viewer state */
+  _skillEntries: SkillEntry[];
+  _skillIndex: number;
+  _skillVariantIndex: number;
+  _skillOverlay: HTMLElement | null;
+  _skillCanvas: HTMLCanvasElement | null;
+  _skillTitleEl: HTMLElement | null;
+  _skillCounterEl: HTMLElement | null;
+  _skillVariantEl: HTMLElement | null;
+  _skillResizeObserver: ResizeObserver | null;
+  _skillDpr: number;
+  _skillCanvasW: number;
+  _skillCanvasH: number;
+  _skillOpen: boolean;
+  _skillProjectileLayer: ProjectileLayer | null;
+  _skillHero: HeroCharacter | null;
+  _skillEnemy: EnemyCharacter | null;
+  _skillBg: BackgroundRenderer | null;
+  _skillLoaded: boolean;
+  _skillAutoTimer: number;
+
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
     this.sceneManager = deps.sceneManager;
@@ -166,6 +219,27 @@ export class StorybookScene {
     this._locCanvasW = 0;
     this._locCanvasH = 0;
     this._locOpen = false;
+
+    /** Skill fullscreen viewer state */
+    this._skillEntries = [];
+    this._skillIndex = 0;
+    this._skillVariantIndex = 0;
+    this._skillOverlay = null;
+    this._skillCanvas = null;
+    this._skillTitleEl = null;
+    this._skillCounterEl = null;
+    this._skillVariantEl = null;
+    this._skillResizeObserver = null;
+    this._skillDpr = 1;
+    this._skillCanvasW = 0;
+    this._skillCanvasH = 0;
+    this._skillOpen = false;
+    this._skillProjectileLayer = null;
+    this._skillHero = null;
+    this._skillEnemy = null;
+    this._skillBg = null;
+    this._skillLoaded = false;
+    this._skillAutoTimer = 0;
   }
 
   // -- Lifecycle ------------------------------------------
@@ -206,7 +280,9 @@ export class StorybookScene {
 
     const count: number = category.id === "locations"
       ? ACT_DEFINITIONS.length
-      : category.getSkins().length;
+      : category.id === "skills"
+        ? Object.keys(ACTIVE_SKILLS).length
+        : category.getSkins().length;
 
     // Toggle button
     const btn = document.createElement("button");
@@ -243,9 +319,13 @@ export class StorybookScene {
     const g = this._groups.get(catId);
     if (!g) return;
 
-    // Locations open as fullscreen overlay — not accordion
+    // Locations & Skills open as fullscreen overlay — not accordion
     if (catId === "locations") {
       this._openLocationViewer();
+      return;
+    }
+    if (catId === "skills") {
+      this._openSkillViewer();
       return;
     }
 
@@ -569,8 +649,8 @@ export class StorybookScene {
   // -- Tick loop ------------------------------------------
 
   _ensureTick(): void {
-    // Start tick if any group is open or location viewer is open
-    const anyOpen = [...this._groups.values()].some((g) => g.open) || this._locOpen;
+    // Start tick if any group is open or location/skill viewer is open
+    const anyOpen = [...this._groups.values()].some((g) => g.open) || this._locOpen || this._skillOpen;
     if (anyOpen && !this._rafId) {
       this._startTick();
     } else if (!anyOpen && this._rafId) {
@@ -590,6 +670,12 @@ export class StorybookScene {
       if (this._locOpen) {
         this._updateLocationScene(dt);
         this._drawLocationScene();
+      }
+
+      // Skill fullscreen viewer
+      if (this._skillOpen) {
+        this._updateSkillScene(dt);
+        this._drawSkillScene();
       }
 
       // Sprite groups (heroes, enemies)
@@ -697,25 +783,25 @@ export class StorybookScene {
     // 1. Background
     sc.bgRenderer.draw(ctx, cw, ch);
 
-    // 2. Hero (left side, ~25% from left, feet at 90%)
+    // 2. Hero (left side, ~25% from left, feet at 90% + 10px nudge)
     if ((sc.heroEngine as any).loaded) {
       const hs = sc.heroSkin.defaultSize;
       const charScale = (ch * 0.65) / hs.h;
       const dw = hs.w * charScale;
       const dh = hs.h * charScale;
       const dx = cw * 0.20 - dw / 2;
-      const dy = ch * 0.90 - dh;
+      const dy = ch * 0.90 - dh + 10 * dpr;
       sc.heroEngine.drawFrame(ctx, dx, dy, dw, dh, false);
     }
 
-    // 3. Enemy (right side, flipped, ~75% from left, feet at 90%)
+    // 3. Enemy (right side, flipped, ~75% from left, feet at 90% + 10px nudge)
     if ((sc.enemyEngine as any).loaded) {
       const es = sc.enemySkin.defaultSize;
       const charScale = (ch * 0.65) / es.h;
       const dw = es.w * charScale;
       const dh = es.h * charScale;
       const dx = cw * 0.75 - dw / 2;
-      const dy = ch * 0.90 - dh;
+      const dy = ch * 0.90 - dh + 10 * dpr;
       sc.enemyEngine.drawFrame(ctx, dx, dy, dw, dh, true);
     }
   }
@@ -727,20 +813,401 @@ export class StorybookScene {
     card.engine.needsRedraw = false;
 
     const { ctx, dpr, size } = card;
-    const w = size * dpr;
-    const h = size * dpr;
+    const cw = size * dpr;   // canvas width/height in device pixels
+    const ch = size * dpr;
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    const skinScale = card.skin.scale ?? 1;
+    const anchorOff = card.skin.anchorOffsetY ?? 0;
+    const frameW = card.skin.defaultSize.w;
+    const frameH = card.skin.defaultSize.h;
+
+    // "Combat size" — the intended visual size used in battle
+    const combatW = frameW * skinScale;
+    const combatH = frameH * skinScale;
+
+    // Fit combat size into 80% of card, preserving aspect ratio
+    const fitScale = Math.min((cw * 0.8) / combatW, (ch * 0.8) / combatH);
+    const dw = combatW * fitScale;
+    const dh = combatH * fitScale;
+
+    // Center horizontally
+    const dx = (cw - dw) / 2;
+
+    // Ground line at 92% of card height; anchor feet there + 10px nudge
+    const groundY = ch * 0.92;
+    const dy = groundY - dh + dh * anchorOff + 10 * dpr;
+
+    card.engine.drawFrame(ctx, dx, dy, dw, dh, false);
+  }
+
+  // -- Skill viewer (fullscreen overlay) ------------------
+
+  _buildSkillEntries(): SkillEntry[] {
+    const entries: SkillEntry[] = [];
+    for (const skill of Object.values(ACTIVE_SKILLS)) {
+      // Derive base directory from spritePath: "skils_sprites/fire_srpite/fire_sprite.json"
+      // We need to replace the filename path with variant subdirectory paths
+      const parts = skill.spritePath.split("/");
+      const fileName = parts[parts.length - 1]; // "fire_sprite.json"
+      const baseDir = parts.slice(0, -1).join("/"); // "skils_sprites/fire_srpite"
+
+      const variants = SKILL_VARIANTS.map(v => ({
+        suffix: v.suffix,
+        label: v.label,
+        jsonPath: `/assets/${baseDir}/${v.suffix}/${fileName}`,
+      }));
+
+      entries.push({ id: skill.id, name: skill.name, variants });
+    }
+    return entries;
+  }
+
+  _openSkillViewer(): void {
+    if (this._skillOverlay) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    this._skillDpr = dpr;
+    this._skillEntries = this._buildSkillEntries();
+    this._skillIndex = 0;
+    this._skillVariantIndex = 0;
+    this._skillOpen = true;
+    this._skillLoaded = false;
+    this._skillAutoTimer = 0;
+
+    const overlay = document.createElement("div");
+    overlay.className = "sb-loc-fullscreen screen";
+    overlay.innerHTML = `
+      <!-- Top bar — skill name + variant cycling -->
+      <div class="hud">
+        <button class="hud-flee-btn" id="sb-skill-close">&larr;</button>
+        <div class="hud-center">
+          <button class="sb-loc-hud-arrow" id="sb-skill-prev">&#x276E;</button>
+          <span class="stage-display" id="sb-skill-title">&mdash;</span>
+          <button class="sb-loc-hud-arrow" id="sb-skill-next">&#x276F;</button>
+        </div>
+        <span class="sb-loc-counter" id="sb-skill-counter"></span>
+      </div>
+
+      <!-- Battle scene area -->
+      <div class="battle-scene" id="sb-skill-battle">
+        <canvas class="scene-canvas" id="sb-skill-canvas"></canvas>
+      </div>
+
+      <!-- Action bar — mirrors real combat layout -->
+      <div class="action-bar">
+        <div class="action-bar__abilities">
+          <button class="action-slot action-slot--ability" id="sb-skill-slot0" data-slot="0">
+            <span class="action-slot__key">1</span>
+            <div class="action-slot__cooldown"></div>
+          </button>
+          <button class="action-slot action-slot--ability action-slot--empty" data-slot="1">
+            <span class="action-slot__key">2</span>
+            <div class="action-slot__cooldown"></div>
+          </button>
+          <button class="action-slot action-slot--ability action-slot--empty" data-slot="2">
+            <span class="action-slot__key">3</span>
+            <div class="action-slot__cooldown"></div>
+          </button>
+          <button class="action-slot action-slot--ability action-slot--empty" data-slot="3">
+            <span class="action-slot__key">4</span>
+            <div class="action-slot__cooldown"></div>
+          </button>
+        </div>
+        <div class="action-bar__bottom">
+          <div class="action-bar__stats">
+            <div class="action-bar__hp-bar">
+              <div class="action-bar__hp-fill" style="width:100%"></div>
+              <span class="action-bar__hp-text">100 / 100</span>
+            </div>
+            <div class="action-bar__defense">
+              <div class="sb-skill-variant-row">
+                <button class="sb-skill-variant-arrow" id="sb-skill-vprev">&#x276E;</button>
+                <span class="sb-skill-variant-label" id="sb-skill-variant">Original</span>
+                <button class="sb-skill-variant-arrow" id="sb-skill-vnext">&#x276F;</button>
+              </div>
+            </div>
+          </div>
+          <div class="action-bar__potions">
+            <button class="action-slot action-slot--potion action-slot--empty">
+              <span class="action-slot__key">Q</span>
+              <span class="action-slot__count"></span>
+              <div class="action-slot__cooldown"></div>
+            </button>
+            <button class="action-slot action-slot--potion action-slot--empty">
+              <span class="action-slot__key">E</span>
+              <span class="action-slot__count"></span>
+              <div class="action-slot__cooldown"></div>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.container.appendChild(overlay);
+    this._skillOverlay = overlay;
+    this._skillCanvas = overlay.querySelector("#sb-skill-canvas") as HTMLCanvasElement;
+    this._skillTitleEl = overlay.querySelector("#sb-skill-title");
+    this._skillCounterEl = overlay.querySelector("#sb-skill-counter");
+    this._skillVariantEl = overlay.querySelector("#sb-skill-variant");
+
+    // Wire buttons
+    overlay.querySelector("#sb-skill-close")!.addEventListener("click", () => this._closeSkillViewer());
+
+    // Skill switching (prev/next skill)
+    overlay.querySelector("#sb-skill-prev")!.addEventListener("click", () => {
+      this._skillIndex = (this._skillIndex - 1 + this._skillEntries.length) % this._skillEntries.length;
+      this._skillVariantIndex = 0;
+      this._reloadSkillProjectile();
+    });
+    overlay.querySelector("#sb-skill-next")!.addEventListener("click", () => {
+      this._skillIndex = (this._skillIndex + 1) % this._skillEntries.length;
+      this._skillVariantIndex = 0;
+      this._reloadSkillProjectile();
+    });
+
+    // Variant cycling
+    overlay.querySelector("#sb-skill-vprev")!.addEventListener("click", () => {
+      const entry = this._skillEntries[this._skillIndex];
+      if (!entry) return;
+      this._skillVariantIndex = (this._skillVariantIndex - 1 + entry.variants.length) % entry.variants.length;
+      this._reloadSkillProjectile();
+    });
+    overlay.querySelector("#sb-skill-vnext")!.addEventListener("click", () => {
+      const entry = this._skillEntries[this._skillIndex];
+      if (!entry) return;
+      this._skillVariantIndex = (this._skillVariantIndex + 1) % entry.variants.length;
+      this._reloadSkillProjectile();
+    });
+
+    // Ability slot 0 fires the skill
+    overlay.querySelector("#sb-skill-slot0")!.addEventListener("click", () => this._fireSkillProjectile());
+
+    // Size canvas
+    const battleEl = overlay.querySelector("#sb-skill-battle") as HTMLElement;
+    this._skillResizeObserver = new ResizeObserver(() => {
+      this._resizeSkillCanvas();
+      if (this._skillBg) (this._skillBg as any)._dirty = true;
+    });
+    this._skillResizeObserver.observe(battleEl);
+
+    requestAnimationFrame(() => {
+      this._resizeSkillCanvas();
+      this._updateSkillInfo();
+    });
+
+    this._loadSkillScene();
+    this._ensureTick();
+  }
+
+  _closeSkillViewer(): void {
+    this._skillOpen = false;
+
+    if (this._skillHero) { this._skillHero.destroy(); this._skillHero = null; }
+    if (this._skillEnemy) { this._skillEnemy.destroy(); this._skillEnemy = null; }
+    if (this._skillBg) { this._skillBg.destroy(); this._skillBg = null; }
+    if (this._skillProjectileLayer) { this._skillProjectileLayer.destroy(); this._skillProjectileLayer = null; }
+
+    if (this._skillResizeObserver) {
+      this._skillResizeObserver.disconnect();
+      this._skillResizeObserver = null;
+    }
+    if (this._skillOverlay) {
+      this._skillOverlay.remove();
+      this._skillOverlay = null;
+    }
+    this._skillCanvas = null;
+    this._skillTitleEl = null;
+    this._skillCounterEl = null;
+    this._skillVariantEl = null;
+    this._skillLoaded = false;
+
+    this._ensureTick();
+  }
+
+  _resizeSkillCanvas(): void {
+    if (!this._skillCanvas || !this._skillOverlay) return;
+    const battleEl = this._skillOverlay.querySelector("#sb-skill-battle") as HTMLElement | null;
+    if (!battleEl) return;
+    const rect = battleEl.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const dpr = this._skillDpr;
+
+    this._skillCanvas.width = rect.width * dpr;
+    this._skillCanvas.height = rect.height * dpr;
+    this._skillCanvasW = rect.width;
+    this._skillCanvasH = rect.height;
+
+    if (this._skillBg) (this._skillBg as any)._dirty = true;
+  }
+
+  _updateSkillInfo(): void {
+    const entry = this._skillEntries[this._skillIndex];
+    if (!entry) return;
+
+    if (this._skillTitleEl) {
+      this._skillTitleEl.textContent = entry.name;
+    }
+    if (this._skillCounterEl) {
+      this._skillCounterEl.textContent = `${this._skillIndex + 1}/${this._skillEntries.length}`;
+    }
+    if (this._skillVariantEl) {
+      const variant = entry.variants[this._skillVariantIndex];
+      this._skillVariantEl.textContent = variant ? variant.label : "";
+    }
+
+    // Update ability slot 0 icon (first frame of current variant)
+    if (this._skillOverlay && this._skillProjectileLayer) {
+      const slot0 = this._skillOverlay.querySelector("#sb-skill-slot0") as HTMLElement | null;
+      if (slot0) {
+        const oldIcon = slot0.querySelector(".ability-icon");
+        if (oldIcon) oldIcon.remove();
+
+        const iconCanvas = this._skillProjectileLayer.getIcon(entry.id, 28);
+        if (iconCanvas) {
+          iconCanvas.className = "ability-icon";
+          iconCanvas.style.width = "28px";
+          iconCanvas.style.height = "28px";
+          iconCanvas.style.imageRendering = "pixelated";
+          iconCanvas.style.pointerEvents = "none";
+          slot0.prepend(iconCanvas);
+        }
+      }
+    }
+  }
+
+  async _loadSkillScene(): Promise<void> {
+    try {
+      // Hero + enemy + background
+      const heroIds = listHeroSkins();
+      const enemyIds = listEnemySkins();
+      const heroSkin = getHeroSkin(heroIds[0])!;
+      const enemySkin = getEnemySkin(enemyIds[0])!;
+
+      this._skillHero = new HeroCharacter(heroSkin);
+      this._skillEnemy = new EnemyCharacter(enemySkin);
+      this._skillBg = new BackgroundRenderer();
+      this._skillProjectileLayer = new ProjectileLayer();
+
+      const bgImages = ACT_BACKGROUNDS[1] || [];
+      const bgSrc = bgImages.length > 0 ? bgImages[0] : null;
+
+      await Promise.all([
+        this._skillHero.load(),
+        this._skillEnemy.load(),
+        this._skillBg.load(bgSrc),
+      ]);
+
+      this._skillHero.play("idle");
+      this._skillEnemy.play("idle");
+
+      // Load current skill projectile
+      await this._loadCurrentProjectile();
+
+      this._skillLoaded = true;
+      this._updateSkillInfo();
+    } catch (err) {
+      console.warn("[Storybook] Failed to load skill scene:", err);
+    }
+  }
+
+  async _loadCurrentProjectile(): Promise<void> {
+    if (!this._skillProjectileLayer) return;
+
+    const entry = this._skillEntries[this._skillIndex];
+    if (!entry) return;
+
+    const variant = entry.variants[this._skillVariantIndex];
+    if (!variant) return;
+
+    // Destroy old sprites and create fresh layer
+    this._skillProjectileLayer.destroy();
+    this._skillProjectileLayer = new ProjectileLayer();
+
+    await this._skillProjectileLayer.load(entry.id, variant.jsonPath);
+  }
+
+  async _reloadSkillProjectile(): Promise<void> {
+    await this._loadCurrentProjectile();
+    this._updateSkillInfo();
+    // Auto-fire after switching
+    this._fireSkillProjectile();
+  }
+
+  _fireSkillProjectile(): void {
+    if (!this._skillProjectileLayer || !this._skillLoaded) return;
+
+    const entry = this._skillEntries[this._skillIndex];
+    if (!entry) return;
+
+    const w = this._skillCanvas!.width;
+    const h = this._skillCanvas!.height;
+    const dpr = this._skillDpr;
+
+    // Hero center
+    const heroX = w * 0.18 + 20 * dpr;
+    const heroY = h * 0.78;
+
+    // Enemy center
+    const enemyX = w * 0.82 - 20 * dpr;
+    const enemyY = h * 0.78;
+
+    // Hero attack anim
+    if (this._skillHero) {
+      this._skillHero.attack();
+    }
+
+    this._skillProjectileLayer.launch(entry.id, heroX, heroY, enemyX, enemyY, () => {
+      // On impact — shake enemy
+      if (this._skillEnemy) this._skillEnemy.hit();
+    });
+  }
+
+  _updateSkillScene(dt: number): void {
+    if (!this._skillLoaded) return;
+
+    if (this._skillHero) this._skillHero.update(dt);
+    if (this._skillEnemy) this._skillEnemy.update(dt);
+    if (this._skillProjectileLayer) this._skillProjectileLayer.update(dt);
+
+    // Auto-fire every 2.5 seconds
+    this._skillAutoTimer += dt;
+    if (this._skillAutoTimer >= 2.5) {
+      this._skillAutoTimer = 0;
+      this._fireSkillProjectile();
+    }
+  }
+
+  _drawSkillScene(): void {
+    if (!this._skillCanvas || !this._skillLoaded) return;
+
+    const ctx = this._skillCanvas.getContext("2d")!;
+    const w = this._skillCanvas.width;
+    const h = this._skillCanvas.height;
+    const dpr = this._skillDpr;
 
     ctx.clearRect(0, 0, w, h);
 
-    const frameW = card.skin.defaultSize.w;
-    const frameH = card.skin.defaultSize.h;
-    const scale = Math.min((w * 0.8) / frameW, (h * 0.8) / frameH);
-    const dw = frameW * scale;
-    const dh = frameH * scale;
-    const dx = (w - dw) / 2;
-    const dy = h - dh - h * 0.05;
+    // 1. Background
+    if (this._skillBg) {
+      this._skillBg.draw(ctx, w, h);
+    }
 
-    card.engine.drawFrame(ctx, dx, dy, dw, dh, false);
+    // 2. Hero (left, 18%)
+    if (this._skillHero) {
+      this._skillHero.draw(ctx, w, h, dpr);
+    }
+
+    // 3. Projectiles
+    if (this._skillProjectileLayer) {
+      this._skillProjectileLayer.draw(ctx, dpr, w, h);
+    }
+
+    // 4. Enemy (right, 82%)
+    if (this._skillEnemy) {
+      this._skillEnemy.draw(ctx, w, h, dpr);
+    }
   }
 
   // -- Cleanup --------------------------------------------
@@ -764,5 +1231,6 @@ export class StorybookScene {
     }
     this._groups.clear();
     this._closeLocationViewer();
+    this._closeSkillViewer();
   }
 }

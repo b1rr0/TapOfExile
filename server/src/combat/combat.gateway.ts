@@ -468,6 +468,44 @@ export class CombatGateway
     }
   }
 
+  // ─── Active skill cast ─────────────────────────────────────
+
+  @SubscribeMessage('combat:cast-skill')
+  async handleCastSkill(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { sessionId: string; skillId: string },
+  ) {
+    const telegramId = this.socketUsers.get(client.id);
+    if (!telegramId) return;
+
+    try {
+      const result = await this.combatService.castSkill(
+        telegramId,
+        data.sessionId,
+        data.skillId,
+      );
+
+      client.emit('combat:skill-result', result);
+
+      if (result.playerDead) {
+        this.stopCombatLoop(data.sessionId);
+        try {
+          await this.combatService.playerDeath(telegramId, data.sessionId);
+        } catch { /* already handled */ }
+        client.emit('combat:player-died', { sessionId: data.sessionId });
+        this.userSessions.delete(telegramId);
+      } else if (result.killed && !result.isComplete) {
+        // Monster killed — pause attacks until entrance-done
+        this.stopCombatLoop(data.sessionId);
+      }
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (!msg?.includes('cooldown')) {
+        client.emit('combat:error', { message: msg || 'Skill cast failed' });
+      }
+    }
+  }
+
   // ─── Combat loop ──────────────────────────────────────────
 
   private startCombatLoop(sessionId: string, telegramId: string): void {

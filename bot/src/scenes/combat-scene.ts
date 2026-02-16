@@ -4,6 +4,7 @@ import { Effects } from "../ui/effects.js";
 import { CombatLog } from "../ui/combat-log.js";
 import { HUD } from "../ui/hud.js";
 import { Equipment } from "../ui/equipment.js";
+import { renderActionBarHTML, initPotionSlots, initKeyboardHandler } from "../ui/action-bar.js";
 import { haptic } from "../utils/haptic.js";
 import { isActComplete, getBackgroundForLocation, getActModifiers, getLocationById, ACT_BACKGROUNDS } from "../data/locations.js";
 import type { SharedDeps, Location } from "../types.js";
@@ -65,7 +66,8 @@ export class CombatScene {
   _onMapComplete: ((data: any) => void) | null;
   _onPlayerDied: (() => void) | null;
   _onCombatReady: (() => void) | null;
-  _onPotionUsed: ((data: any) => void) | null;
+  _cleanupPotions: (() => void) | null;
+  _cleanupKeyboard: (() => void) | null;
 
   // Loading overlay
   _loadingEl: HTMLElement | null;
@@ -93,7 +95,8 @@ export class CombatScene {
     this._onMapComplete = null;
     this._onPlayerDied = null;
     this._onCombatReady = null;
-    this._onPotionUsed = null;
+    this._cleanupPotions = null;
+    this._cleanupKeyboard = null;
 
     this._loadingEl = null;
     this._loadingTipEl = null;
@@ -151,10 +154,8 @@ export class CombatScene {
       `;
     }
 
+    const activeChar = this.state.getActiveCharacter();
     const playerData = this.state.data.player;
-    const playerLevel = playerData ? playerData.level : 1;
-    const playerXp = playerData ? playerData.xp : 0;
-    const playerXpToNext = playerData ? playerData.xpToNext : 100;
 
     this.container.innerHTML = `
       <div id="game-screen" class="screen combat-screen">
@@ -166,75 +167,15 @@ export class CombatScene {
 
         <div id="battle-scene" class="battle-scene"></div>
 
-        <div class="action-bar">
-          <div class="action-bar__xp-row">
-            <span id="level-display" class="action-bar__level">Lv.${playerLevel}</span>
-            <div class="xp-bar action-bar__xp" id="xp-bar">
-              <div class="xp-bar__fill" id="xp-bar-fill"></div>
-              <div class="xp-bar__text" id="xp-bar-text">${playerXp} / ${playerXpToNext}</div>
-            </div>
-          </div>
-          <div class="action-bar__abilities">
-            <button class="action-slot action-slot--ability" id="ability-0" data-slot="0">
-              <span class="action-slot__key">1</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-            <button class="action-slot action-slot--ability" id="ability-1" data-slot="1">
-              <span class="action-slot__key">2</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-            <button class="action-slot action-slot--ability" id="ability-2" data-slot="2">
-              <span class="action-slot__key">3</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-            <button class="action-slot action-slot--ability" id="ability-3" data-slot="3">
-              <span class="action-slot__key">4</span>
-              <div class="action-slot__cooldown"></div>
-            </button>
-          </div>
-          <div class="action-bar__bottom">
-            <div class="action-bar__stats">
-              <div class="action-bar__hp-bar">
-                <div class="action-bar__hp-fill" id="player-hp-fill"></div>
-                <span class="action-bar__hp-text" id="player-hp-text">100 / 100</span>
-              </div>
-              <div class="action-bar__defense">
-                <div class="action-bar__stat">
-                  <span class="action-bar__stat-icon">🛡️</span>
-                  <span class="action-bar__stat-value" id="player-armor">0</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--dodge">
-                  <span class="action-bar__stat-icon">💨</span>
-                  <span class="action-bar__stat-value" id="player-dodge">0%</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--fire">
-                  <span class="action-bar__stat-icon">🔥</span>
-                  <span class="action-bar__stat-value" id="player-fire-res">0%</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--lightning">
-                  <span class="action-bar__stat-icon">⚡</span>
-                  <span class="action-bar__stat-value" id="player-lightning-res">0%</span>
-                </div>
-                <div class="action-bar__stat action-bar__stat--cold">
-                  <span class="action-bar__stat-icon">❄️</span>
-                  <span class="action-bar__stat-value" id="player-cold-res">0%</span>
-                </div>
-              </div>
-            </div>
-            <div class="action-bar__potions">
-              <button class="action-slot action-slot--potion" id="potion-0" data-potion="0">
-                <span class="action-slot__key">Q</span>
-                <span class="action-slot__count"></span>
-                <div class="action-slot__cooldown"></div>
-              </button>
-              <button class="action-slot action-slot--potion" id="potion-1" data-potion="1">
-                <span class="action-slot__key">E</span>
-                <span class="action-slot__count"></span>
-                <div class="action-slot__cooldown"></div>
-              </button>
-            </div>
-          </div>
-        </div>
+        ${renderActionBarHTML({
+          level: playerData ? playerData.level : 1,
+          xp: playerData ? playerData.xp : 0,
+          xpToNext: playerData ? playerData.xpToNext : 100,
+          maxHp: activeChar?.maxHp || activeChar?.hp || 100,
+          hp: activeChar?.hp || 100,
+          dodgeChance: activeChar?.dodgeChance || 0,
+          resistance: activeChar?.resistance,
+        })}
 
         <div class="flee-confirm-overlay flee-confirm-overlay--hidden" id="flee-confirm">
           <div class="flee-confirm-box">
@@ -285,7 +226,6 @@ export class CombatScene {
     this.combat = new CombatManager(this.state, this.events);
     this.hud = new HUD(hudEl, this.events);
 
-    const activeChar = this.state.getActiveCharacter();
     const heroSkin: string = activeChar ? activeChar.skinId : "samurai_1";
 
     let backgroundSrc: string | null = null;
@@ -332,6 +272,24 @@ export class CombatScene {
     };
     battleEl.addEventListener("click", this._tapHandler);
 
+    // ── Keyboard shortcuts (desktop, layout-independent) ──
+    this._cleanupKeyboard = initKeyboardHandler(this.container, {
+      onTap: () => {
+        if (this.combat) {
+          this.combat.handleTap();
+          haptic("light");
+        }
+      },
+      onAbility: (idx) => {
+        const btn = this.container.querySelector(`#ability-${idx}`) as HTMLButtonElement | null;
+        if (btn && !btn.classList.contains("action-slot--empty")) btn.click();
+      },
+      onPotion: (slot) => {
+        const btn = this.container.querySelector(`#potion-${slot}`) as HTMLButtonElement | null;
+        if (btn && !btn.classList.contains("action-slot--empty")) btn.click();
+      },
+    });
+
     const modsToggle = this.container.querySelector("#combat-mods-toggle") as HTMLElement | null;
     const modsPanel = this.container.querySelector("#combat-mods-panel") as HTMLElement | null;
     if (modsToggle && modsPanel) {
@@ -358,29 +316,13 @@ export class CombatScene {
       }
     });
 
-    // Initialize player HP bar and defense stats
-    if (activeChar) {
-      const hpFill = this.container.querySelector("#player-hp-fill") as HTMLElement | null;
-      const hpText = this.container.querySelector("#player-hp-text") as HTMLElement | null;
-      if (hpFill) hpFill.style.width = "100%";
-      if (hpText) hpText.textContent = `${activeChar.maxHp || activeChar.hp || 100} / ${activeChar.maxHp || activeChar.hp || 100}`;
-
-      const armorEl = this.container.querySelector("#player-armor") as HTMLElement | null;
-      const dodgeEl = this.container.querySelector("#player-dodge") as HTMLElement | null;
-      const fireResEl = this.container.querySelector("#player-fire-res") as HTMLElement | null;
-      const lightResEl = this.container.querySelector("#player-lightning-res") as HTMLElement | null;
-      const coldResEl = this.container.querySelector("#player-cold-res") as HTMLElement | null;
-
-      const res = activeChar.resistance || {};
-      if (armorEl) armorEl.textContent = `${res.physical || 0}`;
-      if (dodgeEl) dodgeEl.textContent = `${Math.round((activeChar.dodgeChance || 0) * 100)}%`;
-      if (fireResEl) fireResEl.textContent = `${res.fire || 0}%`;
-      if (lightResEl) lightResEl.textContent = `${res.lightning || 0}%`;
-      if (coldResEl) coldResEl.textContent = `${res.cold || 0}%`;
-    }
-
     // ── Wire potion buttons ──────────────────────────────────
-    this._initPotionSlots(activeChar);
+    this._cleanupPotions = initPotionSlots({
+      container: this.container,
+      equipment: activeChar?.inventory?.equipment || {},
+      onUsePotion: (slot) => { if (this.combat) this.combat.usePotion(slot); },
+      events: this.events,
+    });
 
     // Listen for player death — switch to death screen after brief delay.
     // We capture combat log data IMMEDIATELY to avoid it being null if
@@ -501,94 +443,6 @@ export class CombatScene {
     }
   }
 
-  // ─── Potion slots ───────────────────────────────────────────
-
-  /**
-   * Initialize potion buttons in the action bar.
-   * Reads equipped potions from character.equipment and wires click handlers.
-   */
-  private _initPotionSlots(activeChar: any): void {
-    const pot0 = this.container.querySelector("#potion-0") as HTMLButtonElement | null;
-    const pot1 = this.container.querySelector("#potion-1") as HTMLButtonElement | null;
-    const equipment = (activeChar?.inventory?.equipment || {}) as Record<string, any>;
-
-    this._setupPotionBtn(pot0, equipment["consumable-1"], "consumable-1");
-    this._setupPotionBtn(pot1, equipment["consumable-2"], "consumable-2");
-
-    // Listen for potion used events to update UI
-    this._onPotionUsed = (data: any) => {
-      const btn = data.slot === "consumable-1" ? pot0 : pot1;
-      if (!btn) return;
-
-      const countEl = btn.querySelector(".action-slot__count") as HTMLElement | null;
-      if (countEl) {
-        countEl.textContent = data.remainingCharges > 0
-          ? `${data.remainingCharges}/${data.maxCharges}`
-          : "";
-      }
-
-      // Update sprite to show new charge level
-      const img = btn.querySelector(".potion-sprite") as HTMLImageElement | null;
-      if (img && data.remainingCharges > 0) {
-        const flaskType = btn.dataset.flaskType || "";
-        img.src = `/assets/potions/${flaskType}/red_${data.remainingCharges}.png`;
-      } else if (img && data.remainingCharges <= 0) {
-        // Empty — grey out
-        btn.classList.add("action-slot--empty");
-        img.style.opacity = "0.3";
-      }
-    };
-    this.events.on("potionUsed", this._onPotionUsed);
-  }
-
-  private _setupPotionBtn(
-    btn: HTMLButtonElement | null,
-    potionData: any,
-    slot: "consumable-1" | "consumable-2",
-  ): void {
-    if (!btn) return;
-
-    if (!potionData || !potionData.flaskType) {
-      btn.classList.add("action-slot--empty");
-      return;
-    }
-
-    const charges = potionData.currentCharges || 0;
-    const maxCharges = potionData.maxCharges || 0;
-    const flaskType = potionData.flaskType;
-
-    // Store flaskType on button for later updates
-    btn.dataset.flaskType = flaskType;
-
-    // Show potion sprite
-    const img = document.createElement("img");
-    img.src = `/assets/potions/${flaskType}/red_${Math.min(Math.max(charges, 1), 5)}.png`;
-    img.className = "potion-sprite";
-    img.style.width = "24px";
-    img.style.height = "24px";
-    img.style.imageRendering = "pixelated";
-    btn.prepend(img);
-
-    // Show charge count
-    const countEl = btn.querySelector(".action-slot__count") as HTMLElement | null;
-    if (countEl && charges > 0) {
-      countEl.textContent = `${charges}/${maxCharges}`;
-    }
-
-    if (charges <= 0) {
-      btn.classList.add("action-slot--empty");
-      return;
-    }
-
-    // Click handler — use potion (stopPropagation to not trigger tap-attack)
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (this.combat) {
-        this.combat.usePotion(slot);
-      }
-    });
-  }
-
   // ─── Loading overlay ──────────────────────────────────────
 
   /** Pick a random tip different from the current one. */
@@ -673,11 +527,11 @@ export class CombatScene {
       this.events.off("combatReady", this._onCombatReady);
       this._onCombatReady = null;
     }
-    if (this._onPotionUsed) {
-      this.events.off("potionUsed", this._onPotionUsed);
-      this._onPotionUsed = null;
-    }
-
+    // Clean up action bar (potions + keyboard)
+    this._cleanupPotions?.();
+    this._cleanupPotions = null;
+    this._cleanupKeyboard?.();
+    this._cleanupKeyboard = null;
     // Clean up loading overlay timers
     this._stopLoadingOverlay();
 

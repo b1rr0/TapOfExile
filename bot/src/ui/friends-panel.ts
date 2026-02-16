@@ -139,6 +139,7 @@ export class FriendsPanel {
       el.innerHTML = list.map((f: any) => {
         const c = f.character;
         const cls = getCharacterClass(c.classId);
+        const tgTag = c.telegramUsername ? `<span class="friends-item__tg">@${c.telegramUsername}</span>` : "";
         const statusHtml = f.isOnline
           ? `<span class="friends-item__status friends-item__status--online">online</span>`
           : `<span class="friends-item__status friends-item__status--offline">offline${f.lastSeenAt ? " " + this._formatLastSeen(f.lastSeenAt) : ""}</span>`;
@@ -147,7 +148,7 @@ export class FriendsPanel {
             <span class="friends-item__icon">${cls?.icon || "?"}</span>
             <div class="friends-item__info">
               <span class="friends-item__name">${c.nickname} ${statusHtml}</span>
-              <span class="friends-item__meta">${cls?.name || c.classId} &middot; Lv.${c.level}</span>
+              <span class="friends-item__meta">${cls?.name || c.classId} &middot; Lv.${c.level}${tgTag ? " &middot; " + tgTag : ""}</span>
             </div>
             <div class="friends-item__actions">
               <button class="friends-item__action-btn friends-item__action-btn--chat" data-action="chat" title="Chat">&#x1F4AC;</button>
@@ -198,12 +199,13 @@ export class FriendsPanel {
       el.innerHTML = list.map((r: any) => {
         const c = r.character;
         const cls = getCharacterClass(c.classId);
+        const tgTag = c.telegramUsername ? `<span class="friends-item__tg">@${c.telegramUsername}</span>` : "";
         return `
           <div class="friends-request" data-friendship-id="${r.friendshipId}">
             <span class="friends-request__icon">${cls?.icon || "?"}</span>
             <div class="friends-request__info">
               <span class="friends-request__name">${c.nickname}</span>
-              <span class="friends-request__meta">${cls?.name || c.classId} &middot; Lv.${c.level}</span>
+              <span class="friends-request__meta">${cls?.name || c.classId} &middot; Lv.${c.level}${tgTag ? " &middot; " + tgTag : ""}</span>
             </div>
             <div class="friends-request__actions">
               <button class="friends-request__btn friends-request__btn--accept" data-action="accept">Accept</button>
@@ -281,12 +283,13 @@ export class FriendsPanel {
 
       resultsEl.innerHTML = results.map((c: any) => {
         const cls = getCharacterClass(c.classId);
+        const tgTag = c.telegramUsername ? `<span class="friends-item__tg">@${c.telegramUsername}</span>` : "";
         return `
           <div class="friends-search-item" data-char-id="${c.id}">
             <span class="friends-search-item__icon">${cls?.icon || "?"}</span>
             <div class="friends-search-item__info">
               <span class="friends-search-item__name">${c.nickname}</span>
-              <span class="friends-search-item__meta">${cls?.name || c.classId} &middot; Lv.${c.level}</span>
+              <span class="friends-search-item__meta">${cls?.name || c.classId} &middot; Lv.${c.level}${tgTag ? " &middot; " + tgTag : ""}</span>
             </div>
             <button class="friends-search-item__add-btn">Add</button>
           </div>
@@ -331,12 +334,15 @@ export class FriendsPanel {
       const cls = getCharacterClass(c.classId);
       const equip: any[] = data.equipment || [];
 
+      const tgTag = c.telegramUsername ? `<div class="friends-profile__tg">@${c.telegramUsername}</div>` : "";
+
       panel.innerHTML = `
         <button class="friends-profile__close" id="friends-profile-close">&times;</button>
         <div class="friends-profile__header">
           <span class="friends-profile__icon">${cls?.icon || "?"}</span>
           <div class="friends-profile__name">${c.nickname}</div>
           <div class="friends-profile__meta">${cls?.name || c.classId} &middot; Lv.${c.level}</div>
+          ${tgTag}
         </div>
 
         <div class="friends-profile__section-title">Stats</div>

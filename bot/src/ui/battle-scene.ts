@@ -1,6 +1,7 @@
 import { BackgroundRenderer } from "./background-renderer.js";
 import { HeroCharacter } from "./characters/hero-character.js";
 import { EnemyCharacter } from "./characters/enemy-character.js";
+import { ProjectileLayer } from "./projectile-layer.js";
 import { getHeroSkin, getEnemySkin, getSkinForMonster, resolveEnemySkin } from "../data/sprite-registry.js";
 import type { Monster, Rarity, SkinConfig } from "../types.js";
 
@@ -69,6 +70,7 @@ export class BattleScene {
   hero: HeroCharacter | null;
   enemy: EnemyCharacter | null;
   bgRenderer: BackgroundRenderer | null;
+  projectileLayer: ProjectileLayer;
   useSprites: boolean;
 
   // Skin IDs (can be changed before _tryLoadSprites)
@@ -121,6 +123,7 @@ export class BattleScene {
     this.hero = null;
     this.enemy = null;
     this.bgRenderer = null;
+    this.projectileLayer = new ProjectileLayer();
     this.useSprites = false;
 
     // Skin IDs (can be changed before _tryLoadSprites)
@@ -196,6 +199,8 @@ export class BattleScene {
         this.hero.load(),
         this.enemy.load(),
         this.bgRenderer.load(this._backgroundSrc),
+        this.projectileLayer.load("fireball", "/assets/skils_sprites/fire_srpite/v0/fire_sprite.json"),
+        this.projectileLayer.load("sword_throw", "/assets/skils_sprites/sword_throw/v0/Sword_sprite.json"),
       ]);
 
       this.useSprites = true;
@@ -277,9 +282,10 @@ export class BattleScene {
       const dt = Math.min((now - lastTime) / 1000, 0.2);
       lastTime = now;
 
-      // Update characters
+      // Update characters + projectiles
       this.hero!.update(dt);
       this.enemy!.update(dt);
+      this.projectileLayer.update(dt);
 
       // Hide monster info when enemy fades out
       if (!this.enemy!.visible) {
@@ -308,7 +314,7 @@ export class BattleScene {
         }
 
         this._drawFrame();
-      } else if (panning || this.hero!.needsRedraw || this.enemy!.needsRedraw) {
+      } else if (panning || this.hero!.needsRedraw || this.enemy!.needsRedraw || this.projectileLayer.hasActive) {
         // Normal redraw (outside entrance, or camera still finishing)
         this.hero!.clearRedraw();
         this.enemy!.clearRedraw();
@@ -345,7 +351,10 @@ export class BattleScene {
       this.hero.draw(ctx, w, h, dpr);
     }
 
-    // 3. Enemy
+    // 3. Projectiles (between hero and enemy)
+    this.projectileLayer.draw(ctx, dpr, w, h);
+
+    // 4. Enemy
     if (this.enemy) {
       this.enemy.draw(ctx, w, h, dpr);
     }
@@ -381,6 +390,41 @@ export class BattleScene {
 
     this.events.on("playerDied", () => {
       this._onPlayerDied();
+    });
+
+    this.events.on("skillCast", (data: any) => {
+      this._onSkillCast(data?.skillId || "fireball");
+    });
+
+    // Skill hit from server — update monster HP bar (no hero attack anim)
+    this.events.on("skillHit", (data: any) => {
+      if (data.monster) {
+        this._updateHp(data.monster);
+      }
+    });
+  }
+
+  /**
+   * Launch a skill projectile from hero center to enemy center.
+   */
+  _onSkillCast(skillId: string): void {
+    if (!this.useSprites || !this.hero || !this.enemy) return;
+
+    const w = this._canvasW;
+    const h = this._canvasH;
+    const dpr = this._dpr;
+
+    // Hero center (18% of canvas width, ~80% height for body center)
+    const heroX = w * 0.18 + 20 * dpr;
+    const heroY = h * 0.78;
+
+    // Enemy center (82% of canvas width, ~78% height)
+    const enemyX = w * 0.82 - 20 * dpr;
+    const enemyY = h * 0.78;
+
+    this.projectileLayer.launch(skillId, heroX, heroY, enemyX, enemyY, () => {
+      // On impact — shake enemy
+      if (this.enemy) this.enemy.hit();
     });
   }
 
@@ -571,5 +615,6 @@ export class BattleScene {
     if (this.hero) this.hero.destroy();
     if (this.enemy) this.enemy.destroy();
     if (this.bgRenderer) this.bgRenderer.destroy();
+    this.projectileLayer.destroy();
   }
 }

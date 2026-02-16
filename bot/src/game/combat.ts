@@ -152,6 +152,48 @@ export class CombatManager {
       }
     });
 
+    // Active skill result (same structure as tap-result + skillId)
+    this._socket.on("combat:skill-result", (result: any) => {
+      if (!this.monster) return;
+
+      if (result.playerDead) {
+        this._onPlayerDeath();
+        return;
+      }
+
+      this.monster.currentHp = result.monsterHp;
+
+      this.events.emit("skillHit", {
+        skillId: result.skillId,
+        damage: result.damage,
+        damageBreakdown: result.damageBreakdown,
+        isCrit: result.isCrit,
+        monster: this.monster,
+        cooldownUntil: result.cooldownUntil,
+      });
+
+      if (result.playerHp !== undefined) {
+        this._playerHp = result.playerHp;
+        this._playerMaxHp = result.playerMaxHp ?? this._playerMaxHp;
+        this.events.emit("playerHpChanged", {
+          hp: this._playerHp,
+          maxHp: this._playerMaxHp,
+        });
+      }
+
+      if (result.killed) {
+        if (result.xpGained > 0) {
+          const char = this.state.getActiveCharacter();
+          if (char) {
+            char.level = result.level ?? char.level;
+            char.xp = result.xp ?? char.xp;
+            char.xpToNext = result.xpToNext ?? char.xpToNext;
+          }
+        }
+        this._onMonsterDeath(result);
+      }
+    });
+
     // Player died (from server loop or tap)
     this._socket.on("combat:player-died", () => {
       this._onPlayerDeath();
@@ -390,6 +432,13 @@ export class CombatManager {
     });
   }
 
+  // ─── Active skills ──────────────────────────────────────────
+
+  castSkill(skillId: string): void {
+    if (this._deathCooldown || !this.monster || !this._sessionId || !this._socket) return;
+    this._socket.emit("combat:cast-skill", { sessionId: this._sessionId, skillId });
+  }
+
   // ─── Tap ────────────────────────────────────────────────────
 
   handleTap(): void {
@@ -474,6 +523,7 @@ export class CombatManager {
     if (this._socket) {
       this._socket.off("combat:enemy-attack");
       this._socket.off("combat:tap-result");
+      this._socket.off("combat:skill-result");
       this._socket.off("combat:player-died");
       this._socket.off("combat:reconnected");
       this._socket.off("combat:potion-used");

@@ -33,11 +33,18 @@ export class FriendsService {
         nickname: ILike(`%${query}%`),
         playerTelegramId: Not(telegramId),
       },
-      select: ['id', 'nickname', 'classId', 'skinId', 'level'],
+      relations: ['player'],
       take: 20,
     });
 
-    return chars;
+    return chars.map((c) => ({
+      id: c.id,
+      nickname: c.nickname,
+      classId: c.classId,
+      skinId: c.skinId,
+      level: c.level,
+      telegramUsername: c.player?.telegramUsername || null,
+    }));
   }
 
   /** Send a friend request from one character to another */
@@ -104,7 +111,7 @@ export class FriendsService {
 
     const requests = await this.friendshipRepo.find({
       where: { targetId: characterId, status: 'pending' },
-      relations: ['requester'],
+      relations: ['requester', 'requester.player'],
       order: { createdAt: 'DESC' },
     });
 
@@ -116,6 +123,7 @@ export class FriendsService {
         classId: r.requester.classId,
         skinId: r.requester.skinId,
         level: r.requester.level,
+        telegramUsername: r.requester.player?.telegramUsername || null,
       },
       createdAt: r.createdAt,
     }));
@@ -179,6 +187,7 @@ export class FriendsService {
           skinId: friend.skinId,
           level: friend.level,
           dojoBestDamage: friend.dojoBestDamage,
+          telegramUsername: friend.player?.telegramUsername || null,
         },
         isOnline,
         lastSeenAt: friend.player?.lastSeenAt || null,
@@ -241,11 +250,7 @@ export class FriendsService {
 
     const friendChar = await this.characterRepo.findOne({
       where: { id: friendCharacterId },
-      select: [
-        'id', 'nickname', 'classId', 'skinId', 'level',
-        'tapDamage', 'critChance', 'critMultiplier', 'dodgeChance',
-        'hp', 'maxHp', 'dojoBestDamage',
-      ],
+      relations: ['player'],
     });
     if (!friendChar) {
       throw new NotFoundException('Character not found');
@@ -257,7 +262,21 @@ export class FriendsService {
     });
 
     return {
-      character: friendChar,
+      character: {
+        id: friendChar.id,
+        nickname: friendChar.nickname,
+        classId: friendChar.classId,
+        skinId: friendChar.skinId,
+        level: friendChar.level,
+        tapDamage: friendChar.tapDamage,
+        critChance: friendChar.critChance,
+        critMultiplier: friendChar.critMultiplier,
+        dodgeChance: friendChar.dodgeChance,
+        hp: friendChar.hp,
+        maxHp: friendChar.maxHp,
+        dojoBestDamage: friendChar.dojoBestDamage,
+        telegramUsername: friendChar.player?.telegramUsername || null,
+      },
       equipment: slots.map((s) => ({
         slotId: s.slotId,
         item: s.item
@@ -285,7 +304,7 @@ export class FriendsService {
   ) {
     const char = await this.characterRepo.findOne({
       where: { id: characterId, playerTelegramId: telegramId },
-      select: ['id', 'playerTelegramId', 'nickname', 'classId', 'skinId', 'level', 'dojoBestDamage'],
+      relations: ['player'],
     });
     if (!char) {
       throw new ForbiddenException('Character not owned by you');
@@ -302,10 +321,13 @@ export class FriendsService {
       where: { characterId },
     });
 
+    const tgUsername = char.player?.telegramUsername || null;
+
     if (!record) {
       record = this.dojoRecordRepo.create({
         characterId,
         playerTelegramId: char.playerTelegramId,
+        telegramUsername: tgUsername,
         nickname: char.nickname,
         classId: char.classId,
         skinId: char.skinId,
@@ -315,6 +337,7 @@ export class FriendsService {
       await this.dojoRecordRepo.save(record);
     } else {
       // Always update denormalized fields
+      record.telegramUsername = tgUsername;
       record.nickname = char.nickname;
       record.classId = char.classId;
       record.skinId = char.skinId;
@@ -362,6 +385,7 @@ export class FriendsService {
         skinId: r.skinId,
         level: r.level,
         bestDamage: r.bestDamage,
+        telegramUsername: r.telegramUsername || null,
         isSelf: r.characterId === characterId,
       })),
     };
@@ -383,6 +407,7 @@ export class FriendsService {
         skinId: r.skinId,
         level: r.level,
         bestDamage: r.bestDamage,
+        telegramUsername: r.telegramUsername || null,
         isSelf: r.characterId === characterId,
       })),
     };

@@ -14,8 +14,9 @@ import { SkillTreeScene } from "./scenes/skill-tree-scene.js";
 import { DeathScene } from "./scenes/death-scene.js";
 import { DojoScene } from "./scenes/dojo-scene.js";
 
-// Feature flags (set VITE_IS_TESTING=true in .env to enable)
-export const IS_TESTING: boolean = import.meta.env.VITE_IS_TESTING === "true";
+// Feature flags — re-exported from config to avoid circular imports
+export { IS_TESTING } from "./config.js";
+import { IS_TESTING } from "./config.js";
 
 // Telegram Web App init
 const tg = (window as any).Telegram?.WebApp;
@@ -55,7 +56,7 @@ const state = new GameState(events);
     sceneManager.register("skillTree", SkillTreeScene);
     sceneManager.register("death", DeathScene);
     sceneManager.register("dojo", DojoScene);
-    if (IS_TESTING) sceneManager.register("storybook", StorybookScene);
+    sceneManager.register("storybook", StorybookScene);
 
     // 5. Route to starting scene based on character state
     if (!state.hasCharacters()) {

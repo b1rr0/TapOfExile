@@ -20,6 +20,10 @@ export class DojoRecord {
   @Column({ type: 'bigint' })
   playerTelegramId: string;
 
+  /** Denormalized: player Telegram username (e.g. @nick) */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  telegramUsername: string | null;
+
   /** Denormalized: character nickname */
   @Column({ type: 'varchar', length: 64 })
   nickname: string;
