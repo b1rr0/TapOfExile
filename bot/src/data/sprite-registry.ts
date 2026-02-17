@@ -96,6 +96,23 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     scale: 1.23,
   },
 
+  samurai_4: {
+    id: "samurai_4",
+    name: "Samurai IV",
+    classId: "samurai",
+    basePath: "/assets/characters/samurai/samurai_4",
+    animations: {
+      idle:    { json: "idle.json",      fps: 8,  loop: true },
+      attack1: { json: "attack_1.json",  fps: 14, loop: false },
+      run:     { json: "run.json",       fps: 12, loop: true },
+      hurt:    { json: "hurt.json",      fps: 10, loop: false },
+      death:   { json: "death.json",     fps: 10, loop: false },
+    },
+    defaultSize: { w: 196, h: 200 },
+    anchorOffsetY: 0.22,
+    scale: 2.0,
+  },
+
   /* ── Knight / Warrior ────────────────────────────────── */
 
   knight_1: {

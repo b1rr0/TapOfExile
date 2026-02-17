@@ -138,6 +138,19 @@ const SKINS = [
     ],
   },
 
+  // ─── samurai_4: 98×100 frames (extracted from 882×700 tileset, 9-col grid) ──
+  {
+    folder: path.join(BASE, "samurai", "samurai_4"),
+    skinId: "samurai_4",
+    anims: [
+      { json: "idle.json",     png: "Idle.png",      fw: 98, fh: 100, fc: 4, sw: 392, sh: 100 },
+      { json: "attack_1.json", png: "Attack1.png",   fw: 98, fh: 100, fc: 8, sw: 784, sh: 100 },
+      { json: "run.json",      png: "Run.png",       fw: 98, fh: 100, fc: 7, sw: 686, sh: 100 },
+      { json: "hurt.json",     png: "Take Hit.png",  fw: 98, fh: 100, fc: 2, sw: 196, sh: 100 },
+      { json: "death.json",    png: "Death.png",     fw: 98, fh: 100, fc: 6, sw: 588, sh: 100 },
+    ],
+  },
+
   // ─── archer_3: 128×128 (most), 168×128 (attack) ────
   {
     folder: path.join(BASE, "archer", "archer_3"),
