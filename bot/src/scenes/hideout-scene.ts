@@ -149,24 +149,8 @@ export class HideoutScene {
         </div>
         ` : ""}
 
-        <!-- Bottom section: XP bar + level above nav -->
+        <!-- Bottom section: nav grid + XP bar -->
         <div class="hideout-bottom">
-          <div class="bottom-xp-row">
-            <span id="hideout-level" class="bottom-level-display">Lv.${player.level}</span>
-            <div class="xp-bar bottom-xp-bar" id="hideout-xp-bar">
-              <div class="xp-bar__fill" id="hideout-xp-fill" style="width:${player.xpToNext > 0 ? (player.xp / player.xpToNext * 100) : 0}%"></div>
-              <div class="xp-bar__text" id="hideout-xp-text">${player.xp} / ${player.xpToNext}</div>
-            </div>
-            <div class="daily-bonus-indicator" id="daily-bonus-indicator" style="${(char?.dailyBonusRemaining ?? 3) <= 0 ? 'display:none' : ''}">
-              <span class="daily-bonus-indicator__star">&#x2B50;</span>
-              <span class="daily-bonus-indicator__count" id="daily-bonus-count">${char?.dailyBonusRemaining ?? 3}</span>
-              <div class="daily-bonus-indicator__tooltip">
-                <div class="daily-bonus-indicator__tooltip-title">Daily Bonus</div>
-                <div class="daily-bonus-indicator__tooltip-desc">First 3 wins each day give <strong>x3 XP</strong></div>
-                <div class="daily-bonus-indicator__tooltip-remaining"><span id="daily-bonus-tooltip-count">${char?.dailyBonusRemaining ?? 3}</span> bonus wins remaining</div>
-              </div>
-            </div>
-          </div>
           <div class="hideout-nav">
             <button class="hideout-btn hideout-btn--map" id="hideout-map-btn">
               <span class="hideout-btn__icon">&#x1F5FA;</span>
@@ -192,6 +176,22 @@ export class HideoutScene {
               <span class="hideout-btn__icon">&#x1F94B;</span>
               <span class="hideout-btn__label">Dojo</span>
             </button>
+          </div>
+          <div class="bottom-xp-row">
+            <span id="hideout-level" class="bottom-level-display">Lv.${player.level}</span>
+            <div class="xp-bar bottom-xp-bar" id="hideout-xp-bar">
+              <div class="xp-bar__fill" id="hideout-xp-fill" style="width:${player.xpToNext > 0 ? (player.xp / player.xpToNext * 100) : 0}%"></div>
+              <div class="xp-bar__text" id="hideout-xp-text">${player.xp} / ${player.xpToNext}</div>
+            </div>
+            <div class="daily-bonus-indicator" id="daily-bonus-indicator" style="${(char?.dailyBonusRemaining ?? 3) <= 0 ? 'display:none' : ''}">
+              <span class="daily-bonus-indicator__star">&#x2B50;</span>
+              <span class="daily-bonus-indicator__count" id="daily-bonus-count">${char?.dailyBonusRemaining ?? 3}</span>
+              <div class="daily-bonus-indicator__tooltip">
+                <div class="daily-bonus-indicator__tooltip-title">Daily Bonus</div>
+                <div class="daily-bonus-indicator__tooltip-desc">First 3 wins each day give <strong>x3 XP</strong></div>
+                <div class="daily-bonus-indicator__tooltip-remaining"><span id="daily-bonus-tooltip-count">${char?.dailyBonusRemaining ?? 3}</span> bonus wins remaining</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
