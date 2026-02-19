@@ -1,4 +1,4 @@
-import { buildSkillTree, getClassStartNode, EMBLEM_RADIUS, MAX_CLASS_SKILLS } from "../data/skill-tree.js";
+import { buildSkillTree, getClassStartNode, EMBLEM_RADIUS, NODE_RADIUS, MAX_CLASS_SKILLS } from "../data/skill-tree.js";
 import { validateAllocations } from "@shared/skill-tree-validation";
 import { api } from "../api.js";
 import type { SharedDeps, SkillTreeResult, NodeType } from "../types.js";
@@ -260,7 +260,7 @@ export class SkillTreeScene {
         g.classList.add("st-node--reachable");
       }
 
-      const r = ({ keystone: 16, notable: 12, start: 14, classSkill: 9, minor: 8 } as Record<string, number>)[node.type] || 8;
+      const r = NODE_RADIUS[node.type] || 8;
       const shape: string = node.type === "keystone" ? "diamond"
         : node.type === "notable" ? "hex"
         : node.type === "classSkill" ? "hex"
