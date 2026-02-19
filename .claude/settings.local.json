@@ -93,7 +93,8 @@
       "Bash(cmd /c \"cd /d D:\\\\programs\\\\33Metro\\\\server && npx tsc --noEmit 2>&1\")",
       "Bash(app \")",
       "Bash(pg_isready:*)",
-      "Bash(docker stop:*)"
+      "Bash(docker stop:*)",
+      "Bash(claude mcp add:*)"
     ]
   }
 }
