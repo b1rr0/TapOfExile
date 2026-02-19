@@ -17,6 +17,7 @@ import { SkillTreeModule } from './skill-tree/skill-tree.module';
 import { EndgameModule } from './endgame/endgame.module';
 import { LeagueModule } from './league/league.module';
 import { FriendsModule } from './friends/friends.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { FriendsModule } from './friends/friends.module';
     EndgameModule,
     LeagueModule,
     FriendsModule,
+    LeaderboardModule,
     TypeOrmModule.forFeature([Player]),
   ],
   providers: [

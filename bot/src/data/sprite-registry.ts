@@ -1,10 +1,15 @@
 /**
  * Sprite Registry — central catalogue of all hero and enemy skins.
  *
+ * Animation configs (fps, loop, json atlas) live here because they are
+ * FE-rendering-only. Shared metadata (paths, names, classId, monster→skin map)
+ * comes from @shared/sprite-registry.
+ *
  * Adding a new skin:
  *  1. Place Aseprite-exported JSON + PNG in the appropriate assets folder.
- *  2. Add an entry to HERO_SKINS or ENEMY_SKINS below.
- *  3. The game will pick it up via getHeroSkin() / getEnemySkin().
+ *  2. Add metadata to @shared/sprite-registry (HERO_SKINS_META / ENEMY_SKINS_META).
+ *  3. Add an entry to HERO_SKINS or ENEMY_SKINS below with animations.
+ *  4. The game will pick it up via getHeroSkin() / getEnemySkin().
  *
  * Required animations per role:
  *  - Hero:  idle (loop), attack1 (one-shot), [optional: hurt, run, death]
@@ -22,6 +27,22 @@
  */
 
 import type { SkinConfig, AnimationConfig } from "../types.js";
+import { MONSTER_SKIN_MAP } from "@shared/sprite-registry";
+
+// Re-export shared asset metadata so consumers can access both from one place
+export {
+  HERO_SKINS_META,
+  HERO_SKIN_MAP,
+  ENEMY_SKINS_META,
+  ENEMY_SKIN_MAP,
+  MONSTER_SKIN_MAP,
+  CLASS_EMBLEM_IMG,
+  POTION_SPRITE_PATHS,
+  BACKGROUND_PATHS,
+  getHeroSkinsForClass,
+} from "@shared/sprite-registry";
+
+export type { HeroSkinMeta, EnemySkinMeta } from "@shared/sprite-registry";
 
 // ── Animation atom constants ────────────────────────────
 // Shared animation configs to avoid duplication across enemy skins.
@@ -461,11 +482,6 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
 };
 
 // ─── Variant skin helper ─────────────────────────────────
-// Generates a variant skin entry from a base skin, overriding only the basePath.
-
-// ─── Register color variants for all enemy skins ─────────
-// Pattern: {baseId}__{color} → parent folder + /v{N}_{color} subfolder
-// Base skins already point to /v0, so we go up one level for variants.
 
 const VARIANT_COLORS = [
   { suffix: "crimson",  sub: "v1_crimson",  label: "Crimson" },
@@ -477,7 +493,6 @@ const VARIANT_COLORS = [
   { suffix: "shadow",   sub: "v7_shadow",   label: "Shadow" },
 ] as const;
 
-// Skins that use v0/v1_crimson subfolder pattern (basePath ends with /v0)
 const VARIANT_BASES = [
   "blue_witch", "king", "knight_enemy", "necromancer_2",
   "orc", "paladin", "reaper", "ronin_enemy", "soldier", "striker",
@@ -486,7 +501,6 @@ const VARIANT_BASES = [
 for (const baseId of VARIANT_BASES) {
   const base = ENEMY_SKINS[baseId];
   if (!base) continue;
-  // basePath = "/assets/enemy/soldier/v0" → parentPath = "/assets/enemy/soldier"
   const parentPath = base.basePath.replace(/\/v0$/, "");
   for (const v of VARIANT_COLORS) {
     const vid = `${baseId}__${v.sub}`;
@@ -499,7 +513,6 @@ for (const baseId of VARIANT_BASES) {
   }
 }
 
-// Goblin uses different naming: goblin_black is base, color variants are direct subfolders
 const GOBLIN_VARIANTS = [
   { id: "goblin_azure",   sub: "goblin_azure",   label: "Azure Goblin" },
   { id: "goblin_crimson",  sub: "goblin_crimson",  label: "Crimson Goblin" },
@@ -510,7 +523,6 @@ const GOBLIN_VARIANTS = [
   { id: "goblin_violet",   sub: "goblin_violet",   label: "Violet Goblin" },
 ] as const;
 
-// Goblin variant paths: sibling folders under /assets/enemy/goblin/
 for (const gv of GOBLIN_VARIANTS) {
   ENEMY_SKINS[gv.id] = {
     ...ENEMY_SKINS.goblin_black,
@@ -520,7 +532,6 @@ for (const gv of GOBLIN_VARIANTS) {
   };
 }
 
-// Ninja uses yellow_ninja as base, variants are sibling subfolders
 const NINJA_VARIANTS = [
   { id: "ninja_azure",    sub: "yellow_azure",    label: "Azure Ninja" },
   { id: "ninja_crimson",   sub: "yellow_crimson",   label: "Crimson Ninja" },
@@ -540,7 +551,6 @@ for (const nv of NINJA_VARIANTS) {
   };
 }
 
-// Necromancer_1 variants (folders: necromancer_azure, necromancer_crimson, etc.)
 const NECRO1_VARIANTS = [
   { id: "necromancer_1_azure",   sub: "necromancer_azure",   label: "Azure Necromancer" },
   { id: "necromancer_1_crimson",  sub: "necromancer_crimson",  label: "Crimson Necromancer" },
@@ -560,7 +570,6 @@ for (const nv of NECRO1_VARIANTS) {
   };
 }
 
-// Night Born variants (folders: night_born_azure, night_born_crimson, etc.)
 const NB_VARIANTS = [
   { id: "night_born_azure",   sub: "night_born_azure",   label: "Azure Night Born" },
   { id: "night_born_crimson",  sub: "night_born_crimson",  label: "Crimson Night Born" },
@@ -580,24 +589,7 @@ for (const nv of NB_VARIANTS) {
   };
 }
 
-// ─── Monster → Skin mapping (client-side fallback) ──────
-
-export const MONSTER_SKIN_MAP: Record<string, string> = {
-  Goblin: "goblin_black",
-  Ninja: "yellow_ninja",
-  Necromancer: "necromancer_1",
-  "Night Born": "night_born_1",
-  "Dark Knight": "knight_enemy",
-  Reaper: "reaper",
-  Bandit: "soldier",
-  "Wild Boar": "orc",
-  "Forest Spirit": "blue_witch",
-  Ronin: "ronin_enemy",
-  Oni: "king",
-  Tengu: "necromancer_2",
-  Dragon: "paladin",
-  Shogun: "striker",
-};
+// ─── Lookup helpers ──────────────────────────────────────
 
 /**
  * Get enemy skin ID for a monster name.
@@ -611,61 +603,33 @@ export function getSkinForMonster(monsterName: string): string {
 
 /**
  * Resolve the actual registered skin ID from server-provided skinId + skinVariant.
- *
- * The server sends:
- *   skinId: "soldier"         (base skin ID)
- *   skinVariant: "v1_crimson" (subfolder variant)
- *
- * This function returns the registered key like "soldier__v1_crimson".
- * Falls back to base skinId → MONSTER_SKIN_MAP → first skin in registry.
  */
 export function resolveEnemySkin(skinId: string, skinVariant: string, monsterName: string): string {
-  // Try exact variant key (e.g. "soldier__v1_crimson")
   if (skinId && skinVariant) {
     const variantKey = `${skinId}__${skinVariant}`;
     if (ENEMY_SKINS[variantKey]) return variantKey;
-    // Also try direct variant ID (for goblin/ninja/necro1/nightborn special naming)
     if (ENEMY_SKINS[skinVariant]) return skinVariant;
   }
-  // Try base skinId
   if (skinId && ENEMY_SKINS[skinId]) return skinId;
-  // Fall back to name-based mapping
   return getSkinForMonster(monsterName);
 }
 
-// ─── Lookup helpers ──────────────────────────────────────
-
-/**
- * Get a hero skin config by ID.
- */
 export function getHeroSkin(id: string): SkinConfig | undefined {
   return HERO_SKINS[id];
 }
 
-/**
- * Get an enemy skin config by ID.
- */
 export function getEnemySkin(id: string): SkinConfig | undefined {
   return ENEMY_SKINS[id];
 }
 
-/**
- * List all available hero skin IDs.
- */
 export function listHeroSkins(): string[] {
   return Object.keys(HERO_SKINS);
 }
 
-/**
- * List all available enemy skin IDs.
- */
 export function listEnemySkins(): string[] {
   return Object.keys(ENEMY_SKINS);
 }
 
-/**
- * Get all hero skins for a given character class.
- */
 export function getSkinsForClass(classId: string): SkinConfig[] {
   return Object.values(HERO_SKINS).filter(s => s.classId === classId);
 }

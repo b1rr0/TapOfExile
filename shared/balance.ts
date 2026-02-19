@@ -127,3 +127,23 @@ export const B = {
   DOJO_ROUND_MS: 10_000,                 // 10-second fight
   DOJO_SESSION_TTL: 60,                  // Redis TTL (1 min)
 };
+
+/* ── Rarity display data ─────────────────── */
+
+export interface RarityDisplayDef {
+  id: string;
+  label: string;
+  color: string;
+  hpMul: number;
+  goldMul: number;
+  xpMul: number;
+  dmgMul: number;
+  resistanceBonus: number;
+}
+
+export const RARITY_DEFS: readonly RarityDisplayDef[] = [
+  { id: 'common', label: 'Common', color: '#9e9e9e', hpMul: 1.0, goldMul: 1.0, xpMul: 1.0, dmgMul: 1.0, resistanceBonus: 0  },
+  { id: 'rare',   label: 'Rare',   color: '#4fc3f7', hpMul: 1.6, goldMul: 1.5, xpMul: 1.4, dmgMul: 1.3, resistanceBonus: 5  },
+  { id: 'epic',   label: 'Epic',   color: '#ffd740', hpMul: 2.5, goldMul: 2.2, xpMul: 2.0, dmgMul: 1.8, resistanceBonus: 10 },
+  { id: 'boss',   label: 'Boss',   color: '#ff9100', hpMul: 4.0, goldMul: 3.5, xpMul: 3.0, dmgMul: 2.5, resistanceBonus: 15 },
+];
