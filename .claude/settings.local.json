@@ -105,7 +105,9 @@
       "Bash(MSYS_NO_PATHCONV=1 docker compose build:*)",
       "Bash(git checkout:*)",
       "Bash(git diff-tree:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

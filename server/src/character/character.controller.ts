@@ -7,11 +7,12 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { CharacterService } from './character.service';
 import { CreateCharacterDto } from './dto/create-character.dto';
+import { ChangeSkinDto } from './dto/change-skin.dto';
 
 @ApiTags('characters')
 @ApiBearerAuth()
@@ -22,12 +23,15 @@ export class CharacterController {
 
   @Get()
   @ApiOperation({ summary: 'List all characters' })
+  @ApiResponse({ status: 200, description: 'Array of characters' })
   async listCharacters(@CurrentUser('telegramId') telegramId: string) {
     return this.characterService.listCharacters(telegramId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a new character' })
+  @ApiResponse({ status: 201, description: 'Created character' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
   async createCharacter(
     @CurrentUser('telegramId') telegramId: string,
     @Body() dto: CreateCharacterDto,
@@ -37,6 +41,8 @@ export class CharacterController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get character by ID' })
+  @ApiResponse({ status: 200, description: 'Character details' })
+  @ApiResponse({ status: 404, description: 'Character not found' })
   async getCharacter(
     @CurrentUser('telegramId') telegramId: string,
     @Param('id') charId: string,
@@ -46,6 +52,8 @@ export class CharacterController {
 
   @Post(':id/activate')
   @ApiOperation({ summary: 'Set active character' })
+  @ApiResponse({ status: 201, description: 'Character activated' })
+  @ApiResponse({ status: 404, description: 'Character not found' })
   async activateCharacter(
     @CurrentUser('telegramId') telegramId: string,
     @Param('id') charId: string,
@@ -55,11 +63,13 @@ export class CharacterController {
 
   @Put(':id/skin')
   @ApiOperation({ summary: 'Change character skin' })
+  @ApiResponse({ status: 200, description: 'Skin changed' })
+  @ApiResponse({ status: 400, description: 'Invalid skin ID' })
   async changeSkin(
     @CurrentUser('telegramId') telegramId: string,
     @Param('id') charId: string,
-    @Body('skinId') skinId: string,
+    @Body() dto: ChangeSkinDto,
   ) {
-    return this.characterService.changeSkin(telegramId, charId, skinId);
+    return this.characterService.changeSkin(telegramId, charId, dto.skinId);
   }
 }
