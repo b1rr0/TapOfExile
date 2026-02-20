@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "Bash(npx nest build)"
+      "Bash(npx nest build)",
+      "WebFetch(domain:dead-cells.com)"
     ]
   }
 }

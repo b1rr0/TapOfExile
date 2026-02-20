@@ -1,0 +1,263 @@
+/**
+ * TAP OF EXILE — DESIGN TOKENS v2.0
+ * Dead Cells palette: Crimson / Gold / Cyan / Purple
+ * Source of truth: dead-cells.com + game screenshot
+ *
+ * NO GREEN. Anywhere. Ever.
+ *
+ * Visual: dark-navy abyss, crimson brand accents, warm gold text,
+ * cyan navigation/interactive, purple magic/epic.
+ */
+
+:root {
+  /* ════════════════════════════════════════════
+     BACKGROUNDS — Abyss Navy
+     (from dead-cells.com body: rgb(16, 21, 36))
+     ════════════════════════════════════════════ */
+  --ds-bg-void:   #080b15;
+  --ds-bg-base:   #101524;   /* exact dead-cells.com bg */
+  --ds-bg-raised: #182038;
+  --ds-bg-panel:  #1e2845;
+  --ds-bg-inset:  #0c1020;
+
+  /* ════════════════════════════════════════════
+     BORDERS — Dungeon Stone
+     ════════════════════════════════════════════ */
+  --ds-border-dim:     rgba(255, 255, 255, 0.06);
+  --ds-border-mid:     rgba(255, 255, 255, 0.12);
+  --ds-border-bright:  rgba(255, 255, 255, 0.22);
+  --ds-border-gold:    rgba(249, 207, 135, 0.35);
+  --ds-border-crimson: rgba(164,   2,  57, 0.50);
+  --ds-border-cyan:    rgba(223, 255, 254, 0.30);
+
+  /* ════════════════════════════════════════════
+     TEXT — Gold & Bone
+     (from dead-cells.com: #F9CF87 main, #FFFDD3 headings)
+     ════════════════════════════════════════════ */
+  --ds-text-gold:   #F9CF87;
+  --ds-text-light:  #f9e6c6;
+  --ds-text-cream:  #FFFDD3;
+  --ds-text-muted:  #888a92;
+  --ds-text-dead:   #3a3d48;
+
+  /* ════════════════════════════════════════════
+     CRIMSON — Primary Brand Accent
+     (exact from dead-cells.com: #A40239)
+     ════════════════════════════════════════════ */
+  --ds-crimson:        #A40239;
+  --ds-crimson-bright: #d1394e;
+  --ds-crimson-dark:   #832154;
+  --ds-crimson-glow:   rgba(164, 2, 57, 0.35);
+
+  /* ════════════════════════════════════════════
+     GOLD — Currency, Rewards, Text Accent
+     ════════════════════════════════════════════ */
+  --ds-gold-bright: #F9CF87;
+  --ds-gold-mid:    #d4963a;
+  --ds-gold-dim:    #7a5520;
+  --ds-gold-glow:   rgba(249, 207, 135, 0.25);
+
+  /* ════════════════════════════════════════════
+     CYAN — Navigation, Interactive, XP, Info
+     (from dead-cells.com nav: #DFFFFE)
+     ════════════════════════════════════════════ */
+  --ds-cyan:      #DFFFFE;
+  --ds-cyan-mid:  #4fc3f7;
+  --ds-cyan-dim:  #1a5a7a;
+  --ds-cyan-glow: rgba(223, 255, 254, 0.20);
+
+  /* ════════════════════════════════════════════
+     PURPLE — Magic, Epic Rarity, Spells
+     (from dead-cells.com banner: #B9508D)
+     ════════════════════════════════════════════ */
+  --ds-purple:        #B9508D;
+  --ds-purple-bright: #c878f8;
+  --ds-purple-dim:    #6a2a5a;
+  --ds-purple-glow:   rgba(185, 80, 141, 0.25);
+
+  /* ════════════════════════════════════════════
+     RED — Danger, HP, Death
+     ════════════════════════════════════════════ */
+  --ds-red-bright: #ff3333;
+  --ds-red-mid:    #cc2222;
+  --ds-red-dim:    #7a1515;
+  --ds-red-glow:   rgba(220, 40, 40, 0.30);
+
+  /* ════════════════════════════════════════════
+     DAMAGE ELEMENTS (NO green/poison=purple)
+     ════════════════════════════════════════════ */
+  --ds-fire:      #ff5a1f;
+  --ds-ice:       #60c8f0;
+  --ds-lightning: #c8a0ff;
+  --ds-physical:  #a09080;
+  --ds-pure:      #e878f8;
+  --ds-poison:    #B9508D;   /* purple, NOT green */
+
+  /* ════════════════════════════════════════════
+     RARITY TIERS
+     ════════════════════════════════════════════ */
+  --ds-rarity-common:    #888a92;
+  --ds-rarity-rare:      #4fc3f7;
+  --ds-rarity-epic:      #c878f8;
+  --ds-rarity-legendary: #F9CF87;
+  --ds-rarity-boss:      #ff5a1f;
+
+  /* ════════════════════════════════════════════
+     SEMANTIC ALIASES
+     ════════════════════════════════════════════ */
+  --ds-color-hp:       var(--ds-red-mid);
+  --ds-color-hp-low:   var(--ds-red-bright);
+  --ds-color-xp:       var(--ds-cyan-mid);       /* XP = cyan */
+  --ds-color-mana:     var(--ds-purple-bright);
+  --ds-color-gold:     var(--ds-gold-bright);
+  --ds-color-active:   var(--ds-cyan);
+  --ds-color-inactive: var(--ds-text-dead);
+  --ds-color-danger:   var(--ds-crimson);
+  --ds-color-positive: var(--ds-cyan-mid);
+  --ds-color-crit:     #ff7700;
+
+  /* ════════════════════════════════════════════
+     TYPOGRAPHY
+     ════════════════════════════════════════════ */
+  --ds-font-title: 'Cinzel', 'Trajan Pro', serif;
+  --ds-font-body:  'Raleway', 'Inter', system-ui, -apple-system, sans-serif;
+  --ds-font-mono:  'JetBrains Mono', 'Courier New', monospace;
+
+  --ds-text-xs:   10px;
+  --ds-text-sm:   12px;
+  --ds-text-base: 14px;
+  --ds-text-md:   16px;
+  --ds-text-lg:   20px;
+  --ds-text-xl:   28px;
+  --ds-text-2xl:  40px;
+
+  --ds-weight-normal: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-bold:   700;
+  --ds-weight-black:  800;
+
+  --ds-tracking-tight:   -0.02em;
+  --ds-tracking-normal:   0em;
+  --ds-tracking-wide:     0.05em;
+  --ds-tracking-widest:   0.12em;
+
+  /* ════════════════════════════════════════════
+     SPACING
+     ════════════════════════════════════════════ */
+  --ds-space-1:  4px;
+  --ds-space-2:  8px;
+  --ds-space-3:  12px;
+  --ds-space-4:  16px;
+  --ds-space-5:  20px;
+  --ds-space-6:  24px;
+  --ds-space-8:  32px;
+  --ds-space-10: 40px;
+  --ds-space-12: 48px;
+
+  /* ════════════════════════════════════════════
+     BORDER RADIUS (Dead Cells = sharp by default)
+     ════════════════════════════════════════════ */
+  --ds-radius-none: 0;
+  --ds-radius-sm:   3px;
+  --ds-radius-md:   6px;
+  --ds-radius-lg:   10px;
+  --ds-radius-pill: 999px;
+
+  /* ════════════════════════════════════════════
+     SHADOWS & GLOW
+     ════════════════════════════════════════════ */
+  --ds-shadow-sm:    0 2px 8px  rgba(0, 0, 0, 0.60);
+  --ds-shadow-md:    0 4px 16px rgba(0, 0, 0, 0.75);
+  --ds-shadow-lg:    0 8px 32px rgba(0, 0, 0, 0.85);
+  --ds-shadow-inset: inset 0 2px 8px rgba(0, 0, 0, 0.50);
+
+  --ds-glow-crimson: 0 0 12px rgba(164,   2,  57, 0.45), 0 0 24px rgba(164,   2,  57, 0.20);
+  --ds-glow-gold:    0 0 12px rgba(249, 207, 135, 0.40), 0 0 24px rgba(249, 207, 135, 0.18);
+  --ds-glow-cyan:    0 0 12px rgba(223, 255, 254, 0.35), 0 0 24px rgba(223, 255, 254, 0.15);
+  --ds-glow-purple:  0 0 12px rgba(185,  80, 141, 0.35), 0 0 24px rgba(185,  80, 141, 0.15);
+  --ds-glow-red:     0 0 12px rgba(220,  40,  40, 0.40), 0 0 24px rgba(220,  40,  40, 0.20);
+  --ds-glow-blue:    0 0 12px rgba( 79, 195, 247, 0.35), 0 0 24px rgba( 79, 195, 247, 0.15);
+
+  --ds-text-glow-crimson: 0 0 8px rgba(164,   2,  57, 0.60);
+  --ds-text-glow-gold:    0 0 8px rgba(249, 207, 135, 0.50);
+  --ds-text-glow-cyan:    0 0 8px rgba(223, 255, 254, 0.50);
+  --ds-text-glow-white:   0 0 8px rgba(255, 255, 255, 0.40);
+
+  /* ════════════════════════════════════════════
+     ANIMATION
+     ════════════════════════════════════════════ */
+  --ds-anim-instant: 80ms;
+  --ds-anim-fast:   150ms;
+  --ds-anim-mid:    300ms;
+  --ds-anim-slow:   600ms;
+
+  --ds-ease-sharp:  cubic-bezier(0.25, 0, 0, 1);
+  --ds-ease-punch:  cubic-bezier(0.5, 0, 0.2, 1.4);
+  --ds-ease-out:    ease-out;
+
+  /* ════════════════════════════════════════════
+     LAYOUT
+     ════════════════════════════════════════════ */
+  --ds-game-width: 480px;
+  --ds-wiki-max:  1280px;
+
+  /* ════════════════════════════════════════════
+     LEGACY ALIASES — BOT (--game-*)
+     ════════════════════════════════════════════ */
+  --game-bg:            var(--ds-bg-base);
+  --game-bg2:           var(--ds-bg-raised);
+  --game-bg3:           var(--ds-bg-panel);
+  --game-dark:          var(--ds-bg-void);
+  --game-accent:        var(--ds-crimson);
+  --game-accent2:       var(--ds-text-cream);
+  --game-gold:          var(--ds-gold-bright);
+  --game-text:          var(--ds-text-gold);
+  --game-muted:         var(--ds-text-muted);
+  --game-hp-fill:       var(--ds-red-mid);
+  --game-hp-bg:         var(--ds-bg-inset);
+  --game-crit:          var(--ds-color-crit);
+  --game-green:         var(--ds-cyan-mid);  /* green -> cyan */
+  --game-border:        var(--ds-border-dim);
+  --game-border-active: var(--ds-border-gold);
+
+  /* ════════════════════════════════════════════
+     LEGACY ALIASES — WIKI (--bg-*, --accent-*, etc.)
+     ════════════════════════════════════════════ */
+  --bg-primary:     var(--ds-bg-base);
+  --bg-secondary:   var(--ds-bg-raised);
+  --bg-card:        var(--ds-bg-panel);
+  --bg-card-hover:  rgba(30, 40, 69, 0.95);
+  --bg-header:      rgba(16, 21, 36, 0.95);
+  --border-color:   var(--ds-border-dim);
+  --border-glow:    var(--ds-border-gold);
+
+  --text-primary:   var(--ds-text-gold);
+  --text-secondary: var(--ds-text-light);
+  --text-muted:     var(--ds-text-muted);
+  --text-heading:   var(--ds-text-cream);
+
+  --accent-primary:   var(--ds-crimson);
+  --accent-secondary: var(--ds-crimson-dark);
+  --accent-gold:      var(--ds-gold-bright);
+  --accent-fire:      var(--ds-fire);
+  --accent-ice:       var(--ds-ice);
+  --accent-lightning: var(--ds-lightning);
+  --accent-physical:  var(--ds-physical);
+  --accent-pure:      var(--ds-pure);
+
+  --rarity-common:    var(--ds-rarity-common);
+  --rarity-rare:      var(--ds-rarity-rare);
+  --rarity-epic:      var(--ds-rarity-epic);
+  --rarity-boss:      var(--ds-rarity-boss);
+  --rarity-legendary: var(--ds-rarity-legendary);
+
+  --font-heading: var(--ds-font-title);
+  --font-body:    var(--ds-font-body);
+
+  --radius-sm: var(--ds-radius-sm);
+  --radius-md: var(--ds-radius-md);
+  --radius-lg: var(--ds-radius-lg);
+
+  --shadow-card: var(--ds-shadow-md);
+  --shadow-glow: var(--ds-glow-gold);
+}

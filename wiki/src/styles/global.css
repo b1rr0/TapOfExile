@@ -1,42 +1,111 @@
 /* ── Reset & Variables ─────────────────────────── */
+/**
+ * Dead Cells v2 Design System — Wiki tokens
+ * Crimson / Gold / Cyan / Purple palette — NO GREEN
+ * Full token definitions in /shared/design-tokens.css
+ * Legacy wiki aliases maintained for compat
+ */
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-card: #1a1a2e;
-  --bg-card-hover: #222240;
-  --bg-header: rgba(10, 10, 15, 0.95);
-  --border-color: #2a2a4a;
-  --border-glow: #4a3f8a;
+  --ds-bg-void:   #080b15;
+  --ds-bg-base:   #101524;
+  --ds-bg-raised: #182038;
+  --ds-bg-panel:  #1e2845;
+  --ds-bg-inset:  #0c1020;
 
-  --text-primary: #e8e6f0;
-  --text-secondary: #9994b8;
-  --text-muted: #6b6590;
-  --text-heading: #f0ecff;
+  --ds-border-dim:     rgba(255, 255, 255, 0.06);
+  --ds-border-mid:     rgba(255, 255, 255, 0.12);
+  --ds-border-bright:  rgba(255, 255, 255, 0.22);
+  --ds-border-gold:    rgba(249, 207, 135, 0.35);
+  --ds-border-crimson: rgba(164, 2, 57, 0.50);
+  --ds-border-cyan:    rgba(223, 255, 254, 0.30);
 
-  --accent-primary: #8b5cf6;
-  --accent-secondary: #6d28d9;
-  --accent-gold: #fbbf24;
-  --accent-fire: #ef4444;
-  --accent-ice: #38bdf8;
-  --accent-lightning: #a78bfa;
-  --accent-physical: #94a3b8;
-  --accent-pure: #e879f9;
+  --ds-text-gold:   #F9CF87;
+  --ds-text-light:  #f9e6c6;
+  --ds-text-cream:  #FFFDD3;
+  --ds-text-muted:  #888a92;
+  --ds-text-dead:   #3a3d48;
 
-  --rarity-common: #9e9e9e;
-  --rarity-rare: #4fc3f7;
-  --rarity-epic: #ffd740;
-  --rarity-boss: #ff9100;
-  --rarity-legendary: #ff6d00;
+  --ds-crimson:        #A40239;
+  --ds-crimson-bright: #d1394e;
+  --ds-crimson-dark:   #832154;
+  --ds-gold-bright: #F9CF87;
+  --ds-gold-mid:    #d4963a;
+  --ds-gold-dim:    #7a5520;
+  --ds-cyan:      #DFFFFE;
+  --ds-cyan-mid:  #4fc3f7;
+  --ds-cyan-dim:  #1a5a7a;
+  --ds-purple:        #B9508D;
+  --ds-purple-bright: #c878f8;
+  --ds-purple-dim:    #6a2a5a;
+  --ds-red-bright: #ff3333;
+  --ds-red-mid:    #cc2222;
+  --ds-red-dim:    #7a1515;
+  --ds-fire:      #ff5a1f;
+  --ds-ice:       #60c8f0;
+  --ds-lightning: #c8a0ff;
+  --ds-physical:  #a09080;
+  --ds-pure:      #e878f8;
+  --ds-poison:    #B9508D;
+  --ds-rarity-common:    #888a92;
+  --ds-rarity-rare:      #4fc3f7;
+  --ds-rarity-epic:      #c878f8;
+  --ds-rarity-legendary: #F9CF87;
+  --ds-rarity-boss:      #ff5a1f;
 
-  --font-heading: 'Cinzel', serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --ds-glow-crimson: 0 0 12px rgba(164, 2, 57, 0.45), 0 0 24px rgba(164, 2, 57, 0.20);
+  --ds-glow-gold:    0 0 12px rgba(249, 207, 135, 0.40), 0 0 24px rgba(249, 207, 135, 0.18);
+  --ds-glow-cyan:    0 0 12px rgba(223, 255, 254, 0.35), 0 0 24px rgba(223, 255, 254, 0.15);
+  --ds-glow-purple:  0 0 12px rgba(185, 80, 141, 0.35), 0 0 24px rgba(185, 80, 141, 0.15);
+  --ds-glow-red:     0 0 12px rgba(220, 40, 40, 0.40), 0 0 24px rgba(220, 40, 40, 0.20);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --ds-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.60);
+  --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.75);
+  --ds-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.85);
 
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.15);
+  --ds-text-glow-gold:    0 0 8px rgba(249, 207, 135, 0.50);
+  --ds-text-glow-crimson: 0 0 8px rgba(164, 2, 57, 0.60);
+  --ds-text-glow-cyan:    0 0 8px rgba(223, 255, 254, 0.50);
+
+  --ds-anim-fast: 150ms;
+  --ds-anim-mid:  300ms;
+  --ds-ease-out:  ease-out;
+
+  --ds-font-title: 'Cinzel', serif;
+  --ds-font-body:  'Raleway', 'Inter', system-ui, sans-serif;
+  --ds-font-mono:  'JetBrains Mono', 'Courier New', monospace;
+
+  /* Legacy wiki aliases */
+  --bg-primary:     var(--ds-bg-base);
+  --bg-secondary:   var(--ds-bg-raised);
+  --bg-card:        var(--ds-bg-panel);
+  --bg-card-hover:  rgba(30, 40, 69, 0.95);
+  --bg-header:      rgba(16, 21, 36, 0.95);
+  --border-color:   var(--ds-border-dim);
+  --border-glow:    var(--ds-border-gold);
+  --text-primary:   var(--ds-text-gold);
+  --text-secondary: var(--ds-text-light);
+  --text-muted:     var(--ds-text-muted);
+  --text-heading:   var(--ds-text-cream);
+  --accent-primary:   var(--ds-crimson);
+  --accent-secondary: var(--ds-crimson-dark);
+  --accent-gold:      var(--ds-gold-bright);
+  --accent-fire:      var(--ds-fire);
+  --accent-ice:       var(--ds-ice);
+  --accent-lightning: var(--ds-lightning);
+  --accent-physical:  var(--ds-physical);
+  --accent-pure:      var(--ds-pure);
+  --rarity-common:    var(--ds-rarity-common);
+  --rarity-rare:      var(--ds-rarity-rare);
+  --rarity-epic:      var(--ds-rarity-epic);
+  --rarity-boss:      var(--ds-rarity-boss);
+  --rarity-legendary: var(--ds-rarity-legendary);
+  --font-heading: var(--ds-font-title);
+  --font-body:    var(--ds-font-body);
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --shadow-card: var(--ds-shadow-md);
+  --shadow-glow: var(--ds-glow-gold);
 }
 
 *, *::before, *::after {
@@ -136,7 +205,7 @@ a:hover {
 .header-nav a:hover,
 .header-nav a.active {
   color: var(--text-heading);
-  background: rgba(139, 92, 246, 0.12);
+  background: rgba(164, 2, 57, 0.12);
 }
 .header-nav a.active {
   color: var(--accent-primary);
@@ -212,8 +281,9 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(249, 207, 135, 0.08);
   border-radius: var(--radius-sm);
+  border: 1px solid rgba(249, 207, 135, 0.15);
 }
 
 .card-title {
@@ -295,7 +365,7 @@ a:hover {
 }
 
 .wiki-table tr:hover td {
-  background: rgba(139, 92, 246, 0.04);
+  background: rgba(249, 207, 135, 0.04);
 }
 
 .wiki-table .rarity-common { color: var(--rarity-common); }
@@ -391,7 +461,7 @@ a:hover {
   right: 0;
   width: 50%;
   height: 100%;
-  background: radial-gradient(circle at 70% 50%, rgba(139, 92, 246, 0.08), transparent 60%);
+  background: radial-gradient(circle at 70% 50%, rgba(164, 2, 57, 0.06), transparent 60%);
   pointer-events: none;
 }
 
@@ -436,8 +506,8 @@ a:hover {
 
 /* ── Info Box ─────────────────────────────────── */
 .info-box {
-  background: rgba(139, 92, 246, 0.06);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(164, 2, 57, 0.06);
+  border: 1px solid rgba(164, 2, 57, 0.20);
   border-radius: var(--radius-md);
   padding: 1.25rem;
   margin: 1rem 0;
@@ -447,6 +517,7 @@ a:hover {
   color: var(--accent-primary);
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 8px rgba(164, 2, 57, 0.4);
 }
 
 .info-box p {
@@ -514,11 +585,12 @@ a:hover {
 /* ── Interactive Skill Tree ───────────────────── */
 .skill-tree-wiki {
   position: relative;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--ds-border-gold);
   border-radius: var(--radius-md);
-  background: #0d0d14;
+  background: #0c1020;
   overflow: hidden;
   margin-bottom: 2rem;
+  box-shadow: 0 0 20px rgba(249, 207, 135, 0.06);
 }
 
 .skill-tree-wiki__viewport {
@@ -568,11 +640,12 @@ a:hover {
 }
 
 .st-tip__name {
-  color: var(--accent-gold);
+  color: var(--ds-gold-bright);
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 0.9rem;
   margin-bottom: 0.2rem;
+  text-shadow: var(--ds-text-glow-gold);
 }
 .st-tip__label {
   color: var(--text-secondary);
@@ -586,50 +659,52 @@ a:hover {
   margin-top: 0.15rem;
 }
 .st-tip__allocated {
-  color: var(--accent-primary);
+  color: var(--ds-cyan-mid);
   font-size: 0.72rem;
   font-weight: 600;
   margin-top: 0.2rem;
+  text-shadow: var(--ds-text-glow-cyan);
 }
 
-/* SVG node styling */
-.st-emblem__bg { fill: #0a0a12; }
-.st-emblem__ring { fill: none; stroke: #333; stroke-width: 2; }
-.st-emblem__ring--own { stroke: var(--accent-primary); stroke-width: 3; }
-.st-emblem__label { fill: #555; font-size: 14px; font-family: var(--font-heading); }
+/* SVG node styling — Dead Cells v2 crimson/gold/cyan theme */
+.st-emblem__bg { fill: #0c1020; }
+.st-emblem__ring { fill: none; stroke: #1e2845; stroke-width: 2; }
+.st-emblem__ring--own { stroke: var(--accent-primary); stroke-width: 3; filter: drop-shadow(0 0 4px rgba(164, 2, 57, 0.5)); }
+.st-emblem__label { fill: #444a58; font-size: 14px; font-family: var(--font-heading); }
 
-.st-edge { stroke: #222; stroke-width: 1.5; }
-.st-edge--class { stroke: #1a1a2e; stroke-width: 1; }
-.st-edge--figure { stroke: rgba(136,136,136,0.4); stroke-width: 1; stroke-dasharray: 4 2; }
-.st-edge--figure.st-edge--active { stroke: rgba(255,106,138,0.6); stroke-width: 1.5; stroke-dasharray: none; }
-.st-edge--active { stroke: var(--accent-primary); stroke-width: 2.5; }
+.st-edge { stroke: #1a2040; stroke-width: 1.5; }
+.st-edge--class { stroke: #141830; stroke-width: 1; }
+.st-edge--figure { stroke: rgba(249, 207, 135, 0.3); stroke-width: 1; stroke-dasharray: 4 2; }
+.st-edge--figure.st-edge--active { stroke: rgba(249, 207, 135, 0.5); stroke-width: 1.5; stroke-dasharray: none; }
+.st-edge--active { stroke: var(--ds-gold-bright); stroke-width: 2.5; filter: drop-shadow(0 0 3px rgba(249, 207, 135, 0.4)); }
 
-.st-node-id { fill: rgba(255,255,255,0.7); font-size: 5px; font-family: monospace; pointer-events: none; user-select: none; }
+.st-node-id { fill: rgba(255,255,255,0.5); font-size: 5px; font-family: monospace; pointer-events: none; user-select: none; }
 
 .st-node { cursor: pointer; }
-.st-node circle, .st-node path { fill: #1a1a2e; stroke: #444; stroke-width: 1.5; transition: fill 0.15s; }
-.st-node--minor circle { fill: #1e1e2a; stroke: #555; }
-.st-node--notable path { fill: #1a2040; stroke: #5588cc; stroke-width: 2; }
-.st-node--classSkill path { fill: #1a2a1a; stroke: #55aa55; stroke-width: 1.5; }
-.st-node--keystone path { fill: #2a1a10; stroke: #cc8833; stroke-width: 2.5; }
-.st-node--figureEntry path { fill: #1a1a1a; stroke: #888; stroke-width: 2; }
-.st-node--start circle { fill: #222; stroke: #888; stroke-width: 2.5; }
+.st-node circle, .st-node path { fill: #101828; stroke: #1e2845; stroke-width: 1.5; transition: fill 0.15s; }
+.st-node--minor circle { fill: #121a30; stroke: #2a3858; }
+.st-node--notable path { fill: #10182a; stroke: #3a5a8a; stroke-width: 2; }
+.st-node--classSkill path { fill: #0e1828; stroke: var(--ds-cyan-mid); stroke-width: 1.5; }
+.st-node--keystone path { fill: #1e1808; stroke: #cc8833; stroke-width: 2.5; }
+.st-node--figureEntry path { fill: #141420; stroke: #555; stroke-width: 2; }
+.st-node--start circle { fill: #181e30; stroke: #4a5a7a; stroke-width: 2.5; }
 .st-node--allocated circle, .st-node--allocated path {
-  fill: var(--accent-primary) !important;
-  stroke: #fff !important;
+  fill: var(--ds-cyan-dim) !important;
+  stroke: var(--ds-cyan) !important;
   stroke-width: 2 !important;
+  filter: drop-shadow(0 0 5px rgba(223, 255, 254, 0.5));
 }
 
-/* Reachable nodes glow (interactive mode) */
+/* Reachable nodes glow (interactive mode) — cyan */
 .st-node--reachable circle, .st-node--reachable path {
-  stroke: rgba(96, 165, 250, 0.6) !important;
+  stroke: rgba(223, 255, 254, 0.55) !important;
   stroke-width: 2.5 !important;
-  filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.4));
+  filter: drop-shadow(0 0 4px rgba(223, 255, 254, 0.35));
 }
 .st-node--reachable:hover circle, .st-node--reachable:hover path {
-  fill: rgba(96, 165, 250, 0.25) !important;
-  stroke: rgba(96, 165, 250, 0.9) !important;
-  filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.6));
+  fill: rgba(223, 255, 254, 0.18) !important;
+  stroke: rgba(223, 255, 254, 0.85) !important;
+  filter: drop-shadow(0 0 8px rgba(223, 255, 254, 0.55));
 }
 
 /* Interactive panel (left side) */
@@ -656,8 +731,9 @@ a:hover {
   display: block;
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--accent-primary);
+  color: var(--ds-cyan-mid);
   line-height: 1.1;
+  text-shadow: 0 0 8px rgba(223, 255, 254, 0.5);
 }
 
 .skill-tree-wiki__counter-label {
@@ -669,7 +745,7 @@ a:hover {
 }
 
 .skill-tree-wiki__counter--class .skill-tree-wiki__counter-num {
-  color: #55aa55;
+  color: var(--ds-cyan-mid);
 }
 
 .skill-tree-wiki__panel-btn {
@@ -780,8 +856,9 @@ a:hover {
 .char-modal__hero-level {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--accent-primary, #60a5fa);
-  background: rgba(96, 165, 250, 0.12);
+  color: var(--ds-cyan-mid);
+  background: rgba(223, 255, 254, 0.12);
+  border: 1px solid rgba(223, 255, 254, 0.25);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
 }
@@ -884,9 +961,10 @@ a:hover {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .char-modal__tree-btn:hover {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: #fff;
+  background: var(--ds-crimson-dark);
+  border-color: var(--ds-crimson);
+  color: var(--ds-text-cream);
+  box-shadow: var(--ds-glow-crimson);
 }
 
 /* ── Character Tree Page (fullscreen, separate tab) ── */
