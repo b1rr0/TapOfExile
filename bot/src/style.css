@@ -4775,6 +4775,13 @@ body {
   stroke-width: 3;
 }
 
+/* Figure Entry (gateway into figure clusters) */
+.st-node--figureEntry path {
+  fill: #1a1a1a;
+  stroke: #888;
+  stroke-width: 2;
+}
+
 /* Start */
 .st-node--start circle {
   fill: #1a3040;
@@ -4805,6 +4812,11 @@ body {
   fill: #ff4a6a;
   stroke: #ff8aa0;
   filter: drop-shadow(0 0 10px rgba(255,74,106,0.6));
+}
+.st-node--figureEntry.st-node--allocated path {
+  fill: #444;
+  stroke: #ccc;
+  filter: drop-shadow(0 0 6px rgba(150,150,150,0.5));
 }
 
 /* Reachable (available to allocate) */
@@ -4878,6 +4890,25 @@ body {
 .st-edge--class.st-edge--active {
   stroke: rgba(160,220,255,0.9);
   stroke-width: 2.5;
+}
+.st-edge--figure {
+  stroke: rgba(136,136,136,0.4);
+  stroke-width: 1;
+  stroke-dasharray: 4 2;
+}
+.st-edge--figure.st-edge--active {
+  stroke: rgba(255,106,138,0.6);
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+}
+
+/* ── Node ID numbers ─────────────────── */
+.st-node-id {
+  fill: rgba(255,255,255,0.7);
+  font-size: 5px;
+  font-family: monospace;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* ── Tooltip ──────────────────────────── */

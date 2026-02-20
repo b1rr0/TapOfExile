@@ -600,7 +600,11 @@ a:hover {
 
 .st-edge { stroke: #222; stroke-width: 1.5; }
 .st-edge--class { stroke: #1a1a2e; stroke-width: 1; }
+.st-edge--figure { stroke: rgba(136,136,136,0.4); stroke-width: 1; stroke-dasharray: 4 2; }
+.st-edge--figure.st-edge--active { stroke: rgba(255,106,138,0.6); stroke-width: 1.5; stroke-dasharray: none; }
 .st-edge--active { stroke: var(--accent-primary); stroke-width: 2.5; }
+
+.st-node-id { fill: rgba(255,255,255,0.7); font-size: 5px; font-family: monospace; pointer-events: none; user-select: none; }
 
 .st-node { cursor: pointer; }
 .st-node circle, .st-node path { fill: #1a1a2e; stroke: #444; stroke-width: 1.5; transition: fill 0.15s; }
@@ -608,6 +612,7 @@ a:hover {
 .st-node--notable path { fill: #1a2040; stroke: #5588cc; stroke-width: 2; }
 .st-node--classSkill path { fill: #1a2a1a; stroke: #55aa55; stroke-width: 1.5; }
 .st-node--keystone path { fill: #2a1a10; stroke: #cc8833; stroke-width: 2.5; }
+.st-node--figureEntry path { fill: #1a1a1a; stroke: #888; stroke-width: 2; }
 .st-node--start circle { fill: #222; stroke: #888; stroke-width: 2.5; }
 .st-node--allocated circle, .st-node--allocated path {
   fill: var(--accent-primary) !important;

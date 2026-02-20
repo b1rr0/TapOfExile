@@ -93,6 +93,10 @@ export function classSkill(id: string, label: string, name: string, ...mods: Sta
   return new NodeDef(id, label, name, "classSkill", ...mods);
 }
 
+export function figureEntry(id: string, label: string): NodeDef {
+  return new NodeDef(id, label, null, "figureEntry");
+}
+
 // ── Stat key → player property mapping ────────────────────
 
 export const STAT_TO_PLAYER: Record<string, string> = {
@@ -162,17 +166,88 @@ export const NOTABLE_POOL: NodeDef[] = [
   notable("not_thick",      "+35% HP",                   "Thick Skin",      pct("hp", 0.35)),
 ];
 
-// ── Keystone pool (8) ────────────────────────────────────
+// ── Keystone pool (48) ───────────────────────────────────
 
 export const KEYSTONE_POOL: NodeDef[] = [
-  keystone("ks_berserk",   "2x Dmg at low HP",       "Berserker Rage",   pct("damage", 1.00)),
-  keystone("ks_perfect",   "Crits deal 3x",          "Perfect Aim",      pct("critMulti", 1.00)),
-  keystone("ks_undying",   "+100% HP, -20% Dmg",     "Undying Will",     pct("hp", 1.00), pct("damage", -0.20)),
-  keystone("ks_midas",     "2x Gold Find",           "Midas Touch",      pct("goldFind", 1.00)),
-  keystone("ks_inferno",   "+60% Fire Dmg, +20% HP", "Infernal Crown",   pct("fireDmg", 0.60), pct("hp", 0.20)),
-  keystone("ks_soul",      "Kills heal 5% HP",       "Soul Eater",       pct("hp", 0.50)),
-  keystone("ks_chaos",     "+50% All Damage",        "Chaos Lord",       pct("damage", 0.50)),
-  keystone("ks_student",   "3x XP Gain",             "Eternal Student",  pct("xpGain", 2.00)),
+  // ── Set 1: single-stat keystones (8) ──
+  keystone("ks_berserk",    "2x Dmg at low HP",       "Berserker Rage",     pct("damage", 1.00)),
+  keystone("ks_perfect",    "Crits deal 3x",          "Perfect Aim",        pct("critMulti", 1.00)),
+  keystone("ks_undying",    "+100% HP, -20% Dmg",     "Undying Will",       pct("hp", 1.00), pct("damage", -0.20)),
+  keystone("ks_midas",      "2x Gold Find",           "Midas Touch",        pct("goldFind", 1.00)),
+  keystone("ks_inferno",    "+60% Fire Dmg, +20% HP", "Infernal Crown",     pct("fireDmg", 0.60), pct("hp", 0.20)),
+  keystone("ks_soul",       "Kills heal 5% HP",       "Soul Eater",         pct("hp", 0.50)),
+  keystone("ks_chaos",      "+50% All Damage",        "Chaos Lord",         pct("damage", 0.50)),
+  keystone("ks_student",    "3x XP Gain",             "Eternal Student",    pct("xpGain", 2.00)),
+
+  // ── Set 2: elemental + hybrid (8) ──
+  keystone("ks_thunder",    "+50% Lightning Dmg",     "Thunder God",        pct("lightningDmg", 0.50)),
+  keystone("ks_frost",      "+50% Cold Dmg",          "Frost Emperor",      pct("coldDmg", 0.50)),
+  keystone("ks_ghost",      "+80% Crit Chance",       "Ghost Step",         pct("critChance", 0.80)),
+  keystone("ks_warlord",    "+40% DPS",               "Warlord",            pct("dps", 0.40)),
+  keystone("ks_bloodking",  "+75% HP, +15% Dmg",      "Blood King",         pct("hp", 0.75), pct("damage", 0.15)),
+  keystone("ks_executioner", "Crits deal 2x",         "Executioner",        pct("critMulti", 0.80)),
+  keystone("ks_ironwill",   "+120% HP, no crit",      "Iron Will",          pct("hp", 1.20), pct("critChance", -0.90)),
+  keystone("ks_fortune2",   "+80% Gold, +40% XP",     "Golden Age",         pct("goldFind", 0.80), pct("xpGain", 0.40)),
+
+  // ── Set 3: dual-stat (8) ──
+  keystone("ks_pyro",       "+40% Fire, +20% DPS",    "Pyromancer",         pct("fireDmg", 0.40), pct("dps", 0.20)),
+  keystone("ks_blizzard",   "+40% Cold, +30% HP",     "Blizzard Heart",     pct("coldDmg", 0.40), pct("hp", 0.30)),
+  keystone("ks_tempest",    "+40% Lghtng, +25% Crit", "Tempest Lord",       pct("lightningDmg", 0.40), pct("critChance", 0.25)),
+  keystone("ks_titan",      "+60% HP, +20% DPS",      "Titan Grip",         pct("hp", 0.60), pct("dps", 0.20)),
+  keystone("ks_shadow",     "+50% Crit Dmg, +30% Dmg","Shadow Master",      pct("critMulti", 0.50), pct("damage", 0.30)),
+  keystone("ks_phoenix",    "+50% Fire, +50% HP",     "Phoenix Rising",     pct("fireDmg", 0.50), pct("hp", 0.50)),
+  keystone("ks_scholar",    "2x XP, +30% Gold",       "Grand Scholar",      pct("xpGain", 1.00), pct("goldFind", 0.30)),
+  keystone("ks_destroyer",  "+70% Damage",            "World Destroyer",    pct("damage", 0.70)),
+
+  // ── Set 4: advanced keystones (8) ──
+  keystone("ks_avalanche",  "+45% Cold, +15% Dmg",    "Avalanche",          pct("coldDmg", 0.45), pct("damage", 0.15)),
+  keystone("ks_voltage",    "+45% Lightning, +15% DPS","Voltage Surge",      pct("lightningDmg", 0.45), pct("dps", 0.15)),
+  keystone("ks_voidwalker", "+60% Dmg, -30% HP",      "Void Walker",        pct("damage", 0.60), pct("hp", -0.30)),
+  keystone("ks_oathkeeper", "+80% HP, +10% Gold",     "Oathkeeper",         pct("hp", 0.80), pct("goldFind", 0.10)),
+  keystone("ks_sunfire",    "+35% Fire, +35% Crit",   "Sunfire",            pct("fireDmg", 0.35), pct("critChance", 0.35)),
+  keystone("ks_nightblade", "+60% Crit Dmg, +20% DPS","Nightblade",         pct("critMulti", 0.60), pct("dps", 0.20)),
+  keystone("ks_sage",       "2.5x XP",                "Sage of Ages",       pct("xpGain", 1.50)),
+  keystone("ks_dragon",     "+40% Fire, +20% Lghtng", "Dragon Breath",      pct("fireDmg", 0.40), pct("lightningDmg", 0.20)),
+
+  // ── Set 5: offensive keystones (8) ──
+  keystone("ks_reaper",     "+55% Dmg, +25% Crit",    "Reaper",             pct("damage", 0.55), pct("critChance", 0.25)),
+  keystone("ks_glacial",    "+55% Cold, +20% Crit",   "Glacial Core",       pct("coldDmg", 0.55), pct("critChance", 0.20)),
+  keystone("ks_mjolnir",    "+55% Lghtng, +25% Dmg",  "Mjolnir",            pct("lightningDmg", 0.55), pct("damage", 0.25)),
+  keystone("ks_golem",      "+90% HP",                "Stone Golem",        pct("hp", 0.90)),
+  keystone("ks_plunder",    "+90% Gold",              "Grand Plunder",      pct("goldFind", 0.90)),
+  keystone("ks_frenzy",     "+35% DPS, +15% Dmg",     "Blood Frenzy",       pct("dps", 0.35), pct("damage", 0.15)),
+  keystone("ks_nova",       "+30% Fire, +30% Cold",    "Elemental Nova",     pct("fireDmg", 0.30), pct("coldDmg", 0.30)),
+  keystone("ks_dervish",    "+45% DPS, -20% HP",       "Whirling Dervish",   pct("dps", 0.45), pct("hp", -0.20)),
+
+  // ── Set 6: defensive/utility keystones (8) ──
+  keystone("ks_bulwark",    "+70% HP, +10% DPS",       "Living Bulwark",     pct("hp", 0.70), pct("dps", 0.10)),
+  keystone("ks_alchemist",  "+50% Gold, +50% XP",      "Grand Alchemist",    pct("goldFind", 0.50), pct("xpGain", 0.50)),
+  keystone("ks_predator",   "+70% Crit Dmg",           "Apex Predator",      pct("critMulti", 0.70)),
+  keystone("ks_wardstone",  "+100% HP, +10% Dodge",    "Ancient Wardstone",  pct("hp", 1.00), pct("dodge", 0.10)),
+  keystone("ks_cinder",     "+50% Fire, +15% Crit",    "Cinder Lord",        pct("fireDmg", 0.50), pct("critChance", 0.15)),
+  keystone("ks_permafrost", "+50% Cold, +20% DPS",     "Permafrost",         pct("coldDmg", 0.50), pct("dps", 0.20)),
+  keystone("ks_arclight",   "+50% Lghtng, +20% HP",    "Arclight Sentinel",  pct("lightningDmg", 0.50), pct("hp", 0.20)),
+  keystone("ks_zenith",     "+35% Dmg, +20% Crit, +15% HP", "Zenith",       pct("damage", 0.35), pct("critChance", 0.20), pct("hp", 0.15)),
+];
+
+// ── Figure entry pool (15) — gateways with no stat bonuses ──
+
+export const FIGURE_ENTRY_POOL: NodeDef[] = [
+  figureEntry("fe_shield",     "Shield Gate"),
+  figureEntry("fe_sword",      "Sword Gate"),
+  figureEntry("fe_circle",     "Circle Gate"),
+  figureEntry("fe_diamond",    "Diamond Gate"),
+  figureEntry("fe_crescent",   "Crescent Gate"),
+  figureEntry("fe_star",       "Star Gate"),
+  figureEntry("fe_serpent",    "Serpent Gate"),
+  figureEntry("fe_crown",     "Crown Gate"),
+  figureEntry("fe_eye",       "Eye Gate"),
+  figureEntry("fe_flame",     "Flame Gate"),
+  figureEntry("fe_frost",     "Frost Gate"),
+  figureEntry("fe_storm",     "Storm Gate"),
+  figureEntry("fe_skull",     "Skull Gate"),
+  figureEntry("fe_wing",      "Wing Gate"),
+  figureEntry("fe_anchor",    "Anchor Gate"),
 ];
 
 // ── Class-specific skill pools (16 per class) ────────────
