@@ -23,7 +23,7 @@ bot/
 - Node.js 18+
 - npm
 - Telegram bot (create one via [@BotFather](https://t.me/BotFather))
-- HTTPS address for Mini App (for development — ngrok)
+- HTTPS address for Mini App (for development — Cloudflare Tunnel)
 
 ## Installation
 
@@ -46,7 +46,7 @@ cp .env.example .env
 
 ```
 BOT_TOKEN=123456:ABC-DEF...
-WEBAPP_URL=https://your-url.ngrok-free.app
+WEBAPP_URL=https://your-url.trycloudflare.com
 ```
 
 ## Running (development)
@@ -59,15 +59,15 @@ npm run dev
 
 Vite will start a local server at `http://localhost:3000`.
 
-### 2. Expose HTTPS via ngrok
+### 2. Expose HTTPS via Cloudflare Tunnel
 
 In a separate terminal:
 
 ```bash
-ngrok http 3000
+cloudflared tunnel --url http://localhost:3000
 ```
 
-Copy the HTTPS address (e.g. `https://xxxx.ngrok-free.app`) and set it in `.env` as `WEBAPP_URL`.
+Copy the HTTPS address (e.g. `https://xxxx.trycloudflare.com`) and set it in `.env` as `WEBAPP_URL`.
 
 ### 3. Start the bot
 
