@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CharacterIdQueryDto {
-  @ApiProperty({ description: 'Character UUID' })
-  @IsUUID()
+  @ApiProperty({ description: 'Character ID' })
+  @IsString()
   @IsNotEmpty()
   characterId: string;
 }

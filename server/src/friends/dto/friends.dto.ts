@@ -3,12 +3,12 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class SendRequestDto {
   @ApiProperty({ description: 'Your character ID' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   fromCharacterId: string;
 
   @ApiProperty({ description: 'Target character ID' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   toCharacterId: string;
 }
