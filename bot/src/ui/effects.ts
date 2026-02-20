@@ -37,16 +37,24 @@ export class Effects {
   layer: HTMLElement;
   events: EventBus;
   _maxVisible: number;
+  _boundListeners: Array<{ event: string; handler: (data: any) => void }>;
 
   constructor(container: HTMLElement, events: EventBus) {
     this.layer = container.querySelector("#effects-layer") || container;
     this.events = events;
     this._maxVisible = 6;
+    this._boundListeners = [];
     this._listen();
   }
 
+  /** Helper to register an event handler and track it for cleanup. */
+  private _on(event: string, handler: (data: any) => void): void {
+    this.events.on(event, handler);
+    this._boundListeners.push({ event, handler });
+  }
+
   _listen(): void {
-    this.events.on("damage", (data: DamageData) => {
+    this._on("damage", (data: DamageData) => {
       if (data.damageBreakdown) {
         this.showElementalDamage(data.damageBreakdown, data.isCrit);
       } else {
@@ -54,25 +62,25 @@ export class Effects {
       }
     });
 
-    this.events.on("monsterDied", (data: MonsterDiedData) => {
+    this._on("monsterDied", (data: MonsterDiedData) => {
       this.showGoldDrop(data.gold);
     });
 
-    this.events.on("xpGained", (data: XpGainedData) => {
+    this._on("xpGained", (data: XpGainedData) => {
       this.showXpGain(data.xp);
     });
 
-    this.events.on("levelUp", (data: LevelUpData) => {
+    this._on("levelUp", (data: LevelUpData) => {
       this.showAnnounce(`LEVEL ${data.level}!`);
     });
 
-    this.events.on("potionUsed", (data: any) => {
+    this._on("potionUsed", (data: any) => {
       if (data.healAmount > 0) {
         this.showHeal(data.healAmount);
       }
     });
 
-    this.events.on("skillHit", (data: any) => {
+    this._on("skillHit", (data: any) => {
       if (data.damageBreakdown) {
         this.showElementalDamage(data.damageBreakdown, data.isCrit);
       } else if (data.damage > 0) {
@@ -80,7 +88,7 @@ export class Effects {
       }
     });
 
-    this.events.on("enemyAttack", (data: any) => {
+    this._on("enemyAttack", (data: any) => {
       if (data.dodged) {
         this.showPlayerStatus("DODGE", "#88ccff");
       } else if (data.blocked) {
@@ -93,6 +101,13 @@ export class Effects {
         }
       }
     });
+  }
+
+  destroy(): void {
+    for (const { event, handler } of this._boundListeners) {
+      this.events.off(event, handler);
+    }
+    this._boundListeners = [];
   }
 
   showDamageNumber(amount: number, isCrit: boolean): void {

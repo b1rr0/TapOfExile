@@ -99,6 +99,9 @@ export class BattleScene {
   // ResizeObserver
   _resizeObserver?: ResizeObserver;
 
+  // Stored event handlers for cleanup
+  _boundListeners: Array<{ event: string; handler: (data: any) => void }>;
+
   /** Resolves when all sprite assets (hero, enemy, background) are loaded. */
   readonly spritesReady: Promise<void>;
 
@@ -148,6 +151,8 @@ export class BattleScene {
     // Wave progress (from CombatManager via events)
     this._totalMonsters = 0;
     this._currentMonsterIndex = 0;
+
+    this._boundListeners = [];
 
     this._init();
     this._listen();
@@ -362,42 +367,48 @@ export class BattleScene {
 
   // ─── Event Wiring ──────────────────────────────────────
 
+  /** Helper to register an event handler and track it for cleanup. */
+  private _on(event: string, handler: (data: any) => void): void {
+    this.events.on(event, handler);
+    this._boundListeners.push({ event, handler });
+  }
+
   _listen(): void {
-    this.events.on("damage", (data: DamageData) => {
+    this._on("damage", (data: DamageData) => {
       this._onDamage(data);
     });
 
-    this.events.on("monsterDied", () => {
+    this._on("monsterDied", () => {
       this._onMonsterDied();
     });
 
-    this.events.on("monsterSpawned", (monster: Monster) => {
+    this._on("monsterSpawned", (monster: Monster) => {
       this._onMonsterSpawned(monster);
     });
 
-    this.events.on("locationWaveProgress", ({ current, total }: WaveProgressData) => {
+    this._on("locationWaveProgress", ({ current, total }: WaveProgressData) => {
       this._currentMonsterIndex = current;
       this._totalMonsters = total;
     });
 
-    this.events.on("enemyAttack", (data: EnemyAttackData) => {
+    this._on("enemyAttack", (data: EnemyAttackData) => {
       this._onEnemyAttack(data);
     });
 
-    this.events.on("playerHpChanged", (data: PlayerHpData) => {
+    this._on("playerHpChanged", (data: PlayerHpData) => {
       this._updatePlayerHp(data.hp, data.maxHp);
     });
 
-    this.events.on("playerDied", () => {
+    this._on("playerDied", () => {
       this._onPlayerDied();
     });
 
-    this.events.on("skillCast", (data: any) => {
+    this._on("skillCast", (data: any) => {
       this._onSkillCast(data?.skillId || "fireball");
     });
 
     // Skill hit from server — update monster HP bar (no hero attack anim)
-    this.events.on("skillHit", (data: any) => {
+    this._on("skillHit", (data: any) => {
       if (data.monster) {
         this._updateHp(data.monster);
       }
@@ -562,13 +573,15 @@ export class BattleScene {
     };
 
     // Enemy plays a random attack animation if available
-    if (this.useSprites && this.enemy) {
-      const attacks = [...this.enemy.engine.anims.keys()].filter(n => n.startsWith("attack_"));
+    if (this.useSprites && this.enemy && this.enemy.engine.loaded) {
+      const enemyRef = this.enemy;
+      const attacks = [...enemyRef.engine.anims.keys()].filter(n => n.startsWith("attack_"));
       if (attacks.length > 0) {
         const pick = attacks[Math.floor(Math.random() * attacks.length)];
-        this.enemy.play(pick, {
+        enemyRef.play(pick, {
           onComplete: () => {
-            this.enemy!.play("idle");
+            // Use captured ref — this.enemy may have changed (skin swap / new monster)
+            enemyRef.play("idle");
             applyHit();
           },
         });
@@ -576,8 +589,8 @@ export class BattleScene {
       }
     }
 
-    // No attack animation — delay hit by 500ms
-    setTimeout(applyHit, 500);
+    // No attack animation — apply hit immediately
+    applyHit();
   }
 
   _updatePlayerHp(hp: number, maxHp: number): void {
@@ -607,6 +620,12 @@ export class BattleScene {
   // ─── Cleanup ────────────────────────────────────────────
 
   destroy(): void {
+    // Remove all event listeners to prevent leaks
+    for (const { event, handler } of this._boundListeners) {
+      this.events.off(event, handler);
+    }
+    this._boundListeners = [];
+
     if (this._tickTimer) {
       clearTimeout(this._tickTimer);
       this._tickTimer = null;

@@ -1,11 +1,14 @@
 /**
- * Passive Skill Tree — organic branching circular graph, ~310 nodes.
+ * Passive Skill Tree — organic branching circular graph, ~560 nodes.
  *
- * Layout: 4 class starting points at radius 210 at 0/90/180/270.
- * Each start node sits inside a class emblem circle (r=100) with class background image.
- * Inside each emblem — a mini-tree of 16 class-specific skills (max 6 selectable).
- * Outside — compact rings that split into fractal tendrils.
- * Additional mid-ring, web, and cross-bridge nodes fill gaps for density.
+ * The tree is pre-computed at build time (see generate-tree.ts) and loaded
+ * from skill-tree-data.ts at runtime — zero computation on import.
+ *
+ * To regenerate after changing the generation algorithm:
+ *   npx tsx shared/generate-tree.ts
+ *
+ * generateSkillTree() — full computation (used only by the build script).
+ * buildSkillTree()    — loads pre-computed data (used at runtime by FE & BE).
  *
  * NOTE: This file is shared between FE and BE.
  * BE uses it for validation (topology); FE also uses layout (x, y) for rendering.
@@ -16,6 +19,10 @@ import {
   CLASS_SKILLS, NodeDef, StatModifier,
 } from "./skill-node-defs";
 import type { NodeType } from "./types";
+import {
+  TREE_NODES, TREE_EDGES, TREE_EMBLEMS,
+  TREE_FIGURE_EDGES, TREE_FIGURE_MEMBERSHIP,
+} from "./skill-tree-data";
 
 // ── Emblem type (inline, no dependency on FE types) ──────
 
@@ -824,10 +831,65 @@ function growFigure(
 
 let _cachedTree: SkillTreeResult | null = null;
 
-// ── Main builder ──────────────────────────────────────────
+// ── Main entry point — loads pre-computed data ────────────
 
 export function buildSkillTree(): SkillTreeResult {
   if (_cachedTree) return _cachedTree;
+  _cachedTree = hydrateTree();
+  return _cachedTree;
+}
+
+/**
+ * Hydrate SkillTreeResult from pre-computed static data.
+ * Reconstructs SkillNode instances with NodeDef references from the pools.
+ */
+function hydrateTree(): SkillTreeResult {
+  const defIndex = buildDefIndex();
+
+  const nodes: SkillNode[] = TREE_NODES.map((raw) => {
+    const def = raw.defId ? defIndex.get(raw.defId) || null : null;
+    const node = new SkillNode(
+      raw.id, raw.nodeId, raw.type as NodeType, raw.classAffinity,
+      raw.x, raw.y,
+      def || { label: raw.label, name: raw.name, stat: raw.stat, value: raw.value },
+    );
+    node.connections = raw.connections;
+    // If no def matched but we have mods data, rebuild mods array
+    if (!def && raw.mods && raw.mods.length > 0) {
+      node.mods = raw.mods.map((m) => new StatModifier(m.stat, m.value, m.mode as "percent" | "flat"));
+    }
+    return node;
+  });
+
+  const edges: [number, number][] = TREE_EDGES;
+
+  const emblems: Emblem[] = TREE_EMBLEMS;
+
+  const figureEdgeSet = new Set<string>(TREE_FIGURE_EDGES);
+
+  const figureMembership = new Map<number, number>(TREE_FIGURE_MEMBERSHIP);
+
+  return { nodes, edges, emblems, figureEdgeSet, figureMembership };
+}
+
+/**
+ * Build a lookup map from NodeDef.id → NodeDef across all pools.
+ */
+function buildDefIndex(): Map<string, NodeDef> {
+  const map = new Map<string, NodeDef>();
+  for (const d of MINOR_POOL) map.set(d.id, d);
+  for (const d of NOTABLE_POOL) map.set(d.id, d);
+  for (const d of KEYSTONE_POOL) map.set(d.id, d);
+  for (const d of FIGURE_ENTRY_POOL) map.set(d.id, d);
+  for (const skills of Object.values(CLASS_SKILLS)) {
+    for (const d of skills) map.set(d.id, d);
+  }
+  return map;
+}
+
+// ── Full generator (for build-time script only) ───────────
+
+export function generateSkillTree(): SkillTreeResult {
 
   const b = new SkillTreeBuilder();
 
@@ -1215,8 +1277,7 @@ export function buildSkillTree(): SkillTreeResult {
     b.emblems[i].cy += emblemShift[i].dy;
   }
 
-  _cachedTree = b.build();
-  return _cachedTree;
+  return b.build();
 }
 
 export function getClassStartNode(classId: string): number {

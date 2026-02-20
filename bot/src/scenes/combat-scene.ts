@@ -586,6 +586,10 @@ export class CombatScene {
       this.combat.cleanup();
     }
 
+    if (this.effects) {
+      this.effects.destroy();
+    }
+
     this.combat = null;
     this.hud = null;
     this.effects = null;
