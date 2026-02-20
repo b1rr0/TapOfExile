@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 import { Player } from './shared/entities/player.entity';
 import { LastSeenInterceptor } from './auth/interceptors/last-seen.interceptor';
 import { DatabaseModule } from './database/database.module';
@@ -22,6 +24,18 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ServeStaticModule.forRoot(
+      {
+        rootPath: join(__dirname, '..', '..', 'public', 'bot'),
+        serveRoot: '/',
+        exclude: ['/api/(.*)', '/socket.io/(.*)'],
+      },
+      {
+        rootPath: join(__dirname, '..', '..', 'public', 'wiki'),
+        serveRoot: '/wiki',
+        exclude: ['/api/(.*)', '/socket.io/(.*)'],
+      },
+    ),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     DatabaseModule,
     RedisModule,

@@ -171,13 +171,32 @@ export function getAccessToken(): string | null {
 
 /* ── Leagues ───────────────────────────────────────────── */
 
+export interface League {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  startsAt: string;
+  endsAt: string | null;
+}
+
+export interface PlayerLeague {
+  id: string;
+  leagueId: string;
+  leagueName: string;
+  leagueType: string;
+  gold: number;
+  activeCharacterId: string | null;
+  joinedAt: string;
+}
+
 export const leagues = {
   list() {
-    return get<{ leagues: any[] }>("/leagues");
+    return get<{ leagues: League[] }>("/leagues");
   },
 
   getMyLeagues() {
-    return get<{ playerLeagues: any[] }>("/leagues/my");
+    return get<{ playerLeagues: PlayerLeague[] }>("/leagues/my");
   },
 
   join(leagueId: string) {
@@ -197,7 +216,7 @@ export const endgame = {
       unlocked: boolean;
       alreadyUnlocked?: boolean;
       starterKeys?: number;
-    }>(`/endgame/check-unlock?characterId=${characterId}`);
+    }>('/endgame/check-unlock', { characterId });
   },
 
   status(characterId: string) {
@@ -216,8 +235,8 @@ export const loot = {
     return del(`/loot/bag/${itemId}`);
   },
 
-  equipPotion(bagItemId: string, slot: string) {
-    return post("/loot/equip-potion", { bagItemId, slot });
+  equipPotion(itemId: string, slot: string) {
+    return post("/loot/equip-potion", { itemId, slot });
   },
 
   unequipPotion(slot: string) {

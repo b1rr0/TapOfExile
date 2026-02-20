@@ -238,6 +238,8 @@ export class SkillTreeScene {
       line.setAttribute("data-edge", `${aId}-${bId}`);
       line.classList.add("st-edge");
       if (a.type === "classSkill" || b.type === "classSkill") line.classList.add("st-edge--class");
+      const feKey = `${Math.min(aId, bId)}-${Math.max(aId, bId)}`;
+      if (this._tree!.figureEdgeSet.has(feKey)) line.classList.add("st-edge--figure");
       if (this._allocated.has(aId) && this._allocated.has(bId)) line.classList.add("st-edge--active");
       frag.appendChild(line);
     }
@@ -264,6 +266,7 @@ export class SkillTreeScene {
       const shape: string = node.type === "keystone" ? "diamond"
         : node.type === "notable" ? "hex"
         : node.type === "classSkill" ? "hex"
+        : node.type === "figureEntry" ? "hex"
         : "circle";
 
       if (shape === "circle") {
@@ -278,6 +281,18 @@ export class SkillTreeScene {
         const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
         p.setAttribute("d", this._diamondPath(node.x, node.y, r));
         g.appendChild(p);
+      }
+
+      // Visual node ID number
+      if (node.type !== "classSkill" && node.type !== "start") {
+        const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        txt.setAttribute("x", String(node.x));
+        txt.setAttribute("y", String(node.y + 2));
+        txt.setAttribute("text-anchor", "middle");
+        txt.setAttribute("dominant-baseline", "middle");
+        txt.classList.add("st-node-id");
+        txt.textContent = String(node.id);
+        g.appendChild(txt);
       }
 
       g.addEventListener("click", (e: MouseEvent) => { e.stopPropagation(); this._onNodeTap(node); });

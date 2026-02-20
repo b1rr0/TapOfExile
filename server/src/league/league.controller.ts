@@ -6,7 +6,7 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { LeagueService } from './league.service';
@@ -19,6 +19,7 @@ export class LeagueController {
 
   @Get()
   @ApiOperation({ summary: 'Get all active leagues' })
+  @ApiResponse({ status: 200, description: 'Active leagues list' })
   async getActiveLeagues() {
     const leagues = await this.leagueService.getActiveLeagues();
     return {
@@ -37,6 +38,7 @@ export class LeagueController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current player leagues' })
+  @ApiResponse({ status: 200, description: 'Player league memberships' })
   async getMyLeagues(@CurrentUser('telegramId') telegramId: string) {
     const playerLeagues =
       await this.leagueService.getPlayerLeagues(telegramId);
@@ -57,6 +59,8 @@ export class LeagueController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Join a league' })
+  @ApiResponse({ status: 201, description: 'Joined league' })
+  @ApiResponse({ status: 400, description: 'Already in this league' })
   async joinLeague(
     @CurrentUser('telegramId') telegramId: string,
     @Param('leagueId') leagueId: string,
@@ -74,6 +78,8 @@ export class LeagueController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Switch active league' })
+  @ApiResponse({ status: 201, description: 'Active league switched' })
+  @ApiResponse({ status: 404, description: 'League not found or player not in league' })
   async switchLeague(
     @CurrentUser('telegramId') telegramId: string,
     @Body() dto: SwitchLeagueDto,

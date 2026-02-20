@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LeaderboardService } from './leaderboard.service';
+import { LeaderboardQueryDto } from './dto/leaderboard-query.dto';
 
 /**
  * Public leaderboard endpoints — no authentication required.
@@ -11,34 +12,31 @@ import { LeaderboardService } from './leaderboard.service';
 export class LeaderboardController {
   constructor(private leaderboardService: LeaderboardService) {}
 
-  /** Active leagues list (for league selector on wiki) */
   @Get('leagues')
+  @ApiOperation({ summary: 'Get active leagues for leaderboard filtering' })
+  @ApiResponse({ status: 200, description: 'Active leagues list' })
   async getLeagues() {
     return this.leaderboardService.getActiveLeagues();
   }
 
-  /** Top players by Dojo best damage, optionally filtered by league */
   @Get('dojo')
-  async getDojoLeaderboard(
-    @Query('limit') limit?: string,
-    @Query('leagueId') leagueId?: string,
-  ) {
-    const n = Math.min(Math.max(parseInt(limit || '50', 10) || 50, 1), 100);
-    return this.leaderboardService.getDojoLeaderboard(n, leagueId);
+  @ApiOperation({ summary: 'Top players by Dojo best damage' })
+  @ApiResponse({ status: 200, description: 'Ranked dojo leaderboard' })
+  async getDojoLeaderboard(@Query() query: LeaderboardQueryDto) {
+    return this.leaderboardService.getDojoLeaderboard(query.limit, query.leagueId);
   }
 
-  /** Top players by experience (level + xp), optionally filtered by league */
   @Get('xp')
-  async getXpLeaderboard(
-    @Query('limit') limit?: string,
-    @Query('leagueId') leagueId?: string,
-  ) {
-    const n = Math.min(Math.max(parseInt(limit || '50', 10) || 50, 1), 100);
-    return this.leaderboardService.getXpLeaderboard(n, leagueId);
+  @ApiOperation({ summary: 'Top players by experience (level + xp)' })
+  @ApiResponse({ status: 200, description: 'Ranked XP leaderboard' })
+  async getXpLeaderboard(@Query() query: LeaderboardQueryDto) {
+    return this.leaderboardService.getXpLeaderboard(query.limit, query.leagueId);
   }
 
-  /** Public character profile (stats, equipment, skill tree) */
   @Get('character/:id')
+  @ApiOperation({ summary: 'Public character profile' })
+  @ApiResponse({ status: 200, description: 'Character profile with stats and equipment' })
+  @ApiResponse({ status: 404, description: 'Character not found' })
   async getCharacterProfile(@Param('id') id: string) {
     const result = await this.leaderboardService.getCharacterProfile(id);
     if (!result) throw new NotFoundException('Character not found');

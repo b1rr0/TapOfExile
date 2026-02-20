@@ -56,7 +56,7 @@ export const ELEMENT_COLORS: Record<DamageElement, string> = {
 // ── Skill tree ───────────────────────────────────────────
 
 export type ModMode = "percent" | "flat";
-export type NodeType = "start" | "classSkill" | "minor" | "notable" | "keystone";
+export type NodeType = "start" | "classSkill" | "minor" | "notable" | "keystone" | "figureEntry";
 
 // ── Monster / Wave ───────────────────────────────────────
 

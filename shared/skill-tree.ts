@@ -1,20 +1,28 @@
 /**
- * Passive Skill Tree — organic branching circular graph, ~310 nodes.
+ * Passive Skill Tree — organic branching circular graph, ~560 nodes.
  *
- * Layout: 4 class starting points at radius 210 at 0/90/180/270.
- * Each start node sits inside a class emblem circle (r=100) with class background image.
- * Inside each emblem — a mini-tree of 16 class-specific skills (max 6 selectable).
- * Outside — compact rings that split into fractal tendrils.
- * Additional mid-ring, web, and cross-bridge nodes fill gaps for density.
+ * The tree is pre-computed at build time (see generate-tree.ts) and loaded
+ * from skill-tree-data.ts at runtime — zero computation on import.
+ *
+ * To regenerate after changing the generation algorithm:
+ *   npx tsx shared/generate-tree.ts
+ *
+ * generateSkillTree() — full computation (used only by the build script).
+ * buildSkillTree()    — loads pre-computed data (used at runtime by FE & BE).
  *
  * NOTE: This file is shared between FE and BE.
  * BE uses it for validation (topology); FE also uses layout (x, y) for rendering.
  */
 
 import {
-  MINOR_POOL, NOTABLE_POOL, KEYSTONE_POOL, CLASS_SKILLS, NodeDef, StatModifier,
+  MINOR_POOL, NOTABLE_POOL, KEYSTONE_POOL, FIGURE_ENTRY_POOL,
+  CLASS_SKILLS, NodeDef, StatModifier,
 } from "./skill-node-defs";
 import type { NodeType } from "./types";
+import {
+  TREE_NODES, TREE_EDGES, TREE_EMBLEMS,
+  TREE_FIGURE_EDGES, TREE_FIGURE_MEMBERSHIP,
+} from "./skill-tree-data";
 
 // ── Emblem type (inline, no dependency on FE types) ──────
 
@@ -31,6 +39,8 @@ export interface SkillTreeResult {
   nodes: SkillNode[];
   edges: [number, number][];
   emblems: Emblem[];
+  figureEdgeSet: Set<string>;
+  figureMembership: Map<number, number>;
 }
 
 // ── Seeded random ─────────────────────────────────────────
@@ -56,7 +66,7 @@ export const MAX_CLASS_SKILLS: number = 6;
 
 // Node rendering radii (shared between FE, wiki, and layout validation)
 export const NODE_RADIUS: Record<string, number> = {
-  keystone: 16, notable: 12, start: 14, classSkill: 9, minor: 8,
+  keystone: 14, notable: 11, start: 7, classSkill: 8, minor: 7, figureEntry: 9,
 };
 // Minimum distance = 4× diameter = 8× radius
 const MIN_DIST_MULT: number = 8;
@@ -126,7 +136,13 @@ export class SkillTreeBuilder {
   _minorIdx: number;
   _notableIdx: number;
   _keystoneIdx: number;
+  _figureEntryIdx: number;
   _rng: () => number;
+  _figRng: () => number;  // separate RNG for figure generation (doesn't shift main tree)
+  _figureEdgeSet: Set<string>;
+  _figureMembership: Map<number, number>;
+  _figureShapes: Map<number, ConstellationShape>;
+  _nextFigureId: number;
 
   constructor() {
     this.nodes = [];
@@ -136,7 +152,13 @@ export class SkillTreeBuilder {
     this._minorIdx = 0;
     this._notableIdx = 0;
     this._keystoneIdx = 0;
+    this._figureEntryIdx = 0;
     this._rng = seededRng(42);
+    this._figRng = seededRng(12345);  // independent seed for figures
+    this._figureEdgeSet = new Set();
+    this._figureMembership = new Map();
+    this._figureShapes = new Map();
+    this._nextFigureId = 0;
   }
 
   // ── Node creation ──────────────────────────────────
@@ -154,9 +176,10 @@ export class SkillTreeBuilder {
     return node;
   }
 
-  nextMinor(): NodeDef    { return MINOR_POOL[this._minorIdx++ % MINOR_POOL.length]; }
-  nextNotable(): NodeDef  { return NOTABLE_POOL[this._notableIdx++ % NOTABLE_POOL.length]; }
-  nextKeystone(): NodeDef { return KEYSTONE_POOL[this._keystoneIdx++ % KEYSTONE_POOL.length]; }
+  nextMinor(): NodeDef       { return MINOR_POOL[this._minorIdx++ % MINOR_POOL.length]; }
+  nextNotable(): NodeDef     { return NOTABLE_POOL[this._notableIdx++ % NOTABLE_POOL.length]; }
+  nextKeystone(): NodeDef    { return KEYSTONE_POOL[this._keystoneIdx++ % KEYSTONE_POOL.length]; }
+  nextFigureEntry(): NodeDef { return FIGURE_ENTRY_POOL[this._figureEntryIdx++ % FIGURE_ENTRY_POOL.length]; }
 
   // ── Edge creation ──────────────────────────────────
 
@@ -177,6 +200,27 @@ export class SkillTreeBuilder {
 
   rng(): number { return this._rng(); }
 
+  // ── Figure tracking ──────────────────────────────
+
+  setFigureId(nodeId: number, figureId: number): void {
+    this._figureMembership.set(nodeId, figureId);
+  }
+
+  addFigureEdge(aId: number, bId: number): void {
+    const key = `${Math.min(aId, bId)}-${Math.max(aId, bId)}`;
+    this._figureEdgeSet.add(key);
+  }
+
+  isFigureEdge(aId: number, bId: number): boolean {
+    return this._figureEdgeSet.has(`${Math.min(aId, bId)}-${Math.max(aId, bId)}`);
+  }
+
+  sameFigure(aId: number, bId: number): boolean {
+    const fa = this._figureMembership.get(aId);
+    const fb = this._figureMembership.get(bId);
+    return fa !== undefined && fb !== undefined && fa === fb;
+  }
+
   // ── Emblem registration ────────────────────────────
 
   addEmblem(classId: string, cx: number, cy: number, startNodeId: number): void {
@@ -191,7 +235,11 @@ export class SkillTreeBuilder {
   // ── Result ─────────────────────────────────────────
 
   build(): SkillTreeResult {
-    return { nodes: this.nodes, edges: this.edges, emblems: this.emblems };
+    return {
+      nodes: this.nodes, edges: this.edges, emblems: this.emblems,
+      figureEdgeSet: this._figureEdgeSet,
+      figureMembership: this._figureMembership,
+    };
   }
 }
 
@@ -249,31 +297,81 @@ function outerEdges(nodes: SkillNode[], edges: [number, number][]): [number, num
 }
 
 /**
+ * Compute effective repulsion radius for a node.
+ * FigureEntry gateways use constellation bounding radius; others use NODE_RADIUS.
+ */
+function effectiveRadius(
+  node: SkillNode,
+  figureMembership: Map<number, number>,
+  figureShapes: Map<number, ConstellationShape>,
+): number {
+  if (node.type === "figureEntry") {
+    const figId = figureMembership.get(node.id);
+    const shape = figId !== undefined ? figureShapes.get(figId) : undefined;
+    if (shape) {
+      const cx = shape.points.reduce((s, p) => s + p[0], 0) / shape.points.length;
+      const cy = shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
+      const maxR = Math.max(...shape.points.map(([x, y]) =>
+        Math.sqrt((x - cx) ** 2 + (y - cy) ** 2),
+      ));
+      const scale = shape.points.length >= 7 ? FIGURE_SCALE_OUTER : FIGURE_SCALE_INNER;
+      return maxR * scale + NODE_RADIUS["keystone"];
+    }
+  }
+  return NODE_RADIUS[node.type] || 8;
+}
+
+/**
  * Iteratively adjusts outer-node positions to satisfy:
  *  1. Min distance between outer nodes (4× diameter)
  *  2. No outer-edge crossings
  * classSkill and start nodes are anchored; their edges are excluded from checks.
+ * Keystone nodes are NOT independently movable — they follow their gateway shape.
  */
-function relaxLayout(nodes: SkillNode[], edges: [number, number][], maxIter: number): void {
+function relaxLayout(
+  nodes: SkillNode[], edges: [number, number][], emblems: Emblem[], maxIter: number,
+  figureEdgeSet: Set<string>, figureMembership: Map<number, number>,
+  figureShapes: Map<number, ConstellationShape>,
+): void {
   const N = nodes.length;
   const movable = nodes.map(n => isOuter(n));
   const oEdges = outerEdges(nodes, edges);
-  // Outer-node indices for distance checks
-  const outerIds: number[] = [];
-  for (let i = 0; i < N; i++) if (movable[i]) outerIds.push(i);
+
+  // Figure keystones and figureEntry gateways are NOT independently movable.
+  // Keystones follow their gateway shape; gateways are placed precisely.
+  const movableRelax = nodes.map((n, i) =>
+    movable[i] && n.type !== "keystone" && n.type !== "figureEntry",
+  );
+
+  // Non-keystone outer ids for relaxation
+  const relaxIds: number[] = [];
+  for (let i = 0; i < N; i++) if (movableRelax[i]) relaxIds.push(i);
+
+  // Pre-compute effective radii for repulsion
+  // figureEntry uses constellation bounding radius for figureEntry-to-figureEntry pairs only
+  const baseR = new Float64Array(N);
+  const figR = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    baseR[i] = nodeR(nodes[i].type);
+    figR[i] = effectiveRadius(nodes[i], figureMembership, figureShapes);
+  }
 
   for (let iter = 0; iter < maxIter; iter++) {
     let anyChange = false;
     const dx = new Array<number>(N).fill(0);
     const dy = new Array<number>(N).fill(0);
 
-    // ── 1. Min-distance repulsion (outer nodes only) ──
-    for (let ii = 0; ii < outerIds.length; ii++) {
-      const i = outerIds[ii];
-      for (let jj = ii + 1; jj < outerIds.length; jj++) {
-        const j = outerIds[jj];
+    // ── 1. Min-distance repulsion (outer non-keystone nodes only) ──
+    for (let ii = 0; ii < relaxIds.length; ii++) {
+      const i = relaxIds[ii];
+      for (let jj = ii + 1; jj < relaxIds.length; jj++) {
+        const j = relaxIds[jj];
         const a = nodes[i], b = nodes[j];
-        const minD = MIN_DIST_MULT * Math.max(nodeR(a.type), nodeR(b.type));
+        // Use constellation radius only for figureEntry-to-figureEntry pairs
+        const bothFig = a.type === "figureEntry" && b.type === "figureEntry";
+        const rA = bothFig ? figR[i] : baseR[i];
+        const rB = bothFig ? figR[j] : baseR[j];
+        const minD = MIN_DIST_MULT * Math.max(rA, rB);
         const ex = b.x - a.x, ey = b.y - a.y;
         const dist = Math.sqrt(ex * ex + ey * ey);
         if (dist >= minD || dist < 0.01) continue;
@@ -285,24 +383,27 @@ function relaxLayout(nodes: SkillNode[], edges: [number, number][], maxIter: num
       }
     }
 
-    // ── 2. Edge-crossing resolution (outer edges only) ──
+    // ── 2. Edge-crossing resolution (skip keystone & intra-figure edges) ──
     for (let i = 0; i < oEdges.length; i++) {
       const [ai, bi] = oEdges[i];
+      if (nodes[ai].type === "keystone" || nodes[bi].type === "keystone") continue;
+      if (figureEdgeSet.has(`${Math.min(ai, bi)}-${Math.max(ai, bi)}`)) continue;
       for (let j = i + 1; j < oEdges.length; j++) {
         const [ci, di] = oEdges[j];
+        if (nodes[ci].type === "keystone" || nodes[di].type === "keystone") continue;
+        if (figureEdgeSet.has(`${Math.min(ci, di)}-${Math.max(ci, di)}`)) continue;
         if (ai === ci || ai === di || bi === ci || bi === di) continue;
         const na = nodes[ai], nb = nodes[bi], nc = nodes[ci], nd = nodes[di];
         if (!segsCross(na.x, na.y, nb.x, nb.y, nc.x, nc.y, nd.x, nd.y)) continue;
-        // Nudge: push movable endpoints apart via perpendicular + radial forces
         const all = [ai, bi, ci, di];
         for (const t of all) {
-          if (!movable[t]) continue;
+          if (!movableRelax[t]) continue;
           const partner = t === ai ? bi : t === bi ? ai : t === ci ? di : ci;
           const edx = nodes[partner].x - nodes[t].x;
           const edy = nodes[partner].y - nodes[t].y;
           const len = Math.sqrt(edx * edx + edy * edy) || 1;
           const sign = ((iter + t) % 2 === 0) ? 1 : -1;
-          const force = 15;
+          const force = 20;
           dx[t] += (-edy / len) * force * sign;
           dy[t] += (edx / len) * force * sign;
         }
@@ -310,14 +411,72 @@ function relaxLayout(nodes: SkillNode[], edges: [number, number][], maxIter: num
       }
     }
 
+    // ── 3. Emblem repulsion (push outer non-keystone nodes away from emblem edges) ──
+    const EMBLEM_CLEARANCE = 20;
+    for (const oi of relaxIds) {
+      const n = nodes[oi];
+      const nr = baseR[oi];
+      for (const em of emblems) {
+        const ex = n.x - em.cx, ey = n.y - em.cy;
+        const dist = Math.sqrt(ex * ex + ey * ey);
+        const minD = em.r + nr + EMBLEM_CLEARANCE;
+        if (dist >= minD || dist < 0.01) continue;
+        const push = minD - dist;
+        dx[oi] += (ex / dist) * push;
+        dy[oi] += (ey / dist) * push;
+        anyChange = true;
+      }
+    }
+
     if (!anyChange) break;
 
-    // Apply with damping (decreasing over iterations for convergence)
+    // Apply with damping + max displacement clamp for stability
     const damp = 0.5 * (1 - iter / (maxIter * 2));
+    const maxDisp = 20;
     for (let i = 0; i < N; i++) {
-      if (!movable[i]) continue;
-      nodes[i].x += dx[i] * damp;
-      nodes[i].y += dy[i] * damp;
+      if (!movableRelax[i]) continue;
+      let ddx = dx[i] * damp, ddy = dy[i] * damp;
+      const mag = Math.sqrt(ddx * ddx + ddy * ddy);
+      if (mag > maxDisp) { ddx *= maxDisp / mag; ddy *= maxDisp / mag; }
+      nodes[i].x += ddx;
+      nodes[i].y += ddy;
+    }
+  }
+
+  // ── 4. Position figure keystones using constellation shapes ──
+  // After main relaxation, place keystones per their shape geometry,
+  // anchored on gateway (which may sit at a vertex or at the center).
+  for (let i = 0; i < N; i++) {
+    const gw = nodes[i];
+    if (gw.type !== "figureEntry") continue;
+    const figId = figureMembership.get(gw.id);
+    if (figId === undefined) continue;
+    const shape = figureShapes.get(figId);
+    if (!shape) continue;
+
+    const ksIds = gw.connections.filter(c => nodes[c].type === "keystone");
+    const anchorIdx = shape.gatewayIdx;
+    const expectedKs = anchorIdx !== undefined ? shape.points.length - 1 : shape.points.length;
+    if (ksIds.length === 0 || ksIds.length !== expectedKs) continue;
+
+    const outA = Math.atan2(gw.y - CY, gw.x - CX);
+    const scale = shape.points.length >= 7 ? FIGURE_SCALE_OUTER : FIGURE_SCALE_INNER;
+
+    // Anchor point (gateway position in abstract coords)
+    const ax = anchorIdx !== undefined ? shape.points[anchorIdx][0]
+      : shape.points.reduce((s, p) => s + p[0], 0) / shape.points.length;
+    const ay = anchorIdx !== undefined ? shape.points[anchorIdx][1]
+      : shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
+
+    let ksK = 0;
+    for (let k = 0; k < shape.points.length; k++) {
+      if (k === anchorIdx) continue;  // gateway sits here
+      const [lx, ly] = [shape.points[k][0] - ax, shape.points[k][1] - ay];
+      const rx = lx * Math.cos(outA) - ly * Math.sin(outA);
+      const ry = lx * Math.sin(outA) + ly * Math.cos(outA);
+      nodes[ksIds[ksK]].x = gw.x + rx * scale;
+      nodes[ksIds[ksK]].y = gw.y + ry * scale;
+      ksK++;
     }
   }
 }
@@ -332,12 +491,17 @@ function assertNoLeafMinors(nodes: SkillNode[]): void {
   }
 }
 
-function assertNoTriangles(nodes: SkillNode[]): void {
+function assertNoTriangles(nodes: SkillNode[], figureMembership: Map<number, number>): void {
   for (const a of nodes) {
     const conns = a.connections;
     for (let i = 0; i < conns.length; i++) {
       for (let j = i + 1; j < conns.length; j++) {
         if (nodes[conns[i]].connections.includes(conns[j])) {
+          // Skip triangles where all 3 nodes are in the same figure
+          const fa = figureMembership.get(a.id);
+          const fb = figureMembership.get(conns[i]);
+          const fc = figureMembership.get(conns[j]);
+          if (fa !== undefined && fa === fb && fa === fc) continue;
           throw new Error(`Triangle: ${a.id}-${conns[i]}-${conns[j]}`);
         }
       }
@@ -345,14 +509,27 @@ function assertNoTriangles(nodes: SkillNode[]): void {
   }
 }
 
-/** Only checks outer-tree edges (both endpoints are non-classSkill, non-start). */
-function assertNoEdgeCrossings(nodes: SkillNode[], edges: [number, number][]): void {
+/**
+ * Only checks outer-tree edges.
+ * Skips crossings where at least one edge is fully within a figure
+ * (both endpoints in the same figure), since figure-internal layout is shape-driven.
+ */
+function assertNoEdgeCrossings(
+  nodes: SkillNode[], edges: [number, number][],
+  figureEdgeSet: Set<string>, figureMembership: Map<number, number>,
+): void {
   const oEdges = outerEdges(nodes, edges);
   for (let i = 0; i < oEdges.length; i++) {
     const [ai, bi] = oEdges[i];
+    // Skip if edge i is fully within a figure
+    const fa = figureMembership.get(ai), fb = figureMembership.get(bi);
+    if (fa !== undefined && fa === fb) continue;
     for (let j = i + 1; j < oEdges.length; j++) {
       const [ci, di] = oEdges[j];
       if (ai === ci || ai === di || bi === ci || bi === di) continue;
+      // Skip if edge j is fully within a figure
+      const fc = figureMembership.get(ci), fd = figureMembership.get(di);
+      if (fc !== undefined && fc === fd) continue;
       if (segsCross(nodes[ai].x, nodes[ai].y, nodes[bi].x, nodes[bi].y,
                      nodes[ci].x, nodes[ci].y, nodes[di].x, nodes[di].y)) {
         throw new Error(`Edge crossing: ${nodes[ai].nodeId}↔${nodes[bi].nodeId} x ${nodes[ci].nodeId}↔${nodes[di].nodeId}`);
@@ -361,13 +538,52 @@ function assertNoEdgeCrossings(nodes: SkillNode[], edges: [number, number][]): v
   }
 }
 
-/** Only checks outer-tree node pairs. */
-function assertMinDistance(nodes: SkillNode[]): void {
+function assertNoFourCycles(nodes: SkillNode[], figureMembership: Map<number, number>): void {
+  for (let a = 0; a < nodes.length; a++) {
+    for (const bId of nodes[a].connections) {
+      if (bId <= a) continue;
+      for (const cId of nodes[bId].connections) {
+        if (cId === a) continue;
+        for (const dId of nodes[cId].connections) {
+          if (dId === bId || dId === a || dId <= a) continue;
+          if (nodes[dId].connections.includes(a)) {
+            // Skip 4-cycles where all 4 nodes are in the same figure
+            const fa = figureMembership.get(a);
+            const fb = figureMembership.get(bId);
+            const fc = figureMembership.get(cId);
+            const fd = figureMembership.get(dId);
+            if (fa !== undefined && fa === fb && fa === fc && fa === fd) continue;
+            throw new Error(`4-cycle: ${nodes[a].nodeId}-${nodes[bId].nodeId}-${nodes[cId].nodeId}-${nodes[dId].nodeId}`);
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Only checks outer-tree node pairs. Keystones and same-figure pairs are skipped entirely. */
+function assertMinDistance(nodes: SkillNode[], figureMembership: Map<number, number>): void {
   const outer = nodes.filter(n => isOuter(n));
   for (let i = 0; i < outer.length; i++) {
     for (let j = i + 1; j < outer.length; j++) {
       const a = outer[i], b = outer[j];
-      const minD = MIN_DIST_MULT * Math.max(nodeR(a.type), nodeR(b.type));
+
+      // Skip keystones entirely (positions are shape-determined, not adjustable)
+      if (a.type === "keystone" || b.type === "keystone") continue;
+
+      // Connected nodes skip distance check
+      if (a.connections.includes(b.id)) continue;
+
+      // Same-figure nodes: skip entirely (positions are shape-determined)
+      const fa = figureMembership.get(a.id), fb = figureMembership.get(b.id);
+      if (fa !== undefined && fb !== undefined && fa === fb) continue;
+
+      // FigureEntry-to-figureEntry: use effective constellation radius
+      // FigureEntry-to-non-figure: use reduced mult
+      let mult = MIN_DIST_MULT;
+      if (fa !== undefined || fb !== undefined) mult = 2;
+
+      const minD = mult * Math.max(nodeR(a.type), nodeR(b.type));
       const dist = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
       if (dist < minD - 0.5) {
         throw new Error(`Too close: ${a.nodeId} & ${b.nodeId} (${dist.toFixed(1)} < ${minD})`);
@@ -376,14 +592,304 @@ function assertMinDistance(nodes: SkillNode[]): void {
   }
 }
 
+function assertMinorToNotableDist(nodes: SkillNode[], maxHops: number): void {
+  for (const n of nodes) {
+    if (n.type !== "minor") continue;
+    const vis = new Set<number>([n.id]);
+    const q: [number, number][] = [[n.id, 0]];
+    let found = false;
+    while (q.length) {
+      const [cur, d] = q.shift()!;
+      if (nodes[cur].type === "notable" && d > 0) {
+        if (d > maxHops) {
+          throw new Error(`Minor ${n.nodeId} is ${d} hops from nearest notable ${nodes[cur].nodeId} (max ${maxHops})`);
+        }
+        found = true;
+        break;
+      }
+      for (const nb of nodes[cur].connections) {
+        if (!vis.has(nb)) { vis.add(nb); q.push([nb, d + 1]); }
+      }
+    }
+    if (!found) throw new Error(`Minor ${n.nodeId} cannot reach any notable`);
+  }
+}
+
+/** Every keystone must be in a figure. Outer leaves must be keystones. */
+function assertKeystonesOnlyInFigures(nodes: SkillNode[], figureMembership: Map<number, number>): void {
+  for (const n of nodes) {
+    if (n.type === "keystone" && !figureMembership.has(n.id)) {
+      throw new Error(`Keystone ${n.nodeId} not in any figure`);
+    }
+    // Outer degree-1 leaves must be keystones (figureEntry always has ≥2 connections)
+    if (isOuter(n) && n.connections.length === 1 && n.type !== "keystone") {
+      throw new Error(`Outer leaf ${n.nodeId} (type=${n.type}) must be keystone`);
+    }
+  }
+}
+
+/** Every notable must reach a figureEntry within maxHops hops. */
+function assertNotableToFigureEntryDist(nodes: SkillNode[], maxHops: number): void {
+  for (const n of nodes) {
+    if (n.type !== "notable") continue;
+    const vis = new Set<number>([n.id]);
+    const q: [number, number][] = [[n.id, 0]];
+    let found = false;
+    while (q.length) {
+      const [cur, d] = q.shift()!;
+      if (nodes[cur].type === "figureEntry" && d > 0) {
+        if (d > maxHops) {
+          throw new Error(`Notable ${n.nodeId} is ${d} hops from nearest figureEntry ${nodes[cur].nodeId} (max ${maxHops})`);
+        }
+        found = true;
+        break;
+      }
+      for (const nb of nodes[cur].connections) {
+        if (!vis.has(nb)) { vis.add(nb); q.push([nb, d + 1]); }
+      }
+    }
+    if (!found) throw new Error(`Notable ${n.nodeId} cannot reach any figureEntry`);
+  }
+}
+
+/** Every keystone must be connected to exactly one figureEntry. */
+function assertKeystonesInFigures(nodes: SkillNode[]): void {
+  for (const n of nodes) {
+    if (n.type !== "keystone") continue;
+    // Keystone must be reachable from a figureEntry within the figure
+    // (directly connected or via other keystones in the same figure)
+    const feNeighbors = n.connections.filter(cId => nodes[cId].type === "figureEntry");
+    if (feNeighbors.length > 1) {
+      throw new Error(`Keystone ${n.nodeId} has ${feNeighbors.length} figureEntry neighbors (max 1)`);
+    }
+  }
+}
+
+/** FigureEntry gateways must have ≥2 connections (1 parent + at least 1 keystone). */
+function assertNoLeafFigureEntries(nodes: SkillNode[]): void {
+  for (const n of nodes) {
+    if (n.type !== "figureEntry") continue;
+    const ksCount = n.connections.filter(c => nodes[c].type === "keystone").length;
+    if (ksCount < 1) {
+      throw new Error(`FigureEntry ${n.nodeId} has no keystone connections`);
+    }
+  }
+}
+
+function assertEmblemClearance(nodes: SkillNode[], emblems: Emblem[], minGap: number): void {
+  for (const n of nodes) {
+    if (!isOuter(n)) continue;
+    const nr = nodeR(n.type);
+    for (const em of emblems) {
+      const dist = Math.sqrt((n.x - em.cx) ** 2 + (n.y - em.cy) ** 2);
+      const gap = dist - em.r - nr;
+      if (gap < minGap) {
+        throw new Error(`Node ${n.nodeId} too close to emblem ${em.classId}: gap=${gap.toFixed(1)}px (min ${minGap})`);
+      }
+    }
+  }
+}
+
+// ── Constellation figure system ──────────────────────────
+
+interface ConstellationShape {
+  name: string;
+  points: [number, number][];  // keystone positions (abstract coords)
+  edges: [number, number][];   // edges between keystone indices
+  gatewayIdx?: number;         // which vertex the gateway sits on (undefined = center)
+}
+
+const INNER_SHAPES: ConstellationShape[] = [
+  { name: "star5", points: [[0,3],[2,0],[4,3],[1,1.5],[3,1.5]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,0]], gatewayIdx: 0 },
+  { name: "hexagon", points: [[0,2],[1,0],[3,0],[4,2],[3,4],[1,4]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]], gatewayIdx: 0 },
+  { name: "cluster6", points: [[2,2],[2,4],[4,2],[2,0],[0,2],[3,3]],
+    edges: [[0,1],[0,2],[0,3],[0,4],[0,5]], gatewayIdx: 0 },  // hub — gateway IS the center
+  { name: "twoTri6", points: [[0,0],[2,0],[1,2],[3,0],[5,0],[4,2]],
+    edges: [[0,1],[1,2],[2,0],[1,3],[3,4],[4,5],[5,3]], gatewayIdx: 1 },
+];
+
+const OUTER_SHAPES: ConstellationShape[] = [
+  { name: "tree7", points: [[0,0],[0,2],[-1,3],[1,3],[-2,4],[0,4],[2,4]],
+    edges: [[0,1],[1,2],[1,3],[2,4],[3,5],[3,6]], gatewayIdx: 0 },
+  { name: "pentTail7", points: [[0,2],[1,0],[3,0],[4,2],[2,4],[5,3],[6,4]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,0],[3,5],[5,6]], gatewayIdx: 0 },
+  { name: "graph8", points: [[0,0],[2,0],[3,1],[2,2],[0,2],[-1,1],[1,3],[3,3]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[3,6],[2,7]], gatewayIdx: 5 },
+  { name: "dblDiamond8", points: [[0,2],[2,0],[4,2],[2,4],[6,2],[8,0],[10,2],[8,4]],
+    edges: [[0,1],[1,2],[2,3],[3,0],[2,4],[4,5],[5,6],[6,7],[7,4]], gatewayIdx: 0 },
+  { name: "octagon8", points: [[0,1],[1,0],[3,0],[4,1],[4,3],[3,4],[1,4],[0,3]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0]], gatewayIdx: 7 },
+  { name: "zigzag9", points: [[0,0],[1,1],[2,0],[3,1],[4,0],[5,1],[6,0],[7,1],[8,0]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]], gatewayIdx: 0 },
+  { name: "spiral9", points: [[0,0],[3,0],[3,3],[1,3],[1,1],[2,1],[2,2],[0,2],[0,4]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]], gatewayIdx: 0 },
+  { name: "cross9", points: [[0,2],[2,2],[4,2],[2,0],[2,4],[2,6],[1,2],[3,2],[2,3]],
+    edges: [[0,1],[1,2],[3,1],[1,4],[4,5],[6,1],[1,7],[4,8]], gatewayIdx: 3 },
+  { name: "circle10", points: [[0,3],[2,5],[4,5],[6,3],[6,1],[4,-1],[2,-1],[0,1],[1,3],[5,3]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[0,8],[8,9],[9,3]], gatewayIdx: 7 },
+  { name: "tree10", points: [[0,0],[-2,2],[2,2],[-3,4],[-1,4],[1,4],[3,4],[-3,6],[-1,6],[1,6]],
+    edges: [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6],[3,7],[4,8],[5,9]], gatewayIdx: 0 },
+  { name: "complex10", points: [[0,0],[2,1],[4,0],[5,2],[4,4],[2,5],[0,4],[-1,2],[2,3],[3,2]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[1,9],[5,8]], gatewayIdx: 7 },
+];
+
+const FIGURE_SCALE_INNER = 16;  // px per abstract unit for inner figures (was 8)
+const FIGURE_SCALE_OUTER = 18;  // px per abstract unit for outer figures (was 10)
+
+/**
+ * Grow a constellation figure at a terminal position.
+ * Creates a figureEntry (gateway) node + N keystone nodes with internal edges.
+ * Gateway connects to each keystone; keystones connect to each other per shape.edges.
+ * Returns the gateway node.
+ */
+function growFigure(
+  b: SkillTreeBuilder,
+  parent: SkillNode,
+  angle: number,
+  radius: number,
+  cls: string,
+  tag: string,
+  tier: "inner" | "outer",
+): SkillNode {
+  // Use separate figure RNG to avoid shifting main tree positions
+  const fr = b._figRng;
+  const pool = tier === "inner" ? INNER_SHAPES : OUTER_SHAPES;
+  const shape = pool[Math.floor(fr() * pool.length)];
+  const figId = b._nextFigureId++;
+  b._figureShapes.set(figId, shape);
+
+  const [gx, gy] = b.polar(angle, radius);
+  const jit = (v: number, amt: number) => v + (fr() - 0.5) * amt;
+  const gateway = b.createNode(
+    `${cls}-fig-${tag}-gate`, "figureEntry", cls,
+    jit(gx, 2), jit(gy, 2), b.nextFigureEntry(),
+  );
+  b.link(parent, gateway);
+  b.setFigureId(gateway.id, figId);
+
+  // Outward angle from tree center through gateway
+  const outAngle = Math.atan2(gateway.y - CY, gateway.x - CX);
+  const scale = tier === "outer" ? FIGURE_SCALE_OUTER : FIGURE_SCALE_INNER;
+
+  // Anchor point: if gatewayIdx is set, gateway sits at that vertex;
+  // otherwise gateway sits at shape center and all keystones radiate from it.
+  const anchorIdx = shape.gatewayIdx;
+  const ax = anchorIdx !== undefined ? shape.points[anchorIdx][0]
+    : shape.points.reduce((s, p) => s + p[0], 0) / shape.points.length;
+  const ay = anchorIdx !== undefined ? shape.points[anchorIdx][1]
+    : shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
+
+  // Create keystones at transformed positions (skip anchor vertex — gateway is there)
+  const ksNodes: SkillNode[] = [];
+  for (let k = 0; k < shape.points.length; k++) {
+    if (k === anchorIdx) continue;  // gateway occupies this vertex
+    const [lx, ly] = [shape.points[k][0] - ax, shape.points[k][1] - ay];
+    // Rotate by outAngle
+    const rx = lx * Math.cos(outAngle) - ly * Math.sin(outAngle);
+    const ry = lx * Math.sin(outAngle) + ly * Math.cos(outAngle);
+    const kx = gateway.x + rx * scale;
+    const ky = gateway.y + ry * scale;
+    const ks = b.createNode(
+      `${cls}-fig-${tag}-ks${k}`, "keystone", cls,
+      jit(kx, 2), jit(ky, 2), b.nextKeystone(),
+    );
+    // If no anchor vertex, gateway connects to ALL keystones (hub pattern)
+    if (anchorIdx === undefined) {
+      b.link(gateway, ks);
+      b.addFigureEdge(gateway.id, ks.id);
+    }
+    b.setFigureId(ks.id, figId);
+    ksNodes.push(ks);
+  }
+
+  // Build mapping: shape point index → node (gateway or keystone)
+  const pointToNode: SkillNode[] = [];
+  let ksIdx = 0;
+  for (let k = 0; k < shape.points.length; k++) {
+    if (k === anchorIdx) {
+      pointToNode.push(gateway);  // gateway occupies anchor vertex
+    } else {
+      pointToNode.push(ksNodes[ksIdx++]);
+    }
+  }
+
+  // Intra-figure edges from shape topology
+  for (const [i, j] of shape.edges) {
+    const ni = pointToNode[i], nj = pointToNode[j];
+    if (!ni.connections.includes(nj.id)) {
+      b.link(ni, nj);
+    }
+    b.addFigureEdge(ni.id, nj.id);
+  }
+
+  return gateway;
+}
+
 // ── Cached tree (deterministic, built once) ──────────────
 
 let _cachedTree: SkillTreeResult | null = null;
 
-// ── Main builder ──────────────────────────────────────────
+// ── Main entry point — loads pre-computed data ────────────
 
 export function buildSkillTree(): SkillTreeResult {
   if (_cachedTree) return _cachedTree;
+  _cachedTree = hydrateTree();
+  return _cachedTree;
+}
+
+/**
+ * Hydrate SkillTreeResult from pre-computed static data.
+ * Reconstructs SkillNode instances with NodeDef references from the pools.
+ */
+function hydrateTree(): SkillTreeResult {
+  const defIndex = buildDefIndex();
+
+  const nodes: SkillNode[] = TREE_NODES.map((raw) => {
+    const def = raw.defId ? defIndex.get(raw.defId) || null : null;
+    const node = new SkillNode(
+      raw.id, raw.nodeId, raw.type as NodeType, raw.classAffinity,
+      raw.x, raw.y,
+      def || { label: raw.label, name: raw.name, stat: raw.stat, value: raw.value },
+    );
+    node.connections = raw.connections;
+    // If no def matched but we have mods data, rebuild mods array
+    if (!def && raw.mods && raw.mods.length > 0) {
+      node.mods = raw.mods.map((m) => new StatModifier(m.stat, m.value, m.mode as "percent" | "flat"));
+    }
+    return node;
+  });
+
+  const edges: [number, number][] = TREE_EDGES;
+
+  const emblems: Emblem[] = TREE_EMBLEMS;
+
+  const figureEdgeSet = new Set<string>(TREE_FIGURE_EDGES);
+
+  const figureMembership = new Map<number, number>(TREE_FIGURE_MEMBERSHIP);
+
+  return { nodes, edges, emblems, figureEdgeSet, figureMembership };
+}
+
+/**
+ * Build a lookup map from NodeDef.id → NodeDef across all pools.
+ */
+function buildDefIndex(): Map<string, NodeDef> {
+  const map = new Map<string, NodeDef>();
+  for (const d of MINOR_POOL) map.set(d.id, d);
+  for (const d of NOTABLE_POOL) map.set(d.id, d);
+  for (const d of KEYSTONE_POOL) map.set(d.id, d);
+  for (const d of FIGURE_ENTRY_POOL) map.set(d.id, d);
+  for (const skills of Object.values(CLASS_SKILLS)) {
+    for (const d of skills) map.set(d.id, d);
+  }
+  return map;
+}
+
+// ── Full generator (for build-time script only) ───────────
+
+export function generateSkillTree(): SkillTreeResult {
 
   const b = new SkillTreeBuilder();
 
@@ -397,21 +903,24 @@ export function buildSkillTree(): SkillTreeResult {
       r += step;
       const a = angle + (b.rng() - 0.5) * 0.06;
       const [x, y] = b.polar(a, r);
-      const n = b.createNode(
-        `${cls}-tendril-${branchTag}-d${depth}-s${i}`,
-        "minor", cls, b.jit(x, 3), b.jit(y, 3), b.nextMinor(),
-      );
+      // Last stem node before a split becomes notable (ensures minor→notable ≤ 2)
+      const isSplitPoint = i === stemLen - 1 && depth > 1;
+      const n = isSplitPoint
+        ? b.createNode(
+            `${cls}-tendril-${branchTag}-d${depth}-s${i}`,
+            "notable", cls, b.jit(x, 3), b.jit(y, 3), b.nextNotable(),
+          )
+        : b.createNode(
+            `${cls}-tendril-${branchTag}-d${depth}-s${i}`,
+            "minor", cls, b.jit(x, 3), b.jit(y, 3), b.nextMinor(),
+          );
       b.link(prev, n);
       prev = n;
     }
     if (depth === 1) {
       r += step * 0.7;
-      const [x, y] = b.polar(angle + (b.rng() - 0.5) * 0.04, r);
-      const n = b.createNode(
-        `${cls}-tendril-${branchTag}-d${depth}-tip`,
-        "notable", cls, b.jit(x, 3), b.jit(y, 3), b.nextNotable(),
-      );
-      b.link(prev, n);
+      const figAngle = angle + (b.rng() - 0.5) * 0.04;
+      growFigure(b, prev, figAngle, r, cls, `tendril-${branchTag}-d${depth}`, "outer");
       return;
     }
     const splay = 0.14 + b.rng() * 0.04;
@@ -507,8 +1016,7 @@ export function buildSkillTree(): SkillTreeResult {
       const [nx, ny] = emPolar(centerA, r3);
       const n = b.createNode(`${cls}-cs-${si}`, "classSkill", cls, nx, ny, skills[si]);
       si++;
-      b.link(tier2[1][0], n);
-      b.link(tier2[1][1], n);
+      b.link(tier2[1][0], n); // single parent — avoids 4-cycle via cs-1↔cs-5↔cs-15↔cs-6
     }
   }
 
@@ -522,7 +1030,7 @@ export function buildSkillTree(): SkillTreeResult {
     const sn: SkillNode[] = [];
     for (let j = 0; j < 3; j++) {
       const a = base + (j - 1) * 0.30;
-      const [x, y] = b.polar(a, R0 + 45 + (b.rng() - 0.5) * 6);
+      const [x, y] = b.polar(a, R0 + 65 + (b.rng() - 0.5) * 6);
       const n = b.createNode(
         `${cls}-inner-${j}`, "minor", cls,
         b.jit(x, 3), b.jit(y, 3), b.nextMinor(),
@@ -541,9 +1049,9 @@ export function buildSkillTree(): SkillTreeResult {
     const base = CLASS_ANGLE[cls] - Math.PI / 2;
     const sn: SkillNode[] = [];
     for (let j = 0; j < 5; j++) {
-      const a = base + (j - 2) * 0.21;
-      const [x, y] = b.polar(a, R0 + 115 + (b.rng() - 0.5) * 8);
-      const isN = j === 2;
+      const a = base + (j - 2) * 0.24;
+      const [x, y] = b.polar(a, R0 + 120 + (b.rng() - 0.5) * 8);
+      const isN = j === 0 || j === 2 || j === 4;
       const n = isN
         ? b.createNode(`${cls}-trunk-${j}`, "notable", cls, b.jit(x, 3), b.jit(y, 3), b.nextNotable())
         : b.createNode(`${cls}-trunk-${j}`, "minor", cls, b.jit(x, 4), b.jit(y, 4), b.nextMinor());
@@ -561,8 +1069,8 @@ export function buildSkillTree(): SkillTreeResult {
     const base = CLASS_ANGLE[cls] - Math.PI / 2;
     const sn: SkillNode[] = [];
     for (let j = 0; j < 5; j++) {
-      const a = base + (j - 2) * 0.22;
-      const [x, y] = b.polar(a, R0 + 195 + (b.rng() - 0.5) * 10);
+      const a = base + (j - 2) * 0.25;
+      const [x, y] = b.polar(a, R0 + 200 + (b.rng() - 0.5) * 10);
       const isN = j === 1 || j === 3;
       const n = isN
         ? b.createNode(`${cls}-branch-${j}`, "notable", cls, b.jit(x, 4), b.jit(y, 4), b.nextNotable())
@@ -580,41 +1088,21 @@ export function buildSkillTree(): SkillTreeResult {
     const base = CLASS_ANGLE[cls] - Math.PI / 2;
 
     for (let t = 0; t < 3; t++) {
-      const a = base + (t - 1) * 0.44;
+      const a = base + (t - 1) * 0.50;
       const parent = branchRing[ci][[0, 2, 4][t]];
       const pr = Math.sqrt((parent.x - CX) ** 2 + (parent.y - CY) ** 2);
       growTendril(parent, a, pr, 2, 2, cls, `m${t}`);
     }
 
     for (let t = 0; t < 2; t++) {
-      const a = base + (t === 0 ? -0.68 : 0.68);
+      const a = base + (t === 0 ? -0.66 : 0.66);
       const parent = branchRing[ci][t === 0 ? 0 : 4];
       const pr = Math.sqrt((parent.x - CX) ** 2 + (parent.y - CY) ** 2);
-      growTendril(parent, a, pr, 1, 3, cls, `s${t}`);
+      growTendril(parent, a, pr, 1, 1, cls, `s${t}`);
     }
   }
 
-  // ── 7. Keystones at furthest tips ────────────────────
-
-  for (let ci = 0; ci < 4; ci++) {
-    const cls = CLASS_IDS[ci];
-    const base = CLASS_ANGLE[cls] - Math.PI / 2;
-    for (let j = 0; j < 2; j++) {
-      const a = base + (j === 0 ? -0.42 : 0.42);
-      const [x, y] = b.polar(a, R0 + 520 + (b.rng() - 0.5) * 10);
-      const ks = b.createNode(
-        `${cls}-keystone-${j}`, "keystone", cls, x, y, b.nextKeystone(),
-      );
-      let best: SkillNode | null = null, bestD = Infinity;
-      for (const n of b.nodes) {
-        if (n.type === "keystone" || n.type === "classSkill" || n.type === "start") continue;
-        if (n.classAffinity !== cls) continue;
-        const d = (n.x - ks.x) ** 2 + (n.y - ks.y) ** 2;
-        if (d < bestD) { bestD = d; best = n; }
-      }
-      if (best) b.link(best, ks);
-    }
-  }
+  // ── 7. (Removed — tendril tips now produce figures directly) ──
 
   // ── 8. Mid-ring filler — 3 per class (12) ──────────
   //  Placed between trunk and branch, linking the two layers with extra paths.
@@ -648,68 +1136,21 @@ export function buildSkillTree(): SkillTreeResult {
     midRing.push(sn);
   }
 
-  // ── 9. Branch web — 2 per class (8) ───────────────
-  //  Short-circuit paths between adjacent branch ring nodes.
+  // ── 9. Branch-level figures — 2 per class (8 figureEntries) ──
+  //  Inner constellation figures at branch layer, connecting branch[1]/branch[3] notables.
 
-  const branchWeb: SkillNode[][] = [];
   for (let ci = 0; ci < 4; ci++) {
     const cls = CLASS_IDS[ci];
     const base = CLASS_ANGLE[cls] - Math.PI / 2;
-    const sn: SkillNode[] = [];
     for (let j = 0; j < 2; j++) {
       const a = base + (j === 0 ? -0.15 : 0.15);
-      const [x, y] = b.polar(a, R0 + 215 + (b.rng() - 0.5) * 8);
-      const n = b.createNode(
-        `${cls}-web-${j}`, "minor", cls,
-        b.jit(x, 4), b.jit(y, 4), b.nextMinor(),
-      );
-      // connect to two adjacent branch ring nodes
-      b.link(branchRing[ci][j === 0 ? 1 : 3], n);
-      b.link(branchRing[ci][2], n);
-      sn.push(n);
-    }
-    branchWeb.push(sn);
-  }
-
-  // ── 10. Extended side paths — 3 per class (12) ────
-  //  Extra paths branching off the outer tendrils.
-  //  Minor nodes (j=0,2) get two connections to avoid being leaf nodes.
-
-  for (let ci = 0; ci < 4; ci++) {
-    const cls = CLASS_IDS[ci];
-    const base = CLASS_ANGLE[cls] - Math.PI / 2;
-    // Ext angles: ±0.56 for sides (between main tendrils and side tendrils), 0 for center
-    const extAngles = [-0.56, 0, 0.56];
-    for (let j = 0; j < 3; j++) {
-      const a = base + extAngles[j];
-      const [x, y] = b.polar(a, R0 + 340 + (b.rng() - 0.5) * 12);
-      const isN = j === 1;
-      const n = isN
-        ? b.createNode(`${cls}-ext-${j}`, "notable", cls, b.jit(x, 4), b.jit(y, 4), b.nextNotable())
-        : b.createNode(`${cls}-ext-${j}`, "minor", cls, b.jit(x, 5), b.jit(y, 5), b.nextMinor());
-      // Collect nearest eligible same-class nodes, sorted by distance
-      const candidates: { node: SkillNode; dist: number }[] = [];
-      for (const nd of b.nodes) {
-        if (nd === n) continue;
-        if (nd.type === "keystone" || nd.type === "classSkill" || nd.type === "start") continue;
-        if (nd.classAffinity !== cls) continue;
-        const d = (nd.x - n.x) ** 2 + (nd.y - n.y) ** 2;
-        candidates.push({ node: nd, dist: d });
-      }
-      candidates.sort((ca, cb) => ca.dist - cb.dist);
-      // Link to nearest
-      if (candidates.length > 0) b.link(candidates[0].node, n);
-      // Minor nodes: add second link (no triangle with first)
-      if (!isN) {
-        for (let k = 1; k < candidates.length; k++) {
-          if (!candidates[0].node.connections.includes(candidates[k].node.id)) {
-            b.link(candidates[k].node, n);
-            break;
-          }
-        }
-      }
+      const r = R0 + 260 + (b.rng() - 0.5) * 8;
+      const parent = branchRing[ci][j === 0 ? 1 : 3];
+      growFigure(b, parent, a, r, cls, `bfig-${j}`, "inner");
     }
   }
+
+  // ── 10. (Removed — tendril tips now produce figures directly) ──
 
   // ── 11. Cross-class bridges (enhanced) ─────────────
   //  Instead of a direct trunk→trunk link, add 2 intermediary nodes per bridge (8 total)
@@ -733,7 +1174,7 @@ export function buildSkillTree(): SkillTreeResult {
     for (let j = 0; j < 2; j++) {
       const t = j === 0 ? 0.35 : 0.65;
       const a = aA + (correctedMid - aA) * (j === 0 ? 0.7 : 1.3);
-      const [x, y] = b.polar(a, R0 + 130 + (b.rng() - 0.5) * 12);
+      const [x, y] = b.polar(a, R0 + 105 + (b.rng() - 0.5) * 12);
       const affinity = j === 0 ? cls : nextCls;
       const n = b.createNode(
         `bridge-${cls}-${nextCls}-${j}`, "minor", affinity,
@@ -745,8 +1186,6 @@ export function buildSkillTree(): SkillTreeResult {
     b.link(trunkRing[ci][4], bridgePair[0]);
     b.link(bridgePair[0], bridgePair[1]);
     b.link(bridgePair[1], trunkRing[next][0]);
-    // also keep the direct trunk bridge
-    b.link(trunkRing[ci][4], trunkRing[next][0]);
     bridgeNodes.push(bridgePair);
   }
 
@@ -764,14 +1203,14 @@ export function buildSkillTree(): SkillTreeResult {
     let midA = (aA + aB) / 2;
     if (Math.abs(aA - aB) > Math.PI) midA += Math.PI;
 
-    const [x, y] = b.polar(midA, R0 + 260 + (b.rng() - 0.5) * 10);
+    const [x, y] = b.polar(midA, R0 + 170 + (b.rng() - 0.5) * 10);
     const n = b.createNode(
       `arc-${cls}-${nextCls}`, "notable", cls,
       b.jit(x, 4), b.jit(y, 4), b.nextNotable(),
     );
-    // link to nearest branch-tier nodes of each class
-    b.link(branchRing[ci][4], n);
-    b.link(branchRing[next][0], n);
+    // link between trunk-tier endpoints of adjacent classes (avoids crossing side tendrils)
+    b.link(trunkRing[ci][4], n);
+    b.link(trunkRing[next][0], n);
   }
 
   // ── 13. Inner web — 2 per class (8) ──
@@ -784,10 +1223,10 @@ export function buildSkillTree(): SkillTreeResult {
     const base = CLASS_ANGLE[cls] - Math.PI / 2;
     for (let j = 0; j < 2; j++) {
       const a = base + (j === 0 ? -0.18 : 0.18);
-      const [x, y] = b.polar(a, R0 + 78 + (b.rng() - 0.5) * 6);
+      const [x, y] = b.polar(a, R0 + 98 + (b.rng() - 0.5) * 6);
       const n = b.createNode(
-        `${cls}-iweb-${j}`, "minor", cls,
-        b.jit(x, 3), b.jit(y, 3), b.nextMinor(),
+        `${cls}-iweb-${j}`, "notable", cls,
+        b.jit(x, 3), b.jit(y, 3), b.nextNotable(),
       );
       b.link(innerRing[ci][j === 0 ? 0 : 2], n);
       b.link(n, trunkRing[ci][j === 0 ? 2 : 3]);
@@ -796,15 +1235,49 @@ export function buildSkillTree(): SkillTreeResult {
 
   // ── Post-build: layout relaxation + validation ─────────
 
-  relaxLayout(b.nodes, b.edges, 300);
+  relaxLayout(b.nodes, b.edges, b.emblems, 3000,
+    b._figureEdgeSet, b._figureMembership, b._figureShapes);
 
   assertNoLeafMinors(b.nodes);
-  assertNoTriangles(b.nodes);
-  assertNoEdgeCrossings(b.nodes, b.edges);
-  assertMinDistance(b.nodes);
+  assertNoTriangles(b.nodes, b._figureMembership);
+  assertNoFourCycles(b.nodes, b._figureMembership);
+  assertNoEdgeCrossings(b.nodes, b.edges, b._figureEdgeSet, b._figureMembership);
+  assertMinDistance(b.nodes, b._figureMembership);
+  assertEmblemClearance(b.nodes, b.emblems, 10);
+  assertMinorToNotableDist(b.nodes, 2);
+  assertKeystonesOnlyInFigures(b.nodes, b._figureMembership);
+  assertNotableToFigureEntryDist(b.nodes, 4);
+  assertKeystonesInFigures(b.nodes);
+  assertNoLeafFigureEntries(b.nodes);
 
-  _cachedTree = b.build();
-  return _cachedTree;
+  // ── Post-validation: scale outer positions by 1.25× from center ──
+  // Class internals (start + classSkill) keep original spacing — only shift with emblem.
+  const LAYOUT_SCALE = 1.25;
+  // First compute emblem shifts (emblem centers move outward)
+  const emblemShift: { dx: number; dy: number }[] = b.emblems.map(em => ({
+    dx: (em.cx - CX) * (LAYOUT_SCALE - 1),
+    dy: (em.cy - CY) * (LAYOUT_SCALE - 1),
+  }));
+  for (const n of b.nodes) {
+    if (isOuter(n)) {
+      // Outer nodes: scale from center
+      n.x = CX + (n.x - CX) * LAYOUT_SCALE;
+      n.y = CY + (n.y - CY) * LAYOUT_SCALE;
+    } else {
+      // Class-internal nodes: shift by emblem delta (preserve internal distances)
+      const ci = CLASS_IDS.indexOf(n.classAffinity);
+      if (ci >= 0 && ci < emblemShift.length) {
+        n.x += emblemShift[ci].dx;
+        n.y += emblemShift[ci].dy;
+      }
+    }
+  }
+  for (let i = 0; i < b.emblems.length; i++) {
+    b.emblems[i].cx += emblemShift[i].dx;
+    b.emblems[i].cy += emblemShift[i].dy;
+  }
+
+  return b.build();
 }
 
 export function getClassStartNode(classId: string): number {

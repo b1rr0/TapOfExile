@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx nest build)",
+      "WebFetch(domain:dead-cells.com)",
+      "Bash(git log:*)"
+    ]
+  }
+}

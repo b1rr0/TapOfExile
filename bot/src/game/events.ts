@@ -19,6 +19,12 @@ export class EventBus {
   emit(event: string, data?: any): void {
     const list = this._listeners[event];
     if (!list) return;
-    for (const cb of list) cb(data);
+    for (const cb of list) {
+      try {
+        cb(data);
+      } catch (err) {
+        console.error(`[EventBus] Error in "${event}" handler:`, err);
+      }
+    }
   }
 }

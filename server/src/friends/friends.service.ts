@@ -296,26 +296,6 @@ export class FriendsService {
     };
   }
 
-  /**
-   * @deprecated Dojo scoring now happens server-side via WebSocket (combat gateway).
-   * This endpoint is kept for backward compatibility — returns current best without
-   * accepting new scores. Old clients won't break but can't submit fake scores.
-   */
-  async submitDojo(
-    telegramId: string,
-    characterId: string,
-    _totalDamage: number,
-  ) {
-    const char = await this.characterRepo.findOne({
-      where: { id: characterId, playerTelegramId: telegramId },
-    });
-    if (!char) {
-      throw new ForbiddenException('Character not owned by you');
-    }
-
-    return { bestDamage: char.dojoBestDamage || 0 };
-  }
-
   /** Friends dojo leaderboard: self + friends from dojo_records (no extra JOINs) */
   async getDojoLeaderboard(telegramId: string, characterId: string) {
     await this.validateOwnership(telegramId, characterId);
