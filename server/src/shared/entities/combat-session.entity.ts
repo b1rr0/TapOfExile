@@ -3,9 +3,12 @@ import {
   PrimaryColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('combat_sessions')
+@Index('idx_cs_player', ['playerTelegramId'])
+@Index('idx_cs_status', ['status'])
 export class CombatSession {
   @PrimaryColumn({ type: 'uuid' })
   id: string;
@@ -49,7 +52,7 @@ export class CombatSession {
   @CreateDateColumn()
   startedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   completedAt: Date | null;
 
   @Column({ type: 'varchar', length: 16, default: 'active' })

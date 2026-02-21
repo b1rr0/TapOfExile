@@ -39,7 +39,7 @@ export class Player {
   lastSaveTime: string;
 
   // Last time the player made any authenticated API request
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   lastSeenAt: Date | null;
 
   @CreateDateColumn()
@@ -48,7 +48,7 @@ export class Player {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   bannedUntil: Date | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })

@@ -25,7 +25,6 @@ export class PlayerService {
   async getPlayer(telegramId: string): Promise<Player> {
     const player = await this.playerRepo.findOne({
       where: { telegramId },
-      relations: ['playerLeagues'],
     });
     if (!player) {
       throw new NotFoundException('Player not found');
@@ -37,7 +36,11 @@ export class PlayerService {
    * Get the player's active PlayerLeague (with characters, equipment, items).
    */
   async getActivePlayerLeague(telegramId: string): Promise<PlayerLeague> {
-    const player = await this.getPlayer(telegramId);
+    const player = await this.playerRepo.findOne({
+      where: { telegramId },
+      select: ['telegramId', 'activeLeagueId'],
+    });
+    if (!player) throw new NotFoundException('Player not found');
 
     if (!player.activeLeagueId) {
       throw new NotFoundException('No active league. Join a league first.');
@@ -83,9 +86,16 @@ export class PlayerService {
   /**
    * Get full player state with ALL characters from ALL leagues.
    * Includes ban status — client must check and block game if banned.
+   *
+   * Optimized: single player query + single allPlayerLeagues query
+   * (no duplicate getPlayer/getActivePlayerLeague calls).
    */
   async getPlayerState(telegramId: string) {
-    const player = await this.getPlayer(telegramId);
+    // Single player query (no relations — lightweight)
+    const player = await this.playerRepo.findOne({
+      where: { telegramId },
+    });
+    if (!player) throw new NotFoundException('Player not found');
 
     // Ban check — return ban info before loading heavy data
     const isBanned = player.bannedUntil && player.bannedUntil.getTime() > Date.now();
@@ -97,8 +107,29 @@ export class PlayerService {
       };
     }
 
-    const pl = await this.getActivePlayerLeague(telegramId);
-    const allPlayerLeagues = await this.getAllPlayerLeagues(telegramId);
+    if (!player.activeLeagueId) {
+      throw new NotFoundException('No active league. Join a league first.');
+    }
+
+    // Single query: all player leagues with deep relations
+    const allPlayerLeagues = await this.playerLeagueRepo.find({
+      where: { playerTelegramId: telegramId },
+      relations: [
+        'league',
+        'characters',
+        'characters.equipmentSlots',
+        'characters.equipmentSlots.item',
+        'items',
+      ],
+    });
+
+    // Find active PlayerLeague from the already-loaded array (no extra query)
+    const pl = allPlayerLeagues.find(
+      (p) => p.leagueId === player.activeLeagueId,
+    );
+    if (!pl) {
+      throw new NotFoundException('Player not in active league');
+    }
 
     // Collect all characters from all leagues
     const today = getUtcDateString();
@@ -216,23 +247,40 @@ export class PlayerService {
 
   /**
    * Update gold on the active league's PlayerLeague entry.
+   * Optimized: uses increment + single lightweight query instead of load+save.
    */
   async updateGold(telegramId: string, amount: number): Promise<string> {
-    const pl = await this.getActivePlayerLeague(telegramId);
+    const player = await this.playerRepo.findOne({
+      where: { telegramId },
+      select: ['telegramId', 'activeLeagueId'],
+    });
+    if (!player || !player.activeLeagueId) {
+      throw new NotFoundException('No active league');
+    }
+
+    const pl = await this.playerLeagueRepo.findOne({
+      where: {
+        playerTelegramId: telegramId,
+        leagueId: player.activeLeagueId,
+      },
+      select: ['id', 'gold'],
+    });
+    if (!pl) throw new NotFoundException('Player not in active league');
+
     const newGold = BigInt(pl.gold) + BigInt(amount);
-    pl.gold = String(newGold < 0n ? 0n : newGold);
-    await this.playerLeagueRepo.save(pl);
+    const clampedGold = String(newGold < 0n ? 0n : newGold);
 
-    // Also update player lastSaveTime
-    const player = await this.getPlayer(telegramId);
-    player.lastSaveTime = String(Date.now());
-    await this.playerRepo.save(player);
+    await this.playerLeagueRepo.update(pl.id, { gold: clampedGold });
+    await this.playerRepo.update(telegramId, {
+      lastSaveTime: String(Date.now()),
+    });
 
-    return pl.gold;
+    return clampedGold;
   }
 
   /**
    * Update global lifetime meta-stats (across all leagues).
+   * Optimized: single raw query with atomic increment instead of load+save.
    */
   async updateMeta(
     telegramId: string,
@@ -240,12 +288,17 @@ export class PlayerService {
     kills: number,
     gold: number,
   ): Promise<void> {
-    const player = await this.getPlayer(telegramId);
-    player.totalTaps = String(BigInt(player.totalTaps) + BigInt(taps));
-    player.totalKills = String(BigInt(player.totalKills) + BigInt(kills));
-    player.totalGold = String(BigInt(player.totalGold) + BigInt(gold));
-    player.lastSaveTime = String(Date.now());
-    await this.playerRepo.save(player);
+    await this.playerRepo
+      .createQueryBuilder()
+      .update(Player)
+      .set({
+        totalTaps: () => `"totalTaps" + ${taps}`,
+        totalKills: () => `"totalKills" + ${kills}`,
+        totalGold: () => `"totalGold" + ${gold}`,
+        lastSaveTime: String(Date.now()),
+      })
+      .where('telegramId = :telegramId', { telegramId })
+      .execute();
   }
 
 }

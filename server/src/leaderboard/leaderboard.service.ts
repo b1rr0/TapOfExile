@@ -36,35 +36,16 @@ export class LeaderboardService {
 
   /**
    * Global dojo leaderboard: top N by best damage.
-   * If leagueId is provided, filter dojo records to characters in that league.
+   * Uses denormalized leagueId on dojo_records — no JOIN with characters needed.
    */
   async getDojoLeaderboard(limit = 50, leagueId?: string) {
+    const where: any = {};
     if (leagueId) {
-      // JOIN with characters table to filter by league
-      const records = await this.dojoRecordRepo
-        .createQueryBuilder('d')
-        .innerJoin(Character, 'c', 'c.id = d.characterId')
-        .where('c.leagueId = :leagueId', { leagueId })
-        .orderBy('d.bestDamage', 'DESC')
-        .take(limit)
-        .getMany();
-
-      return {
-        leaderboard: records.map((r, i) => ({
-          rank: i + 1,
-          characterId: r.characterId,
-          nickname: r.nickname,
-          classId: r.classId,
-          skinId: r.skinId,
-          level: r.level,
-          bestDamage: r.bestDamage,
-          telegramUsername: r.telegramUsername || null,
-        })),
-      };
+      where.leagueId = leagueId;
     }
 
-    // No league filter — global leaderboard
     const records = await this.dojoRecordRepo.find({
+      where,
       order: { bestDamage: 'DESC' },
       take: limit,
     });

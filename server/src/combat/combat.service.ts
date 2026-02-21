@@ -954,34 +954,34 @@ export class CombatService {
       throw new BadRequestException('Not all monsters killed');
     }
 
-    // Award gold to PlayerLeague (per-league gold pool)
+    // Award gold to PlayerLeague — atomic increment (no load+save)
+    await this.playerLeagueRepo
+      .createQueryBuilder()
+      .update(PlayerLeague)
+      .set({
+        gold: () => `"gold"::bigint + ${session.totalGoldEarned}`,
+      })
+      .where('id = :id', { id: session.playerLeagueId })
+      .execute();
+
+    // Update global lifetime meta stats — atomic increment (no load+save)
+    await this.playerRepo
+      .createQueryBuilder()
+      .update(Player)
+      .set({
+        totalGold: () => `"totalGold"::bigint + ${session.totalGoldEarned}`,
+        totalKills: () => `"totalKills"::bigint + ${session.monsterQueue.length}`,
+        totalTaps: () => `"totalTaps"::bigint + ${session.totalTaps}`,
+        lastSaveTime: String(Date.now()),
+      })
+      .where('"telegramId" = :telegramId', { telegramId })
+      .execute();
+
+    // Read current gold for response
     const playerLeague = await this.playerLeagueRepo.findOne({
       where: { id: session.playerLeagueId },
+      select: ['id', 'gold'],
     });
-    if (!playerLeague) throw new NotFoundException('PlayerLeague not found');
-
-    playerLeague.gold = String(
-      BigInt(playerLeague.gold) + BigInt(session.totalGoldEarned),
-    );
-    await this.playerLeagueRepo.save(playerLeague);
-
-    // Update global lifetime meta stats on Player
-    const player = await this.playerRepo.findOne({
-      where: { telegramId },
-    });
-    if (!player) throw new NotFoundException('Player not found');
-
-    player.totalGold = String(
-      BigInt(player.totalGold) + BigInt(session.totalGoldEarned),
-    );
-    player.totalKills = String(
-      BigInt(player.totalKills) + BigInt(session.monsterQueue.length),
-    );
-    player.totalTaps = String(
-      BigInt(player.totalTaps) + BigInt(session.totalTaps),
-    );
-    player.lastSaveTime = String(Date.now());
-    await this.playerRepo.save(player);
 
     // XP already awarded per-kill in processTap() — just read current char state
     // and persist location/endgame progress
@@ -1119,7 +1119,7 @@ export class CombatService {
       level: char ? char.level : session.cachedStats.level,
       xp: char ? Number(char.xp) : Number(session.cachedStats.xp),
       xpToNext: char ? Number(char.xpToNext) : Number(session.cachedStats.xpToNext),
-      gold: Number(playerLeague.gold),
+      gold: Number(playerLeague?.gold ?? 0),
       mapDrops: [...mapDrops, ...lootDrops].map((d) => ({
         id: d.id,
         name: d.name,
@@ -1344,37 +1344,39 @@ export class CombatService {
     return { totalDamage, totalTaps, dps, bestDamage, isNewBest };
   }
 
-  /** Upsert dojo leaderboard record (denormalized table). */
+  /**
+   * Upsert dojo leaderboard record (denormalized table).
+   * Single PostgreSQL INSERT ON CONFLICT with GREATEST — replaces SELECT + INSERT/UPDATE.
+   */
   private async upsertDojoRecord(char: Character, totalDamage: number): Promise<void> {
-    let record = await this.dojoRecordRepo.findOne({
-      where: { characterId: char.id },
-    });
-
     const tgUsername = char.player?.telegramUsername || null;
 
-    if (!record) {
-      record = this.dojoRecordRepo.create({
-        characterId: char.id,
-        playerTelegramId: char.playerTelegramId,
-        telegramUsername: tgUsername,
-        nickname: char.nickname,
-        classId: char.classId,
-        skinId: char.skinId,
-        level: char.level,
-        bestDamage: totalDamage,
-      });
-      await this.dojoRecordRepo.save(record);
-    } else {
-      record.telegramUsername = tgUsername;
-      record.nickname = char.nickname;
-      record.classId = char.classId;
-      record.skinId = char.skinId;
-      record.level = char.level;
-      if (totalDamage > record.bestDamage) {
-        record.bestDamage = totalDamage;
-      }
-      await this.dojoRecordRepo.save(record);
-    }
+    await this.dojoRecordRepo.query(
+      `INSERT INTO dojo_records
+        ("characterId", "playerTelegramId", "leagueId", "telegramUsername",
+         "nickname", "classId", "skinId", "level", "bestDamage")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT ("characterId") DO UPDATE SET
+         "telegramUsername" = EXCLUDED."telegramUsername",
+         "leagueId" = EXCLUDED."leagueId",
+         "nickname" = EXCLUDED."nickname",
+         "classId" = EXCLUDED."classId",
+         "skinId" = EXCLUDED."skinId",
+         "level" = EXCLUDED."level",
+         "bestDamage" = GREATEST(dojo_records."bestDamage", EXCLUDED."bestDamage"),
+         "updatedAt" = NOW()`,
+      [
+        char.id,
+        char.playerTelegramId,
+        char.leagueId,
+        tgUsername,
+        char.nickname,
+        char.classId,
+        char.skinId,
+        char.level,
+        totalDamage,
+      ],
+    );
   }
 
   // ─── Potion usage ──────────────────────────────────────

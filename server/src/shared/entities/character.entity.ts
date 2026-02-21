@@ -5,6 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import type { ElementalDamage, ElementalResistance } from '@shared/types';
 import { Player } from './player.entity';
@@ -12,6 +13,10 @@ import { PlayerLeague } from './player-league.entity';
 import { EquipmentSlot } from './equipment-slot.entity';
 
 @Entity('characters')
+@Index('idx_char_player_telegram', ['playerTelegramId'])
+@Index('idx_char_player_league', ['playerLeagueId'])
+@Index('idx_char_league', ['leagueId'])
+@Index('idx_char_level_xp', ['level', 'xp'])
 export class Character {
   @PrimaryColumn({ type: 'varchar', length: 64 })
   id: string;

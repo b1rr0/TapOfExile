@@ -6,11 +6,14 @@ import {
   JoinColumn,
   Unique,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { Character } from './character.entity';
 
 @Entity('friendships')
 @Unique(['requesterId', 'targetId'])
+@Index('idx_friendship_target_status', ['targetId', 'status'])
+@Index('idx_friendship_requester_status', ['requesterId', 'status'])
 export class Friendship {
   @PrimaryGeneratedColumn('uuid')
   id: string;

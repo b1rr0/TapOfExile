@@ -48,12 +48,14 @@ export async function getSocket(): Promise<Socket> {
 
   socket = io(`${WS_URL}/combat`, {
     auth: { token },
-    transports: ["polling", "websocket"],
-    upgrade: true,
+    // Start with WebSocket directly — skips HTTP polling handshake (saves 1-2 RTTs).
+    // Falls back to polling only if WebSocket is unavailable (rare in Telegram webview).
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 500,
-    timeout: 10000,
+    reconnectionDelayMax: 3000,
+    timeout: 5000,
   });
 
   return socket;

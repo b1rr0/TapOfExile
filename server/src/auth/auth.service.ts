@@ -80,32 +80,24 @@ export class AuthService {
 
   /**
    * Find or create a Player record by Telegram user ID.
+   * Uses PostgreSQL UPSERT — single query instead of SELECT + conditional INSERT/UPDATE.
    */
   async findOrCreatePlayer(tgUser: TelegramUser): Promise<Player> {
     const telegramId = String(tgUser.id);
-    let player = await this.playerRepo.findOne({
-      where: { telegramId },
-    });
 
-    if (!player) {
-      player = this.playerRepo.create({
-        telegramId,
-        telegramUsername: tgUser.username || null,
-        telegramFirstName: tgUser.first_name || null,
-        activeLeagueId: null,
-        totalTaps: '0',
-        totalKills: '0',
-        totalGold: '0',
-        lastSaveTime: String(Date.now()),
-      });
-      await this.playerRepo.save(player);
-    } else {
-      // Update Telegram info on each login
-      player.telegramUsername = tgUser.username || null;
-      player.telegramFirstName = tgUser.first_name || null;
-      await this.playerRepo.save(player);
-    }
+    await this.playerRepo.query(
+      `INSERT INTO players ("telegramId", "telegramUsername", "telegramFirstName",
+                            "activeLeagueId", "totalTaps", "totalKills", "totalGold",
+                            "lastSaveTime", "gameVersion")
+       VALUES ($1, $2, $3, NULL, 0, 0, 0, $4, 4)
+       ON CONFLICT ("telegramId") DO UPDATE SET
+         "telegramUsername" = EXCLUDED."telegramUsername",
+         "telegramFirstName" = EXCLUDED."telegramFirstName"`,
+      [telegramId, tgUser.username || null, tgUser.first_name || null, String(Date.now())],
+    );
 
+    const player = await this.playerRepo.findOne({ where: { telegramId } });
+    if (!player) throw new Error('Player upsert failed');
     return player;
   }
 

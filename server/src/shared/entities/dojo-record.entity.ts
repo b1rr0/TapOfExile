@@ -3,6 +3,7 @@ import {
   PrimaryColumn,
   Column,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 /**
@@ -11,6 +12,8 @@ import {
  * Contains all data needed for leaderboard display (no JOINs required).
  */
 @Entity('dojo_records')
+@Index('idx_dojo_best_damage', ['bestDamage'])
+@Index('idx_dojo_league_damage', ['leagueId', 'bestDamage'])
 export class DojoRecord {
   /** Character ID — primary key (one record per character) */
   @PrimaryColumn({ type: 'varchar', length: 64 })
@@ -19,6 +22,10 @@ export class DojoRecord {
   /** Player Telegram ID — for ownership validation */
   @Column({ type: 'bigint' })
   playerTelegramId: string;
+
+  /** Denormalized: league ID — avoids JOIN with characters for league filtering */
+  @Column({ type: 'uuid' })
+  leagueId: string;
 
   /** Denormalized: player Telegram username (e.g. @nick) */
   @Column({ type: 'varchar', length: 128, nullable: true })

@@ -5,10 +5,12 @@ import {
   ManyToOne,
   OneToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { PlayerLeague } from './player-league.entity';
 
 @Entity('items')
+@Index('idx_item_pl_status', ['playerLeagueId', 'status'])
 export class Item {
   @PrimaryColumn({ type: 'varchar', length: 128 })
   id: string;

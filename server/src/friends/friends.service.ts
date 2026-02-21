@@ -321,16 +321,13 @@ export class FriendsService {
       ),
     ];
 
+    // Use denormalized leagueId on dojo_records — no JOIN with characters needed
     let records: DojoRecord[];
     if (self?.leagueId) {
-      // Filter friends' records to same league
-      records = await this.dojoRecordRepo
-        .createQueryBuilder('d')
-        .innerJoin(Character, 'c', 'c.id = d.characterId')
-        .where('d.characterId IN (:...charIds)', { charIds })
-        .andWhere('c.leagueId = :leagueId', { leagueId: self.leagueId })
-        .orderBy('d.bestDamage', 'DESC')
-        .getMany();
+      records = await this.dojoRecordRepo.find({
+        where: { characterId: In(charIds), leagueId: self.leagueId },
+        order: { bestDamage: 'DESC' },
+      });
     } else {
       records = await this.dojoRecordRepo.find({
         where: { characterId: In(charIds) },
@@ -361,22 +358,17 @@ export class FriendsService {
       select: ['id', 'leagueId'],
     });
 
-    let records: DojoRecord[];
+    // Use denormalized leagueId on dojo_records — no JOIN with characters needed
+    const where: any = {};
     if (char?.leagueId) {
-      // Filter by league via JOIN with characters table
-      records = await this.dojoRecordRepo
-        .createQueryBuilder('d')
-        .innerJoin(Character, 'c', 'c.id = d.characterId')
-        .where('c.leagueId = :leagueId', { leagueId: char.leagueId })
-        .orderBy('d.bestDamage', 'DESC')
-        .take(limit)
-        .getMany();
-    } else {
-      records = await this.dojoRecordRepo.find({
-        order: { bestDamage: 'DESC' },
-        take: limit,
-      });
+      where.leagueId = char.leagueId;
     }
+
+    const records = await this.dojoRecordRepo.find({
+      where,
+      order: { bestDamage: 'DESC' },
+      take: limit,
+    });
 
     return {
       leaderboard: records.map((r, i) => ({

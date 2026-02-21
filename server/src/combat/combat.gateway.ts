@@ -105,7 +105,15 @@ export class CombatGateway
 
       const telegramId: string = payload.sub;
 
-      // Check ban before allowing connection
+      // Store on socket.data IMMEDIATELY (synchronous) so event handlers
+      // that arrive before the async ban-check completes can still resolve the user
+      // without polling. This eliminates the resolveUser retry loop.
+      (client.data as { telegramId: string }).telegramId = telegramId;
+      this.socketUsers.set(client.id, telegramId);
+      this.userSockets.set(telegramId, client.id);
+
+      // Check ban after storing mappings so that any rapid events during
+      // the async lookup are still correctly attributed to this user.
       const banCheck = await this.combatService.isPlayerBanned(telegramId);
       if (banCheck.banned) {
         client.emit('combat:banned', {
@@ -115,10 +123,6 @@ export class CombatGateway
         client.disconnect();
         return;
       }
-
-      // Map socket <-> user
-      this.socketUsers.set(client.id, telegramId);
-      this.userSockets.set(telegramId, client.id);
 
       // Cancel any pending disconnect grace timer
       const existingTimer = this.disconnectTimers.get(telegramId);
@@ -185,20 +189,14 @@ export class CombatGateway
   }
 
   /**
-   * Resolve telegramId for a socket.
-   * If not found immediately (race with handleConnection), retries a few times.
+   * Resolve telegramId for a socket — O(1), no async, no polling.
+   *
+   * telegramId is written to client.data synchronously during handleConnection
+   * right after JWT verification, before any async operations. This means
+   * it is always available by the time any event handler runs.
    */
-  private async resolveUser(client: Socket): Promise<string | null> {
-    let telegramId = this.socketUsers.get(client.id);
-    if (telegramId) return telegramId;
-
-    // handleConnection may not have finished yet — wait briefly
-    for (let i = 0; i < 5; i++) {
-      await new Promise((r) => setTimeout(r, 100));
-      telegramId = this.socketUsers.get(client.id);
-      if (telegramId) return telegramId;
-    }
-    return null;
+  private resolveUser(client: Socket): string | null {
+    return (client.data as { telegramId?: string }).telegramId ?? null;
   }
 
   // ─── Start combat ─────────────────────────────────────────
@@ -227,7 +225,7 @@ export class CombatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { locationId: string; waves: any[]; order: number; act: number },
   ) {
-    const telegramId = await this.resolveUser(client);
+    const telegramId = this.resolveUser(client);
     if (!telegramId) {
       client.emit('combat:error', { message: 'Auth not ready — please retry' });
       return;
@@ -290,7 +288,7 @@ export class CombatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { mapKeyItemId: string; direction?: string },
   ) {
-    const telegramId = await this.resolveUser(client);
+    const telegramId = this.resolveUser(client);
     if (!telegramId) {
       client.emit('combat:error', { message: 'Auth not ready — please retry' });
       return;
@@ -348,7 +346,7 @@ export class CombatGateway
   async handleStartDojo(
     @ConnectedSocket() client: Socket,
   ) {
-    const telegramId = await this.resolveUser(client);
+    const telegramId = this.resolveUser(client);
     if (!telegramId) {
       client.emit('combat:error', { message: 'Auth not ready — please retry' });
       return;

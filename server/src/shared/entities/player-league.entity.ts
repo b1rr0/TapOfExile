@@ -7,6 +7,7 @@ import {
   JoinColumn,
   Unique,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { Player } from './player.entity';
 import { League } from './league.entity';
@@ -15,6 +16,7 @@ import { Item } from './item.entity';
 
 @Entity('player_leagues')
 @Unique(['playerTelegramId', 'leagueId'])
+@Index('idx_pl_league', ['leagueId'])
 export class PlayerLeague {
   @PrimaryGeneratedColumn('uuid')
   id: string;
