@@ -21,7 +21,9 @@
       "Bash(for dir in $SPAWN_AT_HERO)",
       "Bash(do find \"$dir\" -name \"*_sprite.json\" -exec sed -i 's/\"\"renderType\"\": \"\"overlay\"\"/\"\"renderType\"\": \"\"spawn_at_hero\"\"/g' {} ;)",
       "Bash(done)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite build:*)"
     ]
   }
 }

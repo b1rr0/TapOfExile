@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import BattleMockup from '../components/BattleMockup';
 
 const FEATURES = [
   { icon: '&#9876;&#65039;', title: 'Characters', desc: '4 unique classes: Warrior, Samurai, Mage, Archer. Each with unique abilities, stat growth, and playstyles.', to: '/characters' },
@@ -55,6 +56,8 @@ export default function HomePage() {
           </a>
         </div>
       </div>
+
+      <BattleMockup />
 
       <div className="card-grid cols-3">
         {FEATURES.map((f) => (
