@@ -1,0 +1,262 @@
+{
+  "frames": [
+    {
+      "filename": "water_startup 0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 1",
+      "frame": {
+        "x": 0,
+        "y": 16,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 2",
+      "frame": {
+        "x": 0,
+        "y": 32,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 3",
+      "frame": {
+        "x": 0,
+        "y": 48,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 4",
+      "frame": {
+        "x": 0,
+        "y": 64,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 5",
+      "frame": {
+        "x": 0,
+        "y": 80,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 6",
+      "frame": {
+        "x": 0,
+        "y": 96,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 7",
+      "frame": {
+        "x": 0,
+        "y": 112,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 8",
+      "frame": {
+        "x": 0,
+        "y": 128,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 9",
+      "frame": {
+        "x": 0,
+        "y": 144,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_startup 10",
+      "frame": {
+        "x": 0,
+        "y": 160,
+        "w": 64,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 16
+      },
+      "duration": 60
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "image": "water_startup_sprite.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 64,
+      "h": 176
+    },
+    "scale": "1",
+    "skill": {
+      "renderType": "projectile",
+      "renderDurationMs": 660,
+      "drawW": 100,
+      "drawH": 30
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "frames": [
+    {
+      "filename": "thunder_hit 0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 80
+    },
+    {
+      "filename": "thunder_hit 1",
+      "frame": {
+        "x": 48,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 80
+    },
+    {
+      "filename": "thunder_hit 2",
+      "frame": {
+        "x": 96,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 80
+    },
+    {
+      "filename": "thunder_hit 3",
+      "frame": {
+        "x": 144,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 80
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "image": "thunder_hit_sprite.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 192,
+      "h": 32
+    },
+    "scale": "1",
+    "skill": {
+      "renderType": "spawn_at_enemy",
+      "renderDurationMs": 320,
+      "drawW": 100,
+      "drawH": 70
+    }
+  }
+}

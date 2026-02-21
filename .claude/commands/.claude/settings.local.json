@@ -4,7 +4,10 @@
       "Bash(npx tsc:*)",
       "Bash(npx nest build)",
       "WebFetch(domain:dead-cells.com)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(ls:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)"
     ]
   }
 }

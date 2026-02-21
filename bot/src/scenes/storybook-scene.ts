@@ -847,7 +847,7 @@ export class StorybookScene {
   _buildSkillEntries(): SkillEntry[] {
     const entries: SkillEntry[] = [];
     for (const skill of Object.values(ACTIVE_SKILLS)) {
-      // Derive base directory from spritePath: "skils_sprites/fire_srpite/fire_sprite.json"
+      // Derive base directory from spritePath: "skils_sprites/fire/fireball/fireball_sprite.json"
       // We need to replace the filename path with variant subdirectory paths
       const parts = skill.spritePath.split("/");
       const fileName = parts[parts.length - 1]; // "fire_sprite.json"

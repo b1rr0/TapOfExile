@@ -1,0 +1,108 @@
+{
+  "frames": [
+    {
+      "filename": "lightning_arc 0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "lightning_arc 1",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "lightning_arc 2",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "lightning_arc 3",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 128
+      },
+      "duration": 100
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "image": "lightning_arc_sprite.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 128
+    },
+    "scale": "1",
+    "skill": {
+      "renderType": "projectile",
+      "renderDurationMs": 400,
+      "drawW": 300,
+      "drawH": 150
+    }
+  }
+}

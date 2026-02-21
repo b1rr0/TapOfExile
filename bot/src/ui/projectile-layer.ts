@@ -316,6 +316,15 @@ export class ProjectileLayer {
           }
           break;
         }
+
+        default: {
+          // Fallback: treat unknown renderType as spawn_at_enemy
+          x = p.endX;
+          y = p.endY;
+          w = sprite.drawW * dpr;
+          h = sprite.drawH * dpr;
+          break;
+        }
       }
 
       ctx.drawImage(

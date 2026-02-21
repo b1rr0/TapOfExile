@@ -1,0 +1,350 @@
+{
+  "frames": [
+    {
+      "filename": "water_splash 0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 1",
+      "frame": {
+        "x": 66,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 2",
+      "frame": {
+        "x": 132,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 3",
+      "frame": {
+        "x": 198,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 4",
+      "frame": {
+        "x": 264,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 5",
+      "frame": {
+        "x": 0,
+        "y": 77,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 6",
+      "frame": {
+        "x": 66,
+        "y": 77,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 7",
+      "frame": {
+        "x": 132,
+        "y": 77,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 8",
+      "frame": {
+        "x": 198,
+        "y": 77,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 9",
+      "frame": {
+        "x": 264,
+        "y": 77,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 10",
+      "frame": {
+        "x": 0,
+        "y": 154,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 11",
+      "frame": {
+        "x": 66,
+        "y": 154,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 12",
+      "frame": {
+        "x": 132,
+        "y": 154,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 13",
+      "frame": {
+        "x": 198,
+        "y": 154,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_splash 14",
+      "frame": {
+        "x": 264,
+        "y": 154,
+        "w": 66,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 77
+      },
+      "duration": 60
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "image": "water_splash_sprite.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 330,
+      "h": 308
+    },
+    "scale": "1",
+    "skill": {
+      "renderType": "spawn_at_enemy",
+      "renderDurationMs": 1750,
+      "drawW": 150,
+      "drawH": 100
+    }
+  }
+}

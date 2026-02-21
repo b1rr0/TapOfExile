@@ -1,0 +1,196 @@
+{
+  "frames": [
+    {
+      "filename": "sword_throw 0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    },
+    {
+      "filename": "sword_throw 1",
+      "frame": {
+        "x": 92,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    },
+    {
+      "filename": "sword_throw 2",
+      "frame": {
+        "x": 184,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    },
+    {
+      "filename": "sword_throw 3",
+      "frame": {
+        "x": 276,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    },
+    {
+      "filename": "sword_throw 4",
+      "frame": {
+        "x": 368,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    },
+    {
+      "filename": "sword_throw 5",
+      "frame": {
+        "x": 460,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    },
+    {
+      "filename": "sword_throw 6",
+      "frame": {
+        "x": 552,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    },
+    {
+      "filename": "sword_throw 7",
+      "frame": {
+        "x": 644,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 102
+      },
+      "duration": 60
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "image": "sword_throw_sprite.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 736,
+      "h": 102
+    },
+    "scale": "1",
+    "skill": {
+      "renderType": "projectile",
+      "renderDurationMs": 480,
+      "drawW": 440,
+      "drawH": 480
+    }
+  }
+}

@@ -204,8 +204,8 @@ export class BattleScene {
         this.hero.load(),
         this.enemy.load(),
         this.bgRenderer.load(this._backgroundSrc),
-        this.projectileLayer.load("fireball", "/assets/skils_sprites/fire_srpite/v0/fire_sprite.json"),
-        this.projectileLayer.load("sword_throw", "/assets/skils_sprites/sword_throw/v0/Sword_sprite.json"),
+        this.projectileLayer.load("fireball", "/assets/skils_sprites/fire/fireball/v0/fireball_sprite.json"),
+        this.projectileLayer.load("sword_throw", "/assets/skils_sprites/physical/sword_throw/v0/sword_throw_sprite.json"),
       ]);
 
       this.useSprites = true;

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(python3:*)",
+      "Bash(python -c:*)",
+      "Bash(cmd /c \"where py\")",
+      "Bash(cmd /c \"py --version\")",
+      "Bash(cmd /c \"py -3 -c \"\"from PIL import Image; print\\(''PIL OK''\\)\"\"\")",
+      "Bash(cmd /c \"py -3 --version\")",
+      "Bash(cmd /c py -3 --version)",
+      "Bash(echo:*)",
+      "Bash(node:*)",
+      "Bash(cmd.exe /c \"dir D:\\\\programs\\\\code\\\\TapOfExile\\\\shared\\\\public\\\\assets\\\\skils_sprites\\\\physical\\\\slash_arc\")",
+      "Bash(cmd.exe /c dir \"D:\\\\programs\\\\code\\\\TapOfExile\\\\shared\\\\public\\\\assets\\\\skils_sprites\\\\physical\\\\slash_arc\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem ''D:\\\\programs\\\\code\\\\TapOfExile\\\\shared\\\\public\\\\assets\\\\skils_sprites\\\\physical\\\\slash_arc'' | Select-Object Name\")",
+      "Bash(where:*)",
+      "Bash(powershell.exe -Command \"\n''slash_arc'',''slash_cross'',''slash_sweep'' | ForEach-Object {\n  Write-Host \"\"$_\"\";\n  Get-ChildItem \"\"D:\\\\programs\\\\code\\\\TapOfExile\\\\shared\\\\public\\\\assets\\\\skils_sprites\\\\physical$_\"\" | Select-Object -ExpandProperty Name\n  Write-Host ''''\n}\")",
+      "Bash(powershell.exe -Command:*)",
+      "Bash(SPAWN_AT_HERO=\"healing/heal lightning/lightning_ring\")",
+      "Bash(for dir in $SPAWN_AT_HERO)",
+      "Bash(do find \"$dir\" -name \"*_sprite.json\" -exec sed -i 's/\"\"renderType\"\": \"\"overlay\"\"/\"\"renderType\"\": \"\"spawn_at_hero\"\"/g' {} ;)",
+      "Bash(done)",
+      "Bash(find:*)"
+    ]
+  }
+}

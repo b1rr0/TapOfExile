@@ -1,0 +1,350 @@
+{
+  "frames": [
+    {
+      "filename": "water_spike 0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 1",
+      "frame": {
+        "x": 64,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 2",
+      "frame": {
+        "x": 128,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 3",
+      "frame": {
+        "x": 192,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 4",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 5",
+      "frame": {
+        "x": 0,
+        "y": 80,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 6",
+      "frame": {
+        "x": 64,
+        "y": 80,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 7",
+      "frame": {
+        "x": 128,
+        "y": 80,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 8",
+      "frame": {
+        "x": 192,
+        "y": 80,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 9",
+      "frame": {
+        "x": 256,
+        "y": 80,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 10",
+      "frame": {
+        "x": 0,
+        "y": 160,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 11",
+      "frame": {
+        "x": 64,
+        "y": 160,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 12",
+      "frame": {
+        "x": 128,
+        "y": 160,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 13",
+      "frame": {
+        "x": 192,
+        "y": 160,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    },
+    {
+      "filename": "water_spike 14",
+      "frame": {
+        "x": 256,
+        "y": 160,
+        "w": 64,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 80
+      },
+      "duration": 60
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "image": "water_spike_sprite.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 320,
+      "h": 320
+    },
+    "scale": "1",
+    "skill": {
+      "renderType": "spawn_at_enemy",
+      "renderDurationMs": 1500,
+      "drawW": 150,
+      "drawH": 150
+    }
+  }
+}

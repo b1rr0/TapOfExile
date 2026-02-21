@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sprite Animation Tester</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #101524; color: #F9CF87; font-family: monospace; padding: 16px; }
+  h1 { text-align: center; margin-bottom: 12px; font-size: 18px; }
+  #controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  #controls select, #controls button, #controls input { background: #1a2040; color: #F9CF87; border: 1px solid #A40239; padding: 6px 10px; font-family: monospace; font-size: 13px; border-radius: 4px; }
+  #controls button { cursor: pointer; }
+  #controls button:hover { background: #A40239; }
+  #controls button.active { background: #A40239; }
+  #status { text-align: center; margin-bottom: 8px; font-size: 12px; color: #DFFFFE; }
+  #grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+  .sprite-card { background: #1a2040; border: 1px solid #333; border-radius: 8px; padding: 12px; width: 220px; text-align: center; }
+  .sprite-card.error { border-color: #ff4444; }
+  .sprite-card.warning { border-color: #ffaa00; }
+  .sprite-card h3 { font-size: 12px; margin-bottom: 4px; word-break: break-all; }
+  .sprite-card .info { font-size: 10px; color: #888; margin-bottom: 8px; }
+  .sprite-card canvas { border: 1px solid #333; image-rendering: pixelated; display: block; margin: 0 auto 8px; background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 16px 16px; }
+  .sprite-card .frame-info { font-size: 10px; color: #DFFFFE; }
+  .sprite-card .issues { font-size: 10px; color: #ff4444; text-align: left; margin-top: 4px; }
+  .sprite-card .issues li { margin-left: 12px; }
+  #report { background: #1a2040; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 12px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+  .variant-tabs { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+  .variant-tabs button { font-size: 10px; padding: 2px 6px; }
+  .filter-bar { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+  .filter-bar button { font-size: 11px; padding: 3px 8px; }
+</style>
+</head>
+<body>
+<h1>Sprite Animation Tester - Tap of Exile</h1>
+
+<div id="controls">
+  <label>Variant:
+    <select id="variant">
+      <option value="v0">v0 (base)</option>
+      <option value="v1_crimson">v1 crimson</option>
+      <option value="v2_emerald">v2 emerald</option>
+      <option value="v3_azure">v3 azure</option>
+      <option value="v4_golden">v4 golden</option>
+      <option value="v5_violet">v5 violet</option>
+      <option value="v6_frost">v6 frost</option>
+      <option value="v7_shadow">v7 shadow</option>
+    </select>
+  </label>
+  <label>Speed: <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"> <span id="speedVal">1x</span></label>
+  <button id="btnPause">Pause</button>
+  <button id="btnStep">Step</button>
+  <button id="btnValidate">Run Validation</button>
+</div>
+
+<div class="filter-bar" id="filterBar">
+  <button class="active" data-filter="all">All</button>
+  <button data-filter="fire">Fire</button>
+  <button data-filter="earth">Earth</button>
+  <button data-filter="thunder">Thunder</button>
+  <button data-filter="water">Water</button>
+  <button data-filter="ice">Ice</button>
+  <button data-filter="wood">Wood</button>
+  <button data-filter="effect">Effects</button>
+  <button data-filter="melee">Melee</button>
+  <button data-filter="other">Other</button>
+</div>
+
+<div id="status">Loading sprites...</div>
+<div id="grid"></div>
+<div id="report" style="display:none"></div>
+
+<script>
+const SKILLS = [
+  // Healing
+  { id: 'heal', folder: 'healing/heal', json: 'heal_sprite.json', png: 'heal_sprite.png', group: 'other' },
+  // Physical / Melee
+  { id: 'thrust_1', folder: 'physical/thrust_1', json: 'thrust_1_sprite.json', png: 'thrust_1_sprite.png', group: 'melee' },
+  { id: 'thrust_2', folder: 'physical/thrust_2', json: 'thrust_2_sprite.json', png: 'thrust_2_sprite.png', group: 'melee' },
+  { id: 'sword_throw', folder: 'physical/sword_throw', json: 'sword_throw_sprite.json', png: 'sword_throw_sprite.png', group: 'melee' },
+  { id: 'slash', folder: 'physical/slash', json: 'slash_sprite.json', png: 'slash_sprite.png', group: 'melee' },
+  { id: 'slash_arc', folder: 'physical/slash_arc', json: 'slash_arc_sprite.json', png: 'slash_arc_sprite.png', group: 'melee', variants: ['v0','v1','v2','v3','v4'] },
+  { id: 'slash_cross', folder: 'physical/slash_cross', json: 'slash_cross_sprite.json', png: 'slash_cross_sprite.png', group: 'melee', variants: ['v0','v1','v2','v3','v4'] },
+  { id: 'slash_sweep', folder: 'physical/slash_sweep', json: 'slash_sweep_sprite.json', png: 'slash_sweep_sprite.png', group: 'melee', variants: ['v0','v1','v2','v3','v4'] },
+  // Effects
+  { id: 'effect_star', folder: 'effects/effect_star', json: 'effect_star_sprite.json', png: 'effect_star_sprite.png', group: 'effect' },
+  { id: 'effect_sparkle', folder: 'effects/effect_sparkle', json: 'effect_sparkle_sprite.json', png: 'effect_sparkle_sprite.png', group: 'effect' },
+  { id: 'effect_sparks', folder: 'effects/effect_sparks', json: 'effect_sparks_sprite.json', png: 'effect_sparks_sprite.png', group: 'effect' },
+  { id: 'effect_embers', folder: 'effects/effect_embers', json: 'effect_embers_sprite.json', png: 'effect_embers_sprite.png', group: 'effect' },
+  // Fire
+  { id: 'fireball', folder: 'fire/fireball', json: 'fireball_sprite.json', png: 'fireball_sprite.png', group: 'fire' },
+  { id: 'fire_breath', folder: 'fire/fire_breath', json: 'fire_breath_sprite.json', png: 'fire_breath_sprite.png', group: 'fire' },
+  { id: 'firebolt', folder: 'fire/firebolt', json: 'firebolt_sprite.json', png: 'firebolt_sprite.png', group: 'fire' },
+  { id: 'fire_hit', folder: 'fire/fire_hit', json: 'fire_hit_sprite.json', png: 'fire_hit_sprite.png', group: 'fire' },
+  { id: 'explosion', folder: 'fire/explosion', json: 'explosion_sprite.json', png: 'explosion_sprite.png', group: 'fire' },
+  { id: 'explosion_2', folder: 'fire/explosion_2', json: 'explosion_2_sprite.json', png: 'explosion_2_sprite.png', group: 'fire' },
+  // Earth
+  { id: 'earth_projectile', folder: 'earth/earth_projectile', json: 'earth_projectile_sprite.json', png: 'earth_projectile_sprite.png', group: 'earth' },
+  { id: 'earth_impact', folder: 'earth/earth_impact', json: 'earth_impact_sprite.json', png: 'earth_impact_sprite.png', group: 'earth' },
+  { id: 'earth_rocks', folder: 'earth/earth_rocks', json: 'earth_rocks_sprite.json', png: 'earth_rocks_sprite.png', group: 'earth' },
+  { id: 'earth_bump', folder: 'earth/earth_bump', json: 'earth_bump_sprite.json', png: 'earth_bump_sprite.png', group: 'earth' },
+  { id: 'earth_wall', folder: 'earth/earth_wall', json: 'earth_wall_sprite.json', png: 'earth_wall_sprite.png', group: 'earth' },
+  // Thunder / Lightning
+  { id: 'thunder_projectile', folder: 'lightning/thunder_projectile', json: 'thunder_projectile_sprite.json', png: 'thunder_projectile_sprite.png', group: 'thunder' },
+  { id: 'thunder_hit', folder: 'lightning/thunder_hit', json: 'thunder_hit_sprite.json', png: 'thunder_hit_sprite.png', group: 'thunder' },
+  { id: 'thunder_ball', folder: 'lightning/thunder_ball', json: 'thunder_ball_sprite.json', png: 'thunder_ball_sprite.png', group: 'thunder' },
+  { id: 'thunder_splash', folder: 'lightning/thunder_splash', json: 'thunder_splash_sprite.json', png: 'thunder_splash_sprite.png', group: 'thunder' },
+  { id: 'thunder_strike', folder: 'lightning/thunder_strike', json: 'thunder_strike_sprite.json', png: 'thunder_strike_sprite.png', group: 'thunder' },
+  { id: 'lightning_wave', folder: 'lightning/lightning_wave', json: 'lightning_wave_sprite.json', png: 'lightning_wave_sprite.png', group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_arc', folder: 'lightning/lightning_arc', json: 'lightning_arc_sprite.json', png: 'lightning_arc_sprite.png', group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_bolt', folder: 'lightning/lightning_bolt', json: 'lightning_bolt_sprite.json', png: 'lightning_bolt_sprite.png', group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_strike_2', folder: 'lightning/lightning_strike_2', json: 'lightning_strike_2_sprite.json', png: 'lightning_strike_2_sprite.png', group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_ring', folder: 'lightning/lightning_ring', json: 'lightning_ring_sprite.json', png: 'lightning_ring_sprite.png', group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_sparks', folder: 'lightning/lightning_sparks', json: 'lightning_sparks_sprite.json', png: 'lightning_sparks_sprite.png', group: 'thunder', variants: ['v0'] },
+  // Water
+  { id: 'water_startup', folder: 'cold/water_startup', json: 'water_startup_sprite.json', png: 'water_startup_sprite.png', group: 'water' },
+  { id: 'water_spike', folder: 'cold/water_spike', json: 'water_spike_sprite.json', png: 'water_spike_sprite.png', group: 'water' },
+  { id: 'water_splash', folder: 'cold/water_splash', json: 'water_splash_sprite.json', png: 'water_splash_sprite.png', group: 'water' },
+  { id: 'water_ball', folder: 'cold/water_ball', json: 'water_ball_sprite.json', png: 'water_ball_sprite.png', group: 'water' },
+  { id: 'water_blast_full', folder: 'cold/water_blast_full', json: 'water_blast_full_sprite.json', png: 'water_blast_full_sprite.png', group: 'water' },
+  // Ice
+  { id: 'ice_shard', folder: 'cold/ice_shard', json: 'ice_shard_sprite.json', png: 'ice_shard_sprite.png', group: 'ice' },
+  { id: 'ice_hit', folder: 'cold/ice_hit', json: 'ice_hit_sprite.json', png: 'ice_hit_sprite.png', group: 'ice' },
+  { id: 'ice_burst', folder: 'cold/ice_burst', json: 'ice_burst_sprite.json', png: 'ice_burst_sprite.png', group: 'ice' },
+  { id: 'ice_shatter', folder: 'cold/ice_shatter', json: 'ice_shatter_sprite.json', png: 'ice_shatter_sprite.png', group: 'ice' },
+  // Wood
+  { id: 'wood_projectile', folder: 'wood/wood_projectile', json: 'wood_projectile_sprite.json', png: 'wood_projectile_sprite.png', group: 'wood' },
+  { id: 'wood_hit', folder: 'wood/wood_hit', json: 'wood_hit_sprite.json', png: 'wood_hit_sprite.png', group: 'wood' },
+  { id: 'wood_thorns', folder: 'wood/wood_thorns', json: 'wood_thorns_sprite.json', png: 'wood_thorns_sprite.png', group: 'wood' },
+];
+
+let spriteData = {}; // id -> { json, img, issues }
+let paused = false;
+let animFrame = null;
+let currentFilter = 'all';
+
+const variantSelect = document.getElementById('variant');
+const speedSlider = document.getElementById('speed');
+const speedVal = document.getElementById('speedVal');
+const statusEl = document.getElementById('status');
+const gridEl = document.getElementById('grid');
+const reportEl = document.getElementById('report');
+
+speedSlider.oninput = () => { speedVal.textContent = speedSlider.value + 'x'; };
+document.getElementById('btnPause').onclick = function() {
+  paused = !paused;
+  this.textContent = paused ? 'Play' : 'Pause';
+  this.classList.toggle('active', paused);
+};
+document.getElementById('btnStep').onclick = () => { stepAll(); };
+document.getElementById('btnValidate').onclick = () => { runValidation(); };
+variantSelect.onchange = () => { loadAll(); };
+
+// Filter buttons
+document.querySelectorAll('.filter-bar button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    applyFilter();
+  };
+});
+
+function applyFilter() {
+  document.querySelectorAll('.sprite-card').forEach(card => {
+    const group = card.dataset.group;
+    if (currentFilter === 'all' || group === currentFilter) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function getPath(skill, variant) {
+  return `${skill.folder}/${variant}/${skill.json}`;
+}
+function getPngPath(skill, variant) {
+  return `${skill.folder}/${variant}/${skill.png}`;
+}
+
+async function loadAll() {
+  const variant = variantSelect.value;
+  spriteData = {};
+  gridEl.innerHTML = '';
+  let loaded = 0;
+  let errors = 0;
+
+  for (const skill of SKILLS) {
+    // If skill has custom variants list, pick closest match or fallback to first
+    const effectiveVariant = skill.variants
+      ? (skill.variants.includes(variant) ? variant : skill.variants[0])
+      : variant;
+    const jsonPath = getPath(skill, effectiveVariant);
+    const pngPath = getPngPath(skill, effectiveVariant);
+
+    const card = document.createElement('div');
+    card.className = 'sprite-card';
+    card.dataset.group = skill.group;
+    card.dataset.skillId = skill.id;
+
+    const title = document.createElement('h3');
+    title.textContent = skill.id + (skill.variants ? ` [${effectiveVariant}]` : '');
+    card.appendChild(title);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    card.appendChild(info);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    card.appendChild(canvas);
+
+    const frameInfo = document.createElement('div');
+    frameInfo.className = 'frame-info';
+    card.appendChild(frameInfo);
+
+    const issuesList = document.createElement('ul');
+    issuesList.className = 'issues';
+    card.appendChild(issuesList);
+
+    gridEl.appendChild(card);
+
+    try {
+      const resp = await fetch(jsonPath);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('PNG load failed'));
+        img.src = pngPath;
+      });
+
+      const issues = validateSprite(skill, json, img);
+
+      const fw = json.frames[0]?.frame?.w || 64;
+      const fh = json.frames[0]?.frame?.h || 64;
+      const scale = Math.min(128 / fw, 128 / fh, 4);
+      canvas.width = Math.ceil(fw * scale);
+      canvas.height = Math.ceil(fh * scale);
+
+      const renderType = json.meta?.skill?.renderType || 'unknown';
+      const duration = json.meta?.skill?.renderDurationMs || '?';
+      info.textContent = `${json.frames.length}f | ${fw}x${fh} | ${renderType} | ${duration}ms`;
+
+      if (issues.length > 0) {
+        card.classList.add(issues.some(i => i.severity === 'error') ? 'error' : 'warning');
+        issues.forEach(issue => {
+          const li = document.createElement('li');
+          li.textContent = issue.msg;
+          li.style.color = issue.severity === 'error' ? '#ff4444' : '#ffaa00';
+          issuesList.appendChild(li);
+        });
+      }
+
+      spriteData[skill.id] = {
+        json,
+        img,
+        canvas,
+        frameInfo,
+        currentFrame: 0,
+        elapsed: 0,
+        scale,
+        issues
+      };
+
+      loaded++;
+    } catch (e) {
+      card.classList.add('error');
+      info.textContent = `LOAD ERROR: ${e.message}`;
+      errors++;
+    }
+  }
+
+  statusEl.textContent = `Loaded: ${loaded}/${SKILLS.length} | Errors: ${errors} | Variant: ${variant}`;
+  applyFilter();
+  startAnimation();
+}
+
+function validateSprite(skill, json, img) {
+  const issues = [];
+  const frames = json.frames;
+  const meta = json.meta;
+  const sheetW = meta.size.w;
+  const sheetH = meta.size.h;
+
+  // 1. Check if PNG actual size matches meta.size
+  if (img.naturalWidth !== sheetW || img.naturalHeight !== sheetH) {
+    issues.push({ severity: 'error', msg: `PNG size ${img.naturalWidth}x${img.naturalHeight} != meta ${sheetW}x${sheetH}` });
+  }
+
+  // 2. Frame bounds check
+  frames.forEach((f, i) => {
+    const r = f.frame;
+    if (r.x + r.w > sheetW || r.y + r.h > sheetH) {
+      issues.push({ severity: 'error', msg: `Frame ${i} out of bounds: (${r.x},${r.y}) ${r.w}x${r.h} > sheet ${sheetW}x${sheetH}` });
+    }
+  });
+
+  // 3. Frame sequence check
+  for (let i = 0; i < frames.length; i++) {
+    const fn = frames[i].filename;
+    const match = fn.match(/(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1]);
+      if (num !== i) {
+        issues.push({ severity: 'warning', msg: `Frame ${i} has index ${num} in filename "${fn}"` });
+      }
+    }
+  }
+
+  // 4. Duplicate frame positions
+  const posSet = new Set();
+  frames.forEach((f, i) => {
+    const key = `${f.frame.x},${f.frame.y}`;
+    if (posSet.has(key)) {
+      issues.push({ severity: 'warning', msg: `Frame ${i} has duplicate position (${f.frame.x},${f.frame.y})` });
+    }
+    posSet.add(key);
+  });
+
+  // 5. Duration consistency
+  const durations = [...new Set(frames.map(f => f.duration))];
+  if (durations.length > 1) {
+    issues.push({ severity: 'warning', msg: `Mixed durations: ${durations.join(', ')}ms` });
+  }
+
+  // 6. renderDurationMs vs actual
+  if (meta.skill) {
+    const totalDuration = frames.reduce((sum, f) => sum + f.duration, 0);
+    const declared = meta.skill.renderDurationMs;
+    if (Math.abs(totalDuration - declared) > 50) {
+      issues.push({ severity: 'warning', msg: `renderDuration ${declared}ms != sum(frames) ${totalDuration}ms` });
+    }
+  }
+
+  // 7. Reverse frame order (y decreasing)
+  let reverseCount = 0;
+  for (let i = 1; i < frames.length; i++) {
+    if (frames[i].frame.y < frames[i - 1].frame.y) {
+      reverseCount++;
+    }
+  }
+  if (reverseCount > frames.length / 2) {
+    issues.push({ severity: 'warning', msg: `Frames appear in reverse Y order (bottom-to-top)` });
+  }
+
+  // 8. Filename vs folder name mismatch
+  if (frames.length > 0) {
+    const fnBase = frames[0].filename.replace(/\s*\d+$/, '');
+    if (fnBase !== skill.id && fnBase !== skill.folder.split('/').pop()) {
+      issues.push({ severity: 'warning', msg: `Filename prefix "${fnBase}" != skill "${skill.id}"` });
+    }
+  }
+
+  // 9. Frame size consistency
+  const sizes = [...new Set(frames.map(f => `${f.frame.w}x${f.frame.h}`))];
+  if (sizes.length > 1) {
+    issues.push({ severity: 'error', msg: `Inconsistent frame sizes: ${sizes.join(', ')}` });
+  }
+
+  return issues;
+}
+
+function startAnimation() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  let lastTime = performance.now();
+
+  function loop(now) {
+    const dt = (now - lastTime);
+    lastTime = now;
+
+    if (!paused) {
+      const speedMul = parseFloat(speedSlider.value);
+      for (const id in spriteData) {
+        const sd = spriteData[id];
+        const frames = sd.json.frames;
+        if (frames.length === 0) continue;
+
+        sd.elapsed += dt * speedMul;
+        const frameDuration = frames[sd.currentFrame]?.duration || 100;
+
+        if (sd.elapsed >= frameDuration) {
+          sd.elapsed -= frameDuration;
+          sd.currentFrame = (sd.currentFrame + 1) % frames.length;
+        }
+
+        drawFrame(sd);
+      }
+    }
+
+    animFrame = requestAnimationFrame(loop);
+  }
+
+  animFrame = requestAnimationFrame(loop);
+}
+
+function stepAll() {
+  for (const id in spriteData) {
+    const sd = spriteData[id];
+    const frames = sd.json.frames;
+    sd.currentFrame = (sd.currentFrame + 1) % frames.length;
+    drawFrame(sd);
+  }
+}
+
+function drawFrame(sd) {
+  const frames = sd.json.frames;
+  const f = frames[sd.currentFrame];
+  if (!f) return;
+
+  const ctx = sd.canvas.getContext('2d');
+  ctx.clearRect(0, 0, sd.canvas.width, sd.canvas.height);
+  ctx.imageSmoothingEnabled = false;
+
+  ctx.drawImage(
+    sd.img,
+    f.frame.x, f.frame.y, f.frame.w, f.frame.h,
+    0, 0, sd.canvas.width, sd.canvas.height
+  );
+
+  sd.frameInfo.textContent = `Frame ${sd.currentFrame + 1}/${frames.length} | src(${f.frame.x},${f.frame.y})`;
+}
+
+function runValidation() {
+  reportEl.style.display = 'block';
+  let report = '=== VALIDATION REPORT ===\n\n';
+  let totalIssues = 0;
+  let errorCount = 0;
+  let warnCount = 0;
+
+  for (const skill of SKILLS) {
+    const sd = spriteData[skill.id];
+    if (!sd) {
+      report += `[ERROR] ${skill.id}: Failed to load\n`;
+      errorCount++;
+      continue;
+    }
+    if (sd.issues.length > 0) {
+      report += `${skill.id}:\n`;
+      sd.issues.forEach(issue => {
+        const tag = issue.severity === 'error' ? 'ERROR' : 'WARN';
+        report += `  [${tag}] ${issue.msg}\n`;
+        if (issue.severity === 'error') errorCount++;
+        else warnCount++;
+        totalIssues++;
+      });
+      report += '\n';
+    }
+  }
+
+  if (totalIssues === 0) {
+    report += 'All sprites passed validation!\n';
+  } else {
+    report += `\nTotal: ${totalIssues} issues (${errorCount} errors, ${warnCount} warnings)\n`;
+  }
+
+  reportEl.textContent = report;
+}
+
+loadAll();
+</script>
+</body>
+</html>
