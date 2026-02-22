@@ -12,6 +12,13 @@ import { LeaderboardQueryDto } from './dto/leaderboard-query.dto';
 export class LeaderboardController {
   constructor(private leaderboardService: LeaderboardService) {}
 
+  @Get('online')
+  @ApiOperation({ summary: 'Online player count per league (last seen < 60s)' })
+  @ApiResponse({ status: 200, description: 'Online counts per active league + total' })
+  async getOnline() {
+    return this.leaderboardService.getOnlineByLeague();
+  }
+
   @Get('leagues')
   @ApiOperation({ summary: 'Get active leagues for leaderboard filtering' })
   @ApiResponse({ status: 200, description: 'Active leagues list' })

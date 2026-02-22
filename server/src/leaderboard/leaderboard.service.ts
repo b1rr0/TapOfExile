@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { DojoRecord } from '../shared/entities/dojo-record.entity';
 import { Character } from '../shared/entities/character.entity';
 import { League } from '../shared/entities/league.entity';
+import { Player } from '../shared/entities/player.entity';
 
 @Injectable()
 export class LeaderboardService {
@@ -14,7 +15,45 @@ export class LeaderboardService {
     private characterRepo: Repository<Character>,
     @InjectRepository(League)
     private leagueRepo: Repository<League>,
+    @InjectRepository(Player)
+    private playerRepo: Repository<Player>,
   ) {}
+
+  /**
+   * Returns all active leagues with online player counts.
+   * "Online" = lastSeenAt within the last 60 seconds AND activeLeagueId matches.
+   */
+  async getOnlineByLeague() {
+    const leagues = await this.leagueRepo.find({
+      where: { status: 'active' },
+      order: { type: 'ASC', startsAt: 'DESC' },
+    });
+
+    const oneMinuteAgo = new Date(Date.now() - 60_000);
+
+    const results = await Promise.all(
+      leagues.map(async (league) => {
+        const online = await this.playerRepo.count({
+          where: {
+            activeLeagueId: league.id,
+            lastSeenAt: MoreThan(oneMinuteAgo),
+          },
+        });
+        return {
+          id: league.id,
+          name: league.name,
+          type: league.type,
+          startsAt: league.startsAt,
+          endsAt: league.endsAt,
+          online,
+        };
+      }),
+    );
+
+    const totalOnline = results.reduce((sum, l) => sum + l.online, 0);
+
+    return { leagues: results, totalOnline };
+  }
 
   /** Return all active leagues for the wiki league selector */
   async getActiveLeagues() {

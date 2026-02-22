@@ -5,8 +5,9 @@ import { B } from '@shared/balance';
 
 const API_BASE = '/api';
 
+const CLASS_LIST = Object.values(CLASS_DEFS);
 const CLASS_ICONS: Record<string, string> = Object.fromEntries(
-  Object.values(CLASS_DEFS).map(c => [c.id, c.icon])
+  CLASS_LIST.map((c) => [c.id, c.icon])
 );
 
 interface LeagueInfo {
@@ -54,9 +55,8 @@ function formatXp(xp: string | number): string {
   return num.toLocaleString();
 }
 
-/* ── Rank cell ─────────────────────────────── */
 function RankCell({ rank }: { rank: number }) {
-  const medals = ['', '\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
+  const medals = ['', '🥇', '🥈', '🥉'];
   return (
     <td
       style={{
@@ -73,7 +73,6 @@ function RankCell({ rank }: { rank: number }) {
   );
 }
 
-/* ── Player cell ───────────────────────────── */
 function PlayerCell({ nickname, telegramUsername }: { nickname: string; telegramUsername: string | null }) {
   return (
     <td>
@@ -87,7 +86,6 @@ function PlayerCell({ nickname, telegramUsername }: { nickname: string; telegram
   );
 }
 
-/* ── Class cell ────────────────────────────── */
 function ClassCell({ classId }: { classId: string }) {
   return (
     <td>
@@ -97,12 +95,11 @@ function ClassCell({ classId }: { classId: string }) {
   );
 }
 
-/* ── Loading / Error / Empty states ────────── */
 function TableState({ loading, error, empty }: { loading: boolean; error: string | null; empty: boolean }) {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{'\u23F3'}</div>
+        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⏳</div>
         Loading...
       </div>
     );
@@ -110,7 +107,7 @@ function TableState({ loading, error, empty }: { loading: boolean; error: string
   if (error) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--accent-fire)' }}>
-        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{'\u26A0\uFE0F'}</div>
+        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⚠️</div>
         {error}
       </div>
     );
@@ -125,7 +122,6 @@ function TableState({ loading, error, empty }: { loading: boolean; error: string
   return null;
 }
 
-/* ── League tabs ───────────────────────────── */
 function LeagueTabs({
   leagues,
   activeLeagueId,
@@ -144,7 +140,36 @@ function LeagueTabs({
           className={`tab-btn ${activeLeagueId === league.id ? 'active' : ''}`}
           onClick={() => onChange(league.id)}
         >
-          {league.type === 'monthly' ? '\uD83C\uDFC6' : '\uD83D\uDEE1\uFE0F'} {league.name}
+          {league.type === 'monthly' ? '🏆' : '🛡️'} {league.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ── Class filter bar ────────────────────────────────────── */
+function ClassFilter({
+  active,
+  onChange,
+}: {
+  active: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="champ-class-filter">
+      <button
+        className={`class-filter-btn ${active === 'all' ? 'active' : ''}`}
+        onClick={() => onChange('all')}
+      >
+        All
+      </button>
+      {CLASS_LIST.map((cls) => (
+        <button
+          key={cls.id}
+          className={`class-filter-btn ${active === cls.id ? 'active' : ''}`}
+          onClick={() => onChange(cls.id)}
+        >
+          {cls.icon} {cls.name}
         </button>
       ))}
     </div>
@@ -154,28 +179,25 @@ function LeagueTabs({
 /* ══════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════ */
-
 export default function ChampionsPage() {
-  /* ── Leagues ─────────────────────────────── */
   const [leagues, setLeagues] = useState<LeagueInfo[]>([]);
   const [dojoLeagueId, setDojoLeagueId] = useState<string | null>(null);
   const [xpLeagueId, setXpLeagueId] = useState<string | null>(null);
   const [leaguesLoading, setLeaguesLoading] = useState(true);
 
-  /* ── Dojo data ───────────────────────────── */
   const [dojoData, setDojoData] = useState<DojoEntry[]>([]);
   const [dojoLoading, setDojoLoading] = useState(false);
   const [dojoError, setDojoError] = useState<string | null>(null);
+  const [dojoClassFilter, setDojoClassFilter] = useState<string>('all');
 
-  /* ── XP data ─────────────────────────────── */
   const [xpData, setXpData] = useState<XpEntry[]>([]);
   const [xpLoading, setXpLoading] = useState(false);
   const [xpError, setXpError] = useState<string | null>(null);
+  const [xpClassFilter, setXpClassFilter] = useState<string>('all');
 
-  /* ── Character profile modal ─────────────── */
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
 
-  /* ── Fetch leagues once ──────────────────── */
+  /* ── Fetch leagues ────────────────────────── */
   useEffect(() => {
     fetch(`${API_BASE}/leaderboard/leagues`)
       .then((r) => {
@@ -190,21 +212,17 @@ export default function ChampionsPage() {
         setDojoLeagueId(defaultId);
         setXpLeagueId(defaultId);
       })
-      .catch(() => {
-        setLeagues([]);
-      })
+      .catch(() => setLeagues([]))
       .finally(() => setLeaguesLoading(false));
   }, []);
 
-  /* ── Fetch dojo when league changes ──────── */
+  /* ── Fetch dojo ───────────────────────────── */
   useEffect(() => {
     if (leaguesLoading) return;
     setDojoLoading(true);
     setDojoError(null);
-
     const params = new URLSearchParams({ limit: '50' });
     if (dojoLeagueId) params.set('leagueId', dojoLeagueId);
-
     fetch(`${API_BASE}/leaderboard/dojo?${params}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -215,15 +233,13 @@ export default function ChampionsPage() {
       .finally(() => setDojoLoading(false));
   }, [dojoLeagueId, leaguesLoading]);
 
-  /* ── Fetch XP when league changes ────────── */
+  /* ── Fetch XP ─────────────────────────────── */
   useEffect(() => {
     if (leaguesLoading) return;
     setXpLoading(true);
     setXpError(null);
-
     const params = new URLSearchParams({ limit: '50' });
     if (xpLeagueId) params.set('leagueId', xpLeagueId);
-
     fetch(`${API_BASE}/leaderboard/xp?${params}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -234,18 +250,24 @@ export default function ChampionsPage() {
       .finally(() => setXpLoading(false));
   }, [xpLeagueId, leaguesLoading]);
 
-  /* ── Render ──────────────────────────────── */
+  /* ── Filtered data ────────────────────────── */
+  const filteredDojo = dojoClassFilter === 'all'
+    ? dojoData
+    : dojoData.filter((e) => e.classId === dojoClassFilter);
+
+  const filteredXp = xpClassFilter === 'all'
+    ? xpData
+    : xpData.filter((e) => e.classId === xpClassFilter);
+
   return (
     <>
       <div className="page-heading">
-        <h1>Champions</h1>
+        <h1>🏆 Champions</h1>
         <p>Live leaderboards &mdash; real-time data from the game server.</p>
       </div>
 
-      {/* ════════════════════════════════════════
-          DOJO DAMAGE SECTION
-          ════════════════════════════════════════ */}
-      <h2 className="section-title">{'\uD83C\uDFC6'} Dojo Damage</h2>
+      {/* ════════════════════ DOJO ════════════════════ */}
+      <h2 className="section-title">🏆 Dojo Damage</h2>
       <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
         Top players by best damage dealt in a {B.DOJO_ROUND_MS / 1000}-second Dojo round.
       </p>
@@ -255,8 +277,9 @@ export default function ChampionsPage() {
       ) : (
         <>
           <LeagueTabs leagues={leagues} activeLeagueId={dojoLeagueId} onChange={setDojoLeagueId} />
-          <TableState loading={dojoLoading} error={dojoError} empty={!dojoLoading && !dojoError && dojoData.length === 0} />
-          {!dojoLoading && !dojoError && dojoData.length > 0 && (
+          <ClassFilter active={dojoClassFilter} onChange={setDojoClassFilter} />
+          <TableState loading={dojoLoading} error={dojoError} empty={!dojoLoading && !dojoError && filteredDojo.length === 0} />
+          {!dojoLoading && !dojoError && filteredDojo.length > 0 && (
             <div style={{ overflowX: 'auto' }}>
               <table className="wiki-table">
                 <thead>
@@ -269,7 +292,7 @@ export default function ChampionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dojoData.map((e) => (
+                  {filteredDojo.map((e) => (
                     <tr key={e.characterId} onClick={() => setSelectedCharId(e.characterId)} style={{ cursor: 'pointer' }}>
                       <RankCell rank={e.rank} />
                       <PlayerCell nickname={e.nickname} telegramUsername={e.telegramUsername} />
@@ -285,9 +308,7 @@ export default function ChampionsPage() {
         </>
       )}
 
-      {/* ════════════════════════════════════════
-          DOJO PARAMETERS
-          ════════════════════════════════════════ */}
+      {/* ════════════════════ DOJO PARAMS ════════════════════ */}
       <h2 className="section-title" style={{ marginTop: '2rem' }}>Dojo Parameters</h2>
       <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
         <table className="wiki-table">
@@ -318,10 +339,8 @@ export default function ChampionsPage() {
         </table>
       </div>
 
-      {/* ════════════════════════════════════════
-          EXPERIENCE SECTION
-          ════════════════════════════════════════ */}
-      <h2 className="section-title" style={{ marginTop: '3rem' }}>{'\u2B50'} Most Experienced Fighters</h2>
+      {/* ════════════════════ XP LEADERBOARD ════════════════════ */}
+      <h2 className="section-title" style={{ marginTop: '3rem' }}>⭐ Most Experienced Fighters</h2>
       <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
         Top players ranked by character level and total experience gained.
       </p>
@@ -331,8 +350,9 @@ export default function ChampionsPage() {
       ) : (
         <>
           <LeagueTabs leagues={leagues} activeLeagueId={xpLeagueId} onChange={setXpLeagueId} />
-          <TableState loading={xpLoading} error={xpError} empty={!xpLoading && !xpError && xpData.length === 0} />
-          {!xpLoading && !xpError && xpData.length > 0 && (
+          <ClassFilter active={xpClassFilter} onChange={setXpClassFilter} />
+          <TableState loading={xpLoading} error={xpError} empty={!xpLoading && !xpError && filteredXp.length === 0} />
+          {!xpLoading && !xpError && filteredXp.length > 0 && (
             <div style={{ overflowX: 'auto' }}>
               <table className="wiki-table">
                 <thead>
@@ -345,7 +365,7 @@ export default function ChampionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {xpData.map((e) => (
+                  {filteredXp.map((e) => (
                     <tr key={e.characterId} onClick={() => setSelectedCharId(e.characterId)} style={{ cursor: 'pointer' }}>
                       <RankCell rank={e.rank} />
                       <PlayerCell nickname={e.nickname} telegramUsername={e.telegramUsername} />
@@ -361,9 +381,6 @@ export default function ChampionsPage() {
         </>
       )}
 
-      {/* ════════════════════════════════════════
-          CHARACTER PROFILE MODAL
-          ════════════════════════════════════════ */}
       {selectedCharId && (
         <CharacterModal
           characterId={selectedCharId}

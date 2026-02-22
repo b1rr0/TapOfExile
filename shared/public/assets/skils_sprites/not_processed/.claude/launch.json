@@ -3,10 +3,9 @@
   "configurations": [
     {
       "name": "bot-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173,
-      "cwd": "bot"
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /d/programs/code/TapOfExile/bot && npx vite --port 5173"],
+      "port": 5173
     }
   ]
 }

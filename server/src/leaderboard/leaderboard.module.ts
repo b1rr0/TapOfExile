@@ -7,9 +7,10 @@ import { Character } from '../shared/entities/character.entity';
 import { League } from '../shared/entities/league.entity';
 import { EquipmentSlot } from '../shared/entities/equipment-slot.entity';
 import { Item } from '../shared/entities/item.entity';
+import { Player } from '../shared/entities/player.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DojoRecord, Character, League, EquipmentSlot, Item])],
+  imports: [TypeOrmModule.forFeature([DojoRecord, Character, League, EquipmentSlot, Item, Player])],
   controllers: [LeaderboardController],
   providers: [LeaderboardService],
 })
