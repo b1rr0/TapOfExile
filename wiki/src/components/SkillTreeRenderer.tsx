@@ -186,7 +186,7 @@ export default function SkillTreeRenderer({
     });
 
     // Update edge classes
-    svg.querySelectorAll('.st-edge').forEach(el => {
+    svg.querySelectorAll('.st-edge[data-edge-a]').forEach(el => {
       const a = Number(el.getAttribute('data-edge-a'));
       const b = Number(el.getAttribute('data-edge-b'));
       el.classList.toggle('st-edge--active', set.has(a) && set.has(b));
@@ -268,6 +268,17 @@ export default function SkillTreeRenderer({
     for (const [aId, bId] of tree.edges) {
       const a = tree.nodes[aId];
       const b = tree.nodes[bId];
+      const isClass = a.type === 'classSkill' || b.type === 'classSkill';
+
+      // Class edges: black outline line underneath
+      if (isClass) {
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        bg.setAttribute('x1', String(a.x)); bg.setAttribute('y1', String(a.y));
+        bg.setAttribute('x2', String(b.x)); bg.setAttribute('y2', String(b.y));
+        bg.classList.add('st-edge', 'st-edge--class-outline');
+        g.appendChild(bg);
+      }
+
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', String(a.x));
       line.setAttribute('y1', String(a.y));
@@ -276,7 +287,7 @@ export default function SkillTreeRenderer({
       line.setAttribute('data-edge-a', String(aId));
       line.setAttribute('data-edge-b', String(bId));
       line.classList.add('st-edge');
-      if (a.type === 'classSkill' || b.type === 'classSkill') line.classList.add('st-edge--class');
+      if (isClass) line.classList.add('st-edge--class');
       const feKey = `${Math.min(aId, bId)}-${Math.max(aId, bId)}`;
       if (tree.figureEdgeSet.has(feKey)) line.classList.add('st-edge--figure');
       if (initSet.has(aId) && initSet.has(bId)) line.classList.add('st-edge--active');
@@ -288,10 +299,13 @@ export default function SkillTreeRenderer({
       const ng = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       ng.setAttribute('data-node-id', String(node.id));
       ng.classList.add('st-node', `st-node--${node.type}`);
+      const isClassConn = node.type === 'classSkill' && (node as any).connector;
+      if (isClassConn) ng.classList.add('st-node--classConnector');
       if (initSet.has(node.id)) ng.classList.add('st-node--allocated');
 
-      const r = NODE_RADIUS[node.type] || 8;
-      const shape = node.type === 'keystone' ? 'diamond'
+      const r = isClassConn ? 5 : (NODE_RADIUS[node.type] || 8);
+      const shape = isClassConn ? 'hex'
+        : node.type === 'keystone' ? 'diamond'
         : (node.type === 'notable' || node.type === 'classSkill' || node.type === 'figureEntry') ? 'hex' : 'circle';
 
       if (shape === 'circle') {

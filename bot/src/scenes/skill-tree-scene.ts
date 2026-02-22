@@ -230,6 +230,17 @@ export class SkillTreeScene {
     for (const [aId, bId] of this._tree!.edges) {
       const a = this._tree!.nodes[aId];
       const b = this._tree!.nodes[bId];
+      const isClass = a.type === "classSkill" || b.type === "classSkill";
+
+      // Class edges: black outline line underneath
+      if (isClass) {
+        const bg = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        bg.setAttribute("x1", String(a.x)); bg.setAttribute("y1", String(a.y));
+        bg.setAttribute("x2", String(b.x)); bg.setAttribute("y2", String(b.y));
+        bg.classList.add("st-edge", "st-edge--class-outline");
+        frag.appendChild(bg);
+      }
+
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", String(a.x));
       line.setAttribute("y1", String(a.y));
@@ -237,7 +248,7 @@ export class SkillTreeScene {
       line.setAttribute("y2", String(b.y));
       line.setAttribute("data-edge", `${aId}-${bId}`);
       line.classList.add("st-edge");
-      if (a.type === "classSkill" || b.type === "classSkill") line.classList.add("st-edge--class");
+      if (isClass) line.classList.add("st-edge--class");
       const feKey = `${Math.min(aId, bId)}-${Math.max(aId, bId)}`;
       if (this._tree!.figureEdgeSet.has(feKey)) line.classList.add("st-edge--figure");
       if (this._allocated.has(aId) && this._allocated.has(bId)) line.classList.add("st-edge--active");
@@ -255,6 +266,9 @@ export class SkillTreeScene {
       g.setAttribute("data-node-id", String(node.id));
       g.classList.add("st-node");
       g.classList.add(`st-node--${node.type}`);
+      if (node.type === "classSkill" && (node as any).connector) {
+        g.classList.add("st-node--classConnector");
+      }
 
       if (this._allocated.has(node.id)) {
         g.classList.add("st-node--allocated");
@@ -262,8 +276,10 @@ export class SkillTreeScene {
         g.classList.add("st-node--reachable");
       }
 
-      const r = NODE_RADIUS[node.type] || 8;
-      const shape: string = node.type === "keystone" ? "diamond"
+      const isConnector = node.type === "classSkill" && (node as any).connector;
+      const r = isConnector ? 5 : (NODE_RADIUS[node.type] || 8);
+      const shape: string = isConnector ? "hex"
+        : node.type === "keystone" ? "diamond"
         : node.type === "notable" ? "hex"
         : node.type === "classSkill" ? "hex"
         : node.type === "figureEntry" ? "hex"
@@ -321,7 +337,7 @@ export class SkillTreeScene {
       if (this._allocated.has(id)) g.classList.add("st-node--allocated");
       else if (this._isReachable(id)) g.classList.add("st-node--reachable");
     }
-    for (const line of this._graphG!.querySelectorAll(".st-edge")) {
+    for (const line of this._graphG!.querySelectorAll(".st-edge[data-edge]")) {
       const [a, b] = (line as SVGLineElement).dataset.edge!.split("-").map(Number);
       line.classList.toggle("st-edge--active", this._allocated.has(a) && this._allocated.has(b));
     }

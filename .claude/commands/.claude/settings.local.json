@@ -7,7 +7,9 @@
       "Bash(git log:*)",
       "Bash(ls:*)",
       "Bash(npx:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(D:/programs/code/TapOfExile/bot/node_modules/.bin/tsc:*)"
     ]
   }
 }

@@ -51,6 +51,7 @@ async function main() {
       stat: m.stat, value: m.value, mode: m.mode,
     })),
     connections: n.connections,
+    connector: n.connector || false,
   }));
 
   const serializedEdges = tree.edges;
@@ -86,6 +87,7 @@ export interface RawNode {
   defId: string | null;
   mods: { stat: string; value: number; mode: string }[];
   connections: number[];
+  connector: boolean;
 }
 
 export const TREE_NODES: RawNode[] = ${JSON.stringify(serializedNodes)};

@@ -28,7 +28,12 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(curl:*)",
       "WebFetch(domain:gta5rp.com)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)",
+      "Bash(fuser:*)",
+      "Bash(npm --prefix bot run dev)",
+      "Bash(npm --version:*)"
     ]
   }
 }

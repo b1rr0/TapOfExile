@@ -4956,36 +4956,67 @@ body {
   pointer-events: none;
 }
 
-/* ── Class skill nodes (inside emblem) ── */
+/* ── Class skill nodes — red skills (inside emblem) ── */
 
-.st-node--classSkill path {
-  fill: #1a2840;
-  stroke: #4a8adf;
+.st-node--classSkill:not(.st-node--classConnector) path {
+  fill: #1a0010;
+  stroke: #A40239;
   stroke-width: 2;
 }
 
-.st-node--classSkill.st-node--allocated path {
-  fill: #4a9aff;
-  stroke: #8ac4ff;
-  filter: drop-shadow(0 0 6px rgba(74,154,255,0.5));
+.st-node--classSkill:not(.st-node--classConnector).st-node--allocated path {
+  fill: #8b0030;
+  stroke: #ff3366;
+  filter: drop-shadow(0 0 7px rgba(164,2,57,0.7));
 }
 
-.st-node--classSkill.st-node--reachable path {
-  stroke: rgba(100,180,255,0.7);
+.st-node--classSkill:not(.st-node--classConnector).st-node--reachable path {
+  stroke: rgba(255,51,102,0.8);
   animation: st-pulse-class 2s ease-in-out infinite;
 }
 
 @keyframes st-pulse-class {
-  0%, 100% { filter: drop-shadow(0 0 2px rgba(100,180,255,0.2)); }
-  50%      { filter: drop-shadow(0 0 8px rgba(100,180,255,0.5)); }
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(164,2,57,0.3)); }
+  50%      { filter: drop-shadow(0 0 9px rgba(255,51,102,0.7)); }
 }
 
+/* ── Class connector nodes — dim path nodes (inside emblem) ── */
+
+.st-node--classConnector path,
+.st-node--classSkill.st-node--classConnector path {
+  fill: #141e30;
+  stroke: #3a5070;
+  stroke-width: 1.5;
+}
+
+.st-node--classConnector.st-node--allocated path {
+  fill: #2a4060;
+  stroke: #5a80a0;
+  filter: drop-shadow(0 0 4px rgba(80,140,200,0.4));
+}
+
+.st-node--classConnector.st-node--reachable path {
+  stroke: rgba(80,140,200,0.5);
+  animation: st-pulse-connector 2.5s ease-in-out infinite;
+}
+
+@keyframes st-pulse-connector {
+  0%, 100% { filter: drop-shadow(0 0 1px rgba(80,140,200,0.15)); }
+  50%      { filter: drop-shadow(0 0 5px rgba(80,140,200,0.4)); }
+}
+
+.st-edge--class-outline {
+  stroke: #000;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
 .st-edge--class {
-  stroke: rgba(180,200,255,0.6);
-  stroke-width: 2;
+  stroke: #D4A88C;
+  stroke-width: 1.5;
+  stroke-linecap: round;
 }
 .st-edge--class.st-edge--active {
-  stroke: rgba(160,220,255,0.9);
+  stroke: #E8C4A8;
   stroke-width: 2.5;
 }
 .st-edge--figure {

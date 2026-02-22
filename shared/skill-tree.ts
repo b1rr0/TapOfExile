@@ -62,7 +62,7 @@ const CLASS_ANGLE: Record<string, number> = { samurai: 0, warrior: Math.PI / 2, 
 
 const START_RADIUS: number = 210;
 export const EMBLEM_RADIUS: number = 100;
-export const MAX_CLASS_SKILLS: number = 6;
+export const MAX_CLASS_SKILLS: number = 8;
 
 // Node rendering radii (shared between FE, wiki, and layout validation)
 export const NODE_RADIUS: Record<string, number> = {
@@ -95,6 +95,8 @@ export class SkillNode {
   def: NodeDef | null;
   mods: StatModifier[];
   connections: number[];
+  /** True for classSkill nodes that serve as path connectors (not highlighted as orange skills) */
+  connector: boolean;
 
   constructor(
     id: number,
@@ -123,6 +125,7 @@ export class SkillNode {
     this.mods = (data instanceof NodeDef) ? data.mods : [];
 
     this.connections = [];
+    this.connector = false;
   }
 }
 
@@ -854,6 +857,7 @@ function hydrateTree(): SkillTreeResult {
       def || { label: raw.label, name: raw.name, stat: raw.stat, value: raw.value },
     );
     node.connections = raw.connections;
+    node.connector = (raw as any).connector || false;
     // If no def matched but we have mods data, rebuild mods array
     if (!def && raw.mods && raw.mods.length > 0) {
       node.mods = raw.mods.map((m) => new StatModifier(m.stat, m.value, m.mode as "percent" | "flat"));
@@ -954,69 +958,158 @@ export function generateSkillTree(): SkillTreeResult {
     b.addEmblem(cls, ecx, ecy, n.id);
   }
 
-  // ── 2. Class skill mini-trees (16 per class = 64) ──────
+  // ── 2. Class skill mini-trees (15 per class = 60) ──────
+  //
+  // Stretched layout — tree grows INWARD from start (at emblem edge r=100).
+  // D1 at r=80 (4/5 of emblem radius). Branches fill the emblem interior.
+  //
+  //   Topology:
+  //     Long branches (0, 1, 3): D2(conn)→D3(skill)→D4(conn)→D5(skill)
+  //     Fork branch  (2):       D2(conn)→skill2→junction(conn)→ forkL(skill4) / forkR(skill5)
+  //     Middle branch (1):      D2(conn)→D3(skill1, leaf)
+  //
+  //   ◉ = classSkill (red), connector=false   — 8 total
+  //   ○ = classSkill (path node), connector=true  — 7 total
+  //   MAX_CLASS_SKILLS = 8
+  //
+  //   Layout: 2 circumference branches (0, 3) arc along the edge at r≈66-78;
+  //           2 middle branches (1, 2) dive toward center at r≈14-60.
+  //   Edge lengths increase with depth (wider angular spread).
+
+  const FORK_IDX = 2; // which of the 4 branches is the fork
+
+  // ── Sketch-based layout ──────────────────────────────────
+  // Hand-crafted from user sketch (samurai, d=500px, scaled ×0.4).
+  // Each node: [angle_offset_from_startA (radians), radius].
+  // Auto-rotated per class via startA.
+  //
+  // Tree grows DOWNWARD from start like an inverted tree.
+  // Branches fill the circle interior; endpoints reach far edges.
+  //
+  // Node mapping from sketch:
+  //   D1=root, B0: 1→2→3, B1: 4→(interp)→11, B2 fork: 6→(9,10), B3: 5→7→8
+
+  // Two concentric circles for node placement:
+  //   Side radius:   r = 75  (branches 0, 3)
+  //   Middle radius: r = 45  (branches 1, 2 + fork tips)
+  //   D1 at r = 90 (10px from start at r=100)
+  const R_SIDE = 75;
+  const R_MID  = 45;
+
+  const D1_POS: [number, number] = [0.0, 75]; // 25px from start
+
+  // [D2(conn), D3(skill), D4(conn), D5(skill)] — per branch
+  // Angular steps ~0.55 rad between consecutive nodes
+  const BRANCH_POS: [number, number][][] = [
+    // Branch 0 (side-left): all on r=75, angles ×1.25
+    [[-0.625, R_SIDE], [-1.3125, R_SIDE], [-2.00, R_SIDE], [-2.6875, R_SIDE]],
+    // Branch 1 (middle-left): D2 -35°, D3 (skill 1, leaf) -70°
+    [[-35 * Math.PI / 180, R_MID], [-70 * Math.PI / 180, R_MID]],
+    // Branch 2 (fork): D2 +35°, junction(conn) +70° → forkL/forkR/skill2(+105°)
+    [[+35 * Math.PI / 180, R_MID], [+70 * Math.PI / 180, R_MID], [+105 * Math.PI / 180, R_MID]],
+    // Branch 3 (side-right): all on r=75, angles ×1.25
+    [[+0.625, R_SIDE], [+1.3125, R_SIDE], [+2.00, R_SIDE], [+2.6875, R_SIDE]],
+  ];
+
+  // Fork endpoints from D3[FORK_IDX] — on middle circle r=50
+  const FORK_POS: [number, number][] = [
+    [200 * Math.PI / 180, R_MID],   // fork-L: 200° ≈ 3.491 rad
+    [160 * Math.PI / 180, R_MID],   // fork-R: 160° ≈ 2.793 rad
+  ];
 
   for (let ci = 0; ci < 4; ci++) {
     const cls = CLASS_IDS[ci];
-    const skills = CLASS_SKILLS[cls];
     const em = b.emblems[ci];
     const ecx = em.cx, ecy = em.cy;
     const startA = START_OFFSET_ANGLE[cls];
-    const centerA = startA + Math.PI;
-    const fanSpan = Math.PI * 1.4;
     let si = 0;
+    let cni = 0;
 
     function emPolar(angle: number, r: number): [number, number] {
       return [ecx + Math.cos(angle) * r, ecy + Math.sin(angle) * r];
     }
 
-    // Ring 1: 3 nodes
-    const r1 = 30;
-    const tier1: SkillNode[] = [];
-    for (let j = 0; j < 3; j++) {
-      const a = centerA + (j - 1) * (fanSpan / 3);
-      const [nx, ny] = emPolar(a, r1);
-      const n = b.createNode(`${cls}-cs-${si}`, "classSkill", cls, nx, ny, skills[si]);
+    function mkSkill(aOff: number, r: number): SkillNode {
+      const [nx, ny] = emPolar(startA + aOff, r);
+      const n = b.createNode(
+        `${cls}-cs-s${si}`, "classSkill", cls, nx, ny,
+        { label: `${cls} skill ${si}` },
+      );
       si++;
-      b.link(starts[ci], n);
-      tier1.push(n);
+      n.connector = false;
+      return n;
     }
 
-    // Ring 2: 6 nodes
-    const r2 = 58;
-    const tier2: SkillNode[][] = [];
-    for (let j = 0; j < 3; j++) {
-      const parentA = centerA + (j - 1) * (fanSpan / 3);
-      const pair: SkillNode[] = [];
-      for (let k = 0; k < 2; k++) {
-        const a = parentA + (k === 0 ? -fanSpan / 8 : fanSpan / 8);
-        const [nx, ny] = emPolar(a, r2);
-        const n = b.createNode(`${cls}-cs-${si}`, "classSkill", cls, nx, ny, skills[si]);
-        si++;
-        b.link(tier1[j], n);
-        pair.push(n);
-      }
-      tier2.push(pair);
+    function mkConn(aOff: number, r: number): SkillNode {
+      const [nx, ny] = emPolar(startA + aOff, r);
+      const n = b.createNode(
+        `${cls}-cs-c${cni}`, "classSkill", cls, nx, ny,
+        { label: cls },
+      );
+      cni++;
+      n.connector = true;
+      return n;
     }
 
-    // Ring 3: 7 nodes
-    const r3 = 82;
-    for (let j = 0; j < 3; j++) {
-      for (let k = 0; k < 2; k++) {
-        if (si >= 16) break;
-        const parent = tier2[j][k];
-        const parentA = Math.atan2(parent.y - ecy, parent.x - ecx);
-        const [nx, ny] = emPolar(parentA, r3);
-        const n = b.createNode(`${cls}-cs-${si}`, "classSkill", cls, nx, ny, skills[si]);
-        si++;
-        b.link(parent, n);
+    // D1 — bridge connector
+    const d1 = mkConn(D1_POS[0], D1_POS[1]);
+    b.link(starts[ci], d1);
+
+    // D2 — 4 path connectors
+    const d2 = BRANCH_POS.map(bp => {
+      const n = mkConn(bp[0][0], bp[0][1]);
+      b.link(d1, n);
+      return n;
+    });
+
+    const longIndices = [0, 3];
+
+    // D3 — skill/connector endpoints per branch
+    const d3 = BRANCH_POS.map((bp, i) => {
+      const isLong = longIndices.includes(i);
+      const isFork = i === FORK_IDX;
+
+      if (!isLong && bp.length > 2) {
+        // Fork: D2→skill(+70°)→junction(conn,+105°) — fork branches from junction
+        // Other: D2→skill→skill chain
+        let prev = d2[i];
+        for (let k = 1; k < bp.length - 1; k++) {
+          const mid = mkSkill(bp[k][0], bp[k][1]);
+          b.link(prev, mid);
+          prev = mid;
+        }
+        const lastPos = bp[bp.length - 1];
+        const n = isFork
+          ? mkConn(lastPos[0], lastPos[1])
+          : mkSkill(lastPos[0], lastPos[1]);
+        b.link(prev, n);
+        return n;
       }
+
+      const n = mkSkill(bp[1][0], bp[1][1]);
+      b.link(d2[i], n);
+      return n;
+    });
+
+    // D4 + D5 for long (side) branches only
+    const d4Conn: (SkillNode | null)[] = [null, null, null, null];
+
+    for (const li of longIndices) {
+      const n = mkConn(BRANCH_POS[li][2][0], BRANCH_POS[li][2][1]);
+      b.link(d3[li], n);
+      d4Conn[li] = n;
     }
-    if (si < 16) {
-      const [nx, ny] = emPolar(centerA, r3);
-      const n = b.createNode(`${cls}-cs-${si}`, "classSkill", cls, nx, ny, skills[si]);
-      si++;
-      b.link(tier2[1][0], n); // single parent — avoids 4-cycle via cs-1↔cs-5↔cs-15↔cs-6
+
+    // Fork: 2 skill endpoints from d3[FORK_IDX] (the junction connector)
+    const forkL = mkSkill(FORK_POS[0][0], FORK_POS[0][1]);
+    const forkR = mkSkill(FORK_POS[1][0], FORK_POS[1][1]);
+    b.link(d3[FORK_IDX], forkL);
+    b.link(d3[FORK_IDX], forkR);
+
+    // D5 — 3 skill endpoints for long branches
+    for (const li of longIndices) {
+      const n = mkSkill(BRANCH_POS[li][3][0], BRANCH_POS[li][3][1]);
+      b.link(d4Conn[li]!, n);
     }
   }
 
