@@ -1,8 +1,24 @@
-import { buildSkillTree, getClassStartNode, EMBLEM_RADIUS, NODE_RADIUS, MAX_CLASS_SKILLS } from "../data/skill-tree.js";
+import { buildSkillTree, getClassStartNode, hexPath, diamondPath, getNodeShape, EMBLEM_RADIUS, NODE_RADIUS, MAX_CLASS_SKILLS } from "../data/skill-tree.js";
 import { validateAllocations } from "@shared/skill-tree-validation";
 import { api } from "../api.js";
 import type { SharedDeps, SkillTreeResult, NodeType } from "../types.js";
 import type { SkillNode } from "@shared/skill-tree";
+
+/* ── Module-level tree cache (built once, shared across all mounts) ── */
+
+let _cachedTree: SkillTreeResult | null = null;
+function getTree(): SkillTreeResult {
+  if (!_cachedTree) _cachedTree = buildSkillTree();
+  return _cachedTree;
+}
+
+/* ── Touch distance helper (module-level, no need to be a class method) ── */
+
+function touchDist(t: TouchList): number {
+  const dx = t[0].clientX - t[1].clientX;
+  const dy = t[0].clientY - t[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
 
 /**
  * SkillTreeScene — circular passive skill tree (PoE2-style).
@@ -86,7 +102,7 @@ export class SkillTreeScene {
     const char = this.state.getActiveCharacter();
     this._classId = char ? char.classId : "samurai";
 
-    this._tree = buildSkillTree();
+    this._tree = getTree();
     this._startNodeId = getClassStartNode(this._classId);
     this._loadAllocated(char);
     this._allocated.add(this._startNodeId);
@@ -278,12 +294,7 @@ export class SkillTreeScene {
 
       const isConnector = node.type === "classSkill" && (node as any).connector;
       const r = isConnector ? 5 : (NODE_RADIUS[node.type] || 8);
-      const shape: string = isConnector ? "hex"
-        : node.type === "keystone" ? "diamond"
-        : node.type === "notable" ? "hex"
-        : node.type === "classSkill" ? "hex"
-        : node.type === "figureEntry" ? "hex"
-        : "circle";
+      const shape = getNodeShape(node.type, isConnector);
 
       if (shape === "circle") {
         const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -291,11 +302,11 @@ export class SkillTreeScene {
         g.appendChild(c);
       } else if (shape === "hex") {
         const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        p.setAttribute("d", this._hexPath(node.x, node.y, r));
+        p.setAttribute("d", hexPath(node.x, node.y, r));
         g.appendChild(p);
       } else {
         const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        p.setAttribute("d", this._diamondPath(node.x, node.y, r));
+        p.setAttribute("d", diamondPath(node.x, node.y, r));
         g.appendChild(p);
       }
 
@@ -315,19 +326,6 @@ export class SkillTreeScene {
       frag.appendChild(g);
     }
     this._graphG!.appendChild(frag);
-  }
-
-  _hexPath(cx: number, cy: number, r: number): string {
-    const pts: string[] = [];
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i - Math.PI / 6;
-      pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
-    }
-    return `M${pts.join("L")}Z`;
-  }
-
-  _diamondPath(cx: number, cy: number, r: number): string {
-    return `M${cx},${cy - r} L${cx + r},${cy} L${cx},${cy + r} L${cx - r},${cy} Z`;
   }
 
   _updateAllNodes(): void {
@@ -501,12 +499,12 @@ export class SkillTreeScene {
       this._zoomAt(f, { x: e.clientX - r.left, y: e.clientY - r.top });
     };
     this._onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) this._pinchDist = this._touchDist(e.touches);
+      if (e.touches.length === 2) this._pinchDist = touchDist(e.touches);
     };
     this._onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && this._pinchDist) {
         e.preventDefault();
-        const nd = this._touchDist(e.touches);
+        const nd = touchDist(e.touches);
         const f = nd / this._pinchDist;
         this._pinchDist = nd;
         const r = vp.getBoundingClientRect();
@@ -525,11 +523,6 @@ export class SkillTreeScene {
     vp.addEventListener("touchstart", this._onTouchStart, { passive: true });
     vp.addEventListener("touchmove", this._onTouchMove, { passive: false });
     vp.addEventListener("touchend", this._onTouchEnd);
-  }
-
-  _touchDist(t: TouchList): number {
-    const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
   }
 
   _zoomAt(factor: number, center: { x: number; y: number } | null): void {

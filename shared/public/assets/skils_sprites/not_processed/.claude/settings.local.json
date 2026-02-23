@@ -33,7 +33,10 @@
       "Bash(xargs kill -9)",
       "Bash(fuser:*)",
       "Bash(npm --prefix bot run dev)",
-      "Bash(npm --version:*)"
+      "Bash(npm --version:*)",
+      "Bash(npm --prefix wiki run dev)",
+      "Bash(wiki/node_modules/.bin/tsc:*)",
+      "Bash(node_modules/.bin/tsc:*)"
     ]
   }
 }

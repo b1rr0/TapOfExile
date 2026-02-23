@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { buildSkillTree, EMBLEM_RADIUS, NODE_RADIUS } from '@shared/skill-tree';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import { buildSkillTree, hexPath, diamondPath, getNodeShape, EMBLEM_RADIUS, NODE_RADIUS } from '@shared/skill-tree';
 import type { SkillNode } from '@shared/skill-tree';
 
 /* ── Types ─────────────────────────────────── */
@@ -12,22 +12,13 @@ interface Props {
   interactive?: boolean;
 }
 
-/* ── Shape helpers ─────────────────────────── */
+/* ── Module-level helpers ───────────────────────── */
 
-function hexPath(cx: number, cy: number, r: number): string {
-  const pts: string[] = [];
-  for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i - Math.PI / 6;
-    pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
-  }
-  return `M${pts.join('L')}Z`;
+function touchDist(t: TouchList): number {
+  const dx = t[0].clientX - t[1].clientX;
+  const dy = t[0].clientY - t[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
 }
-
-function diamondPath(cx: number, cy: number, r: number): string {
-  return `M${cx},${cy - r} L${cx + r},${cy} L${cx},${cy + r} L${cx - r},${cy} Z`;
-}
-
-// NODE_RADIUS imported from @shared/skill-tree
 
 /* ── Cached tree (deterministic, only build once) ── */
 
@@ -71,7 +62,7 @@ export default function SkillTreeRenderer({
     }
   }, [allocatedNodes, interactive]);
 
-  const allocatedSet = new Set(allocated);
+  const allocatedSet = useMemo(() => new Set(allocated), [allocated]);
 
   /* ── Allocation logic ────────────────────── */
 
@@ -88,13 +79,16 @@ export default function SkillTreeRenderer({
     return node.connections.some((cId: number) => allocatedSet.has(cId));
   }, [allocatedSet]);
 
-  // Counts for caps
+  // Counts for caps (memoized — avoid recomputing on every render)
   const tree0 = getTree();
-  const classSkillCount = allocated.filter(id => tree0.nodes[id]?.type === 'classSkill').length;
-  const regularCount = allocated.filter(id => {
-    const t = tree0.nodes[id]?.type;
-    return t && t !== 'start' && t !== 'classSkill';
-  }).length;
+  const classSkillCount = useMemo(
+    () => allocated.filter(id => tree0.nodes[id]?.type === 'classSkill').length,
+    [allocated],
+  );
+  const regularCount = useMemo(
+    () => allocated.filter(id => { const t = tree0.nodes[id]?.type; return t && t !== 'start' && t !== 'classSkill'; }).length,
+    [allocated],
+  );
 
   const MAX_CLASS_SKILL = 8;
   const MAX_REGULAR = 60;
@@ -304,9 +298,7 @@ export default function SkillTreeRenderer({
       if (initSet.has(node.id)) ng.classList.add('st-node--allocated');
 
       const r = isClassConn ? 5 : (NODE_RADIUS[node.type] || 8);
-      const shape = isClassConn ? 'hex'
-        : node.type === 'keystone' ? 'diamond'
-        : (node.type === 'notable' || node.type === 'classSkill' || node.type === 'figureEntry') ? 'hex' : 'circle';
+      const shape = getNodeShape(node.type, isClassConn);
 
       if (shape === 'circle') {
         const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -368,11 +360,6 @@ export default function SkillTreeRenderer({
       zoomAt(f, { x: e.clientX - r2.left, y: e.clientY - r2.top });
     };
 
-    const touchDist = (t: TouchList) => {
-      const dx = t[0].clientX - t[1].clientX;
-      const dy = t[0].clientY - t[1].clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    };
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) pinchDistRef.current = touchDist(e.touches);
     };

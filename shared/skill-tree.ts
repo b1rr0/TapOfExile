@@ -1376,3 +1376,26 @@ export function generateSkillTree(): SkillTreeResult {
 export function getClassStartNode(classId: string): number {
   return CLASS_IDS.indexOf(classId);
 }
+
+// ── SVG rendering helpers (shared between bot and wiki) ──────────────────────
+
+export function hexPath(cx: number, cy: number, r: number): string {
+  const pts: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i - Math.PI / 6;
+    pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+  }
+  return `M${pts.join('L')}Z`;
+}
+
+export function diamondPath(cx: number, cy: number, r: number): string {
+  return `M${cx},${cy - r} L${cx + r},${cy} L${cx},${cy + r} L${cx - r},${cy} Z`;
+}
+
+/** Returns SVG shape name for a node type. */
+export function getNodeShape(nodeType: string, isConnector: boolean): 'circle' | 'hex' | 'diamond' {
+  if (isConnector) return 'hex';
+  if (nodeType === 'keystone') return 'diamond';
+  if (nodeType === 'notable' || nodeType === 'classSkill' || nodeType === 'figureEntry') return 'hex';
+  return 'circle';
+}
