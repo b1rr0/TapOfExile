@@ -110,17 +110,6 @@
 | T2   | 60 - 79   | 5%   | 60%  |
 | T1   | 80 - 100  | 5%   | 85%  |
 
-### Attack Speed (`attack_speed`)
-Бонус к скорости атаки.
-
-| Tier | iLvl      | Min | Max  |
-|------|-----------|-----|------|
-| T5   | 1 - 19    | 2%  | 5%   |
-| T4   | 20 - 39   | 2%  | 8%   |
-| T3   | 40 - 59   | 2%  | 12%  |
-| T2   | 60 - 79   | 2%  | 16%  |
-| T1   | 80 - 100  | 2%  | 22%  |
-
 ### Block Chance (`block_chance`)
 Шанс блока (только одноручное оружие).
 
@@ -172,6 +161,5 @@ Base Damage: 78
 + 140% Physical Damage
 + 10% Critical Strike Chance
 + 72% Critical Strike Multiplier
-+ 18% Attack Speed
 + 28 Life on Hit
 ```
