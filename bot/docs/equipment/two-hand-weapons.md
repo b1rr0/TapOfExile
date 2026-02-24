@@ -105,16 +105,6 @@
 | T2   | 60 - 79   | 8%   | 90%   |
 | T1   | 80 - 100  | 8%   | 128%  |
 
-### Attack Speed (`attack_speed`)
-
-| Tier | iLvl      | Min | Max  |
-|------|-----------|-----|------|
-| T5   | 1 - 19    | 1%  | 4%   |
-| T4   | 20 - 39   | 1%  | 7%   |
-| T3   | 40 - 59   | 1%  | 10%  |
-| T2   | 60 - 79   | 1%  | 14%  |
-| T1   | 80 - 100  | 1%  | 18%  |
-
 ### Life on Hit (`life_on_hit`)
 
 | Tier | iLvl      | Min | Max |
@@ -155,5 +145,4 @@ Base Damage: 112
 + 85 Lightning Damage
 + 10% Critical Strike Chance
 + 110% Critical Strike Multiplier
-+ 15% Attack Speed
 ```

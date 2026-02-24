@@ -113,7 +113,6 @@ reqLvl = Math.floor(iLvl * 0.75)
 | `flat_lightning_dmg`  | Flat Lightning Damage     | +N      | Плоский урон молнией                  |
 | `crit_chance`        | Critical Strike Chance     | +N%     | Шанс критического удара              |
 | `crit_multiplier`    | Critical Strike Multiplier | +N%     | Множитель крит. удара                 |
-| `attack_speed`       | Attack Speed               | +N%     | Скорость атаки                        |
 
 ### Defensive (Защита)
 
@@ -128,12 +127,15 @@ reqLvl = Math.floor(iLvl * 0.75)
 | `flat_energy_shield` | Flat Energy Shield         | +N      | Плоский энергощит                     |
 | `pct_energy_shield`  | % Increased Energy Shield  | +N%     | Процентный бонус к энергощиту         |
 | `block_chance`       | Block Chance               | +N%     | Шанс блока                            |
+| `fire_res`           | Fire Resistance            | +N%     | Снижение урона от огня                |
+| `cold_res`           | Cold Resistance            | +N%     | Снижение урона от холода              |
+| `lightning_res`      | Lightning Resistance       | +N%     | Снижение урона от молнии              |
+| `phys_res`           | Physical Resistance        | +N%     | Снижение физического урона            |
 
 ### Utility (Общие)
 
 | Stat ID              | Название                   | Единица | Описание                              |
 |----------------------|----------------------------|---------|---------------------------------------|
-| `move_speed`         | Movement Speed             | +N%     | Скорость передвижения                 |
 | `gold_find`          | Gold Find                  | +N%     | Бонус к нахождению золота             |
 | `xp_bonus`           | Experience Bonus           | +N%     | Бонус к получаемому опыту             |
 | `life_regen`         | Life Regeneration          | +N/s    | Регенерация здоровья в секунду        |
@@ -153,7 +155,6 @@ reqLvl = Math.floor(iLvl * 0.75)
 | flat_lightning_dmg  | +        | +        |        | +      |       | +    |        |      |       |
 | crit_chance         | +        | +        |        | +      |       | +    | +      |      |       |
 | crit_multiplier     | +        | +        |        | +      |       | +    |        |      |       |
-| attack_speed        | +        | +        |        |        |       |      | +      |      |       |
 | flat_hp             |          |          | +      | +      | +     | +    |        | +    | +     |
 | pct_hp              |          |          | +      | +      | +     | +    |        | +    |       |
 | flat_armor          |          |          | +      |        | +     |      | +      | +    | +     |
@@ -163,7 +164,10 @@ reqLvl = Math.floor(iLvl * 0.75)
 | flat_energy_shield  |          |          | +      |        | +     |      | +      |      | +     |
 | pct_energy_shield   |          |          | +      |        | +     |      |        |      |       |
 | block_chance        | +        |          |        |        |       |      |        |      |       |
-| move_speed          |          |          |        |        |       |      |        |      | +     |
+| fire_res            |          |          | +      | +      | +     | +    |        | +    | +     |
+| cold_res            |          |          | +      | +      | +     | +    |        | +    | +     |
+| lightning_res       |          |          | +      | +      | +     | +    |        | +    | +     |
+| phys_res            |          |          | +      | +      | +     | +    |        | +    |       |
 | gold_find           |          |          |        | +      |       | +    |        | +    |       |
 | xp_bonus            |          |          | +      | +      |       | +    |        |      |       |
 | life_regen          |          |          |        | +      | +     | +    |        | +    |       |
