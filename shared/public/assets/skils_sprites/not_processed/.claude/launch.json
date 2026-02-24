@@ -6,6 +6,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd /d/programs/code/TapOfExile/bot && npx vite --port 5173"],
       "port": 5173
+    },
+    {
+      "name": "assets-server",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d D:\\programs\\code\\TapOfExile\\shared\\public\\assets && npx http-server -p 8092 --cors -c-1"],
+      "port": 8092
     }
   ]
 }

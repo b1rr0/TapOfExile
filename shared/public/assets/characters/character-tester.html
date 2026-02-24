@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Character Animation Tester</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #101524; color: #F9CF87; font-family: monospace; padding: 16px; }
+  h1 { text-align: center; margin-bottom: 12px; font-size: 18px; }
+  #controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  #controls select, #controls button, #controls input { background: #1a2040; color: #F9CF87; border: 1px solid #A40239; padding: 6px 10px; font-family: monospace; font-size: 13px; border-radius: 4px; }
+  #controls button { cursor: pointer; }
+  #controls button:hover { background: #A40239; }
+  #controls button.active { background: #A40239; }
+  .filter-bar { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+  .filter-bar button { background: #1a2040; color: #F9CF87; border: 1px solid #A40239; padding: 4px 10px; font-family: monospace; font-size: 12px; border-radius: 4px; cursor: pointer; }
+  .filter-bar button:hover { background: #A40239; }
+  .filter-bar button.active { background: #A40239; }
+  #status { text-align: center; margin-bottom: 8px; font-size: 12px; color: #DFFFFE; }
+  .char-section { margin-bottom: 24px; border: 1px solid #333; border-radius: 8px; padding: 16px; background: #0d1120; }
+  .char-section h2 { font-size: 14px; margin-bottom: 12px; color: #DFFFFE; text-transform: uppercase; letter-spacing: 2px; }
+  .skin-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .skin-label { font-size: 12px; color: #B9508D; margin-bottom: 4px; }
+  .anim-card { background: #1a2040; border: 1px solid #333; border-radius: 6px; padding: 8px; text-align: center; min-width: 100px; }
+  .anim-card.error { border-color: #ff4444; }
+  .anim-card .anim-name { font-size: 10px; color: #888; margin-bottom: 4px; }
+  .anim-card canvas { border: 1px solid #333; image-rendering: pixelated; display: block; margin: 0 auto 4px; background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 12px 12px; }
+  .anim-card .frame-info { font-size: 9px; color: #DFFFFE; }
+  #grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+  .sprite-card { background: #1a2040; border: 1px solid #333; border-radius: 8px; padding: 12px; width: 200px; text-align: center; }
+  .sprite-card.error { border-color: #ff4444; }
+  .sprite-card h3 { font-size: 12px; margin-bottom: 4px; }
+  .sprite-card .info { font-size: 10px; color: #888; margin-bottom: 8px; }
+  .sprite-card canvas { border: 1px solid #333; image-rendering: pixelated; display: block; margin: 0 auto 8px; background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 16px 16px; }
+  .sprite-card .frame-info { font-size: 10px; color: #DFFFFE; }
+</style>
+</head>
+<body>
+<h1>Character Animation Tester - Tap of Exile</h1>
+
+<div id="controls">
+  <label>Speed: <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"> <span id="speedVal">1x</span></label>
+  <button id="btnPause">Pause</button>
+  <button id="btnStep">Step</button>
+</div>
+
+<div class="filter-bar" id="filterBar">
+  <button class="active" data-filter="all">All</button>
+  <button data-filter="archer">Archer</button>
+  <button data-filter="knight">Knight</button>
+  <button data-filter="samurai">Samurai</button>
+  <button data-filter="wizard">Wizard</button>
+</div>
+
+<div id="status">Loading characters...</div>
+<div id="content"></div>
+
+<script>
+const CHARACTERS = [
+  {
+    class: 'archer', skins: [
+      { id: 'archer_1', anims: ['idle','run','walk','attack_1','attack_2','death','hurt'] },
+      { id: 'archer_2', anims: ['idle','run','walk','attack_1','attack_2','death','hurt'] },
+      { id: 'archer_3', anims: ['idle','run','attack_1','death'] },
+      { id: 'archer_4', anims: [] },
+    ]
+  },
+  {
+    class: 'knight', skins: [
+      { id: 'knight_1', anims: ['idle','walk','attack_1','death','hurt'] },
+      { id: 'knight_2', anims: ['idle','run','attack_1','death','hurt'] },
+      { id: 'knight_3', anims: ['idle','run','attack_1'] },
+      { id: 'knight_4', anims: ['idle','run','attack_1','death','hurt'] },
+    ]
+  },
+  {
+    class: 'samurai', skins: [
+      { id: 'samurai_1', anims: ['idle','run','attack_1','hurt'] },
+      { id: 'samurai_2', anims: ['idle','run','attack_1','death','hurt'] },
+      { id: 'samurai_3', anims: ['idle','run','attack_1','death','hurt'] },
+      { id: 'samurai_4', anims: ['idle','run','attack_1','death','hurt'] },
+    ]
+  },
+  {
+    class: 'wizard', skins: [
+      { id: 'wizard_1', anims: ['idle','run','walk','attack_1','attack_2','dead','charge_1','charge_2','magic_arrow','magic_sphere'] },
+      { id: 'wizard_2', anims: ['idle','run','attack_1','death','hurt'] },
+    ]
+  },
+];
+
+const ANIMS_ALL = ['idle','run','walk','attack_1','attack_2','death','dead','hurt','charge_1','charge_2','magic_arrow','magic_sphere'];
+
+let allAnimData = [];
+let paused = false;
+let animFrame = null;
+let currentFilter = 'all';
+
+const speedSlider = document.getElementById('speed');
+const speedVal = document.getElementById('speedVal');
+const statusEl = document.getElementById('status');
+const contentEl = document.getElementById('content');
+
+speedSlider.oninput = () => { speedVal.textContent = speedSlider.value + 'x'; };
+document.getElementById('btnPause').onclick = function() {
+  paused = !paused;
+  this.textContent = paused ? 'Play' : 'Pause';
+  this.classList.toggle('active', paused);
+};
+document.getElementById('btnStep').onclick = () => { stepAll(); };
+
+document.querySelectorAll('.filter-bar button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    document.querySelectorAll('.char-section').forEach(sec => {
+      sec.style.display = (currentFilter === 'all' || sec.dataset.class === currentFilter) ? '' : 'none';
+    });
+  };
+});
+
+function parseFrames(json) {
+  if (Array.isArray(json.frames)) return json.frames;
+  return Object.values(json.frames);
+}
+
+async function loadAll() {
+  allAnimData = [];
+  contentEl.innerHTML = '';
+  let loaded = 0;
+  let errors = 0;
+
+  for (const charClass of CHARACTERS) {
+    const section = document.createElement('div');
+    section.className = 'char-section';
+    section.dataset.class = charClass.class;
+
+    const h2 = document.createElement('h2');
+    h2.textContent = charClass.class;
+    section.appendChild(h2);
+
+    for (const skin of charClass.skins) {
+      const skinDiv = document.createElement('div');
+      skinDiv.style.marginBottom = '12px';
+
+      const label = document.createElement('div');
+      label.className = 'skin-label';
+      label.textContent = skin.id;
+      skinDiv.appendChild(label);
+
+      const row = document.createElement('div');
+      row.className = 'skin-row';
+
+      if (skin.anims.length === 0) {
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:11px;color:#ff4444;';
+        note.textContent = 'No JSON animations found';
+        row.appendChild(note);
+        errors++;
+      }
+
+      // Load the spritesheet image once per skin
+      const basePath = `${charClass.class}/${skin.id}`;
+      let spritesheetImg = null;
+
+      for (const anim of skin.anims) {
+        const card = document.createElement('div');
+        card.className = 'anim-card';
+
+        const animName = document.createElement('div');
+        animName.className = 'anim-name';
+        animName.textContent = anim;
+        card.appendChild(animName);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 96;
+        canvas.height = 96;
+        card.appendChild(canvas);
+
+        const frameInfo = document.createElement('div');
+        frameInfo.className = 'frame-info';
+        card.appendChild(frameInfo);
+
+        row.appendChild(card);
+
+        try {
+          const jsonPath = `${basePath}/${anim}.json`;
+          const resp = await fetch(jsonPath);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const json = await resp.json();
+          const frames = parseFrames(json);
+          const pngName = json.meta.image;
+          const pngPath = `${basePath}/${pngName}`;
+
+          // Load image (reuse spritesheet if same)
+          let img;
+          if (pngName === 'spritesheet.png' && spritesheetImg) {
+            img = spritesheetImg;
+          } else {
+            img = new Image();
+            img.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = () => reject(new Error('PNG load failed'));
+              img.src = pngPath;
+            });
+            if (pngName === 'spritesheet.png') spritesheetImg = img;
+          }
+
+          const fw = frames[0]?.frame?.w || 64;
+          const fh = frames[0]?.frame?.h || 64;
+          const scale = Math.min(96 / fw, 96 / fh, 4);
+          canvas.width = Math.ceil(fw * scale);
+          canvas.height = Math.ceil(fh * scale);
+
+          const ad = { frames, img, canvas, frameInfo, currentFrame: 0, elapsed: 0, scale };
+          allAnimData.push(ad);
+          loaded++;
+        } catch (e) {
+          card.classList.add('error');
+          const errDiv = document.createElement('div');
+          errDiv.style.cssText = 'font-size:9px;color:#ff4444;';
+          errDiv.textContent = e.message;
+          card.appendChild(errDiv);
+          errors++;
+        }
+      }
+
+      skinDiv.appendChild(row);
+      section.appendChild(skinDiv);
+    }
+
+    contentEl.appendChild(section);
+  }
+
+  statusEl.textContent = `Loaded: ${loaded} animations | Errors: ${errors}`;
+  startAnimation();
+}
+
+function startAnimation() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  let lastTime = performance.now();
+
+  function loop(now) {
+    const dt = now - lastTime;
+    lastTime = now;
+
+    if (!paused) {
+      const speedMul = parseFloat(speedSlider.value);
+      for (const ad of allAnimData) {
+        if (ad.frames.length === 0) continue;
+        ad.elapsed += dt * speedMul;
+        const frameDuration = ad.frames[ad.currentFrame]?.duration || 100;
+        if (ad.elapsed >= frameDuration) {
+          ad.elapsed -= frameDuration;
+          ad.currentFrame = (ad.currentFrame + 1) % ad.frames.length;
+        }
+        drawFrame(ad);
+      }
+    }
+    animFrame = requestAnimationFrame(loop);
+  }
+  animFrame = requestAnimationFrame(loop);
+}
+
+function stepAll() {
+  for (const ad of allAnimData) {
+    ad.currentFrame = (ad.currentFrame + 1) % ad.frames.length;
+    drawFrame(ad);
+  }
+}
+
+function drawFrame(ad) {
+  const f = ad.frames[ad.currentFrame];
+  if (!f) return;
+  const ctx = ad.canvas.getContext('2d');
+  ctx.clearRect(0, 0, ad.canvas.width, ad.canvas.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(ad.img, f.frame.x, f.frame.y, f.frame.w, f.frame.h, 0, 0, ad.canvas.width, ad.canvas.height);
+  ad.frameInfo.textContent = `${ad.currentFrame + 1}/${ad.frames.length}`;
+}
+
+loadAll();
+</script>
+</body>
+</html>
