@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "wiki", "run", "dev"],
       "port": 3002
+    },
+    {
+      "name": "assets-server",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "shared/public/assets", "-p", "8092", "--cors", "-c-1"],
+      "port": 8092
     }
   ]
 }

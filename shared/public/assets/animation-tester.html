@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Animation Tester — Tap of Exile</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #101524; color: #F9CF87; font-family: monospace; padding: 16px; }
+
+  h1 { text-align: center; margin-bottom: 12px; font-size: 18px; letter-spacing: 1px; }
+
+  /* ── Tab Nav ── */
+  .tab-nav { display: flex; gap: 4px; justify-content: center; margin-bottom: 12px; }
+  .tab-nav button {
+    background: #1a2040; color: #F9CF87; border: 1px solid #A40239;
+    padding: 8px 24px; font-family: monospace; font-size: 13px;
+    border-radius: 4px; cursor: pointer;
+  }
+  .tab-nav button:hover { background: #A40239; }
+  .tab-nav button.active { background: #A40239; }
+
+  /* ── Global Controls ── */
+  #controls {
+    display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+    align-items: center; justify-content: center;
+  }
+  #controls label { color: #F9CF87; font-size: 13px; }
+  #controls select, #controls button, #controls input {
+    background: #1a2040; color: #F9CF87; border: 1px solid #A40239;
+    padding: 6px 10px; font-family: monospace; font-size: 13px; border-radius: 4px;
+  }
+  #controls button { cursor: pointer; }
+  #controls button:hover { background: #A40239; }
+  #controls button.active { background: #A40239; }
+
+  /* ── Status ── */
+  .status { text-align: center; margin-bottom: 8px; font-size: 12px; color: #DFFFFE; min-height: 18px; }
+
+  /* ── Sub-controls / filter bar ── */
+  .filter-bar {
+    display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px;
+  }
+  .filter-bar button, .filter-bar label { color: #F9CF87; font-size: 12px; }
+  .filter-bar button {
+    background: #1a2040; border: 1px solid #A40239;
+    padding: 4px 10px; font-family: monospace; border-radius: 4px; cursor: pointer;
+  }
+  .filter-bar button:hover { background: #A40239; }
+  .filter-bar button.active { background: #A40239; }
+  .filter-bar select {
+    background: #1a2040; color: #F9CF87; border: 1px solid #A40239;
+    padding: 4px 10px; font-family: monospace; font-size: 12px; border-radius: 4px; cursor: pointer;
+  }
+
+  /* ── Tab Panes ── */
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── Shared grid ── */
+  .grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+
+  /* ── Character sections ── */
+  .char-section {
+    margin-bottom: 24px; border: 1px solid #333; border-radius: 8px;
+    padding: 16px; background: #0d1120;
+  }
+  .char-section h2 {
+    font-size: 14px; margin-bottom: 12px; color: #DFFFFE;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+  .skin-label { font-size: 12px; color: #B9508D; margin-bottom: 4px; }
+  .skin-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .anim-card {
+    background: #1a2040; border: 1px solid #333; border-radius: 6px;
+    padding: 8px; text-align: center; min-width: 100px;
+  }
+  .anim-card.error { border-color: #ff4444; }
+  .anim-name { font-size: 10px; color: #888; margin-bottom: 4px; }
+
+  /* ── Sprite cards (enemies & skills) ── */
+  .sprite-card {
+    background: #1a2040; border: 1px solid #333; border-radius: 8px;
+    padding: 12px; width: 200px; text-align: center;
+  }
+  .sprite-card.error { border-color: #ff4444; }
+  .sprite-card.warning { border-color: #ffaa00; }
+  .sprite-card h3 { font-size: 12px; margin-bottom: 4px; word-break: break-all; }
+  .sprite-card .info { font-size: 10px; color: #888; margin-bottom: 8px; }
+  .sprite-card .frame-info { font-size: 10px; color: #DFFFFE; }
+  .sprite-card .issues { font-size: 10px; text-align: left; margin-top: 4px; }
+  .sprite-card .issues li { margin-left: 12px; }
+
+  /* ── Shared canvas ── */
+  canvas {
+    border: 1px solid #333; image-rendering: pixelated;
+    display: block; margin: 0 auto 4px;
+    background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 12px 12px;
+  }
+  .frame-info { font-size: 9px; color: #DFFFFE; }
+
+  /* ── Validation report ── */
+  #skills-report {
+    background: #1a2040; border: 1px solid #333; border-radius: 8px;
+    padding: 16px; margin-top: 16px; font-size: 12px;
+    white-space: pre-wrap; max-height: 400px; overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<h1>Animation Tester — Tap of Exile</h1>
+
+<!-- Tab Navigation -->
+<div class="tab-nav">
+  <button class="active" data-tab="characters">Characters</button>
+  <button data-tab="enemies">Enemies</button>
+  <button data-tab="skills">Skills</button>
+</div>
+
+<!-- Global Controls (Speed / Pause / Step) -->
+<div id="controls">
+  <label>Speed: <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"> <span id="speedVal">1x</span></label>
+  <button id="btnPause">Pause</button>
+  <button id="btnStep">Step</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAB: Characters                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="tab-characters" class="tab-pane active">
+  <div class="filter-bar" id="char-filterBar">
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="archer">Archer</button>
+    <button data-filter="knight">Knight</button>
+    <button data-filter="samurai">Samurai</button>
+    <button data-filter="wizard">Wizard</button>
+  </div>
+  <div class="status" id="char-status">Loading characters…</div>
+  <div id="char-content"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAB: Enemies                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="tab-enemies" class="tab-pane">
+  <div class="filter-bar">
+    <label>Animation:
+      <select id="enemy-anim">
+        <option value="idle">idle</option>
+        <option value="run">run</option>
+        <option value="walk">walk</option>
+        <option value="death">death</option>
+        <option value="hit">hit</option>
+        <option value="hurt">hurt</option>
+        <option value="attack_1">attack_1</option>
+        <option value="attack_2">attack_2</option>
+        <option value="attack_3">attack_3</option>
+        <option value="attack">attack</option>
+        <option value="white_hit">white_hit</option>
+      </select>
+    </label>
+  </div>
+  <div class="filter-bar" id="enemy-variantNav"></div>
+  <div class="status" id="enemy-status">Switch to this tab to load…</div>
+  <div class="grid" id="enemy-grid"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAB: Skills                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="tab-skills" class="tab-pane">
+  <div class="filter-bar">
+    <label>Variant:
+      <select id="skills-variant">
+        <option value="v0">v0 (base)</option>
+        <option value="v1_crimson">v1 crimson</option>
+        <option value="v2_emerald">v2 emerald</option>
+        <option value="v3_azure">v3 azure</option>
+        <option value="v4_golden">v4 golden</option>
+        <option value="v5_violet">v5 violet</option>
+        <option value="v6_frost">v6 frost</option>
+        <option value="v7_shadow">v7 shadow</option>
+      </select>
+    </label>
+    <button id="btnValidate">Run Validation</button>
+  </div>
+  <div class="filter-bar" id="skills-filterBar">
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="fire">Fire</button>
+    <button data-filter="earth">Earth</button>
+    <button data-filter="thunder">Thunder</button>
+    <button data-filter="water">Water</button>
+    <button data-filter="ice">Ice</button>
+    <button data-filter="wood">Wood</button>
+    <button data-filter="effect">Effects</button>
+    <button data-filter="melee">Melee</button>
+    <button data-filter="other">Other</button>
+  </div>
+  <div class="status" id="skills-status">Switch to this tab to load…</div>
+  <div class="grid" id="skills-grid"></div>
+  <div id="skills-report" style="display:none"></div>
+</div>
+
+<script>
+// ═════════════════════════════════════════════════════════════════
+// DATA DEFINITIONS
+// ═════════════════════════════════════════════════════════════════
+
+const CHARACTERS = [
+  { class: 'archer', skins: [
+    { id: 'archer_1', anims: ['idle','run','walk','attack_1','attack_2','death','hurt'] },
+    { id: 'archer_2', anims: ['idle','run','walk','attack_1','attack_2','death','hurt'] },
+    { id: 'archer_3', anims: ['idle','run','attack_1','death'] },
+    { id: 'archer_4', anims: [] },
+  ]},
+  { class: 'knight', skins: [
+    { id: 'knight_1', anims: ['idle','walk','attack_1','death','hurt'] },
+    { id: 'knight_2', anims: ['idle','run','attack_1','death','hurt'] },
+    { id: 'knight_3', anims: ['idle','run','attack_1'] },
+    { id: 'knight_4', anims: ['idle','run','attack_1','death','hurt'] },
+  ]},
+  { class: 'samurai', skins: [
+    { id: 'samurai_1', anims: ['idle','run','attack_1','hurt'] },
+    { id: 'samurai_2', anims: ['idle','run','attack_1','death','hurt'] },
+    { id: 'samurai_3', anims: ['idle','run','attack_1','death','hurt'] },
+    { id: 'samurai_4', anims: ['idle','run','attack_1','death','hurt'] },
+  ]},
+  { class: 'wizard', skins: [
+    { id: 'wizard_1', anims: ['idle','run','walk','attack_1','attack_2','dead','charge_1','charge_2','magic_arrow','magic_sphere'] },
+    { id: 'wizard_2', anims: ['idle','run','attack_1','death','hurt'] },
+  ]},
+];
+
+const ENEMIES = [
+  { id: 'dummy',         folder: 'dummy',         variants: null },
+  { id: 'blue_witch',    folder: 'blue_witch',    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'goblin',        folder: 'goblin',        variants: ['goblin_azure','goblin_black','goblin_crimson','goblin_emerald','goblin_frost','goblin_golden','goblin_shadow','goblin_violet'] },
+  { id: 'king',          folder: 'king',          variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'knight_enemy',  folder: 'knight_enemy',  variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'necromancer',   folder: 'necromancer',   variants: ['necromancer_1','necromancer_azure','necromancer_crimson','necromancer_emerald','necromancer_frost','necromancer_golden','necromancer_shadow','necromancer_violet'] },
+  { id: 'necromancer_2', folder: 'necromancer_2', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'night_born',    folder: 'night_born',    variants: ['night_born_1','night_born_azure','night_born_crimson','night_born_emerald','night_born_frost','night_born_golden','night_born_shadow','night_born_violet'] },
+  { id: 'ninja',         folder: 'ninja',         variants: ['yellow_ninja','yellow_azure','yellow_crimson','yellow_emerald','yellow_frost','yellow_golden','yellow_shadow','yellow_violet'] },
+  { id: 'orc',           folder: 'orc',           variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'paladin',       folder: 'paladin',       variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'reaper',        folder: 'reaper',        variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'ronin_enemy',   folder: 'ronin_enemy',   variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'soldier',       folder: 'soldier',       variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'striker',       folder: 'striker',       variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+];
+
+const SKILLS = [
+  // Healing
+  { id: 'heal',              folder: 'healing/heal',              json: 'heal_sprite.json',              png: 'heal_sprite.png',              group: 'other'  },
+  // Melee
+  { id: 'thrust_1',          folder: 'physical/thrust_1',         json: 'thrust_1_sprite.json',          png: 'thrust_1_sprite.png',          group: 'melee'  },
+  { id: 'thrust_2',          folder: 'physical/thrust_2',         json: 'thrust_2_sprite.json',          png: 'thrust_2_sprite.png',          group: 'melee'  },
+  { id: 'sword_throw',       folder: 'physical/sword_throw',      json: 'sword_throw_sprite.json',       png: 'sword_throw_sprite.png',       group: 'melee'  },
+  { id: 'slash',             folder: 'physical/slash',            json: 'slash_sprite.json',             png: 'slash_sprite.png',             group: 'melee'  },
+  { id: 'slash_arc',         folder: 'physical/slash_arc',        json: 'slash_arc_sprite.json',         png: 'slash_arc_sprite.png',         group: 'melee',  variants: ['v0','v1','v2','v3','v4'] },
+  { id: 'slash_cross',       folder: 'physical/slash_cross',      json: 'slash_cross_sprite.json',       png: 'slash_cross_sprite.png',       group: 'melee',  variants: ['v0','v1','v2','v3','v4'] },
+  { id: 'slash_sweep',       folder: 'physical/slash_sweep',      json: 'slash_sweep_sprite.json',       png: 'slash_sweep_sprite.png',       group: 'melee',  variants: ['v0','v1','v2','v3','v4'] },
+  // Effects
+  { id: 'effect_star',       folder: 'effects/effect_star',       json: 'effect_star_sprite.json',       png: 'effect_star_sprite.png',       group: 'effect' },
+  { id: 'effect_sparkle',    folder: 'effects/effect_sparkle',    json: 'effect_sparkle_sprite.json',    png: 'effect_sparkle_sprite.png',    group: 'effect' },
+  { id: 'effect_sparks',     folder: 'effects/effect_sparks',     json: 'effect_sparks_sprite.json',     png: 'effect_sparks_sprite.png',     group: 'effect' },
+  { id: 'effect_embers',     folder: 'effects/effect_embers',     json: 'effect_embers_sprite.json',     png: 'effect_embers_sprite.png',     group: 'effect' },
+  // Fire
+  { id: 'fireball',          folder: 'fire/fireball',             json: 'fireball_sprite.json',          png: 'fireball_sprite.png',          group: 'fire'   },
+  { id: 'fire_breath',       folder: 'fire/fire_breath',          json: 'fire_breath_sprite.json',       png: 'fire_breath_sprite.png',       group: 'fire'   },
+  { id: 'firebolt',          folder: 'fire/firebolt',             json: 'firebolt_sprite.json',          png: 'firebolt_sprite.png',          group: 'fire'   },
+  { id: 'fire_hit',          folder: 'fire/fire_hit',             json: 'fire_hit_sprite.json',          png: 'fire_hit_sprite.png',          group: 'fire'   },
+  { id: 'explosion',         folder: 'fire/explosion',            json: 'explosion_sprite.json',         png: 'explosion_sprite.png',         group: 'fire'   },
+  { id: 'explosion_2',       folder: 'fire/explosion_2',          json: 'explosion_2_sprite.json',       png: 'explosion_2_sprite.png',       group: 'fire'   },
+  // Earth
+  { id: 'earth_projectile',  folder: 'earth/earth_projectile',    json: 'earth_projectile_sprite.json',  png: 'earth_projectile_sprite.png',  group: 'earth'  },
+  { id: 'earth_impact',      folder: 'earth/earth_impact',        json: 'earth_impact_sprite.json',      png: 'earth_impact_sprite.png',      group: 'earth'  },
+  { id: 'earth_rocks',       folder: 'earth/earth_rocks',         json: 'earth_rocks_sprite.json',       png: 'earth_rocks_sprite.png',       group: 'earth'  },
+  { id: 'earth_bump',        folder: 'earth/earth_bump',          json: 'earth_bump_sprite.json',        png: 'earth_bump_sprite.png',        group: 'earth'  },
+  { id: 'earth_wall',        folder: 'earth/earth_wall',          json: 'earth_wall_sprite.json',        png: 'earth_wall_sprite.png',        group: 'earth'  },
+  // Thunder / Lightning
+  { id: 'thunder_projectile',folder: 'lightning/thunder_projectile',json:'thunder_projectile_sprite.json',png:'thunder_projectile_sprite.png', group: 'thunder'},
+  { id: 'thunder_hit',       folder: 'lightning/thunder_hit',     json: 'thunder_hit_sprite.json',       png: 'thunder_hit_sprite.png',       group: 'thunder'},
+  { id: 'thunder_ball',      folder: 'lightning/thunder_ball',    json: 'thunder_ball_sprite.json',      png: 'thunder_ball_sprite.png',      group: 'thunder'},
+  { id: 'thunder_splash',    folder: 'lightning/thunder_splash',  json: 'thunder_splash_sprite.json',    png: 'thunder_splash_sprite.png',    group: 'thunder'},
+  { id: 'thunder_strike',    folder: 'lightning/thunder_strike',  json: 'thunder_strike_sprite.json',    png: 'thunder_strike_sprite.png',    group: 'thunder'},
+  { id: 'lightning_wave',    folder: 'lightning/lightning_wave',  json: 'lightning_wave_sprite.json',    png: 'lightning_wave_sprite.png',    group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_arc',     folder: 'lightning/lightning_arc',   json: 'lightning_arc_sprite.json',     png: 'lightning_arc_sprite.png',     group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_bolt',    folder: 'lightning/lightning_bolt',  json: 'lightning_bolt_sprite.json',    png: 'lightning_bolt_sprite.png',    group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_strike_2',folder: 'lightning/lightning_strike_2',json:'lightning_strike_2_sprite.json',png:'lightning_strike_2_sprite.png', group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_ring',    folder: 'lightning/lightning_ring',  json: 'lightning_ring_sprite.json',    png: 'lightning_ring_sprite.png',    group: 'thunder', variants: ['v0'] },
+  { id: 'lightning_sparks',  folder: 'lightning/lightning_sparks',json: 'lightning_sparks_sprite.json',  png: 'lightning_sparks_sprite.png',  group: 'thunder', variants: ['v0'] },
+  // Water
+  { id: 'water_startup',     folder: 'cold/water_startup',        json: 'water_startup_sprite.json',     png: 'water_startup_sprite.png',     group: 'water'  },
+  { id: 'water_spike',       folder: 'cold/water_spike',          json: 'water_spike_sprite.json',       png: 'water_spike_sprite.png',       group: 'water'  },
+  { id: 'water_splash',      folder: 'cold/water_splash',         json: 'water_splash_sprite.json',      png: 'water_splash_sprite.png',      group: 'water'  },
+  { id: 'water_ball',        folder: 'cold/water_ball',           json: 'water_ball_sprite.json',        png: 'water_ball_sprite.png',        group: 'water'  },
+  { id: 'water_blast_full',  folder: 'cold/water_blast_full',     json: 'water_blast_full_sprite.json',  png: 'water_blast_full_sprite.png',  group: 'water'  },
+  // Ice
+  { id: 'ice_shard',         folder: 'cold/ice_shard',            json: 'ice_shard_sprite.json',         png: 'ice_shard_sprite.png',         group: 'ice'    },
+  { id: 'ice_hit',           folder: 'cold/ice_hit',              json: 'ice_hit_sprite.json',           png: 'ice_hit_sprite.png',           group: 'ice'    },
+  { id: 'ice_burst',         folder: 'cold/ice_burst',            json: 'ice_burst_sprite.json',         png: 'ice_burst_sprite.png',         group: 'ice'    },
+  { id: 'ice_shatter',       folder: 'cold/ice_shatter',          json: 'ice_shatter_sprite.json',       png: 'ice_shatter_sprite.png',       group: 'ice'    },
+  // Wood
+  { id: 'wood_projectile',   folder: 'wood/wood_projectile',      json: 'wood_projectile_sprite.json',   png: 'wood_projectile_sprite.png',   group: 'wood'   },
+  { id: 'wood_hit',          folder: 'wood/wood_hit',             json: 'wood_hit_sprite.json',          png: 'wood_hit_sprite.png',          group: 'wood'   },
+  { id: 'wood_thorns',       folder: 'wood/wood_thorns',          json: 'wood_thorns_sprite.json',       png: 'wood_thorns_sprite.png',       group: 'wood'   },
+];
+
+// ═════════════════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═════════════════════════════════════════════════════════════════
+
+let paused    = false;
+let activeTab = 'characters';
+let rafHandle = null;
+let lastTime  = performance.now();
+
+// Per-tab collections
+// charAnimData: [{ frames, img, canvas, frameInfo, currentFrame, elapsed }]
+const charAnimData = [];
+// enemyData / skillData: { id -> { frames|json, img, canvas, frameInfo, currentFrame, elapsed, [issues] } }
+const enemyData    = {};
+const skillData    = {};
+
+// Loaded flags — lazy per tab
+const tabLoaded = { characters: false, enemies: false, skills: false };
+
+// Enemy variant (0–7)
+let enemyVariantIdx = 0;
+
+// ═════════════════════════════════════════════════════════════════
+// DOM REFS
+// ═════════════════════════════════════════════════════════════════
+
+const speedSlider     = document.getElementById('speed');
+const speedVal        = document.getElementById('speedVal');
+const charStatus      = document.getElementById('char-status');
+const charContent     = document.getElementById('char-content');
+const enemyAnimSelect = document.getElementById('enemy-anim');
+const enemyVariantNav = document.getElementById('enemy-variantNav');
+const enemyStatus     = document.getElementById('enemy-status');
+const enemyGrid       = document.getElementById('enemy-grid');
+const skillsVariant   = document.getElementById('skills-variant');
+const skillsStatus    = document.getElementById('skills-status');
+const skillsGrid      = document.getElementById('skills-grid');
+const skillsReport    = document.getElementById('skills-report');
+
+// ═════════════════════════════════════════════════════════════════
+// SHARED UTILITIES
+// ═════════════════════════════════════════════════════════════════
+
+function parseFrames(json) {
+  return Array.isArray(json.frames) ? json.frames : Object.values(json.frames);
+}
+
+/** Draw current frame of a sprite onto its canvas. */
+function drawFrame(sd) {
+  const frames = sd.frames ?? sd.json?.frames;
+  if (!frames) return;
+  const f = frames[sd.currentFrame];
+  if (!f) return;
+  const ctx = sd.canvas.getContext('2d');
+  ctx.clearRect(0, 0, sd.canvas.width, sd.canvas.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sd.img, f.frame.x, f.frame.y, f.frame.w, f.frame.h,
+                0, 0, sd.canvas.width, sd.canvas.height);
+  if (sd.frameInfo) sd.frameInfo.textContent = `${sd.currentFrame + 1}/${frames.length}`;
+}
+
+/** Advance frame timers for all sprites in a collection. */
+function advanceSprites(collection, dt) {
+  const speed = parseFloat(speedSlider.value);
+  const items = Array.isArray(collection) ? collection : Object.values(collection);
+  for (const sd of items) {
+    const frames = sd.frames ?? sd.json?.frames;
+    if (!frames || frames.length === 0) continue;
+    sd.elapsed += dt * speed;
+    const dur = frames[sd.currentFrame]?.duration || 100;
+    if (sd.elapsed >= dur) {
+      sd.elapsed -= dur;
+      sd.currentFrame = (sd.currentFrame + 1) % frames.length;
+    }
+  }
+}
+
+/** Draw all sprites in a collection (active tab only). */
+function drawAll(collection) {
+  const items = Array.isArray(collection) ? collection : Object.values(collection);
+  for (const sd of items) drawFrame(sd);
+}
+
+/** Step one frame forward for all sprites in a collection. */
+function stepCollection(collection) {
+  const items = Array.isArray(collection) ? collection : Object.values(collection);
+  for (const sd of items) {
+    const frames = sd.frames ?? sd.json?.frames;
+    if (!frames || frames.length === 0) continue;
+    sd.currentFrame = (sd.currentFrame + 1) % frames.length;
+    drawFrame(sd);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════
+// SINGLE RAF LOOP
+// ═════════════════════════════════════════════════════════════════
+
+function loop(now) {
+  const dt = now - lastTime;
+  lastTime = now;
+
+  if (!paused) {
+    // Advance time for ALL loaded tabs (so time doesn't freeze when switching)
+    if (tabLoaded.characters) advanceSprites(charAnimData, dt);
+    if (tabLoaded.enemies)    advanceSprites(enemyData, dt);
+    if (tabLoaded.skills)     advanceSprites(skillData, dt);
+
+    // Render only the visible tab
+    if      (activeTab === 'characters' && tabLoaded.characters) drawAll(charAnimData);
+    else if (activeTab === 'enemies'    && tabLoaded.enemies)    drawAll(enemyData);
+    else if (activeTab === 'skills'     && tabLoaded.skills)     drawAll(skillData);
+  }
+
+  rafHandle = requestAnimationFrame(loop);
+}
+
+// ═════════════════════════════════════════════════════════════════
+// GLOBAL CONTROLS
+// ═════════════════════════════════════════════════════════════════
+
+speedSlider.oninput = () => { speedVal.textContent = speedSlider.value + 'x'; };
+
+document.getElementById('btnPause').onclick = function () {
+  paused = !paused;
+  this.textContent = paused ? 'Play' : 'Pause';
+  this.classList.toggle('active', paused);
+  if (!paused) lastTime = performance.now();
+};
+
+document.getElementById('btnStep').onclick = () => {
+  if      (activeTab === 'characters') stepCollection(charAnimData);
+  else if (activeTab === 'enemies')    stepCollection(enemyData);
+  else if (activeTab === 'skills')     stepCollection(skillData);
+};
+
+// ═════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═════════════════════════════════════════════════════════════════
+
+document.querySelectorAll('.tab-nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${activeTab}`).classList.add('active');
+    // Lazy load first visit
+    if (!tabLoaded[activeTab]) {
+      if      (activeTab === 'characters') loadCharacters();
+      else if (activeTab === 'enemies')    loadEnemies();
+      else if (activeTab === 'skills')     loadSkills();
+    }
+  };
+});
+
+// ═════════════════════════════════════════════════════════════════
+// TAB: CHARACTERS
+// ═════════════════════════════════════════════════════════════════
+
+let charFilter = 'all';
+
+document.querySelectorAll('#char-filterBar button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#char-filterBar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    charFilter = btn.dataset.filter;
+    document.querySelectorAll('.char-section').forEach(sec => {
+      sec.style.display = (charFilter === 'all' || sec.dataset.class === charFilter) ? '' : 'none';
+    });
+  };
+});
+
+async function loadCharacters() {
+  charAnimData.length = 0;
+  charContent.innerHTML = '';
+  let loaded = 0, errors = 0;
+  charStatus.textContent = 'Loading characters…';
+
+  for (const charClass of CHARACTERS) {
+    const section = document.createElement('div');
+    section.className = 'char-section';
+    section.dataset.class = charClass.class;
+
+    const h2 = document.createElement('h2');
+    h2.textContent = charClass.class;
+    section.appendChild(h2);
+
+    for (const skin of charClass.skins) {
+      const skinDiv = document.createElement('div');
+      skinDiv.style.marginBottom = '12px';
+
+      const label = document.createElement('div');
+      label.className = 'skin-label';
+      label.textContent = skin.id;
+      skinDiv.appendChild(label);
+
+      const row = document.createElement('div');
+      row.className = 'skin-row';
+
+      if (skin.anims.length === 0) {
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:11px;color:#ff4444;';
+        note.textContent = 'No JSON animations found';
+        row.appendChild(note);
+        errors++;
+      }
+
+      const basePath = `characters/${charClass.class}/${skin.id}`;
+      let spritesheetImg = null;
+
+      for (const anim of skin.anims) {
+        const card = document.createElement('div');
+        card.className = 'anim-card';
+
+        const animName = document.createElement('div');
+        animName.className = 'anim-name';
+        animName.textContent = anim;
+        card.appendChild(animName);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 96; canvas.height = 96;
+        card.appendChild(canvas);
+
+        const frameInfo = document.createElement('div');
+        frameInfo.className = 'frame-info';
+        card.appendChild(frameInfo);
+
+        row.appendChild(card);
+
+        try {
+          const resp = await fetch(`${basePath}/${anim}.json`);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const json = await resp.json();
+          const frames = parseFrames(json);
+          const pngName = json.meta.image;
+
+          let img;
+          if (pngName === 'spritesheet.png' && spritesheetImg) {
+            img = spritesheetImg;
+          } else {
+            img = new Image();
+            img.crossOrigin = 'anonymous';
+            await new Promise((res, rej) => {
+              img.onload = res;
+              img.onerror = () => rej(new Error('PNG load failed'));
+              img.src = `${basePath}/${pngName}`;
+            });
+            if (pngName === 'spritesheet.png') spritesheetImg = img;
+          }
+
+          const fw = frames[0]?.frame?.w || 64;
+          const fh = frames[0]?.frame?.h || 64;
+          const scale = Math.min(96 / fw, 96 / fh, 4);
+          canvas.width  = Math.ceil(fw * scale);
+          canvas.height = Math.ceil(fh * scale);
+
+          const sd = { frames, img, canvas, frameInfo, currentFrame: 0, elapsed: 0 };
+          charAnimData.push(sd);
+          drawFrame(sd);
+          loaded++;
+        } catch (e) {
+          card.classList.add('error');
+          const err = document.createElement('div');
+          err.style.cssText = 'font-size:9px;color:#ff4444;';
+          err.textContent = e.message;
+          card.appendChild(err);
+          errors++;
+        }
+      }
+
+      skinDiv.appendChild(row);
+      section.appendChild(skinDiv);
+    }
+
+    charContent.appendChild(section);
+    // Apply active filter immediately
+    section.style.display = (charFilter === 'all' || section.dataset.class === charFilter) ? '' : 'none';
+  }
+
+  charStatus.textContent = `Loaded: ${loaded} animations | Errors: ${errors}`;
+  tabLoaded.characters = true;
+}
+
+// ═════════════════════════════════════════════════════════════════
+// TAB: ENEMIES
+// ═════════════════════════════════════════════════════════════════
+
+function buildEnemyVariantButtons() {
+  enemyVariantNav.innerHTML = '<span style="color:#888;font-size:11px;line-height:28px">Variant: </span>';
+  for (let i = 0; i < 8; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i === 0 ? 'base' : `v${i}`;
+    btn.classList.toggle('active', i === enemyVariantIdx);
+    btn.onclick = () => {
+      enemyVariantIdx = i;
+      buildEnemyVariantButtons();
+      reloadEnemies();
+    };
+    enemyVariantNav.appendChild(btn);
+  }
+}
+buildEnemyVariantButtons();
+
+enemyAnimSelect.onchange = reloadEnemies;
+
+function reloadEnemies() {
+  tabLoaded.enemies = false;
+  for (const k in enemyData) delete enemyData[k];
+  loadEnemies();
+}
+
+function enemyBasePath(enemy) {
+  if (!enemy.variants) return `enemy/${enemy.folder}`;
+  return `enemy/${enemy.folder}/${enemy.variants[enemyVariantIdx]}`;
+}
+
+async function loadEnemies() {
+  const anim = enemyAnimSelect.value;
+  enemyGrid.innerHTML = '';
+  let loaded = 0, errors = 0;
+  enemyStatus.textContent = `Loading enemies (${anim})…`;
+
+  for (const enemy of ENEMIES) {
+    const basePath    = enemyBasePath(enemy);
+    const variantLabel = enemy.variants ? enemy.variants[enemyVariantIdx] : '';
+
+    const card = document.createElement('div');
+    card.className = 'sprite-card';
+
+    const title = document.createElement('h3');
+    title.textContent = enemy.id + (variantLabel ? ` [${variantLabel}]` : '');
+    card.appendChild(title);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    card.appendChild(info);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 128; canvas.height = 128;
+    card.appendChild(canvas);
+
+    const frameInfo = document.createElement('div');
+    frameInfo.className = 'frame-info';
+    card.appendChild(frameInfo);
+
+    enemyGrid.appendChild(card);
+
+    try {
+      const resp = await fetch(`${basePath}/${anim}.json`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json  = await resp.json();
+      const frames = parseFrames(json);
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = () => rej(new Error('PNG load failed'));
+        img.src = `${basePath}/${json.meta.image}`;
+      });
+
+      const fw = frames[0]?.frame?.w || 64;
+      const fh = frames[0]?.frame?.h || 64;
+      canvas.width  = Math.ceil(Math.min(128 / fw, 128 / fh, 4) * fw);
+      canvas.height = Math.ceil(Math.min(128 / fw, 128 / fh, 4) * fh);
+      info.textContent = `${frames.length}f | ${fw}×${fh}`;
+
+      const sd = { frames, img, canvas, frameInfo, currentFrame: 0, elapsed: 0 };
+      enemyData[enemy.id] = sd;
+      drawFrame(sd);
+      loaded++;
+    } catch (e) {
+      card.classList.add('error');
+      info.textContent = `No "${anim}": ${e.message}`;
+      errors++;
+    }
+  }
+
+  enemyStatus.textContent =
+    `Loaded: ${loaded}/${ENEMIES.length} | Skipped: ${errors} | Anim: ${anim} | Variant: ${enemyVariantIdx}`;
+  tabLoaded.enemies = true;
+}
+
+// ═════════════════════════════════════════════════════════════════
+// TAB: SKILLS
+// ═════════════════════════════════════════════════════════════════
+
+let skillsFilter = 'all';
+
+document.querySelectorAll('#skills-filterBar button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#skills-filterBar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    skillsFilter = btn.dataset.filter;
+    applySkillsFilter();
+  };
+});
+
+function applySkillsFilter() {
+  document.querySelectorAll('#skills-grid .sprite-card').forEach(card => {
+    card.style.display = (skillsFilter === 'all' || card.dataset.group === skillsFilter) ? '' : 'none';
+  });
+}
+
+skillsVariant.onchange = () => {
+  tabLoaded.skills = false;
+  for (const k in skillData) delete skillData[k];
+  loadSkills();
+};
+
+document.getElementById('btnValidate').onclick = runValidation;
+
+function validateSprite(skill, json, img) {
+  const issues  = [];
+  const frames  = json.frames;
+  const meta    = json.meta;
+  const sheetW  = meta.size.w;
+  const sheetH  = meta.size.h;
+
+  if (img.naturalWidth !== sheetW || img.naturalHeight !== sheetH)
+    issues.push({ severity: 'error', msg: `PNG size ${img.naturalWidth}×${img.naturalHeight} ≠ meta ${sheetW}×${sheetH}` });
+
+  frames.forEach((f, i) => {
+    const r = f.frame;
+    if (r.x + r.w > sheetW || r.y + r.h > sheetH)
+      issues.push({ severity: 'error', msg: `Frame ${i} out of bounds (${r.x},${r.y}) ${r.w}×${r.h}` });
+  });
+
+  const durations = [...new Set(frames.map(f => f.duration))];
+  if (durations.length > 1)
+    issues.push({ severity: 'warning', msg: `Mixed durations: ${durations.join(', ')}ms` });
+
+  if (meta.skill) {
+    const total = frames.reduce((s, f) => s + f.duration, 0);
+    if (Math.abs(total - meta.skill.renderDurationMs) > 50)
+      issues.push({ severity: 'warning', msg: `renderDuration ${meta.skill.renderDurationMs}ms ≠ sum(frames) ${total}ms` });
+  }
+
+  const sizes = [...new Set(frames.map(f => `${f.frame.w}×${f.frame.h}`))];
+  if (sizes.length > 1)
+    issues.push({ severity: 'error', msg: `Inconsistent frame sizes: ${sizes.join(', ')}` });
+
+  return issues;
+}
+
+async function loadSkills() {
+  const variant = skillsVariant.value;
+  skillsGrid.innerHTML = '';
+  skillsReport.style.display = 'none';
+  let loaded = 0, errors = 0;
+  skillsStatus.textContent = `Loading skills (${variant})…`;
+
+  for (const skill of SKILLS) {
+    const effectiveVariant = skill.variants
+      ? (skill.variants.includes(variant) ? variant : skill.variants[0])
+      : variant;
+
+    const jsonPath = `skils_sprites/${skill.folder}/${effectiveVariant}/${skill.json}`;
+    const pngPath  = `skils_sprites/${skill.folder}/${effectiveVariant}/${skill.png}`;
+
+    const card = document.createElement('div');
+    card.className = 'sprite-card';
+    card.dataset.group   = skill.group;
+    card.dataset.skillId = skill.id;
+
+    const title = document.createElement('h3');
+    title.textContent = skill.id + (skill.variants ? ` [${effectiveVariant}]` : '');
+    card.appendChild(title);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    card.appendChild(info);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 128; canvas.height = 128;
+    card.appendChild(canvas);
+
+    const frameInfo = document.createElement('div');
+    frameInfo.className = 'frame-info';
+    card.appendChild(frameInfo);
+
+    const issuesList = document.createElement('ul');
+    issuesList.className = 'issues';
+    card.appendChild(issuesList);
+
+    skillsGrid.appendChild(card);
+
+    try {
+      const resp = await fetch(jsonPath);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = () => rej(new Error('PNG load failed'));
+        img.src = pngPath;
+      });
+
+      const issues = validateSprite(skill, json, img);
+      const fw = json.frames[0]?.frame?.w || 64;
+      const fh = json.frames[0]?.frame?.h || 64;
+      canvas.width  = Math.ceil(Math.min(128 / fw, 128 / fh, 4) * fw);
+      canvas.height = Math.ceil(Math.min(128 / fw, 128 / fh, 4) * fh);
+
+      const renderType = json.meta?.skill?.renderType || 'unknown';
+      const duration   = json.meta?.skill?.renderDurationMs || '?';
+      info.textContent = `${json.frames.length}f | ${fw}×${fh} | ${renderType} | ${duration}ms`;
+
+      if (issues.length > 0) {
+        card.classList.add(issues.some(i => i.severity === 'error') ? 'error' : 'warning');
+        issues.forEach(issue => {
+          const li = document.createElement('li');
+          li.textContent = issue.msg;
+          li.style.color = issue.severity === 'error' ? '#ff4444' : '#ffaa00';
+          issuesList.appendChild(li);
+        });
+      }
+
+      const sd = { json, img, canvas, frameInfo, currentFrame: 0, elapsed: 0, issues };
+      skillData[skill.id] = sd;
+      drawFrame(sd);
+      loaded++;
+    } catch (e) {
+      card.classList.add('error');
+      info.textContent = `LOAD ERROR: ${e.message}`;
+      errors++;
+    }
+  }
+
+  skillsStatus.textContent = `Loaded: ${loaded}/${SKILLS.length} | Errors: ${errors} | Variant: ${variant}`;
+  applySkillsFilter();
+  tabLoaded.skills = true;
+}
+
+function runValidation() {
+  skillsReport.style.display = 'block';
+  let report = '=== VALIDATION REPORT ===\n\n';
+  let totalIssues = 0, errorCount = 0, warnCount = 0;
+
+  for (const skill of SKILLS) {
+    const sd = skillData[skill.id];
+    if (!sd) { report += `[ERROR] ${skill.id}: Failed to load\n`; errorCount++; continue; }
+    if (sd.issues.length > 0) {
+      report += `${skill.id}:\n`;
+      sd.issues.forEach(issue => {
+        const tag = issue.severity === 'error' ? 'ERROR' : 'WARN';
+        report += `  [${tag}] ${issue.msg}\n`;
+        if (issue.severity === 'error') errorCount++; else warnCount++;
+        totalIssues++;
+      });
+      report += '\n';
+    }
+  }
+
+  report += totalIssues === 0
+    ? 'All sprites passed validation!\n'
+    : `\nTotal: ${totalIssues} issues (${errorCount} errors, ${warnCount} warnings)\n`;
+
+  skillsReport.textContent = report;
+}
+
+// ═════════════════════════════════════════════════════════════════
+// INIT
+// ═════════════════════════════════════════════════════════════════
+
+rafHandle = requestAnimationFrame(loop);
+loadCharacters(); // load first tab eagerly on page open
+</script>
+</body>
+</html>

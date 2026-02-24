@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Enemy Animation Tester</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #101524; color: #F9CF87; font-family: monospace; padding: 16px; }
+  h1 { text-align: center; margin-bottom: 12px; font-size: 18px; }
+  #controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  #controls select, #controls button, #controls input { background: #1a2040; color: #F9CF87; border: 1px solid #A40239; padding: 6px 10px; font-family: monospace; font-size: 13px; border-radius: 4px; }
+  #controls button { cursor: pointer; }
+  #controls button:hover { background: #A40239; }
+  #controls button.active { background: #A40239; }
+  #status { text-align: center; margin-bottom: 8px; font-size: 12px; color: #DFFFFE; }
+  .anim-tabs { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+  .anim-tabs button { background: #1a2040; color: #F9CF87; border: 1px solid #A40239; padding: 4px 10px; font-family: monospace; font-size: 12px; border-radius: 4px; cursor: pointer; }
+  .anim-tabs button:hover { background: #A40239; }
+  .anim-tabs button.active { background: #A40239; }
+  #grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+  .sprite-card { background: #1a2040; border: 1px solid #333; border-radius: 8px; padding: 12px; width: 200px; text-align: center; }
+  .sprite-card.error { border-color: #ff4444; }
+  .sprite-card h3 { font-size: 12px; margin-bottom: 4px; word-break: break-all; }
+  .sprite-card .info { font-size: 10px; color: #888; margin-bottom: 8px; }
+  .sprite-card canvas { border: 1px solid #333; image-rendering: pixelated; display: block; margin: 0 auto 8px; background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 16px 16px; }
+  .sprite-card .frame-info { font-size: 10px; color: #DFFFFE; }
+</style>
+</head>
+<body>
+<h1>Enemy Animation Tester - Tap of Exile</h1>
+
+<div id="controls">
+  <label>Animation:
+    <select id="animation">
+      <option value="idle">idle</option>
+      <option value="run">run</option>
+      <option value="walk">walk</option>
+      <option value="death">death</option>
+      <option value="hit">hit</option>
+      <option value="hurt">hurt</option>
+      <option value="attack_1">attack_1</option>
+      <option value="attack_2">attack_2</option>
+      <option value="attack_3">attack_3</option>
+      <option value="attack">attack</option>
+      <option value="white_hit">white_hit</option>
+    </select>
+  </label>
+  <label>Speed: <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"> <span id="speedVal">1x</span></label>
+  <button id="btnPause">Pause</button>
+  <button id="btnStep">Step</button>
+</div>
+
+<div id="status">Loading enemies...</div>
+<div id="grid"></div>
+
+<script>
+const ENEMIES = [
+  { id: 'dummy', folder: 'dummy', variants: null },
+  { id: 'blue_witch', folder: 'blue_witch', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'goblin', folder: 'goblin', variants: ['goblin_azure','goblin_black','goblin_crimson','goblin_emerald','goblin_frost','goblin_golden','goblin_shadow','goblin_violet'] },
+  { id: 'king', folder: 'king', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'knight_enemy', folder: 'knight_enemy', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'necromancer', folder: 'necromancer', variants: ['necromancer_1','necromancer_azure','necromancer_crimson','necromancer_emerald','necromancer_frost','necromancer_golden','necromancer_shadow','necromancer_violet'] },
+  { id: 'necromancer_2', folder: 'necromancer_2', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'night_born', folder: 'night_born', variants: ['night_born_1','night_born_azure','night_born_crimson','night_born_emerald','night_born_frost','night_born_golden','night_born_shadow','night_born_violet'] },
+  { id: 'ninja', folder: 'ninja', variants: ['yellow_ninja','yellow_azure','yellow_crimson','yellow_emerald','yellow_frost','yellow_golden','yellow_shadow','yellow_violet'] },
+  { id: 'orc', folder: 'orc', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'paladin', folder: 'paladin', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'reaper', folder: 'reaper', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'ronin_enemy', folder: 'ronin_enemy', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'soldier', folder: 'soldier', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  { id: 'striker', folder: 'striker', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+];
+
+let spriteData = {};
+let paused = false;
+let animFrame = null;
+let currentVariantIdx = 0;
+
+const animSelect = document.getElementById('animation');
+const speedSlider = document.getElementById('speed');
+const speedVal = document.getElementById('speedVal');
+const statusEl = document.getElementById('status');
+const gridEl = document.getElementById('grid');
+
+speedSlider.oninput = () => { speedVal.textContent = speedSlider.value + 'x'; };
+document.getElementById('btnPause').onclick = function() {
+  paused = !paused;
+  this.textContent = paused ? 'Play' : 'Pause';
+  this.classList.toggle('active', paused);
+};
+document.getElementById('btnStep').onclick = () => { stepAll(); };
+animSelect.onchange = () => { loadAll(); };
+
+function parseFrames(json) {
+  if (Array.isArray(json.frames)) return json.frames;
+  return Object.values(json.frames);
+}
+
+function getBasePath(enemy) {
+  if (!enemy.variants) return enemy.folder;
+  return `${enemy.folder}/${enemy.variants[currentVariantIdx]}`;
+}
+
+async function loadAll() {
+  const anim = animSelect.value;
+  spriteData = {};
+  gridEl.innerHTML = '';
+  let loaded = 0;
+  let errors = 0;
+
+  for (const enemy of ENEMIES) {
+    const basePath = getBasePath(enemy);
+    const jsonPath = `${basePath}/${anim}.json`;
+    const variantLabel = enemy.variants ? enemy.variants[currentVariantIdx] : '';
+
+    const card = document.createElement('div');
+    card.className = 'sprite-card';
+
+    const title = document.createElement('h3');
+    title.textContent = enemy.id + (variantLabel ? ` [${variantLabel}]` : '');
+    card.appendChild(title);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    card.appendChild(info);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    card.appendChild(canvas);
+
+    const frameInfo = document.createElement('div');
+    frameInfo.className = 'frame-info';
+    card.appendChild(frameInfo);
+
+    gridEl.appendChild(card);
+
+    try {
+      const resp = await fetch(jsonPath);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+      const frames = parseFrames(json);
+
+      const pngPath = `${basePath}/${json.meta.image}`;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('PNG load failed'));
+        img.src = pngPath;
+      });
+
+      const fw = frames[0]?.frame?.w || 64;
+      const fh = frames[0]?.frame?.h || 64;
+      const scale = Math.min(128 / fw, 128 / fh, 4);
+      canvas.width = Math.ceil(fw * scale);
+      canvas.height = Math.ceil(fh * scale);
+
+      info.textContent = `${frames.length}f | ${fw}x${fh} | ${anim}`;
+
+      spriteData[enemy.id] = { json, frames, img, canvas, frameInfo, currentFrame: 0, elapsed: 0, scale };
+      loaded++;
+    } catch (e) {
+      card.classList.add('error');
+      info.textContent = `No "${anim}": ${e.message}`;
+      errors++;
+    }
+  }
+
+  statusEl.textContent = `Loaded: ${loaded}/${ENEMIES.length} | Skipped: ${errors} | Anim: ${anim} | Variant: ${currentVariantIdx}`;
+  startAnimation();
+}
+
+// Variant navigation buttons
+const variantNav = document.createElement('div');
+variantNav.className = 'anim-tabs';
+variantNav.id = 'variantNav';
+document.getElementById('controls').after(variantNav);
+
+function buildVariantButtons() {
+  variantNav.innerHTML = '<span style="color:#888;font-size:11px;line-height:28px">Variant: </span>';
+  for (let i = 0; i < 8; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i === 0 ? 'base' : `v${i}`;
+    btn.classList.toggle('active', i === currentVariantIdx);
+    btn.onclick = () => {
+      currentVariantIdx = i;
+      buildVariantButtons();
+      loadAll();
+    };
+    variantNav.appendChild(btn);
+  }
+}
+buildVariantButtons();
+
+function startAnimation() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  let lastTime = performance.now();
+
+  function loop(now) {
+    const dt = now - lastTime;
+    lastTime = now;
+
+    if (!paused) {
+      const speedMul = parseFloat(speedSlider.value);
+      for (const id in spriteData) {
+        const sd = spriteData[id];
+        if (sd.frames.length === 0) continue;
+        sd.elapsed += dt * speedMul;
+        const frameDuration = sd.frames[sd.currentFrame]?.duration || 100;
+        if (sd.elapsed >= frameDuration) {
+          sd.elapsed -= frameDuration;
+          sd.currentFrame = (sd.currentFrame + 1) % sd.frames.length;
+        }
+        drawFrame(sd);
+      }
+    }
+    animFrame = requestAnimationFrame(loop);
+  }
+  animFrame = requestAnimationFrame(loop);
+}
+
+function stepAll() {
+  for (const id in spriteData) {
+    const sd = spriteData[id];
+    sd.currentFrame = (sd.currentFrame + 1) % sd.frames.length;
+    drawFrame(sd);
+  }
+}
+
+function drawFrame(sd) {
+  const f = sd.frames[sd.currentFrame];
+  if (!f) return;
+  const ctx = sd.canvas.getContext('2d');
+  ctx.clearRect(0, 0, sd.canvas.width, sd.canvas.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sd.img, f.frame.x, f.frame.y, f.frame.w, f.frame.h, 0, 0, sd.canvas.width, sd.canvas.height);
+  sd.frameInfo.textContent = `Frame ${sd.currentFrame + 1}/${sd.frames.length}`;
+}
+
+loadAll();
+</script>
+</body>
+</html>
