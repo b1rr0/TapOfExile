@@ -51,7 +51,7 @@ PoE2's item depth comes from **meaningful trade-offs**, not just more stats. Eve
 | Trade-off | Option A | Option B | Why It's Interesting |
 |-----------|----------|----------|----------------------|
 | Offense vs. Survival | `pct_phys_dmg` | `fire_res` | Classic DPS vs. safety |
-| Speed vs. Power | `attack_speed` | `crit_multiplier` | Fast weak hits vs. slow big hits |
+| Volume vs. Power | `multi_hit_chance` | `crit_multiplier` | Many weak hits vs. fewer big hits |
 | Flat vs. Scaling | `flat_hp` | `pct_hp` | Strong early vs. strong late |
 | Skill vs. Tap | `skill_damage` | `crit_chance` | Burst window vs. consistent taps |
 | Sustain vs. Peak | `life_leech` | `pct_phys_dmg` | Survivability vs. raw damage |
@@ -64,7 +64,7 @@ PoE2's item depth comes from **meaningful trade-offs**, not just more stats. Eve
 
 Unlike ARPG where you move through zones, **tap games have a tighter feedback loop.** A player sees damage numbers every 50ms. This means:
 
-- **Instant feedback stats are king** — crit_chance, multi_hit, attack_speed feel amazing
+- **Instant feedback stats are king** — crit_chance, multi_hit_chance feel amazing
 - **DoT/Regen stats feel weaker** — the feedback is slow and hard to see
 - **Resistance gaps hurt fast** — dying to a fire mob in 3 hits is jarring
 
@@ -112,9 +112,11 @@ This shifts the priority order from standard ARPG wisdom.
 
 #### 🟢 FLAVOR / LATE (Phase 4)
 
-**11. `area_damage`** — Needs multi-enemy combat to feel meaningful
+**11. `phys_res`** — Critical for Mage survival (0% base), enables all-resistance gearing
 **12. `gold_on_kill`** — Farming build identity
 **13. `potion_effectiveness`** — Enhances existing potion system depth
+
+> **Note:** `area_damage` removed — gameplay is 1×1 single-target combat. No AoE, no splash, no pierce.
 
 ---
 
@@ -166,7 +168,7 @@ Armor:     flat_hp + thorns + damage_taken_reduction
 Helmet:    flat_hp + pct_hp + fire_res (plug elemental gap)
 Gloves:    flat_armor + life_on_hit + thorns
 Belt:      flat_hp + pct_hp + cold_res + life_regen
-Boots:     move_speed + flat_hp + lightning_res
+Boots:     flat_hp + flat_armor + lightning_res
 Ring (×2): fire_res + flat_hp | cold_res + life_on_hit
 Amulet:    passive_dps_bonus + pct_hp + life_regen
 ```
@@ -196,7 +198,7 @@ life_on_hit → sustain between crits → bridge the gap
 ```
 
 **New mechanic concept: `crit_momentum`**
-> "Each critical hit grants 1 stack of Momentum (max 10). Each stack: +2% crit chance, +1% attack speed. Stacks reset when you take damage exceeding 15% max HP in one hit."
+> "Each critical hit grants 1 stack of Momentum (max 10). Each stack: +2% crit chance, +1% crit multiplier. Stacks reset when you take damage exceeding 15% max HP in one hit."
 - No stat needed — implement as Samurai passive
 - Creates a risk/reward "hot streak" feel
 - Tapping fast feels different from tap-and-wait
@@ -212,9 +214,9 @@ life_on_hit → sustain between crits → bridge the gap
 Weapon:    crit_chance + crit_multiplier + life_leech (Dagger)
 Armor:     flat_hp + pct_evasion (dodge to avoid counter-damage)
 Helmet:    crit_chance + flat_hp + xp_bonus
-Gloves:    crit_chance + attack_speed + life_on_hit
+Gloves:    crit_chance + crit_multiplier + life_on_hit
 Belt:      flat_hp + life_regen (bridge between crits)
-Boots:     move_speed + flat_evasion + dodge_rating
+Boots:     flat_evasion + dodge_rating + flat_hp
 Ring (×2): crit_multiplier + life_leech | flat_hp + crit_chance
 Amulet:    passive_dps_bonus + crit_multiplier + pct_phys_dmg
 ```
@@ -264,7 +266,7 @@ Armor:     pct_energy_shield + flat_energy_shield + fire_res
 Helmet:    cooldown_reduction + flat_energy_shield + pct_energy_shield
 Gloves:    flat_fire_dmg + crit_chance + flat_energy_shield
 Belt:      cooldown_reduction + flat_hp + life_regen
-Boots:     move_speed + flat_energy_shield + cold_res
+Boots:     flat_energy_shield + cold_res + dodge_rating
 Ring (×2): pct_fire_dmg + flat_fire_dmg | pct_fire_dmg + crit_multiplier
 Amulet:    skill_damage + cooldown_reduction + pct_fire_dmg
 ```
@@ -288,11 +290,11 @@ Archer should feel like a damage machine that barely survives on speed alone —
 
 ```
 ARCHER GEAR SYNERGY CHAIN:
-attack_speed (gloves + weapon) → more taps per second → more leech triggers
+multi_hit_chance (gloves + weapon) → more hits per tap → more leech triggers
 multi_hit_chance (weapon + gloves) → stacks with Double Shot → proc chains
 life_leech (ring + amulet) → sustain through offense volume
 dodge_rating (boots + gloves + amulet) → compensate for low HP
-pct_cold_dmg (bow) → cold element focus → chill enemy attack speed
+pct_cold_dmg (bow) → cold element focus → cold penetration
 ```
 
 **Critical cap interaction:**
@@ -305,7 +307,7 @@ pct_cold_dmg (bow) → cold element focus → chill enemy attack speed
 - **Risk:** multi_hit_chance + Double Shot could reach 40%+ "extra hits" — soft cap at 25% multi_hit
 
 **Glass Cannon passive idea:**
-> "When below 40% Life: +20% attack speed, +15% damage. Archer only."
+> "When below 40% Life: +15% multi-hit chance, +15% damage. Archer only."
 - Rewards skilled play (staying low, not dying)
 - Synergizes with life_leech (hover at 35-40% HP on purpose)
 - Makes Archer feel dangerous and exciting
@@ -315,9 +317,9 @@ pct_cold_dmg (bow) → cold element focus → chill enemy attack speed
 Weapon:    crit_chance + multi_hit_chance + life_leech (Bow)
 Armor:     flat_evasion + pct_evasion + cold_res
 Helmet:    crit_chance + flat_hp + xp_bonus (Circlet)
-Gloves:    attack_speed + crit_chance + life_on_hit (Bracer)
+Gloves:    multi_hit_chance + crit_chance + life_on_hit (Bracer)
 Belt:      flat_hp + pct_hp + life_regen (HP investment)
-Boots:     move_speed + dodge_rating + flat_evasion
+Boots:     dodge_rating + flat_evasion + flat_hp
 Ring (×2): life_leech + crit_chance | crit_multiplier + flat_hp
 Amulet:    damage_vs_bosses + pct_phys_dmg + life_leech
 ```
@@ -344,8 +346,8 @@ Amulet:    damage_vs_bosses + pct_phys_dmg + life_leech
 
 **Solution — Stat Density by Rarity:**
 ```
-Common    (1-2 stats):  Only basic stats — flat_hp, flat_armor, flat damage, move_speed
-Rare      (2-3 stats):  Basic + moderate — adds resistance, life_regen, attack_speed
+Common    (1-2 stats):  Only basic stats — flat_hp, flat_armor, flat damage, flat_evasion
+Rare      (2-3 stats):  Basic + moderate — adds resistance, life_regen, crit_chance
 Epic      (3-4 stats):  Moderate + depth — adds crit, CDR, leech, skill_damage
 Legendary (4-6 stats):  Full pool — rare stats appear: damage_taken_reduction, multi_hit, damage_vs_bosses
 ```
@@ -444,7 +446,7 @@ Based on the full analysis — tap-game feel, class synergy, balance risk, and i
 | 9 | `damage_taken_reduction` | Medium | Low | Warrior, all |
 | 10 | `multi_hit_chance` | High (feel) | Low | Archer (primary) |
 | 11 | `damage_vs_bosses` | Medium | Low | Endgame all |
-| 12 | `area_damage` | Low (limited context) | Medium | All (future) |
+| 12 | `phys_res` | High (Mage critical) | Low | All (defense) |
 | 13 | `armor_to_damage` | Medium | Low | Warrior only |
 | 14 | `execute_threshold` | Niche | Medium | Samurai only |
 | 15 | `potion_effectiveness` | Low-Medium | Low | All |
@@ -490,7 +492,7 @@ Add a "Build Hint" to each class selection that highlights which stats to look f
 ```
 ⚔️ SAMURAI BUILD GUIDE
 Primary stats:   crit_chance, crit_multiplier
-Secondary stats: life_leech, attack_speed
+Secondary stats: life_leech, multi_hit_chance
 Key items:       Dagger (crit), Ring ×2 (crit_multi + leech)
 Avoid:           pct_armor, flat_energy_shield
 ```

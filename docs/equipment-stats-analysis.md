@@ -20,11 +20,11 @@
 | Amulet | Pendant, Talisman, Locket | Passive DPS + utility |
 
 ### 1.2 Current Stats (22 stats)
-**Offense (8):** flat_phys_dmg, pct_phys_dmg, flat_fire_dmg, flat_cold_dmg, flat_lightning_dmg, crit_chance, crit_multiplier, attack_speed
+**Offense (7):** flat_phys_dmg, pct_phys_dmg, flat_fire_dmg, flat_cold_dmg, flat_lightning_dmg, crit_chance, crit_multiplier
 
 **Defense (9):** flat_hp, pct_hp, flat_armor, pct_armor, flat_evasion, pct_evasion, flat_energy_shield, pct_energy_shield, block_chance
 
-**Utility (5):** move_speed, gold_find, xp_bonus, life_regen, life_on_hit, passive_dps_bonus
+**Utility (5):** gold_find, xp_bonus, life_regen, life_on_hit, passive_dps_bonus
 
 ### 1.3 What's MISSING vs PoE2
 | Category | PoE2 Has | You Don't Have |
@@ -53,7 +53,6 @@
 | Flat elemental | Fire/Cold/Lightning ranges | flat_fire/cold/lightning | ✅ Have |
 | Physical + Accuracy combo | Combined prefix | - | Missing |
 | Crit chance | 10-34% | crit_chance | ✅ Have |
-| Attack speed | 5-16% | attack_speed | ✅ Have |
 | +Level to skills | "+1 to Melee Skills" | - | **NEW IDEA** |
 | Attributes | +Str/Dex | - | Missing |
 | Accuracy | +Accuracy Rating | - | Different system |
@@ -86,7 +85,6 @@
 ### 2.4 Gloves
 | Stat Category | PoE2 | Your Game | Gap |
 |---------------|------|-----------|-----|
-| Attack speed | ✅ | attack_speed | ✅ Have |
 | Crit chance | ✅ | crit_chance | ✅ Have |
 | % phys damage | ✅ | pct_phys_dmg | ✅ Have |
 | Flat added damage | Fire/Cold/Lightning to attacks | - | **NEW IDEA for gloves** |
@@ -98,7 +96,6 @@
 ### 2.5 Boots
 | Stat Category | PoE2 | Your Game | Gap |
 |---------------|------|-----------|-----|
-| Movement Speed | 10-30% | move_speed | ✅ Have |
 | Life | Flat | flat_hp | ✅ Have |
 | Armor/Evasion/ES | Flat | ✅ | ✅ Have |
 | Resistances | All elements | - | **CRITICAL MISSING** |
@@ -152,16 +149,17 @@
 
 ### 3.1 TIER 1 — High Impact, Adds Depth
 
-#### `fire_res` / `cold_res` / `lightning_res` — Elemental Resistances
-**Why:** Your game already has resistance as a class-only mechanic. Adding resistance to items creates a gear optimization layer — players choose between offense and survivability.
+#### `fire_res` / `cold_res` / `lightning_res` / `phys_res` — All Resistance Types
+**Why:** Your game already has resistance as a class-only mechanic. Adding resistance to items creates a gear optimization layer — players choose between offense and survivability. `phys_res` is especially critical since **Mage has 0% base physical resistance** — without item phys_res, Mage dies to physical enemies instantly.
 
 | Stat ID | Slots | T5 (1-19) | T4 (20-39) | T3 (40-59) | T2 (60-79) | T1 (80-100) |
 |---------|-------|-----------|------------|------------|------------|-------------|
 | `fire_res` | Armor, Helmet, Belt, Boots, Ring, Amulet | 3%-8% | 3%-14% | 3%-22% | 3%-32% | 3%-45% |
 | `cold_res` | Armor, Helmet, Belt, Boots, Ring, Amulet | 3%-8% | 3%-14% | 3%-22% | 3%-32% | 3%-45% |
 | `lightning_res` | Armor, Helmet, Belt, Boots, Ring, Amulet | 3%-8% | 3%-14% | 3%-22% | 3%-32% | 3%-45% |
+| `phys_res` | Armor, Helmet, Belt, Ring, Amulet | 3%-8% | 3%-14% | 3%-22% | 3%-32% | 3%-45% |
 
-**Balance note:** Max resist stays 75%. Class base + items can reach cap. Early game you're vulnerable to elements; endgame you cap.
+**Balance note:** Max resist stays 75% for all types. Class base + items can reach cap. `phys_res` on items levels the playing field — Warrior stacks it for near-immunity, Mage finally has a way to survive physical damage zones.
 
 #### `pct_fire_dmg` / `pct_cold_dmg` / `pct_lightning_dmg` — % Elemental Damage
 **Why:** You have flat elemental but no % scaling. This creates build diversity — stack fire % for fire builds, etc.
@@ -256,12 +254,14 @@
 |---------|-------|----|----|----|----|----|
 | `damage_vs_bosses` | Weapon, Amulet, Ring | 3%-8% | 3%-15% | 3%-25% | 3%-40% | 3%-60% |
 
-#### `area_damage` — % Damage as AoE to Nearby Enemies
-**Why:** Inspired by PoE2's overkill splash. Part of your damage hits nearby enemies. Great for clear speed.
+#### `passive_dps_bonus` — % Passive / Offline DPS
+**Why:** Tap game idle mechanic. Passive DPS runs while player is away. Items that boost it directly reward gear investment in the idle layer.
 
 | Stat ID | Slots | T5 | T4 | T3 | T2 | T1 |
 |---------|-------|----|----|----|----|----|
-| `area_damage` | Weapon, Armor | 2%-5% | 2%-10% | 2%-18% | 2%-28% | 2%-40% |
+| `passive_dps_bonus` | Ring, Amulet | 2%-5% | 2%-10% | 2%-18% | 2%-28% | 2%-40% |
+
+> **Note:** `area_damage` was removed — gameplay is 1×1 single-target combat. No AoE, no splash, no pierce. All damage is single-target. `passive_dps_bonus` fills the niche of a "utility offensive" ring/amulet stat that rewards different builds.
 
 ---
 
@@ -279,7 +279,6 @@
 | flat_lightning_dmg       | +  | +  |      | +    |       | +    |      |      |      |
 | crit_chance              | +  | +  |      | +    |       | +    | +    |      |      |
 | crit_multiplier          | +  | +  |      | +    |       | +    |      |      |      |
-| attack_speed             | +  | +  |      |      |       |      | +    |      |      |
 | flat_hp                  |    |    | +    | +    | +     | +    |      | +    | +    |
 | pct_hp                   |    |    | +    | +    | +     | +    |      | +    |      |
 | flat_armor               |    |    | +    |      | +     |      | +    | +    | +    |
@@ -289,7 +288,6 @@
 | flat_energy_shield       |    |    | +    |      | +     |      | +    |      | +    |
 | pct_energy_shield        |    |    | +    |      | +     |      |      |      |      |
 | block_chance             | +  |    |      |      |       |      |      |      |      |
-| move_speed               |    |    |      |      |       |      |      |      | +    |
 | gold_find                |    |    |      | +    |       | +    |      | +    |      |
 | xp_bonus                 |    |    | +    | +    |       | +    |      |      |      |
 | life_regen               |    |    |      | +    | +     | +    |      | +    |      |
@@ -299,6 +297,7 @@
 | fire_res                 |    |    | +    | +    | +     | +    |      | +    | +    |
 | cold_res                 |    |    | +    | +    | +     | +    |      | +    | +    |
 | lightning_res            |    |    | +    | +    | +     | +    |      | +    | +    |
+| phys_res                 |    |    | +    | +    | +     | +    |      | +    |      |
 | pct_fire_dmg             | +  | +  |      | +    |       | +    |      |      |      |
 | pct_cold_dmg             | +  | +  |      | +    |       | +    |      |      |      |
 | pct_lightning_dmg        | +  | +  |      | +    |       | +    |      |      |      |
@@ -314,7 +313,7 @@
 | multi_hit_chance         | +  | +  |      |      |       |      | +    |      |      |
 | gold_on_kill             |    |    |      | +    |       | +    |      | +    |      |
 | damage_vs_bosses         | +  | +  |      | +    |       | +    |      |      |      |
-| area_damage              | +  | +  |      |      | +     |      |      |      |      |
+| passive_dps_bonus        |    |    |      | +    |       | +    |      |      |      |
 
 ---
 
@@ -367,17 +366,17 @@
 **Priority items for Samurai:**
 - Dagger with `crit_chance` + `crit_multiplier` + `life_leech` (burst sustain)
 - Amulet with `passive_dps_bonus` + `crit_multiplier` + `pct_phys_dmg`
-- Gloves with `crit_chance` + `attack_speed` (crit cap rushing)
+- Gloves with `crit_chance` + `crit_multiplier` (crit cap rushing)
 - Ring with `crit_multiplier` + `life_leech` (scale the special)
 
 ---
 
-### 5.3 Mage (Elemental / AoE)
+### 5.3 Mage (Elemental / CDR)
 **Identity:** Elemental damage focus, Spell Amplify, high resistances, low HP
 **Special:** Spell Amplify (8% chance for 2.5x damage, +0.3%/lvl)
 **Resistance:** 0% physical, 20% fire, 15% lightning, 15% cold
 
-**Current weakness:** Low HP, no physical resistance. Spell Amplify is random — no way to control it.
+**Current weakness:** Low HP, **0% physical resistance** — Mage is completely vulnerable to physical damage. `phys_res` on items is a critical need. Spell Amplify is also random — no way to control it.
 
 **Suggestions:**
 | Idea | Description | Implementation |
@@ -388,7 +387,8 @@
 | **Spell Amplify Scaling** | Items that boost Spell Amplify chance | New stat: `spell_amp_chance` on staffs/wands |
 | **Energy Shield Focus** | ES as primary defense (no need for HP) | Mage already has ES; add ES-specific stats |
 | **Elemental Penetration** | Ignore % of enemy elemental resistance | New stat: `elemental_penetration` |
-| **AoE on Amplify** | When Spell Amplify triggers, splash to nearby | Amplified hits deal 30% to adjacent enemies |
+| **Amplify Burst** | When Spell Amplify triggers, deal 2x damage to target | Single-target amplified hits — no AoE (1x1 combat) |
+| **Physical Buffer** | Mage needs `phys_res` on every slot possible | Priority: Armor + Ring + Amulet with phys_res rolls |
 | **Mana Shield** | ES absorbs damage before HP fully | Already exists in concept; make it item-boostable |
 
 **Priority items for Mage:**
@@ -410,19 +410,17 @@
 **Suggestions:**
 | Idea | Description | Implementation |
 |------|-------------|----------------|
-| **Projectile Chain** | Hits bounce to nearby enemies | New stat: `chain_chance` (on bows) |
 | **Multi-Hit Stacking** | Double Shot + multi_hit_chance stack | Stat synergy: both roll independently |
-| **Evasion → Damage** | Convert evasion to damage bonus | Like Queen of the Forest: evasion → move speed → DPS |
-| **Poison on Hit** | Hits apply poison DoT | Ailment system + `poison_chance` stat |
-| **Critical Pierce** | Crits ignore dodge chance of enemies | If enemies ever get dodge |
-| **Dodge → Counter** | After dodging, next hit deals 2x damage | Reward for dodging |
-| **Rapid Fire** | Attack speed has diminishing returns but Archer ignores it | Remove tap cooldown floor for Archer (25ms instead of 50ms) |
+| **Evasion → Damage** | Convert evasion to damage bonus | Evasion → bonus tap damage scaling |
+| **Dodge → Counter** | After dodging, next hit deals 2x damage | Reward for dodging (already on Phantom Silhouette) |
+| **Rapid Fire** | Archer has superior multi-hit mechanics | Multi-hit chance cap is higher for Archer (40% vs 25% for others) |
 | **Glass Cannon Mode** | Below 50% HP, deal 30% more damage | Low-life bonus mechanic |
+| **Crit on Dodge** | After dodge: next tap is guaranteed crit | Single-target synergy, dodge → burst window |
 
 **Priority items for Archer:**
 - Bow with `crit_chance` + `crit_multiplier` + `multi_hit_chance` (shotgun build)
-- Boots with `move_speed` + `dodge_rating` + `flat_evasion` (survival)
-- Gloves with `attack_speed` + `life_on_hit` + `crit_chance`
+- Boots with `dodge_rating` + `flat_evasion` + `flat_hp` (survival)
+- Gloves with `multi_hit_chance` + `life_on_hit` + `crit_chance`
 - Ring with `life_leech` + `crit_chance` (sustain through offense)
 - Amulet with `damage_vs_bosses` + `pct_phys_dmg` (boss killer variant)
 
@@ -439,7 +437,7 @@ Currently all weapon subtypes in a slot roll from the same stat pool. PoE2 diffe
 | Axe (1H) | "High phys" | 2x weight on flat_phys_dmg, pct_phys_dmg |
 | Dagger (1H) | "High crit" | 2x weight on crit_chance, crit_multiplier |
 | Wand (1H) | "Elemental" | 2x weight on elemental stats, add spell_damage |
-| Mace (1H) | "Slow power" | Higher base damage, lower attack_speed rolls |
+| Mace (1H) | "Slow power" | Higher base damage, higher flat_phys_dmg weight |
 | Bow (2H) | "Ranged crit" | Crit + multi_hit_chance |
 | Staff (2H) | "Elemental" | pct_fire/cold/lightning + skill_damage |
 
@@ -447,7 +445,7 @@ Currently all weapon subtypes in a slot roll from the same stat pool. PoE2 diffe
 | Subtype | Primary Defense | Secondary | Exclusive Stat |
 |---------|----------------|-----------|----------------|
 | Plate | Armor | HP | `damage_taken_reduction` |
-| Leather | Evasion | Move speed | `dodge_rating` |
+| Leather | Evasion | Dodge | `dodge_rating` |
 | Robe | Energy Shield | Skill CDR | `skill_damage` |
 | Chain | Armor + Evasion | Balanced | None (hybrid) |
 
@@ -487,7 +485,7 @@ Currently all weapon subtypes in a slot roll from the same stat pool. PoE2 diffe
 ### Phase 3: Endgame Stats
 13. Add `multi_hit_chance` to weapons, gloves
 14. Add `damage_vs_bosses` to weapons, amulet, ring
-15. Add `area_damage` to weapons, armor
+15. Add `phys_res` to armor, helmet, belt, ring, amulet ← **CRITICAL for Mage survival**
 16. Add `gold_on_kill` to ring, amulet, belt
 17. Add new ring subtypes (Diamond, Amethyst, Moonstone, Coral)
 

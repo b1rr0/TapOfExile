@@ -35,11 +35,9 @@ ITEM LEVEL:   1-100, tiers T5(1-19) T4(20-39) T3(40-59) T2(60-79) T1(80-100)
 | `pct_lightning_dmg` | +N% Lightning Damage | % multiplier on lightning | **NEW** Weapon, ring, amulet |
 | `crit_chance` | +N% Critical Chance | Chance to deal crit hit | Weapon, ring, amulet, gloves, helm |
 | `crit_multiplier` | +N% Critical Multiplier | Bonus crit damage | Weapon, ring, amulet |
-| `attack_speed` | +N% Attack Speed | Reduces tap min interval | Weapon, gloves |
 | `skill_damage` | +N% Skill Damage | Multiplies skill `damageMultiplier` | **NEW** Weapon, helm, amulet |
 | `multi_hit_chance` | +N% Multi-Hit Chance | Chance for extra tap hit | **NEW** Weapon, gloves |
 | `damage_vs_bosses` | +N% Boss Damage | Extra damage vs boss enemies | **NEW** Weapon, amulet, ring |
-| `area_damage` | +N% Area Damage | % of damage hits nearby enemies | **NEW** Weapon, armor |
 | `execute_threshold` | Execute below N% HP | Instant kill at threshold | **NEW** Weapon only (Epic/Legendary) |
 | `spell_amp_chance` | +N% Spell Amplify | Boosts Mage class special | **NEW** Wand/Staff only |
 
@@ -58,10 +56,19 @@ ITEM LEVEL:   1-100, tiers T5(1-19) T4(20-39) T3(40-59) T2(60-79) T1(80-100)
 | `fire_res` | +N% Fire Resistance | Reduce fire damage taken | **NEW** Armor, ring, amulet, belt, boots, helm |
 | `cold_res` | +N% Cold Resistance | Reduce cold damage taken | **NEW** Same slots |
 | `lightning_res` | +N% Lightning Resistance | Reduce lightning damage taken | **NEW** Same slots |
+| `phys_res` | +N% Physical Resistance | Reduce physical damage taken | **NEW** Armor, helmet, ring, amulet, belt |
 | `dodge_rating` | +N% Dodge Chance | Avoid incoming hit entirely | **NEW** Boots, gloves, amulet |
 | `thorns` | N Thorns Damage | Counter-damage when hit | **NEW** Armor, belt, gloves |
 | `damage_taken_reduction` | -N% Damage Taken | Universal mitigation | **NEW** Armor, helm, belt (Epic/Leg only) |
 | `armor_to_damage` | N% Armor → Tap Bonus | Convert armor to offense | **NEW** Warrior resonant stat |
+
+### 1.2b UNIQUE-ONLY Mechanics (Not in regular stat pool)
+| ID | Name | Description | Notes |
+|----|------|-------------|-------|
+| `damage_return` | Return N% Damage Taken | % of received damage dealt back to attacker | **UNIQUE ONLY** Warrior tank items |
+| `execute_threshold` | Execute below N% HP | Instant kill at HP threshold | **UNIQUE ONLY** Samurai burst items |
+
+> **`damage_return`** — процент полученного урона возвращается атакующему. В отличие от `thorns` (фиксированный flat урон), `damage_return` масштабируется с уроном врага. Чем сильнее бьёт враг — тем больше возврат. Идеальный танковый стат для боссов.
 
 ### 1.3 Sustain Stats
 | ID | Name | Description | Notes |
@@ -74,7 +81,6 @@ ITEM LEVEL:   1-100, tiers T5(1-19) T4(20-39) T3(40-59) T2(60-79) T1(80-100)
 ### 1.4 Utility Stats
 | ID | Name | Description | Notes |
 |----|------|-------------|-------|
-| `move_speed` | +N% Movement Speed | Boots exclusive | Boots only |
 | `gold_find` | +N% Gold Find | Bonus gold from kills | Ring, amulet, belt |
 | `gold_on_kill` | +N Gold per Kill | Flat gold bonus | **NEW** Ring, amulet, belt |
 | `xp_bonus` | +N% XP | Bonus XP from kills | Helm, ring, amulet |
@@ -92,9 +98,9 @@ ITEM LEVEL:   1-100, tiers T5(1-19) T4(20-39) T3(40-59) T2(60-79) T1(80-100)
 #### Stat Pool by Subtype
 | Subtype | Primary Stats | Secondary Stats | Exclusive |
 |---------|--------------|-----------------|-----------|
-| **Sword** | flat_phys_dmg, pct_phys_dmg | crit_chance, attack_speed | - |
-| **Axe** | flat_phys_dmg (2x weight), pct_phys_dmg | life_on_hit | area_damage |
-| **Dagger** | crit_chance (2x weight), crit_multiplier | attack_speed | execute_threshold |
+| **Sword** | flat_phys_dmg, pct_phys_dmg | crit_chance, life_on_hit | - |
+| **Axe** | flat_phys_dmg (2x weight), pct_phys_dmg | life_on_hit | damage_vs_bosses |
+| **Dagger** | crit_chance (2x weight), crit_multiplier | life_leech | execute_threshold |
 | **Wand** | flat_fire/cold/lightning, pct_elemental | skill_damage | spell_amp_chance |
 | **Mace** | flat_phys_dmg (high), pct_phys_dmg (high) | block_chance | multi_hit_chance (low %) |
 
@@ -183,7 +189,7 @@ Epic One-Hand Sword
 ────────────────────────────
 + 45% Physical Damage
 + 15% Multi-Hit Chance
-+ 8% Attack Speed
++ 5% Dodge Chance
 [On Dodge: next tap deals 100% more damage]
 ────────────────────────────
 Dodge + tap timing synergy for skilled Archer players.
@@ -216,11 +222,11 @@ Legendary One-Hand Axe
 ────────────────────────────
 + 90 Physical Damage
 + 80% Physical Damage
-[30% of Tap Damage also hits as Area Damage to nearby enemies]
+[Taps have 25% chance to deal double damage (Seismic Strike)]
 + 8 Life on Hit
 ────────────────────────────
 ```
-> **Design:** Warrior AoE fantasy. All taps splash. Best in enemy-dense zones.
+> **Design:** Warrior heavy-hitter. Random double-damage procs feel like earthquakes. Pure single-target punishment — fits 1x1 combat perfectly.
 
 ---
 
@@ -293,7 +299,7 @@ Epic One-Hand Dagger
 ────────────────────────────
 + 10% Critical Strike Chance
 + 60% Critical Strike Multiplier
-+ 12% Attack Speed
++ 3% Life Leech
 [Every 5th tap is guaranteed Critical Hit]
 ────────────────────────────
 Cadence mechanic: predictable crit pattern for tap rhythm.
@@ -339,7 +345,7 @@ Legendary One-Hand Dagger
 ────────────────────────────
 + 10% Critical Strike Chance
 + 18% Multi-Hit Chance  ← (highest on any item, but dagger exclusive)
-+ 10% Attack Speed
++ 5% Dodge Chance
 [Double Shot chance doubled while Dual-Wielding or using Dagger]
 ────────────────────────────
 Archer-specific: stacks with Double Shot class passive.
@@ -482,9 +488,9 @@ Legendary One-Hand Mace
 ────────────────────────────
 + 120 Physical Damage (highest flat of any 1H)
 + 100% Physical Damage (highest % of any 1H)
-- 20% Attack Speed
+- 5% Dodge Chance
 ────────────────────────────
-Pure glass cannon physical mace. Highest raw numbers, slowest attack.
+Pure glass cannon physical mace. Highest raw numbers, but sluggish.
 ```
 
 ---
@@ -547,7 +553,7 @@ Epic Two-Hand Bow
 ────────────────────────────
 + 10% Critical Strike Chance
 + 12% Multi-Hit Chance
-+ 10% Attack Speed
++ 8% Dodge Chance
 [30% of Physical Damage converted to Cold Damage]
 ────────────────────────────
 Hybrid physical/cold Archer. Leverages both resist types.
@@ -609,10 +615,10 @@ Legendary Two-Hand Staff
 + 130 Cold Damage
 + 140% Cold Damage
 + 10% Skill Damage
-[Cold skills slow enemy attack speed by 20% for 4s]
+[Cold skills reduce enemy damage by 20% for 4s]
 [Cold Resistance on gear is 50% more effective]
 ────────────────────────────
-Cold mage: offensive + defensive hybrid. Enemy slowed, your cold res amplified.
+Cold mage: offensive + defensive hybrid. Enemy weakened, your cold res amplified.
 ```
 
 ---
@@ -624,11 +630,11 @@ Legendary Two-Hand Mace
 ────────────────────────────
 + 200 Physical Damage (highest of all weapons)
 + 150% Physical Damage
-- 30% Attack Speed
-[Every 4th tap triggers Earth Shatter (AoE, 150% physical damage)]
+- 8% Dodge Chance
+[Every 4th tap triggers Earth Shatter: 250% Physical Damage, ignores 20% of enemy Resistance]
 ────────────────────────────
 ```
-> **Design:** Inspired by PoE2 Marohi Erqi. Slow but massive. Every 4th tap is a mini skill.
+> **Design:** Inspired by PoE2 Marohi Erqi. Slow but massive. Every 4th tap is a devastating single-target slam — resistance-ignoring makes it the ultimate boss-killer rhythm weapon.
 
 ---
 
@@ -679,7 +685,7 @@ Legendary Helmet
 [But: all skills reset simultaneously every 8s]
 ────────────────────────────
 ```
-> **Design:** Unique rhythm: all skills fire in a burst window every 8s. Mage AoE burst identity.
+> **Design:** Unique rhythm: all skills fire simultaneously in a burst window every 8s. Mage single-target burst identity — unleash everything at once on the boss.
 
 ---
 
@@ -692,7 +698,7 @@ Legendary Helmet
 + 12% XP Bonus
 + 30% Gold Find
 [On killing a Boss enemy: gain a random stat buff for 30s]
-[Possible buffs: +30% damage, +15% crit, +20% CDR, +20% attack speed, +25% resist all]
+[Possible buffs: +30% damage, +15% crit, +20% CDR, +15% multi-hit chance, +25% resist all]
 ────────────────────────────
 ```
 > **Design:** Directly inspired by PoE2's Headhunter belt. Boss kill grants a stolen modifier.
@@ -708,10 +714,10 @@ Legendary Helmet
 + 60% Increased Evasion
 + 8% Dodge Chance
 [While above 70% Life: +15% additional Dodge Chance]
-[On successful Dodge: +10% attack speed for 2s]
+[On successful Dodge: +10% multi-hit chance for 2s]
 ────────────────────────────
 ```
-> **Design:** Archer dodge stacker. High HP → high dodge → dodge proc speed buff loop.
+> **Design:** Archer dodge stacker. High HP → high dodge → dodge proc multi-hit loop.
 
 ---
 
@@ -786,11 +792,11 @@ Legendary Body Armour
 + 200 Life
 + 220 Armour
 + 100% Increased Armour
-[Armour also reduces Elemental Damage (at 25% efficiency)]
+[Return 15% of damage taken back to attacker]   ← damage_return (unique mechanic)
 [When below 30% Life: Armour effectiveness doubles]
 ────────────────────────────
 ```
-> **Design:** Warrior "last stand" armor. Armor starts covering elements — plugs Warrior's elemental weakness.
+> **Design:** Warrior "last stand" armor. Damage return punishes enemies for hitting you — the ultimate tank fantasy. Below 30% HP, armor doubles for survival.
 
 ---
 
@@ -924,12 +930,12 @@ Legendary Gloves
 Legendary Gloves
 "So fast, they blur."
 ────────────────────────────
-+ 18% Attack Speed   ← (highest attack speed of any item)
-+ 8% Critical Strike Chance
-+ 12% Multi-Hit Chance
++ 14% Multi-Hit Chance   ← (highest multi-hit on gloves)
++ 9% Critical Strike Chance
++ 8% Dodge Chance
 ────────────────────────────
 ```
-> **Design:** Highest attack speed in the game. Archer's core gloves.
+> **Design:** Highest multi-hit on gloves. Archer's core gloves — more hits per tap.
 
 ---
 
@@ -982,8 +988,8 @@ Epic Gloves
 "It hits before you aim."
 ────────────────────────────
 + 7% Critical Strike Chance
-+ 14% Attack Speed
-[Each Dodge gives +1% Multi-Hit Chance for 3s (max 5 stacks)]
++ 10% Multi-Hit Chance
+[Each Dodge gives +2% Critical Strike Chance for 3s (max 5 stacks)]
 ────────────────────────────
 ```
 > **Design:** Dodge stacks multi-hit. Archer rhythm: dodge → gain multi-hit → hit harder.
@@ -999,12 +1005,12 @@ Epic Gloves
 Legendary Boots
 "Speed is the only armour that matters."
 ────────────────────────────
-+ 35% Movement Speed   ← (highest move speed)
-+ 12% Dodge Chance
-[Movement Speed above 25% also increases Attack Speed by half the amount]
++ 15% Dodge Chance   ← (highest dodge on boots)
++ 10% Multi-Hit Chance
+[After Dodging: +5% Multi-Hit Chance for 3s (stacks 3x)]
 ────────────────────────────
 ```
-> **Design:** Inspired by PoE2 Darkray Vectors. Movement speed converts to attack speed above threshold.
+> **Design:** Inspired by PoE2 Darkray Vectors. Dodge triggers multi-hit stacking — evasion becomes offense.
 
 ---
 
@@ -1013,9 +1019,10 @@ Legendary Boots
 Legendary Boots
 "Each step is a wall."
 ────────────────────────────
-+ 25% Movement Speed
 + 100 Life
 + 80 Armour
++ 15% Fire Resistance
+[Return 5% of damage taken back to attacker]   ← damage_return
 [Every 5s of combat: +2% Block Chance (max +10% bonus)]
 ────────────────────────────
 ```
@@ -1028,13 +1035,13 @@ Legendary Boots
 Legendary Boots
 "Walk between moments."
 ────────────────────────────
-+ 28% Movement Speed
 + 60 Energy Shield
 + 15% Cooldown Reduction
-[After using a Skill: +10% Movement Speed for 3s]
++ 10% Cold Resistance
+[After using a Skill: +5% Dodge Chance for 3s]
 ────────────────────────────
 ```
-> **Design:** Mage mobility boots. Skill use = burst of movement speed. Fits Mage playstyle.
+> **Design:** Mage CDR boots. Skill use = brief dodge window. Fits Mage glass-cannon survival.
 
 ---
 
@@ -1043,10 +1050,10 @@ Legendary Boots
 Epic Boots
 "Run faster when it burns."
 ────────────────────────────
-+ 22% Movement Speed
 + 80 Life
 + 15% Fire Resistance
-[Below 50% Life: +15% Movement Speed bonus]
++ 40 Armour
+[Below 50% Life: +10% Dodge Chance bonus]
 ────────────────────────────
 ```
 
@@ -1057,8 +1064,8 @@ Epic Boots
 Legendary Boots
 "Run first. Fight second."
 ────────────────────────────
-+ 30% Movement Speed
-+ 8% Dodge Chance
++ 12% Dodge Chance
++ 50 Evasion
 [You count as Low Life while at 60% max Life or below]
 [Low Life bonuses activate earlier]
 ────────────────────────────
@@ -1072,9 +1079,9 @@ Legendary Boots
 Epic Boots
 "Immovable. Unbreakable."
 ────────────────────────────
-+ 20% Movement Speed
 + 100 Armour
 + 100 Life
++ 15% Lightning Resistance
 [+5% Damage Taken Reduction]
 ────────────────────────────
 ```
@@ -1167,7 +1174,7 @@ Legendary Belt
 + 90 Life
 + 20% Increased Life
 [You count as Low Life below 65% HP (earlier than default 35%)]
-[Low Life: +20% attack speed, +10% damage]
+[Low Life: +15% multi-hit chance, +10% damage]
 ────────────────────────────
 ```
 > **Design:** Archer low-life build enabler. Hover at 50-65% HP for permanent speed boost.
@@ -1181,7 +1188,7 @@ Epic Belt
 ────────────────────────────
 + 70 Life
 + 50% Potion Effectiveness
-[Potions grant 20% bonus to current action (Attack speed or Skill damage) for 5s]
+[Potions grant +20% Tap Damage and +20% Skill Damage for 5s]
 ────────────────────────────
 ```
 > **Design:** Potion build support. Potions become tactical resources, not just emergency heals.
@@ -1280,12 +1287,12 @@ Legendary Ring
 Implicit: +35% Gold Find
 ────────────────────────────
 + 12% Multi-Hit Chance
-+ 10% Attack Speed
++ 8% Critical Strike Chance
 + 20% Gold Find
-[On Double Shot proc: +5% attack speed for 2s (stacks up to 3x)]
+[On Double Shot proc: +5% multi-hit chance for 2s (stacks up to 3x)]
 ────────────────────────────
 ```
-> **Design:** Archer farm ring. Double Shot triggers speed buff — more hits = faster hits = more hits.
+> **Design:** Archer farm ring. Double Shot triggers multi-hit buff — more hits = more procs = more hits.
 
 ---
 
@@ -1328,8 +1335,8 @@ Implicit: +15 Physical Damage
 ────────────────────────────
 + 30 Thorns Damage
 + 10% Physical Damage
-[Thorns Damage scales with amount of damage taken this combat]
-[+1% Thorns for every 50 damage received (max +20%)]
+[Return 8% of damage taken back to attacker]   ← damage_return (unique mechanic)
+[Damage return increases by +2% for every 50 damage received (max +20%)]
 ────────────────────────────
 ```
 
@@ -1511,7 +1518,7 @@ Legendary Amulet
 ────────────────────────────
 + 70 Life
 + 30% Passive DPS Bonus
-[Each Block triggers a 5% Thorns pulse to ALL enemies]
+[Each Block deals 5% of your total Thorns damage to the current target]
 [Endurance Stacks persist for 5s longer]
 ────────────────────────────
 ```
@@ -1540,6 +1547,7 @@ TOTAL SYNERGY:
 - Max HP: ~2,000+ at L60
 - Armor: ~1,200+ (converts to ~30+ bonus tap damage via Ironclad Verdict)
 - Thorns: ~180+ (Kaom's Will: 15% of 2000 HP = 300 thorns passive)
+- Damage Return: 15% (Iron Fortress) + 5% (Ironwall Sabatons) + 8% (Ring of Vengeance) = 28%
 - Block: ~35%+ (with Iron Sentinel's doubling above 80% HP)
 - Resistances: plugged via Ring of Dominion (block→res)
 ```
@@ -1601,18 +1609,17 @@ GOAL: Maximum hit rate + sustain through volume of hits
 
 Weapon:    Phantom Needle (Dagger) OR Stormrend Bow
 Armor:     The Vanishing OR Cloak of the Hollow
-Helmet:    Phantom Crown (dodge→attack speed proc)
-Gloves:    Swiftfingers (18% attack speed + 12% multi-hit)
-Belt:      Coward's Chain (low-life 65% threshold for +20% speed)
-Boots:     Stormwalkers (35% speed → attack speed conversion)
+Helmet:    Phantom Crown (dodge→multi-hit proc)
+Gloves:    Swiftfingers (14% multi-hit + 9% crit + 8% dodge)
+Belt:      Coward's Chain (low-life 65% threshold for +15% multi-hit)
+Boots:     Stormwalkers (15% dodge → multi-hit stacking)
 Ring 1:    Speedring of the Hunt (Double Shot stacks speed)
 Ring 2:    Mist Signet (dodge → 3 taps at +25% damage)
 Amulet:    Choir of Elements OR normal leech amulet
 
 TOTAL SYNERGY:
-- Attack speed: 18% (gloves) + 8% (boots converted) + 12% (belt low life) ≈ 38% faster tapping
-- Multi-Hit: 18% (dagger) + 12% (gloves) + 15% (bow) = 45% (soft cap at 35%)
-- Dodge: 10% (helm) + 8% (boots) + 8% (ring) = 26% total dodge
+- Multi-Hit: 18% (dagger) + 14% (gloves) + 5% (boots) + 15% (belt low-life) = 52% (soft cap at 35%)
+- Dodge: 10% (helm) + 15% (boots) + 8% (ring) = 33% total dodge
 - After dodge: 3 taps at +25% = Mist Signet payoff
 - Double Shot: 29% base + Double Shot ring stacking = ~35% each tap
 ```
@@ -1655,6 +1662,7 @@ iLvl distribution: ±5 from current zone level
 | fire_res | 3-8% | 3-14% | 3-22% | 3-32% | 3-45% |
 | cold_res | 3-8% | 3-14% | 3-22% | 3-32% | 3-45% |
 | lightning_res | 3-8% | 3-14% | 3-22% | 3-32% | 3-45% |
+| phys_res | 3-8% | 3-14% | 3-22% | 3-32% | 3-45% |
 | cooldown_reduction | 2-5% | 2-8% | 2-12% | 2-16% | 2-22% |
 | life_leech | 0.5-1% | 0.5-2% | 0.5-3% | 0.5-4.5% | 0.5-6% |
 | skill_damage | 3-10% | 3-20% | 3-35% | 3-55% | 3-80% |
@@ -1677,7 +1685,7 @@ iLvl distribution: ±5 from current zone level
 | 4 | Final Verdict | 1H Sword | Execute | Samurai | Execute below 15% HP |
 | 5 | Phantom Silhouette | 1H Sword | Speed | Archer | Dodge → 2x next tap |
 | 6 | Wraithblade | 1H Sword | Sustain | Any | Instant Life Leech |
-| 7 | Earthsplitter | 1H Axe | AoE | Warrior | 30% AoE splash |
+| 7 | Earthsplitter | 1H Axe | Heavy | Warrior | 25% double-damage proc (Seismic Strike) |
 | 8 | Sever & Sear | 1H Axe | Hybrid | Mage | Phys counts as fire |
 | 9 | Bloodletter | 1H Axe | Burst | Samurai | 5x proc, costs HP |
 | 10 | Voidcleaver | 1H Axe | Endgame | Any | Boss damage |
@@ -1694,7 +1702,7 @@ iLvl distribution: ±5 from current zone level
 | 21 | The Aegis Fist | Mace | Tank | Warrior | Block → counter damage |
 | 22 | Overcrusher | Mace | Power | Warrior | 3rd tap = 200% damage |
 | 23 | Bonebreaker | Mace | Debuff | Any | Armor shred stacks |
-| 24 | Twin Burden | Mace | Raw | Any | Highest damage, slowest speed |
+| 24 | Twin Burden | Mace | Raw | Any | Highest damage, heavy penalty |
 | 25 | Colossus Grind | 2H Sword | Tank | Warrior | Armor → flat phys per hit |
 | 26 | Splitwind Axe | 2H Axe | Speed | Any | Every tap hits twice |
 | 27 | Stormrend Bow | Bow | Crit | Archer | Crit → lightning proc |
@@ -1703,17 +1711,17 @@ iLvl distribution: ±5 from current zone level
 | 30 | Archon's Stave | Staff | Multi | Mage | All elements synergy |
 | 31 | The Endless Lecture | Staff | Fire | Mage | -25% fire CDR |
 | 32 | Frostweave Sanctum | Staff | Cold | Mage | Cold slows enemies |
-| 33 | The Titan's Promise | 2H Mace | Power | Warrior | 4th tap = AoE blast |
+| 33 | The Titan's Promise | 2H Mace | Power | Warrior | 4th tap = 250% slam, ignores 20% resistance |
 | 34 | The Paradox | 2H Axe | Risk | Any | Pain stacks damage |
 | 35 | Iron Sentinel | Helmet | Tank | Warrior | Block doubles above 80% HP |
 | 36 | Mindveil Circlet | Helmet | Burst | Mage | Skills share/reset cooldown every 8s |
 | 37 | Headhunter's Eye | Helmet | Farm | Any | Boss kill → random stat buff |
-| 38 | Phantom Crown | Helmet | Speed | Archer | Dodge → attack speed |
+| 38 | Phantom Crown | Helmet | Speed | Archer | Dodge → multi-hit chance |
 | 39 | Momentum Mask | Helmet | Crit | Samurai | Crit stacks crit multiplier |
 | 40 | Voidcrown | Helmet | Leveling | Any | Most XP + CDR |
 | 41 | Forsaken Faceplate | Helmet | Thorns | Warrior | Double/triple thorns |
 | 42 | The Oracle's Veil | Helmet | Control | Mage | Spell Amp every 5th skill |
-| 43 | The Iron Fortress | Armor | Tank | Warrior | Armor reduces elemental too |
+| 43 | The Iron Fortress | Armor | Tank | Warrior | 15% damage return + armor doubles at low HP |
 | 44 | Kaom's Will | Armor | HP | Warrior | +300 HP, thorns = 15% HP |
 | 45 | Wraithweave Robe | Armor | ES | Mage | ES covers physical |
 | 46 | Cloak of the Hollow | Armor | Evasion | Archer | Evasion → damage + dodge |
@@ -1722,15 +1730,15 @@ iLvl distribution: ±5 from current zone level
 | 49 | Penitent's Hauberk | Armor | Risk | Any | Take damage → gain damage |
 | 50 | The Vanishing | Armor | Evasion | Archer | Dodge on skills too |
 | 51 | Berserker's Grip | Gloves | Offense | Warrior | Thorns adds to taps |
-| 52 | Swiftfingers | Gloves | Speed | Archer | Fastest attack speed |
+| 52 | Swiftfingers | Gloves | Speed | Archer | Highest multi-hit on gloves |
 | 53 | Witchfire Wraps | Gloves | Debuff | Mage | Skills reduce enemy elemental resist |
 | 54 | Crit Conductor | Gloves | Crit | Samurai | Crit → Momentum stacks |
 | 55 | Ironclad Gauntlets | Gloves | Tank | Warrior | Block + thorns + armor |
-| 56 | Phantom Touch | Gloves | Combo | Archer | Dodge → multi-hit stacks |
-| 57 | Stormwalkers | Boots | Speed | Archer | Move speed → attack speed |
-| 58 | Ironwall Sabatons | Boots | Tank | Warrior | Combat duration → block |
-| 59 | Ghoststep Slippers | Boots | CDR | Mage | Skill use → move speed |
-| 60 | Ragebinders | Boots | Risk | Any | Low life → more speed |
+| 56 | Phantom Touch | Gloves | Combo | Archer | Dodge → crit stacks |
+| 57 | Stormwalkers | Boots | Dodge | Archer | Dodge → multi-hit stacks |
+| 58 | Ironwall Sabatons | Boots | Tank | Warrior | 5% damage return + combat duration → block |
+| 59 | Ghoststep Slippers | Boots | CDR | Mage | Skill use → dodge buff |
+| 60 | Ragebinders | Boots | Risk | Any | Low life → dodge bonus |
 | 61 | Coward's Pace | Boots | Risk | Any | Low life at 60% threshold |
 | 62 | Earthbound Greaves | Boots | Defense | Warrior | Armor + HP + DTR |
 | 63 | The Endless Hunger | Belt | Sustain | Any | Instant leech + flask overflow |
@@ -1738,17 +1746,17 @@ iLvl distribution: ±5 from current zone level
 | 65 | Coldsnap Sash | Belt | CDR | Mage | CDR + cold resist + debuff |
 | 66 | Headhunter's Mark | Belt | Elite | Any | Steal elite stat for 20s |
 | 67 | Momentum Band | Belt | Crit | Samurai | Crits reduce skill CD |
-| 68 | Coward's Chain | Belt | Risk | Archer | Low life at 65%, speed buff |
+| 68 | Coward's Chain | Belt | Risk | Archer | Low life at 65%, multi-hit buff |
 | 69 | Flask Catalyst | Belt | Utility | Any | Potions grant action buff |
 | 70 | The Balance | Belt | Sustain | Any | Recoup 50% damage taken |
 | 71 | The Eternal Ember | Ring | Fire | Mage | Fire res → fire damage |
 | 72 | The Frozen Theorem | Ring | Cold | Mage | Cold penetration |
 | 73 | Ring of Dominion | Ring | Tank | Warrior | Block → resistance |
 | 74 | Bloodpact Ring | Ring | Crit | Samurai | 3x leech on crit |
-| 75 | Speedring of the Hunt | Ring | Speed | Archer | Double Shot → speed buff |
+| 75 | Speedring of the Hunt | Ring | Speed | Archer | Double Shot → multi-hit buff |
 | 76 | The Mirror | Ring | Meta | Any | Copies other ring's stats |
 | 77 | Omen Circle | Ring | Safety | Any | Emergency 15% restore |
-| 78 | Ring of Vengeance | Ring | Thorns | Warrior | Thorns scale with damage received |
+| 78 | Ring of Vengeance | Ring | Return | Warrior | 8% damage return, scales with hits taken |
 | 79 | Mist Signet | Ring | Combo | Archer | Dodge → 3 buffed taps |
 | 80 | Serpent's Coil | Ring | Farm | Any | Double loot chance |
 | 81 | Heart of the Inferno | Amulet | Fire | Mage | Fire res → fire damage (amulet) |
@@ -1760,6 +1768,6 @@ iLvl distribution: ±5 from current zone level
 | 87 | The Pandemonious | Amulet | Cold | Mage | 25% cold penetration |
 | 88 | Bloodbound | Amulet | Leech | Samurai | 200% leech + overheal |
 | 89 | Serpent's Eye | Amulet | Farm | Any | +1 skill use + gold |
-| 90 | The Reckoning | Amulet | Tank | Warrior | Block → AoE thorns pulse |
+| 90 | The Reckoning | Amulet | Tank | Warrior | Block → Thorns pulse on target |
 
 **Total: 90 unique items across all slots**
