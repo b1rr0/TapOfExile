@@ -3,15 +3,15 @@
   "configurations": [
     {
       "name": "bot-dev",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--config", "bot/vite.config.js", "--port", "3000", "--host"],
-      "port": 3000
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /d/programs/code/TapOfExile/bot && npx vite --port 5173"],
+      "port": 5173
     },
     {
-      "name": "wiki",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "wiki", "run", "dev"],
-      "port": 3002
+      "name": "sprite-tester",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /d/programs/code/TapOfExile/shared/public/assets/skils_sprites && python -m http.server 8090"],
+      "port": 8090
     }
   ]
 }
