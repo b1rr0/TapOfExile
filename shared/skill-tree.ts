@@ -312,10 +312,17 @@ function effectiveRadius(
     const figId = figureMembership.get(node.id);
     const shape = figId !== undefined ? figureShapes.get(figId) : undefined;
     if (shape) {
-      const cx = shape.points.reduce((s, p) => s + p[0], 0) / shape.points.length;
-      const cy = shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
+      // Use gateway anchor point as origin (not centroid) — keystones are
+      // placed relative to the anchor, so gateway-based radius is accurate.
+      const anchorIdx = shape.gatewayIdx;
+      const ax = anchorIdx !== undefined
+        ? shape.points[anchorIdx][0]
+        : shape.points.reduce((s, p) => s + p[0], 0) / shape.points.length;
+      const ay = anchorIdx !== undefined
+        ? shape.points[anchorIdx][1]
+        : shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
       const maxR = Math.max(...shape.points.map(([x, y]) =>
-        Math.sqrt((x - cx) ** 2 + (y - cy) ** 2),
+        Math.sqrt((x - ax) ** 2 + (y - ay) ** 2),
       ));
       const scale = shape.points.length >= 7 ? FIGURE_SCALE_OUTER : FIGURE_SCALE_INNER;
       return maxR * scale + NODE_RADIUS["keystone"];
@@ -431,6 +438,27 @@ function relaxLayout(
       }
     }
 
+    // ── 4. Figure gateway repulsion vs non-figure outer nodes ──
+    // Pushes non-figure tree nodes outside the gateway's personal space.
+    // Use a modest radius (1.5× gateway node radius) to avoid disrupting layout;
+    // rotation optimizer (step 5) handles actual crossing elimination.
+    for (let ii = 0; ii < N; ii++) {
+      if (nodes[ii].type !== "figureEntry") continue;
+      for (const jj of relaxIds) {
+        if (figureMembership.has(nodes[jj].id)) continue;  // skip nodes in any figure
+        const ex = nodes[jj].x - nodes[ii].x;
+        const ey = nodes[jj].y - nodes[ii].y;
+        const dist = Math.sqrt(ex * ex + ey * ey);
+        // Only prevent nodes from overlapping the gateway node itself (not the whole figure)
+        const minD = baseR[ii] * 1.5 + baseR[jj];
+        if (dist >= minD || dist < 0.01) continue;
+        const push = minD - dist;
+        dx[jj] += (ex / dist) * push;
+        dy[jj] += (ey / dist) * push;
+        anyChange = true;
+      }
+    }
+
     if (!anyChange) break;
 
     // Apply with damping + max displacement clamp for stability
@@ -449,6 +477,8 @@ function relaxLayout(
   // ── 4. Position figure keystones using constellation shapes ──
   // After main relaxation, place keystones per their shape geometry,
   // anchored on gateway (which may sit at a vertex or at the center).
+  // NOTE: gw.connections only contains directly-adjacent keystones — use
+  // figureMembership + nodeId suffix ("-ks{k}") to map ALL keystones to shape points.
   for (let i = 0; i < N; i++) {
     const gw = nodes[i];
     if (gw.type !== "figureEntry") continue;
@@ -457,10 +487,17 @@ function relaxLayout(
     const shape = figureShapes.get(figId);
     if (!shape) continue;
 
-    const ksIds = gw.connections.filter(c => nodes[c].type === "keystone");
+    // Build shape-point-index → keystone-node map via nodeId suffix "-ks{k}"
+    const pointToKs = new Map<number, SkillNode>();
+    for (let j = 0; j < N; j++) {
+      if (nodes[j].type !== "keystone") continue;
+      if (figureMembership.get(nodes[j].id) !== figId) continue;
+      const m = nodes[j].nodeId.match(/-ks(\d+)$/);
+      if (m) pointToKs.set(+m[1], nodes[j]);
+    }
     const anchorIdx = shape.gatewayIdx;
     const expectedKs = anchorIdx !== undefined ? shape.points.length - 1 : shape.points.length;
-    if (ksIds.length === 0 || ksIds.length !== expectedKs) continue;
+    if (pointToKs.size !== expectedKs) continue;  // sanity check
 
     const outA = Math.atan2(gw.y - CY, gw.x - CX);
     const scale = shape.points.length >= 7 ? FIGURE_SCALE_OUTER : FIGURE_SCALE_INNER;
@@ -471,15 +508,208 @@ function relaxLayout(
     const ay = anchorIdx !== undefined ? shape.points[anchorIdx][1]
       : shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
 
-    let ksK = 0;
     for (let k = 0; k < shape.points.length; k++) {
       if (k === anchorIdx) continue;  // gateway sits here
+      const ks = pointToKs.get(k);
+      if (!ks) continue;
       const [lx, ly] = [shape.points[k][0] - ax, shape.points[k][1] - ay];
       const rx = lx * Math.cos(outA) - ly * Math.sin(outA);
       const ry = lx * Math.sin(outA) + ly * Math.cos(outA);
-      nodes[ksIds[ksK]].x = gw.x + rx * scale;
-      nodes[ksIds[ksK]].y = gw.y + ry * scale;
-      ksK++;
+      ks.x = gw.x + rx * scale;
+      ks.y = gw.y + ry * scale;
+    }
+  }
+
+  // ── 5. Optimize figure rotation to minimize figure-to-tree crossings ──
+  // For each figure, search ROT_STEPS evenly-spaced rotation angles (10° steps)
+  // and pick the one with the fewest crossings between figure-internal edges
+  // (both endpoints in same figure) and outer-tree edges (neither endpoint in
+  // this figure). Updates keystone positions in place.
+  {
+    const ROT_STEPS = 360;  // 1° granularity — fine enough for any geometry
+
+    for (let i = 0; i < N; i++) {
+      const gw = nodes[i];
+      if (gw.type !== "figureEntry") continue;
+      const figId = figureMembership.get(gw.id);
+      if (figId === undefined) continue;
+      const shape = figureShapes.get(figId);
+      if (!shape) continue;
+
+      // Build shape-point-index → keystone-node-id map via nodeId suffix "-ks{k}"
+      const pointToKsId = new Map<number, number>();
+      for (let j = 0; j < N; j++) {
+        if (nodes[j].type !== "keystone") continue;
+        if (figureMembership.get(nodes[j].id) !== figId) continue;
+        const m = nodes[j].nodeId.match(/-ks(\d+)$/);
+        if (m) pointToKsId.set(+m[1], j);
+      }
+      const anchorIdx = shape.gatewayIdx;
+      const expectedKs = anchorIdx !== undefined ? shape.points.length - 1 : shape.points.length;
+      if (pointToKsId.size !== expectedKs) continue;  // sanity check
+
+      const figScale = shape.points.length >= 7 ? FIGURE_SCALE_OUTER : FIGURE_SCALE_INNER;
+
+      const ancX = anchorIdx !== undefined
+        ? shape.points[anchorIdx][0]
+        : shape.points.reduce((s, p) => s + p[0], 0) / shape.points.length;
+      const ancY = anchorIdx !== undefined
+        ? shape.points[anchorIdx][1]
+        : shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
+
+      // Edges to check against:
+      // 1. Outer edges where neither endpoint belongs to this figure (tree branches)
+      // 2. The gateway's parent connection (one endpoint = gateway, other = tree) — this
+      //    edge can cross the figure's own keystones if rotation is wrong.
+      const checkEdges = oEdges.filter(([a, b]) => {
+        const fa = figureMembership.get(a);
+        const fb = figureMembership.get(b);
+        if (fa !== figId && fb !== figId) return true;  // neither in this figure
+        if (a === gw.id && fb !== figId) return true;   // gateway↔parent edge
+        if (b === gw.id && fa !== figId) return true;   // parent↔gateway edge
+        return false;
+      });
+      if (checkEdges.length === 0) continue;
+
+      // Compute world positions of figure keystones at a given rotation angle
+      const worldFigPts = (angle: number): [number, number][] => {
+        const ptW: [number, number][] = [];
+        for (let k = 0; k < shape.points.length; k++) {
+          if (k === anchorIdx) {
+            ptW.push([gw.x, gw.y]);
+          } else {
+            const lx = shape.points[k][0] - ancX;
+            const ly = shape.points[k][1] - ancY;
+            ptW.push([
+              gw.x + (lx * Math.cos(angle) - ly * Math.sin(angle)) * figScale,
+              gw.y + (lx * Math.sin(angle) + ly * Math.cos(angle)) * figScale,
+            ]);
+          }
+        }
+        return ptW;
+      };
+
+      // Collect non-figure nodes near this gateway for proximity check
+      const PROX_ZONE = figR[i] + 30;  // search radius for proximity violations
+      const nearbyNonFig: number[] = [];
+      for (const jj of relaxIds) {
+        if (figureMembership.has(nodes[jj].id)) continue;
+        const dx = nodes[jj].x - gw.x, dy = nodes[jj].y - gw.y;
+        if (Math.sqrt(dx * dx + dy * dy) < PROX_ZONE) nearbyNonFig.push(jj);
+      }
+
+      // Penalty function: crossings (×1000) + proximity violations + small-angle violations
+      const penalty = (angle: number): number => {
+        const ptW = worldFigPts(angle);
+        const fe = shape.edges.map(
+          ([ei, ej]) => [ptW[ei][0], ptW[ei][1], ptW[ej][0], ptW[ej][1]] as [number, number, number, number],
+        );
+        // Edge crossings (most critical — weight 1000)
+        let cross = 0;
+        for (const [x1, y1, x2, y2] of fe) {
+          for (const [ci, di] of checkEdges) {
+            if (segsCross(x1, y1, x2, y2, nodes[ci].x, nodes[ci].y, nodes[di].x, nodes[di].y)) cross++;
+          }
+        }
+        // Proximity: keystone overlapping with nearby non-figure node (weight 100)
+        let prox = 0;
+        for (let k = 0; k < ptW.length; k++) {
+          if (k === anchorIdx) continue;
+          const [kx, ky] = ptW[k];
+          for (const jj of nearbyNonFig) {
+            const dx = nodes[jj].x - kx, dy = nodes[jj].y - ky;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minD = NODE_RADIUS["keystone"] + baseR[jj] + 4;
+            if (dist < minD) prox += (minD - dist);
+          }
+        }
+        // Small angle: keystone too close to gateway→parent direction (weight 50)
+        let angPen = 0;
+        const parentConn = gw.connections.find(c => !figureMembership.has(nodes[c].id) || figureMembership.get(nodes[c].id) !== figId);
+        if (parentConn !== undefined) {
+          const parentAng = Math.atan2(nodes[parentConn].y - gw.y, nodes[parentConn].x - gw.x);
+          for (let k = 0; k < ptW.length; k++) {
+            if (k === anchorIdx) continue;
+            const ksAng = Math.atan2(ptW[k][1] - gw.y, ptW[k][0] - gw.x);
+            let diff = Math.abs(ksAng - parentAng);
+            if (diff > Math.PI) diff = 2 * Math.PI - diff;
+            if (diff < Math.PI / 6) angPen += (Math.PI / 6 - diff) * 50;
+          }
+        }
+        return cross * 1000 + prox * 100 + angPen;
+      };
+
+      const baseAngle = Math.atan2(gw.y - CY, gw.x - CX);
+      let bestAngle = baseAngle;
+      let bestPen = penalty(baseAngle);
+
+      if (bestPen > 0) {
+        for (let step = 1; step < ROT_STEPS; step++) {
+          const tryAngle = baseAngle + (step / ROT_STEPS) * 2 * Math.PI;
+          const p = penalty(tryAngle);
+          if (p < bestPen) {
+            bestPen = p;
+            bestAngle = tryAngle;
+            if (bestPen === 0) break;
+          }
+        }
+      }
+
+      // Apply the best rotation to keystone node positions
+      if (bestAngle !== baseAngle || true) {  // always apply to ensure correct placement
+        for (let k = 0; k < shape.points.length; k++) {
+          if (k === anchorIdx) continue;
+          const ksIdx = pointToKsId.get(k);
+          if (ksIdx === undefined) continue;
+          const lx = shape.points[k][0] - ancX;
+          const ly = shape.points[k][1] - ancY;
+          nodes[ksIdx].x = gw.x + (lx * Math.cos(bestAngle) - ly * Math.sin(bestAngle)) * figScale;
+          nodes[ksIdx].y = gw.y + (lx * Math.sin(bestAngle) + ly * Math.cos(bestAngle)) * figScale;
+        }
+      }
+    }
+  }
+
+  // ── 6. Push non-figure nodes away from keystones to prevent visual overlaps ──
+  {
+    const KS_CLEAR = 6;  // extra clearance beyond sum of radii
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < N; i++) {
+        if (nodes[i].type !== "keystone") continue;
+        const fi = figureMembership.get(nodes[i].id);
+        const rI = NODE_RADIUS["keystone"];
+        for (const jj of relaxIds) {
+          if (figureMembership.has(nodes[jj].id)) continue;
+          const ex = nodes[jj].x - nodes[i].x;
+          const ey = nodes[jj].y - nodes[i].y;
+          const dist = Math.sqrt(ex * ex + ey * ey);
+          const minD = rI + baseR[jj] + KS_CLEAR;
+          if (dist >= minD || dist < 0.01) continue;
+          // Push the non-figure node outward
+          const factor = minD / dist;
+          nodes[jj].x = nodes[i].x + ex * factor;
+          nodes[jj].y = nodes[i].y + ey * factor;
+        }
+      }
+      // Also push keystones of different figures apart
+      for (let i = 0; i < N; i++) {
+        if (nodes[i].type !== "keystone") continue;
+        const fi = figureMembership.get(nodes[i].id);
+        for (let j = i + 1; j < N; j++) {
+          if (nodes[j].type !== "keystone") continue;
+          const fj = figureMembership.get(nodes[j].id);
+          if (fi !== undefined && fi === fj) continue;  // same figure ok
+          const ex = nodes[j].x - nodes[i].x;
+          const ey = nodes[j].y - nodes[i].y;
+          const dist = Math.sqrt(ex * ex + ey * ey);
+          const minD = NODE_RADIUS["keystone"] * 2 + KS_CLEAR;
+          if (dist >= minD || dist < 0.01) continue;
+          const push = (minD - dist) / 2;
+          const nx = (ex / dist) * push, ny = (ey / dist) * push;
+          nodes[i].x -= nx; nodes[i].y -= ny;
+          nodes[j].x += nx; nodes[j].y += ny;
+        }
+      }
     }
   }
 }
@@ -695,15 +925,15 @@ function assertEmblemClearance(nodes: SkillNode[], emblems: Emblem[], minGap: nu
 
 // ── Constellation figure system ──────────────────────────
 
-interface ConstellationShape {
+export interface ConstellationShape {
   name: string;
   points: [number, number][];  // keystone positions (abstract coords)
   edges: [number, number][];   // edges between keystone indices
   gatewayIdx?: number;         // which vertex the gateway sits on (undefined = center)
 }
 
-const INNER_SHAPES: ConstellationShape[] = [
-  { name: "star5", points: [[0,3],[2,0],[4,3],[1,1.5],[3,1.5]],
+export const INNER_SHAPES: ConstellationShape[] = [
+  { name: "pentagon5", points: [[2,0],[4,1],[3,4],[1,4],[0,1]],
     edges: [[0,1],[1,2],[2,3],[3,4],[4,0]], gatewayIdx: 0 },
   { name: "hexagon", points: [[0,2],[1,0],[3,0],[4,2],[3,4],[1,4]],
     edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]], gatewayIdx: 0 },
@@ -713,7 +943,7 @@ const INNER_SHAPES: ConstellationShape[] = [
     edges: [[0,1],[1,2],[2,0],[1,3],[3,4],[4,5],[5,3]], gatewayIdx: 1 },
 ];
 
-const OUTER_SHAPES: ConstellationShape[] = [
+export const OUTER_SHAPES: ConstellationShape[] = [
   { name: "tree7", points: [[0,0],[0,2],[-1,3],[1,3],[-2,4],[0,4],[2,4]],
     edges: [[0,1],[1,2],[1,3],[2,4],[3,5],[3,6]], gatewayIdx: 0 },
   { name: "pentTail7", points: [[0,2],[1,0],[3,0],[4,2],[2,4],[5,3],[6,4]],
@@ -724,14 +954,23 @@ const OUTER_SHAPES: ConstellationShape[] = [
     edges: [[0,1],[1,2],[2,3],[3,0],[2,4],[4,5],[5,6],[6,7],[7,4]], gatewayIdx: 0 },
   { name: "octagon8", points: [[0,1],[1,0],[3,0],[4,1],[4,3],[3,4],[1,4],[0,3]],
     edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0]], gatewayIdx: 7 },
-  { name: "zigzag9", points: [[0,0],[1,1],[2,0],[3,1],[4,0],[5,1],[6,0],[7,1],[8,0]],
+  // Zodiac-inspired constellations (simplified to ≤9 nodes)
+  { name: "aries", points: [[0,0],[1,2],[2,3],[3,4],[4,3],[5,2],[4,1],[3,0]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7]], gatewayIdx: 0 },  // ram horns
+  { name: "taurus", points: [[0,3],[1,1],[3,0],[5,1],[6,3],[4,4],[2,4]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0]], gatewayIdx: 2 },  // bull head ring
+  { name: "gemini", points: [[0,0],[0,2],[0,4],[2,1],[2,3],[4,0],[4,2],[4,4]],
+    edges: [[0,1],[1,2],[3,4],[5,6],[6,7],[0,5],[1,3],[3,6],[2,7]], gatewayIdx: 0 },  // twins
+  { name: "leo", points: [[0,2],[1,0],[3,0],[4,2],[3,4],[1,4],[2,2],[4,5],[5,6]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[3,6],[4,7],[7,8]], gatewayIdx: 0 },  // lion
+  { name: "scorpio", points: [[0,0],[2,0],[4,1],[6,2],[7,4],[6,5],[5,4],[4,6]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[5,7]], gatewayIdx: 0 },  // scorpion tail
+  { name: "spiral9", points: [[0,0],[4,0],[4,4],[0,4],[0,1],[3,1],[3,3],[1,3],[1,2]],
     edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]], gatewayIdx: 0 },
-  { name: "spiral9", points: [[0,0],[3,0],[3,3],[1,3],[1,1],[2,1],[2,2],[0,2],[0,4]],
-    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]], gatewayIdx: 0 },
-  { name: "cross9", points: [[0,2],[2,2],[4,2],[2,0],[2,4],[2,6],[1,2],[3,2],[2,3]],
+  { name: "cross9", points: [[0,2],[2,2],[4,2],[2,0],[2,4],[2,6],[0,0],[4,0],[0,4]],
     edges: [[0,1],[1,2],[3,1],[1,4],[4,5],[6,1],[1,7],[4,8]], gatewayIdx: 3 },
-  { name: "circle10", points: [[0,3],[2,5],[4,5],[6,3],[6,1],[4,-1],[2,-1],[0,1],[1,3],[5,3]],
-    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[0,8],[8,9],[9,3]], gatewayIdx: 7 },
+  { name: "sagittarius", points: [[0,4],[1,2],[2,0],[3,2],[4,4],[3,3],[2,5],[1,3],[4,0]],
+    edges: [[0,1],[1,2],[2,3],[3,4],[1,7],[7,5],[5,3],[2,8],[5,6]], gatewayIdx: 2 },  // archer bow
   { name: "tree10", points: [[0,0],[-2,2],[2,2],[-3,4],[-1,4],[1,4],[3,4],[-3,6],[-1,6],[1,6]],
     edges: [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6],[3,7],[4,8],[5,9]], gatewayIdx: 0 },
   { name: "complex10", points: [[0,0],[2,1],[4,0],[5,2],[4,4],[2,5],[0,4],[-1,2],[2,3],[3,2]],

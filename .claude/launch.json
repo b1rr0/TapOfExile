@@ -18,6 +18,8 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "shared/public/assets", "-p", "8092", "--cors", "-c-1"],
       "port": 8092
+    },
+    {
       "name": "sprite-tester",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd /d/programs/code/TapOfExile/shared/public/assets/skils_sprites && python -m http.server 8090"],

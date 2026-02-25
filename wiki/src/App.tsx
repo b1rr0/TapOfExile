@@ -22,6 +22,7 @@ import MapsPage from './pages/MapsPage';
 // Fullscreen pages (no layout)
 import CharacterTreePage from './pages/CharacterTreePage';
 import SkillTreeBuilderPage from './pages/SkillTreeBuilderPage';
+import FigureMapPage from './pages/FigureMapPage';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
       {/* Fullscreen pages — no Layout wrapper */}
       <Route path="character/:characterId/tree" element={<CharacterTreePage />} />
       <Route path="skill-tree/builder" element={<SkillTreeBuilderPage />} />
+      <Route path="skill-tree/figures" element={<FigureMapPage />} />
 
       {/* Landing layout — hero, leagues, champions, skill tree preview */}
       <Route element={<Layout />}>

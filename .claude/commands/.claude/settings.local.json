@@ -9,7 +9,13 @@
       "Bash(npx:*)",
       "Bash(node:*)",
       "Bash(node_modules/.bin/tsc:*)",
-      "Bash(D:/programs/code/TapOfExile/bot/node_modules/.bin/tsc:*)"
+      "Bash(D:/programs/code/TapOfExile/bot/node_modules/.bin/tsc:*)",
+      "Bash(curl:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3002)",
+      "Bash(findstr LISTENING)",
+      "Bash(taskkill /PID 22752 /F)",
+      "Bash(python3:*)"
     ]
   }
 }

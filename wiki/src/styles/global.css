@@ -1052,6 +1052,171 @@ a:hover {
   height: 100% !important;
 }
 
+/* ── Figure Map Page ──────────────────────────── */
+.fm-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--ds-bg-void, #080b15);
+  color: var(--ds-gold-text, #F9CF87);
+  overflow: hidden;
+}
+
+.fm-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--ds-bg-raised, #182038);
+  border-bottom: 1px solid var(--ds-border-dim);
+  flex-shrink: 0;
+}
+.fm-topbar__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+}
+.fm-topbar__badges { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.fm-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--ds-bg-panel, #1e2845);
+  border: 1px solid var(--ds-border-mid);
+}
+.fm-badge--ok { color: #DFFFFE; border-color: rgba(223, 255, 254, 0.3); }
+.fm-badge--err { color: #ff4444; border-color: rgba(255, 68, 68, 0.4); background: rgba(255, 68, 68, 0.08); }
+
+/* Full tree takes remaining space */
+.fm-tree {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.fm-tree .skill-tree-wiki { height: 100%; }
+.fm-tree .skill-tree-wiki__viewport { height: 100% !important; }
+
+/* Stats panel (overlaid on tree, bottom-right) */
+.fm-stats {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+  pointer-events: none;
+}
+.fm-stats__section {
+  background: rgba(16, 21, 36, 0.92);
+  border: 1px solid var(--ds-border-mid);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  pointer-events: auto;
+}
+.fm-stats__section h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-gold-text, #F9CF87);
+  opacity: 0.7;
+}
+.fm-stats__section--err { border-color: rgba(255, 68, 68, 0.4); }
+.fm-stats__grid { display: flex; flex-direction: column; gap: 2px; }
+.fm-stats__item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+}
+.fm-stats__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #666;
+}
+.fm-stats__dot--start       { background: #fff; }
+.fm-stats__dot--classSkill   { background: #f59e0b; }
+.fm-stats__dot--minor        { background: #6b7280; }
+.fm-stats__dot--notable      { background: #DFFFFE; }
+.fm-stats__dot--keystone     { background: #A40239; }
+.fm-stats__dot--figureEntry  { background: #B9508D; }
+.fm-stats__num { margin-left: auto; font-weight: 700; }
+.fm-stats__cross { font-size: 0.65rem; color: #ff4444; padding: 1px 0; }
+
+/* Shape cards section (scrollable horizontal strip at bottom) */
+.fm-shapes {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  background: var(--ds-bg-base, #101524);
+  border-top: 1px solid var(--ds-border-dim);
+  overflow-x: auto;
+  max-height: 320px;
+}
+.fm-shapes__title {
+  font-size: 0.85rem;
+  margin: 0 0 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.fm-shapes__row {
+  display: flex;
+  gap: 1rem;
+}
+.fm-shapes__group h3 {
+  font-size: 0.72rem;
+  margin: 0 0 0.3rem;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.fm-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.fm-card {
+  flex-shrink: 0;
+  background: var(--ds-bg-raised, #182038);
+  border: 1px solid var(--ds-border-mid);
+  border-radius: 8px;
+  overflow: hidden;
+  text-align: center;
+  width: 200px;
+}
+.fm-card--error { border-color: #ff4444; }
+
+.fm-card__name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 2px 0 0;
+}
+.fm-card__meta {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  font-size: 0.62rem;
+  opacity: 0.6;
+  padding-bottom: 4px;
+}
+.fm-card__tier {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.fm-card__tier--inner { background: rgba(185, 80, 141, 0.3); color: #B9508D; }
+.fm-card__tier--outer { background: rgba(164, 2, 57, 0.3); color: #A40239; }
+.fm-card__error {
+  font-size: 0.68rem;
+  color: #ff4444;
+  font-weight: 700;
+  padding: 2px 0 4px;
+}
+
 /* ── Responsive ───────────────────────────────── */
 @media (max-width: 768px) {
   .header-inner {
