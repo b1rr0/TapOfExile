@@ -682,17 +682,17 @@ a:hover {
 .st-node-id { fill: rgba(255,255,255,0.5); font-size: 5px; font-family: monospace; pointer-events: none; user-select: none; }
 
 .st-node { cursor: pointer; }
-.st-node circle, .st-node path { fill: #101828; stroke: #1e2845; stroke-width: 1.5; transition: fill 0.15s; }
+.st-node circle { fill: #101828; stroke: #1e2845; stroke-width: 1.5; transition: fill 0.15s; }
 .st-node--minor circle { fill: #121a30; stroke: #2a3858; }
-.st-node--notable path { fill: #10182a; stroke: #3a5a8a; stroke-width: 2; }
+.st-node--notable circle { fill: #10182a; stroke: #3a5a8a; stroke-width: 2; }
 /* classSkill skill nodes — red */
-.st-node--classSkill:not(.st-node--classConnector) path { fill: #1a0010; stroke: #A40239; stroke-width: 2; }
-.st-node--classSkill:not(.st-node--classConnector).st-node--allocated path {
+.st-node--classSkill:not(.st-node--classConnector) circle { fill: #1a0010; stroke: #A40239; stroke-width: 2; }
+.st-node--classSkill:not(.st-node--classConnector).st-node--allocated circle {
   fill: #8b0030 !important;
   stroke: #ff3366 !important;
   filter: drop-shadow(0 0 7px rgba(164,2,57,0.7));
 }
-.st-node--classSkill:not(.st-node--classConnector).st-node--reachable path {
+.st-node--classSkill:not(.st-node--classConnector).st-node--reachable circle {
   stroke: rgba(255,51,102,0.8) !important;
   animation: st-pulse-class 2s ease-in-out infinite;
 }
@@ -700,14 +700,14 @@ a:hover {
   0%, 100% { filter: drop-shadow(0 0 2px rgba(164,2,57,0.3)); }
   50%      { filter: drop-shadow(0 0 9px rgba(255,51,102,0.7)); }
 }
-/* classSkill connector nodes — dim hex style */
-.st-node--classConnector path { fill: #141e30; stroke: #3a5070; stroke-width: 1.5; }
-.st-node--classConnector.st-node--allocated path {
+/* classSkill connector nodes — dim style */
+.st-node--classConnector circle { fill: #141e30; stroke: #3a5070; stroke-width: 1.5; }
+.st-node--classConnector.st-node--allocated circle {
   fill: #2a4060 !important;
   stroke: #5a80a0 !important;
   filter: drop-shadow(0 0 4px rgba(80,140,200,0.4));
 }
-.st-node--classConnector.st-node--reachable path {
+.st-node--classConnector.st-node--reachable circle {
   stroke: rgba(80,140,200,0.5) !important;
   animation: st-pulse-connector 2.5s ease-in-out infinite;
 }
@@ -715,10 +715,10 @@ a:hover {
   0%, 100% { filter: drop-shadow(0 0 2px rgba(80,140,200,0.2)); }
   50%      { filter: drop-shadow(0 0 6px rgba(80,140,200,0.5)); }
 }
-.st-node--keystone path { fill: #1e1808; stroke: #cc8833; stroke-width: 2.5; }
-.st-node--figureEntry path { fill: #141420; stroke: #555; stroke-width: 2; }
+.st-node--keystone circle { fill: #151e35; stroke: #4a6a9a; stroke-width: 2; }
+.st-node--figureEntry circle { fill: #141420; stroke: #555; stroke-width: 2; }
 .st-node--start circle { fill: #181e30; stroke: #4a5a7a; stroke-width: 2.5; }
-.st-node--allocated circle, .st-node--allocated path {
+.st-node--allocated circle {
   fill: var(--ds-cyan-dim) !important;
   stroke: var(--ds-cyan) !important;
   stroke-width: 2 !important;
@@ -726,7 +726,7 @@ a:hover {
 }
 
 /* Reachable nodes glow (interactive mode) — cyan */
-.st-node--reachable circle, .st-node--reachable path {
+.st-node--reachable circle {
   stroke: rgba(223, 255, 254, 0.55) !important;
   stroke-width: 2.5 !important;
   filter: drop-shadow(0 0 4px rgba(223, 255, 254, 0.35));

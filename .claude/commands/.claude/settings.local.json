@@ -15,7 +15,14 @@
       "Bash(findstr :3002)",
       "Bash(findstr LISTENING)",
       "Bash(taskkill /PID 22752 /F)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(perl -ne 'while\\(/{\"\"id\"\":69,.*?\"\"connections\"\":\\\\[\\([^\\\\]]*\\)\\\\]\\(?=,|}\\)}/g\\) {print \"\"69: connections=[$1]\\\\n\"\"}')",
+      "Bash(for id in 139 544 432 69 83)",
+      "Bash(do)",
+      "Bash(echo \"=== ID $id ===\")",
+      "Bash(done)",
+      "Bash(echo \"=== SEARCHING FOR ID: $id ===\")",
+      "Bash(xargs grep -l \"skill-tree\\\\|SkillTree\")"
     ]
   }
 }

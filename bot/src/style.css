@@ -4843,8 +4843,7 @@ body {
 
 /* ── Nodes ────────────────────────────── */
 
-.st-node circle,
-.st-node path {
+.st-node circle {
   fill: #2a2040;
   stroke: #5a4a70;
   stroke-width: 2;
@@ -4859,21 +4858,21 @@ body {
 }
 
 /* Notable */
-.st-node--notable path {
+.st-node--notable circle {
   fill: #3a2a50;
   stroke: #8a6aff;
   stroke-width: 2.5;
 }
 
 /* Keystone */
-.st-node--keystone path {
-  fill: #4a2040;
-  stroke: #ff6a8a;
-  stroke-width: 3;
+.st-node--keystone circle {
+  fill: #151e35;
+  stroke: #4a6a9a;
+  stroke-width: 2;
 }
 
 /* Figure Entry (gateway into figure clusters) */
-.st-node--figureEntry path {
+.st-node--figureEntry circle {
   fill: #1a1a1a;
   stroke: #888;
   stroke-width: 2;
@@ -4889,8 +4888,7 @@ body {
 /* ── Node states ──────────────────────── */
 
 /* Allocated — Dead Cells v2 cyan */
-.st-node--allocated circle,
-.st-node--allocated path {
+.st-node--allocated circle {
   fill: var(--ds-cyan-dim);
   stroke: var(--ds-cyan);
   filter: drop-shadow(0 0 6px rgba(223, 255, 254, 0.55));
@@ -4900,25 +4898,19 @@ body {
   stroke: var(--ds-gold-bright);
   filter: drop-shadow(0 0 8px rgba(255, 208, 96, 0.55));
 }
-.st-node--notable.st-node--allocated path {
+.st-node--notable.st-node--allocated circle {
   fill: var(--ds-cyan-mid);
   stroke: var(--ds-cyan);
   filter: drop-shadow(0 0 8px rgba(223, 255, 254, 0.65));
 }
-.st-node--keystone.st-node--allocated path {
-  fill: #ff4a6a;
-  stroke: #ff8aa0;
-  filter: drop-shadow(0 0 10px rgba(255,74,106,0.6));
-}
-.st-node--figureEntry.st-node--allocated path {
+.st-node--figureEntry.st-node--allocated circle {
   fill: #444;
   stroke: #ccc;
   filter: drop-shadow(0 0 6px rgba(150,150,150,0.5));
 }
 
 /* Reachable (available to allocate) */
-.st-node--reachable circle,
-.st-node--reachable path {
+.st-node--reachable circle {
   stroke: rgba(200,160,255,0.7);
   animation: st-pulse 2s ease-in-out infinite;
 }
@@ -4958,19 +4950,19 @@ body {
 
 /* ── Class skill nodes — red skills (inside emblem) ── */
 
-.st-node--classSkill:not(.st-node--classConnector) path {
+.st-node--classSkill:not(.st-node--classConnector) circle {
   fill: #1a0010;
   stroke: #A40239;
   stroke-width: 2;
 }
 
-.st-node--classSkill:not(.st-node--classConnector).st-node--allocated path {
+.st-node--classSkill:not(.st-node--classConnector).st-node--allocated circle {
   fill: #8b0030;
   stroke: #ff3366;
   filter: drop-shadow(0 0 7px rgba(164,2,57,0.7));
 }
 
-.st-node--classSkill:not(.st-node--classConnector).st-node--reachable path {
+.st-node--classSkill:not(.st-node--classConnector).st-node--reachable circle {
   stroke: rgba(255,51,102,0.8);
   animation: st-pulse-class 2s ease-in-out infinite;
 }
@@ -4980,22 +4972,22 @@ body {
   50%      { filter: drop-shadow(0 0 9px rgba(255,51,102,0.7)); }
 }
 
-/* ── Class connector nodes — dim path nodes (inside emblem) ── */
+/* ── Class connector nodes — dim circle nodes (inside emblem) ── */
 
-.st-node--classConnector path,
-.st-node--classSkill.st-node--classConnector path {
+.st-node--classConnector circle,
+.st-node--classSkill.st-node--classConnector circle {
   fill: #141e30;
   stroke: #3a5070;
   stroke-width: 1.5;
 }
 
-.st-node--classConnector.st-node--allocated path {
+.st-node--classConnector.st-node--allocated circle {
   fill: #2a4060;
   stroke: #5a80a0;
   filter: drop-shadow(0 0 4px rgba(80,140,200,0.4));
 }
 
-.st-node--classConnector.st-node--reachable path {
+.st-node--classConnector.st-node--reachable circle {
   stroke: rgba(80,140,200,0.5);
   animation: st-pulse-connector 2.5s ease-in-out infinite;
 }

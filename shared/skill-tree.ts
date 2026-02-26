@@ -66,7 +66,7 @@ export const MAX_CLASS_SKILLS: number = 8;
 
 // Node rendering radii (shared between FE, wiki, and layout validation)
 export const NODE_RADIUS: Record<string, number> = {
-  keystone: 14, notable: 11, start: 7, classSkill: 8, minor: 7, figureEntry: 9,
+  keystone: 9, notable: 11, start: 7, classSkill: 8, minor: 7, figureEntry: 9,
 };
 // Minimum distance = 4× diameter = 8× radius
 const MIN_DIST_MULT: number = 8;
@@ -1633,8 +1633,5 @@ export function diamondPath(cx: number, cy: number, r: number): string {
 
 /** Returns SVG shape name for a node type. */
 export function getNodeShape(nodeType: string, isConnector: boolean): 'circle' | 'hex' | 'diamond' {
-  if (isConnector) return 'hex';
-  if (nodeType === 'keystone') return 'diamond';
-  if (nodeType === 'notable' || nodeType === 'classSkill' || nodeType === 'figureEntry') return 'hex';
   return 'circle';
 }
