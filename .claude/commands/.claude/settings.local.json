@@ -22,7 +22,8 @@
       "Bash(echo \"=== ID $id ===\")",
       "Bash(done)",
       "Bash(echo \"=== SEARCHING FOR ID: $id ===\")",
-      "Bash(xargs grep -l \"skill-tree\\\\|SkillTree\")"
+      "Bash(xargs grep -l \"skill-tree\\\\|SkillTree\")",
+      "Bash(sed 's/\\\\.png$//')"
     ]
   }
 }
