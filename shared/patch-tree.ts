@@ -3846,6 +3846,691 @@ console.log("\n=== PHASE 5k: User adjustments ===");
     console.log(`    ${cls}: scaled ${triNodes.length} web4eR nodes 1.2× from trunk-3`);
   }
 
+  // ─── 5k-42: Rotate tendril-s1-d1 figure -20° (CCW) around gate (samurai) ───
+  console.log("  5k-42: Rotate tendril-s1-d1 -20° around gate (samurai)");
+  {
+    const gate42 = nodeByNodeId("samurai-fig-tendril-s1-d1-gate");
+    if (gate42) {
+      const prefix42 = "samurai-fig-tendril-s1-d1-";
+      const members42 = nodes.filter(n => n.nodeId.startsWith(prefix42)).map(n => n.id);
+      rotateFigure5k(gate42.id, members42, -20);
+      console.log(`    Rotated ${members42.length} nodes -20° around gate (${gate42.id})`);
+    }
+  }
+
+  // ─── 5k-43: Scale bfig-1 figure 1.5× from gate (samurai) ───
+  console.log("  5k-43: Scale bfig-1 1.5× from gate (samurai)");
+  {
+    const gate43 = nodeByNodeId("samurai-fig-bfig-1-gate");
+    if (gate43) {
+      const prefix43 = "samurai-fig-bfig-1-";
+      const members43 = nodes.filter(n => n.nodeId.startsWith(prefix43)).map(n => n.id);
+      scaleFigure5k(gate43.id, members43, 1.5);
+      console.log(`    Scaled ${members43.length} nodes 1.5× from gate (${gate43.id})`);
+    }
+  }
+
+  // ─── 5k-44: Delete warrior-fig-tendril-m2R-d1-ks5 (node 231), reconnect ks6→ks3 ───
+  console.log("  5k-44: Delete warrior-tendril-m2R-ks5, reconnect ks6→ks3");
+  {
+    const ks5_44 = nodeByNodeId("warrior-fig-tendril-m2R-d1-ks5");
+    const ks6_44 = nodeByNodeId("warrior-fig-tendril-m2R-d1-ks6");
+    const ks3_44 = nodeByNodeId("warrior-fig-tendril-m2R-d1-ks3");
+    if (ks5_44 && ks6_44 && ks3_44) {
+      deleteNode(ks5_44.id);
+      addEdge(ks6_44.id, ks3_44.id);
+      addFigureEdge(ks6_44.id, ks3_44.id);
+      console.log(`    Deleted ks5 (${ks5_44.id}), reconnected ks6 (${ks6_44.id})↔ks3 (${ks3_44.id})`);
+    }
+  }
+
+  // ─── 5k-45: Rotate mage-fig-tendril-m1R-d1 110° CW around gate (274) ───
+  console.log("  5k-45: Rotate mage-tendril-m1R-d1 +110° around gate");
+  {
+    const gate45 = nodeByNodeId("mage-fig-tendril-m1R-d1-gate");
+    if (gate45) {
+      const prefix45 = "mage-fig-tendril-m1R-d1-";
+      const members45 = nodes.filter(n => n.nodeId.startsWith(prefix45)).map(n => n.id);
+      rotateFigure5k(gate45.id, members45, 110);
+      console.log(`    Rotated ${members45.length} nodes +110° around gate (${gate45.id})`);
+    }
+  }
+
+  // ─── 5k-46: Connect archer-tendril-m0L-d1-s0 (309) to gate (310) instead of ks4 (314) ───
+  console.log("  5k-46: Reconnect archer-m0L-s0 → gate instead of ks4");
+  {
+    const s0_46 = nodeByNodeId("archer-tendril-m0L-d1-s0");
+    const gate46 = nodeByNodeId("archer-fig-tendril-m0L-d1-gate");
+    const ks4_46 = nodeByNodeId("archer-fig-tendril-m0L-d1-ks4");
+    if (s0_46 && gate46 && ks4_46) {
+      removeEdge(s0_46.id, ks4_46.id);
+      addEdge(s0_46.id, gate46.id);
+      console.log(`    Removed ${s0_46.id}↔${ks4_46.id}, added ${s0_46.id}↔${gate46.id}`);
+    }
+  }
+
+  // ─── 5k-47: Connect mage-tendril-m2L-s0 (283) to ks1 (285) instead of ks5 (289) + move 10px away ───
+  console.log("  5k-47: Reconnect mage-m2L-s0 → ks1 instead of ks5 + shift 10px");
+  {
+    const s0_47 = nodeByNodeId("mage-tendril-m2L-d1-s0");
+    const ks1_47 = nodeByNodeId("mage-fig-tendril-m2L-d1-ks1");
+    const ks5_47 = nodeByNodeId("mage-fig-tendril-m2L-d1-ks5");
+    if (s0_47 && ks1_47 && ks5_47) {
+      removeEdge(s0_47.id, ks5_47.id);
+      addEdge(s0_47.id, ks1_47.id);
+      // Move s0 10px away from ks1 along ks1→s0 direction
+      const dx47 = s0_47.x - ks1_47.x;
+      const dy47 = s0_47.y - ks1_47.y;
+      const dist47 = Math.sqrt(dx47 * dx47 + dy47 * dy47);
+      if (dist47 > 0) {
+        s0_47.x += (dx47 / dist47) * 10;
+        s0_47.y += (dy47 / dist47) * 10;
+      }
+      console.log(`    Reconnected ${s0_47.id}↔${ks1_47.id}, moved s0 10px away to (${Math.round(s0_47.x)},${Math.round(s0_47.y)})`);
+    }
+  }
+
+  // ─── 5k-48: Delete archer-fig-tendril-m0R-d1-ks7 (leaf node 326) ───
+  console.log("  5k-48: Delete archer-tendril-m0R-ks7 (leaf)");
+  {
+    const ks7_48 = nodeByNodeId("archer-fig-tendril-m0R-d1-ks7");
+    if (ks7_48) {
+      deleteNode(ks7_48.id);
+      console.log(`    Deleted ks7 (${ks7_48.id})`);
+    }
+  }
+
+  // ─── 5k-49: Scale samurai-fig-tendril-m1R-d1 figure 1.25× from gate (142) ───
+  console.log("  5k-49: Scale samurai-tendril-m1R-d1 1.25× from gate");
+  {
+    const gate49 = nodeByNodeId("samurai-fig-tendril-m1R-d1-gate");
+    if (gate49) {
+      const prefix49 = "samurai-fig-tendril-m1R-d1-";
+      const members49 = nodes.filter(n => n.nodeId.startsWith(prefix49)).map(n => n.id);
+      scaleFigure5k(gate49.id, members49, 1.25);
+      console.log(`    Scaled ${members49.length} nodes 1.25× from gate (${gate49.id})`);
+    }
+  }
+
+  // ─── 5k-50: Rotate archer-fig-tendril-m1R-d1 180° around node 336 (gate) ───
+  console.log("  5k-50: Rotate archer-tendril-m1R-d1 180° around gate (336)");
+  {
+    const gate50 = nodeByNodeId("archer-fig-tendril-m1R-d1-gate");
+    if (gate50) {
+      const prefix50 = "archer-fig-tendril-m1R-d1-";
+      const members50 = nodes.filter(n => n.nodeId.startsWith(prefix50)).map(n => n.id);
+      rotateFigure5k(gate50.id, members50, 180);
+      console.log(`    Rotated ${members50.length} nodes 180° around gate (${gate50.id})`);
+    }
+  }
+
+  // ─── 5k-51: Move mage-fig-tendril-m1R-d1 figure down 10px + rebind 272→274 ───
+  console.log("  5k-51: Move mage-tendril-m1R-d1 down 10px + rebind 272→274");
+  {
+    const prefix51 = "mage-fig-tendril-m1R-d1-";
+    const figNodes51 = nodes.filter(n => n.nodeId.startsWith(prefix51));
+    for (const n of figNodes51) {
+      n.y += 10;
+    }
+    console.log(`    Moved ${figNodes51.length} nodes down 10px`);
+
+    // Rebind 272 (mage-tendril-m1R-d1-s0) to 274 (ks0) instead of 273 (gate)
+    const s0_51 = nodeByNodeId("mage-tendril-m1R-d1-s0");
+    const gate51 = nodeByNodeId("mage-fig-tendril-m1R-d1-gate");
+    const ks0_51 = nodeByNodeId("mage-fig-tendril-m1R-d1-ks0");
+    if (s0_51 && gate51 && ks0_51) {
+      removeEdge(s0_51.id, gate51.id);
+      addEdge(s0_51.id, ks0_51.id);
+      console.log(`    Rebound s0 (${s0_51.id}) from gate (${gate51.id}) to ks0 (${ks0_51.id})`);
+    }
+  }
+
+  // ─── 5k-52: Replace m0Rfig with arrow shape (all classes) ───
+  console.log("  5k-52: Replace m0Rfig with arrow shape (all classes)");
+  {
+    // Arrow positions in (forward, lateral) coordinates, scale S=14
+    const S52 = 14;
+    const arrowPos: [number, number][] = [
+      [1.0, 0],      // 0: shaft back (s-a, gate connection)
+      [2.0, 0],      // 1: shaft (s-b)
+      [3.0, 0],      // 2: shaft front (s-c)
+      [4.0, 0],      // 3: junction (s-d)
+      [5.5, 0],      // 4: tip (s-e)
+      [4.5, 1.3],    // 5: upper barb (NEW)
+      [4.5, -1.3],   // 6: lower barb (NEW)
+    ];
+    const ksNames = ["s-a", "s-b", "s-c", "s-d", "s-e"];
+
+    for (const cls of ["samurai", "warrior", "mage", "archer"]) {
+      const gate52 = nodeByNodeId(`${cls}-fig-m0Rfig-gate`);
+      const sa52 = nodeByNodeId(`${cls}-fig-m0Rfig-s-a`);
+      if (!gate52 || !sa52) continue;
+
+      // Compute forward/lateral unit vectors from gate→s-a
+      const dx52 = sa52.x - gate52.x;
+      const dy52 = sa52.y - gate52.y;
+      const dist52 = Math.sqrt(dx52 * dx52 + dy52 * dy52);
+      if (dist52 === 0) continue;
+      const fwd_x = dx52 / dist52;
+      const fwd_y = dy52 / dist52;
+      const lat_x = -fwd_y; // 90° CCW
+      const lat_y = fwd_x;
+
+      // Reposition existing 5 keystones (s-a through s-e) to arrow positions 0-4
+      for (let i = 0; i < 5; i++) {
+        const n = nodeByNodeId(`${cls}-fig-m0Rfig-${ksNames[i]}`);
+        if (!n) continue;
+        const [f, l] = arrowPos[i];
+        n.x = gate52.x + fwd_x * f * S52 + lat_x * l * S52;
+        n.y = gate52.y + fwd_y * f * S52 + lat_y * l * S52;
+      }
+
+      // Get s-d (junction) for connecting barbs
+      const sd52 = nodeByNodeId(`${cls}-fig-m0Rfig-s-d`);
+      if (!sd52) continue;
+
+      // Get figId from existing membership
+      const fmEntry = figMembership.find(([nid]: [number, number]) => nid === gate52.id);
+      const figId52 = fmEntry ? fmEntry[1] : -1;
+
+      // Create upper barb node
+      const [f5, l5] = arrowPos[5];
+      const upperBarb = {
+        id: nextId5k++,
+        nodeId: `${cls}-fig-m0Rfig-s-f`,
+        type: "keystone" as any,
+        classAffinity: cls,
+        x: gate52.x + fwd_x * f5 * S52 + lat_x * l5 * S52,
+        y: gate52.y + fwd_y * f5 * S52 + lat_y * l5 * S52,
+        label: "",
+        name: null,
+        stat: null,
+        value: 0,
+        defId: null,
+        mods: [],
+        connections: [] as number[],
+        connector: false,
+      };
+      nodes.push(upperBarb);
+      addEdge(sd52.id, upperBarb.id);
+      addFigureEdge(sd52.id, upperBarb.id);
+      if (figId52 >= 0) figMembership.push([upperBarb.id, figId52]);
+
+      // Create lower barb node
+      const [f6, l6] = arrowPos[6];
+      const lowerBarb = {
+        id: nextId5k++,
+        nodeId: `${cls}-fig-m0Rfig-s-g`,
+        type: "keystone" as any,
+        classAffinity: cls,
+        x: gate52.x + fwd_x * f6 * S52 + lat_x * l6 * S52,
+        y: gate52.y + fwd_y * f6 * S52 + lat_y * l6 * S52,
+        label: "",
+        name: null,
+        stat: null,
+        value: 0,
+        defId: null,
+        mods: [],
+        connections: [] as number[],
+        connector: false,
+      };
+      nodes.push(lowerBarb);
+      addEdge(sd52.id, lowerBarb.id);
+      addFigureEdge(sd52.id, lowerBarb.id);
+      if (figId52 >= 0) figMembership.push([lowerBarb.id, figId52]);
+
+      console.log(`    ${cls}: repositioned 5 nodes + added barbs (${upperBarb.id},${lowerBarb.id}) at junction ${sd52.id}`);
+    }
+  }
+
+  // ─── 5k-53: Simplify arrow to 3 shaft + 2 arrowhead (all classes) ───
+  // Delete s-d(junction), s-e(tip), s-c becomes junction → s-f(barb1), s-g(barb2)
+  // Result: gate → s-a → s-b → s-c → [s-f, s-g] with s-f↔s-g
+  console.log("  5k-53: Simplify arrow to 3+2 nodes (all classes)");
+  {
+    for (const cls of ["samurai", "warrior", "mage", "archer"]) {
+      const gate53 = nodeByNodeId(`${cls}-fig-m0Rfig-gate`);
+      const sa = nodeByNodeId(`${cls}-fig-m0Rfig-s-a`);
+      const sc = nodeByNodeId(`${cls}-fig-m0Rfig-s-c`);
+      const sd = nodeByNodeId(`${cls}-fig-m0Rfig-s-d`);
+      const se = nodeByNodeId(`${cls}-fig-m0Rfig-s-e`);
+      const sf = nodeByNodeId(`${cls}-fig-m0Rfig-s-f`);
+      const sg = nodeByNodeId(`${cls}-fig-m0Rfig-s-g`);
+      if (!gate53 || !sa || !sc || !sd || !se || !sf || !sg) continue;
+
+      // Delete s-d (junction) and s-e (tip) — deleteNode removes all their edges
+      deleteNode(sd.id);
+      deleteNode(se.id);
+      console.log(`    ${cls}: deleted s-d (${sd.id}) and s-e (${se.id})`);
+
+      // Compute forward/lateral from gate→s-a
+      const dx53 = sa.x - gate53.x;
+      const dy53 = sa.y - gate53.y;
+      const dist53 = Math.sqrt(dx53 * dx53 + dy53 * dy53);
+      if (dist53 === 0) continue;
+      const fwd_x = dx53 / dist53;
+      const fwd_y = dy53 / dist53;
+      const lat_x = -fwd_y;
+      const lat_y = fwd_x;
+
+      // Reposition s-f and s-g as arrowhead barbs from s-c (tip)
+      // Barbs go backward and spread laterally — V-shape arrowhead
+      const S53 = 14;
+      sf.x = sc.x - fwd_x * 1.0 * S53 + lat_x * 1.3 * S53;
+      sf.y = sc.y - fwd_y * 1.0 * S53 + lat_y * 1.3 * S53;
+      sg.x = sc.x - fwd_x * 1.0 * S53 - lat_x * 1.3 * S53;
+      sg.y = sc.y - fwd_y * 1.0 * S53 - lat_y * 1.3 * S53;
+
+      // Connect s-c → s-f, s-c → s-g (V-shape, no s-f↔s-g to avoid crossing shaft)
+      addEdge(sc.id, sf.id);
+      addEdge(sc.id, sg.id);
+      addFigureEdge(sc.id, sf.id);
+      addFigureEdge(sc.id, sg.id);
+
+      console.log(`    ${cls}: s-c (${sc.id}) → s-f (${sf.id}) at (${Math.round(sf.x)},${Math.round(sf.y)}), s-g (${sg.id}) at (${Math.round(sg.x)},${Math.round(sg.y)})`);
+    }
+  }
+
+  // ─── 5k-54: Reposition arrow nodes along s0→branch-1 line (all classes) ───
+  // gate=20%, s-a=40%, s-b=60%, s-c=80% of distance(s0, branch-1)
+  // barbs (s-f, s-g) on perpendicular through s-b
+  console.log("  5k-54: Reposition arrow on s0→branch-1 line (all classes)");
+  {
+    for (const cls of ["samurai", "warrior", "mage", "archer"]) {
+      const s0 = nodeByNodeId(`${cls}-tendril-m0R-d1-s0`);
+      const br1 = nodeByNodeId(`${cls}-branch-1`);
+      const gate54 = nodeByNodeId(`${cls}-fig-m0Rfig-gate`);
+      const sa54 = nodeByNodeId(`${cls}-fig-m0Rfig-s-a`);
+      const sb54 = nodeByNodeId(`${cls}-fig-m0Rfig-s-b`);
+      const sc54 = nodeByNodeId(`${cls}-fig-m0Rfig-s-c`);
+      const sf54 = nodeByNodeId(`${cls}-fig-m0Rfig-s-f`);
+      const sg54 = nodeByNodeId(`${cls}-fig-m0Rfig-s-g`);
+      if (!s0 || !br1 || !gate54 || !sa54 || !sb54 || !sc54 || !sf54 || !sg54) continue;
+
+      const dx = br1.x - s0.x;
+      const dy = br1.y - s0.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist === 0) continue;
+
+      // Unit vectors along and perpendicular to line
+      const ux = dx / dist;
+      const uy = dy / dist;
+      const px = -uy;  // perpendicular
+      const py = ux;
+
+      // Place nodes at percentages along line
+      gate54.x = s0.x + dx * 0.20;
+      gate54.y = s0.y + dy * 0.20;
+      sa54.x = s0.x + dx * 0.40;
+      sa54.y = s0.y + dy * 0.40;
+      sb54.x = s0.x + dx * 0.60;
+      sb54.y = s0.y + dy * 0.60;
+      sc54.x = s0.x + dx * 0.80;
+      sc54.y = s0.y + dy * 0.80;
+
+      // Barbs on perpendicular through s-b, spread 25px each side
+      const barbSpread = 25;
+      sf54.x = sb54.x + px * barbSpread;
+      sf54.y = sb54.y + py * barbSpread;
+      sg54.x = sb54.x - px * barbSpread;
+      sg54.y = sb54.y - py * barbSpread;
+
+      console.log(`    ${cls}: gate(${Math.round(gate54.x)},${Math.round(gate54.y)}) sa(${Math.round(sa54.x)},${Math.round(sa54.y)}) sb(${Math.round(sb54.x)},${Math.round(sb54.y)}) sc(${Math.round(sc54.x)},${Math.round(sc54.y)}) sf(${Math.round(sf54.x)},${Math.round(sf54.y)}) sg(${Math.round(sg54.x)},${Math.round(sg54.y)})`);
+    }
+  }
+
+  // ─── 5k-55: Promote figure nodes to "notable" (+1 per 3 nodes in figure) ───
+  // For each figure: floor(memberCount / 3) keystones → notable (strong tier)
+  // Pick keystones farthest from gate (tips of figure = visually prominent)
+  console.log("  5k-55: Promote figure nodes — +1 notable per 3 members");
+  {
+    // Group figMembership by figureId
+    const figGroups = new Map<number, number[]>();
+    for (const [nid, fid] of figMembership) {
+      if (!figGroups.has(fid)) figGroups.set(fid, []);
+      figGroups.get(fid)!.push(nid);
+    }
+
+    let totalPromoted = 0;
+    for (const [fid, memberIds] of figGroups) {
+      const nPromote = Math.floor(memberIds.length / 3);
+      if (nPromote <= 0) continue;
+
+      // Find the gate (figureEntry type)
+      const gate55 = memberIds.map(id => nodeById(id)).find(n => n && n.type === "figureEntry");
+      if (!gate55) continue;
+
+      // Collect keystones only (exclude gate)
+      const keystones = memberIds
+        .map(id => nodeById(id))
+        .filter((n): n is NonNullable<typeof n> => !!n && n.type === "keystone");
+      if (keystones.length === 0) continue;
+
+      // Sort by distance from gate descending (farthest first = tips)
+      keystones.sort((a, b) => {
+        const da = (a.x - gate55.x) ** 2 + (a.y - gate55.y) ** 2;
+        const db = (b.x - gate55.x) ** 2 + (b.y - gate55.y) ** 2;
+        return db - da;
+      });
+
+      // Promote farthest keystones
+      const toPromote = keystones.slice(0, nPromote);
+      for (const n of toPromote) {
+        n.type = "notable";
+        totalPromoted++;
+      }
+    }
+    console.log(`    Promoted ${totalPromoted} keystones → notable across all figures`);
+  }
+
+  // ─── 5k-56: Align iweb-0 and fig-vweb-0-handle vertically (all classes) ───
+  // Move both to average X — minimizes displacement, avoids crossings
+  console.log("  5k-56: Align iweb-0 ↔ vweb-0-handle vertically (all classes)");
+  for (const cls of ["samurai", "warrior", "mage", "archer"]) {
+    const iweb = nodeByNodeId(`${cls}-iweb-0`);
+    const handle = nodeByNodeId(`${cls}-fig-vweb-0-handle`);
+    if (!iweb || !handle) { console.log(`    ${cls}: SKIP — node not found`); continue; }
+
+    const avgX = (iweb.x + handle.x) / 2;
+    const dxIweb = avgX - iweb.x;
+    const dxHandle = avgX - handle.x;
+    if (Math.abs(dxIweb) < 0.1 && Math.abs(dxHandle) < 0.1) { console.log(`    ${cls}: already aligned`); continue; }
+
+    // Move iweb-0
+    iweb.x = avgX;
+
+    // Move handle's figure
+    const members56 = getFigMembers5k(handle.id);
+    for (const mid of members56) {
+      const mn = nodeById(mid);
+      if (mn) mn.x += dxHandle;
+    }
+    if (!members56.includes(handle.id)) handle.x += dxHandle;
+
+    console.log(`    ${cls}: avgX=${Math.round(avgX)}, iweb dx=${Math.round(dxIweb)}, fig dx=${Math.round(dxHandle)} (${members56.length} nodes)`);
+  }
+
+  // ─── 5k-57: Change node types (all classes) ───
+  console.log("  5k-57: Change node types — web/trunk/branch nodes (all classes)");
+  {
+    // Nodes to → keystone (medium tier)
+    const toKeystone = [
+      "web4eR-n1", "web4eR-n2", "web4eR-n3",
+      "web4e-n1", "web4e-n2", "web4e-n3", "web4e-n4",
+      "trunk-2", "branch-3", "trunk-4", "branch-1",
+      "tendril-m1-d2-s1", "tendril-m0-d2-s1", "tendril-m2-d2-s1", "trunk-0",
+    ];
+    // Nodes to → notable (strong tier)
+    const toNotable = [
+      "web4eR-n4", "web4e-center",
+      "fig-vweb-0-tip-l", "fig-vweb-0-tip-r",
+    ];
+
+    let changed = 0;
+    for (const cls of ["samurai", "warrior", "mage", "archer"]) {
+      for (const suffix of toKeystone) {
+        const n = nodeByNodeId(`${cls}-${suffix}`);
+        if (n && n.type !== "keystone") {
+          n.type = "keystone";
+          changed++;
+        }
+      }
+      for (const suffix of toNotable) {
+        const n = nodeByNodeId(`${cls}-${suffix}`);
+        if (n && n.type !== "notable") {
+          n.type = "notable";
+          changed++;
+        }
+      }
+    }
+    console.log(`    Changed ${changed} node types across all classes`);
+  }
+
+  // ─── 5k-58: Separate iweb-0 from vweb-0-handle vertically (warrior, mage, archer) ───
+  // Samurai pattern: handle is 50px outward from iweb in Y. Replicate for other classes.
+  console.log("  5k-58: Separate iweb-0 ↔ handle by 50px Y (warrior/mage/archer)");
+  {
+    const CY = 800;
+    for (const cls of ["warrior", "mage", "archer"]) {
+      const iweb = nodeByNodeId(`${cls}-iweb-0`);
+      const handle = nodeByNodeId(`${cls}-fig-vweb-0-handle`);
+      if (!iweb || !handle) continue;
+
+      // Direction: if iweb is above center → handle goes further up (-Y)
+      //            if iweb is below center → handle goes further down (+Y)
+      const sign = iweb.y < CY ? -1 : +1;
+      const targetHandleY = iweb.y + sign * 50;
+      const deltaY = targetHandleY - handle.y;
+      if (Math.abs(deltaY) < 1) { console.log(`    ${cls}: already separated`); continue; }
+
+      // Shift entire handle figure
+      const members58 = getFigMembers5k(handle.id);
+      for (const mid of members58) {
+        const mn = nodeById(mid);
+        if (mn) mn.y += deltaY;
+      }
+      if (!members58.includes(handle.id)) handle.y += deltaY;
+
+      console.log(`    ${cls}: handle figure shifted dy=${Math.round(deltaY)} (${members58.length} nodes)`);
+    }
+  }
+
+  // ─── 5k-59: Move mage-inner-2 up-left to avoid overlap with web4eR-n3 ───
+  console.log("  5k-59: Move mage-inner-2 up-left (-15, -15)");
+  {
+    const inner2 = nodeByNodeId("mage-inner-2");
+    if (inner2) {
+      inner2.x -= 15;
+      inner2.y -= 15;
+      console.log(`    mage-inner-2 → (${Math.round(inner2.x)}, ${Math.round(inner2.y)})`);
+    }
+  }
+
+  // ─── 5k-60: Equalize inner-2 distance from start (all classes match samurai) ───
+  console.log("  5k-60: Equalize inner-2 distance from start (target = samurai)");
+  {
+    const samI2 = nodeByNodeId("samurai-inner-2");
+    const samSt = nodeByNodeId("samurai-start");
+    if (samI2 && samSt) {
+      const targetDist = Math.sqrt((samI2.x - samSt.x) ** 2 + (samI2.y - samSt.y) ** 2);
+      console.log(`    target dist = ${targetDist.toFixed(1)}`);
+      for (const cls of ["warrior", "mage", "archer"]) {
+        const i2 = nodeByNodeId(`${cls}-inner-2`);
+        const st = nodeByNodeId(`${cls}-start`);
+        if (!i2 || !st) continue;
+        const dx = i2.x - st.x, dy = i2.y - st.y;
+        const curDist = Math.sqrt(dx * dx + dy * dy);
+        if (Math.abs(curDist - targetDist) < 1) { console.log(`    ${cls}: already OK`); continue; }
+        const scale = targetDist / curDist;
+        const oldX = i2.x, oldY = i2.y;
+        i2.x = st.x + dx * scale;
+        i2.y = st.y + dy * scale;
+        console.log(`    ${cls}: (${Math.round(oldX)},${Math.round(oldY)}) → (${Math.round(i2.x)},${Math.round(i2.y)}), dist ${curDist.toFixed(1)} → ${targetDist.toFixed(1)}`);
+      }
+    }
+  }
+
+  // ─── 5k-61: Place mage-iweb-0 on line(trunk-3, web4e-n1) + 10px right ───
+  console.log("  5k-61: Place mage-iweb-0 on line(86,435) + 10px right");
+  {
+    const iweb = nodeByNodeId("mage-iweb-0");
+    const p1 = nodeByNodeId("mage-trunk-3");     // 86
+    const p2 = nodeByNodeId("mage-web4e-n1");    // 435
+    if (iweb && p1 && p2) {
+      // Line direction from p1 to p2
+      const lx = p2.x - p1.x, ly = p2.y - p1.y;
+      // Project iweb onto line: new X = current + 30
+      const newX = iweb.x + 30;
+      const t = (newX - p1.x) / lx;
+      const newY = p1.y + t * ly;
+      console.log(`    (${Math.round(iweb.x)},${Math.round(iweb.y)}) → (${Math.round(newX)},${Math.round(newY)})`);
+      iweb.x = newX;
+      iweb.y = newY;
+    }
+  }
+
+  // ─── 5k-62: Re-align mage vweb-0-handle X to mage-iweb-0 after 5k-61 shift ───
+  console.log("  5k-62: Re-align mage handle to iweb-0 X");
+  {
+    const iweb62 = nodeByNodeId("mage-iweb-0");
+    const handle62 = nodeByNodeId("mage-fig-vweb-0-handle");
+    if (iweb62 && handle62) {
+      const dx = iweb62.x - handle62.x;
+      const members62 = getFigMembers5k(handle62.id);
+      for (const mid of members62) {
+        const mn = nodeById(mid);
+        if (mn) mn.x += dx;
+      }
+      if (!members62.includes(handle62.id)) handle62.x += dx;
+      console.log(`    shifted ${members62.length} nodes dx=${Math.round(dx)}`);
+    }
+  }
+
+  // ─── 5k-63: Swap node importance in figures (all classes) + inter-class + 423→keystone ───
+  console.log("  5k-63: Swap node importance in figures");
+  {
+    // Per-class figure swaps: [figureSuffix, ksSuffix1, ksSuffix2]
+    const classSwaps: [string, string][] = [
+      ["fig-tendril-m1L-d1-ks2", "fig-tendril-m1L-d1-ks9"],
+      ["fig-tendril-m1L-d1-ks4", "fig-tendril-m1L-d1-ks8"],
+      ["fig-tendril-m1R-d1-ks2", "fig-tendril-m1R-d1-ks8"],
+      ["fig-tendril-m2R-d1-ks3", "fig-tendril-m2R-d1-ks6"],
+      ["fig-tendril-m2R-d1-ks5", "fig-tendril-m2R-d1-ks2"],
+      ["fig-tendril-m0L-d1-ks4", "fig-tendril-m0L-d1-ks6"],
+      ["fig-tendril-m0L-d1-ks1", "fig-tendril-m0L-d1-ks3"],
+      ["s0fig-p3", "s0fig-t0"],
+      ["fig-m0Rfig-s-c", "fig-m0Rfig-s-g"],
+      ["fig-b1fig-ks-c", "fig-b1fig-ks-a"],
+    ];
+
+    let swapped = 0;
+    for (const [s1, s2] of classSwaps) {
+      for (const cls of ["samurai", "warrior", "mage", "archer"]) {
+        const a = nodeByNodeId(`${cls}-${s1}`);
+        const b = nodeByNodeId(`${cls}-${s2}`);
+        if (a && b && a.type !== b.type) {
+          const tmp = a.type;
+          a.type = b.type;
+          b.type = tmp;
+          swapped++;
+        }
+      }
+    }
+
+    // Inter-class figure swaps (unique, no class variants)
+    const interSwaps: [string, string][] = [
+      ["mage-archer-book-mid-ks0-ks2", "mage-archer-book-ks0"],
+      ["archer-samurai-bow-ks4", "archer-samurai-bow-ks0"],
+      ["samurai-warrior-shuriken-ks5", "samurai-warrior-shuriken-ks0"],
+      ["warrior-mage-shield-ks1", "warrior-mage-shield-ks3"],
+      ["warrior-mage-shield-ks2", "warrior-mage-shield-ks4"],
+    ];
+    for (const [s1, s2] of interSwaps) {
+      const a = nodeByNodeId(s1);
+      const b = nodeByNodeId(s2);
+      if (a && b && a.type !== b.type) {
+        const tmp = a.type;
+        a.type = b.type;
+        b.type = tmp;
+        swapped++;
+      }
+    }
+
+    // 423 (samurai-iweb-0) → keystone (medium)
+    const n423 = nodeByNodeId("samurai-iweb-0");
+    if (n423) n423.type = "keystone";
+
+    console.log(`    Swapped ${swapped} pairs, 423 → keystone`);
+  }
+
+  // ─── 5k-64: Connect book-mid-ks3-ks5 ↔ book-ks0 ───
+  console.log("  5k-64: Connect 584 ↔ 571 (book-mid-ks3-ks5 ↔ book-ks0)");
+  {
+    const a64 = nodeByNodeId("mage-archer-book-mid-ks3-ks5");
+    const b64 = nodeByNodeId("mage-archer-book-ks0");
+    if (a64 && b64) {
+      addEdge(a64.id, b64.id);
+      addFigureEdge(a64.id, b64.id);
+      console.log(`    Added edge ${a64.id}↔${b64.id}`);
+    }
+  }
+
+  // ─── 5k-65: Scale samurai-tendril-m1R-d1 1.2× from gate ───
+  console.log("  5k-65: Scale samurai-tendril-m1R-d1 1.2× from gate (142)");
+  {
+    const gate65 = nodeByNodeId("samurai-fig-tendril-m1R-d1-gate");
+    if (gate65) {
+      const members65 = getFigMembers5k(gate65.id);
+      scaleFigure5k(gate65.id, members65, 1.2);
+      console.log(`    Scaled ${members65.length} nodes 1.2× from gate (${gate65.id})`);
+    }
+  }
+
+  // ─── 5k-66: Increase edge 95↔379 by 30% (move bfig-1 figure outward) ───
+  console.log("  5k-66: Increase edge 95↔379 by 30%");
+  {
+    const n95 = nodeByNodeId("samurai-branch-3");
+    const gate66 = nodeByNodeId("samurai-fig-bfig-1-gate");
+    if (n95 && gate66) {
+      const dx = gate66.x - n95.x, dy = gate66.y - n95.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const newDist = dist * 1.3;
+      const scale = newDist / dist;
+      // Shift = new_gate_pos - old_gate_pos
+      const shiftX = n95.x + dx * scale - gate66.x;
+      const shiftY = n95.y + dy * scale - gate66.y;
+      // Move entire figure
+      const members66 = getFigMembers5k(gate66.id);
+      for (const mid of members66) {
+        const mn = nodeById(mid);
+        if (mn) { mn.x += shiftX; mn.y += shiftY; }
+      }
+      console.log(`    dist ${dist.toFixed(1)} → ${newDist.toFixed(1)}, shifted ${members66.length} nodes by (${Math.round(shiftX)},${Math.round(shiftY)})`);
+    }
+  }
+
+  // ─── 5k-67: Add 5-node figure above warrior-tendril-m2-d2-s1 (216) ───
+  console.log("  5k-67: Add 5-node diamond figure above node 216");
+  {
+    const parent67 = nodeByNodeId("warrior-tendril-m2-d2-s1");
+    if (parent67) {
+      const fid67 = nextFigId5k++;
+      // Diamond shape going upward (-Y) from parent
+      const gatePos = { x: parent67.x, y: parent67.y - 35 };
+      const positions = [
+        { suffix: "gate",  ...gatePos, type: "figureEntry" as const },
+        { suffix: "ks1",   x: gatePos.x,      y: gatePos.y - 25, type: "keystone" as const },
+        { suffix: "ks2",   x: gatePos.x - 20,  y: gatePos.y - 50, type: "keystone" as const },
+        { suffix: "ks3",   x: gatePos.x + 20,  y: gatePos.y - 50, type: "keystone" as const },
+        { suffix: "ks4",   x: gatePos.x,      y: gatePos.y - 75, type: "keystone" as const },
+      ];
+      const figNodes67: number[] = [];
+      for (const p of positions) {
+        const id = nextId5k++;
+        nodes.push({
+          id, nodeId: `warrior-fig-m2d2fig-${p.suffix}`,
+          x: p.x, y: p.y,
+          type: p.type,
+          connections: [],
+          stats: {},
+        } as any);
+        figMembership.push([id, fid67]);
+        figNodes67.push(id);
+      }
+      const [gateId, ks1, ks2, ks3, ks4] = figNodes67;
+      // Connect to parent tree
+      addEdge(parent67.id, gateId);
+      // Figure internal edges: gate→ks1, ks1→ks2, ks1→ks3, ks2→ks4, ks3→ks4
+      addEdge(gateId, ks1); addFigureEdge(gateId, ks1);
+      addEdge(ks1, ks2);    addFigureEdge(ks1, ks2);
+      addEdge(ks1, ks3);    addFigureEdge(ks1, ks3);
+      addEdge(ks2, ks4);    addFigureEdge(ks2, ks4);
+      addEdge(ks3, ks4);    addFigureEdge(ks3, ks4);
+
+      console.log(`    Created ${figNodes67.length} nodes at gate(${Math.round(gatePos.x)},${Math.round(gatePos.y)}), figId=${fid67}`);
+    }
+  }
+
   console.log("  5k: Done.");
 }
 

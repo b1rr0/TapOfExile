@@ -310,17 +310,7 @@ export class SkillTreeScene {
         g.appendChild(p);
       }
 
-      // Visual node ID number
-      if (node.type !== "classSkill" && node.type !== "start") {
-        const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        txt.setAttribute("x", String(node.x));
-        txt.setAttribute("y", String(node.y + 2));
-        txt.setAttribute("text-anchor", "middle");
-        txt.setAttribute("dominant-baseline", "middle");
-        txt.classList.add("st-node-id");
-        txt.textContent = String(node.id);
-        g.appendChild(txt);
-      }
+      // Node ID numbers removed for production display
 
       g.addEventListener("click", (e: MouseEvent) => { e.stopPropagation(); this._onNodeTap(node); });
       frag.appendChild(g);

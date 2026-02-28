@@ -672,19 +672,24 @@ a:hover {
 .st-emblem__ring--own { stroke: var(--accent-primary); stroke-width: 3; filter: drop-shadow(0 0 4px rgba(164, 2, 57, 0.5)); }
 .st-emblem__label { fill: #444a58; font-size: 14px; font-family: var(--font-heading); }
 
-.st-edge { stroke: #1a2040; stroke-width: 1.5; }
-.st-edge--class-outline { stroke: #000; stroke-width: 3; stroke-linecap: round; }
-.st-edge--class { stroke: #D4A88C; stroke-width: 1.5; stroke-linecap: round; }
-.st-edge--figure { stroke: rgba(249, 207, 135, 0.3); stroke-width: 1; stroke-dasharray: 4 2; }
-.st-edge--figure.st-edge--active { stroke: rgba(249, 207, 135, 0.5); stroke-width: 1.5; stroke-dasharray: none; }
-.st-edge--active { stroke: var(--ds-gold-bright); stroke-width: 2.5; filter: drop-shadow(0 0 3px rgba(249, 207, 135, 0.4)); }
+/* Uniform edge color — gray */
+.st-edge { stroke: #1a1a28; stroke-width: 1.5; }
+.st-edge--class-outline { display: none; }
+.st-edge--class,
+.st-edge--figure { stroke: #1a1a28; stroke-width: 1.5; stroke-dasharray: none; }
+.st-edge--active,
+.st-edge--class.st-edge--active,
+.st-edge--figure.st-edge--active { stroke: #5aa0e0; stroke-width: 2.5; stroke-dasharray: none; filter: drop-shadow(0 0 3px rgba(90,160,224,0.4)); }
 
-.st-node-id { fill: rgba(255,255,255,0.5); font-size: 5px; font-family: monospace; pointer-events: none; user-select: none; }
+/* Node ID numbers removed */
+.st-node-id { display: none; }
 
 .st-node { cursor: pointer; }
-.st-node circle { fill: #101828; stroke: #1e2845; stroke-width: 1.5; transition: fill 0.15s; }
-.st-node--minor circle { fill: #121a30; stroke: #2a3858; }
-.st-node--notable circle { fill: #10182a; stroke: #3a5a8a; stroke-width: 2; }
+/* All nodes same gray fill, only stroke differs */
+.st-node circle { fill: #1a1a22; stroke: #4a4a58; stroke-width: 1.5; transition: fill 0.15s; }
+.st-node--minor circle { fill: #1a1a22; stroke: #4a4a58; }
+/* Notable — yellow stroke (strong tier) */
+.st-node--notable circle { fill: #1a1a22; stroke: #F9CF87; stroke-width: 2.5; }
 /* classSkill skill nodes — red */
 .st-node--classSkill:not(.st-node--classConnector) circle { fill: #1a0010; stroke: #A40239; stroke-width: 2; }
 .st-node--classSkill:not(.st-node--classConnector).st-node--allocated circle {
@@ -715,9 +720,11 @@ a:hover {
   0%, 100% { filter: drop-shadow(0 0 2px rgba(80,140,200,0.2)); }
   50%      { filter: drop-shadow(0 0 6px rgba(80,140,200,0.5)); }
 }
-.st-node--keystone circle { fill: #151e35; stroke: #4a6a9a; stroke-width: 2; }
-.st-node--figureEntry circle { fill: #141420; stroke: #555; stroke-width: 2; }
-.st-node--start circle { fill: #181e30; stroke: #4a5a7a; stroke-width: 2.5; }
+/* Keystone — blue stroke (medium tier) */
+.st-node--keystone circle { fill: #1a1a22; stroke: #5aa0e0; stroke-width: 2.5; }
+/* Figure Entry — blue stroke (medium tier) */
+.st-node--figureEntry circle { fill: #1a1a22; stroke: #5aa0e0; stroke-width: 2; }
+.st-node--start circle { fill: #1a1a22; stroke: #4a5a7a; stroke-width: 2.5; }
 .st-node--allocated circle {
   fill: var(--ds-cyan-dim) !important;
   stroke: var(--ds-cyan) !important;

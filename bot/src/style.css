@@ -4832,56 +4832,71 @@ body {
 /* ── Edges ────────────────────────────── */
 
 .st-edge {
-  stroke: rgba(100,80,130,0.25);
-  stroke-width: 2;
+  stroke: rgba(80,80,95,0.3);
+  stroke-width: 1.5;
   transition: stroke 0.2s;
 }
 .st-edge--active {
-  stroke: rgba(200,160,255,0.6);
+  stroke: rgba(100,170,240,0.6);
   stroke-width: 2.5;
+}
+/* Uniform edge color — class & figure edges match base */
+.st-edge--class,
+.st-edge--figure {
+  stroke: rgba(80,80,95,0.3);
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+}
+.st-edge--class-outline { display: none; }
+.st-edge--class.st-edge--active,
+.st-edge--figure.st-edge--active {
+  stroke: rgba(100,170,240,0.6);
+  stroke-width: 2.5;
+  stroke-dasharray: none;
 }
 
 /* ── Nodes ────────────────────────────── */
+/* All nodes same gray fill, only stroke differs */
 
 .st-node circle {
-  fill: #2a2040;
-  stroke: #5a4a70;
+  fill: #1a1a22;
+  stroke: #4a4a58;
   stroke-width: 2;
   cursor: pointer;
   transition: fill 0.15s, stroke 0.15s, filter 0.15s;
 }
 
-/* Minor */
+/* Minor — gray stroke (normal tier) */
 .st-node--minor circle {
-  fill: #2a2040;
-  stroke: #5a4a70;
+  fill: #1a1a22;
+  stroke: #4a4a58;
 }
 
-/* Notable */
+/* Notable — yellow stroke (strong tier) */
 .st-node--notable circle {
-  fill: #3a2a50;
-  stroke: #8a6aff;
+  fill: #1a1a22;
+  stroke: #F9CF87;
   stroke-width: 2.5;
 }
 
-/* Keystone */
+/* Keystone — blue stroke (medium tier) */
 .st-node--keystone circle {
-  fill: #151e35;
-  stroke: #4a6a9a;
-  stroke-width: 2;
+  fill: #1a1a22;
+  stroke: #5aa0e0;
+  stroke-width: 2.5;
 }
 
-/* Figure Entry (gateway into figure clusters) */
+/* Figure Entry — blue stroke (medium tier) */
 .st-node--figureEntry circle {
-  fill: #1a1a1a;
-  stroke: #888;
+  fill: #1a1a22;
+  stroke: #5aa0e0;
   stroke-width: 2;
 }
 
 /* Start */
 .st-node--start circle {
-  fill: #1a3040;
-  stroke: var(--game-gold);
+  fill: #1a1a22;
+  stroke: #4a5a7a;
   stroke-width: 3;
 }
 
@@ -4911,13 +4926,13 @@ body {
 
 /* Reachable (available to allocate) */
 .st-node--reachable circle {
-  stroke: rgba(200,160,255,0.7);
+  stroke: rgba(100,170,240,0.7);
   animation: st-pulse 2s ease-in-out infinite;
 }
 
 @keyframes st-pulse {
-  0%, 100% { filter: drop-shadow(0 0 2px rgba(200,160,255,0.2)); }
-  50%      { filter: drop-shadow(0 0 8px rgba(200,160,255,0.5)); }
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(100,170,240,0.2)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(100,170,240,0.5)); }
 }
 
 /* ── Class emblem circles ─────────────── */
@@ -4997,39 +5012,10 @@ body {
   50%      { filter: drop-shadow(0 0 5px rgba(80,140,200,0.4)); }
 }
 
-.st-edge--class-outline {
-  stroke: #000;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-.st-edge--class {
-  stroke: #D4A88C;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-}
-.st-edge--class.st-edge--active {
-  stroke: #E8C4A8;
-  stroke-width: 2.5;
-}
-.st-edge--figure {
-  stroke: rgba(136,136,136,0.4);
-  stroke-width: 1;
-  stroke-dasharray: 4 2;
-}
-.st-edge--figure.st-edge--active {
-  stroke: rgba(255,106,138,0.6);
-  stroke-width: 1.5;
-  stroke-dasharray: none;
-}
+/* Old class/figure edge styles removed — uniform colors defined above */
 
-/* ── Node ID numbers ─────────────────── */
-.st-node-id {
-  fill: rgba(255,255,255,0.7);
-  font-size: 5px;
-  font-family: monospace;
-  pointer-events: none;
-  user-select: none;
-}
+/* ── Node ID numbers (removed from production) ── */
+.st-node-id { display: none; }
 
 /* ── Tooltip ──────────────────────────── */
 
