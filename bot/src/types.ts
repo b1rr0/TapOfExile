@@ -144,6 +144,10 @@ export interface Character {
   bag: BagItem[];
   endgame: EndgameState;
   allocatedNodes: number[];
+  /** Active skills unlocked via skill tree */
+  unlockedActiveSkills?: string[];
+  /** Equipped action bar (4 slots) */
+  equippedSkills?: (string | null)[];
   /** Daily bonus wins remaining (first 3 wins give x3 XP) */
   dailyBonusRemaining?: number;
 }

@@ -27,6 +27,7 @@ interface RawNode {
   stat: string | null;
   value: number;
   defId: string | null;
+  activeSkillId?: string | null;
   mods: { stat: string; value: number; mode: string }[];
   connections: number[];
   connector: boolean;
@@ -4786,6 +4787,7 @@ export interface RawNode {
   stat: string | null;
   value: number;
   defId: string | null;
+  activeSkillId?: string | null;
   mods: { stat: string; value: number; mode: string }[];
   connections: number[];
   connector: boolean;

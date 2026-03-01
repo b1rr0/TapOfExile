@@ -4,7 +4,7 @@ import { Effects } from "../ui/effects.js";
 import { CombatLog } from "../ui/combat-log.js";
 import { HUD } from "../ui/hud.js";
 import { Equipment } from "../ui/equipment.js";
-import { renderActionBarHTML, initPotionSlots, initKeyboardHandler } from "../ui/action-bar.js";
+import { renderActionBarHTML, initPotionSlots, initKeyboardHandler, initAbilitySlots } from "../ui/action-bar.js";
 import { haptic } from "../utils/haptic.js";
 import { isActComplete, getBackgroundForLocation, getActModifiers, getLocationById, ACT_BACKGROUNDS } from "../data/locations.js";
 import type { SharedDeps, Location } from "../types.js";
@@ -67,6 +67,7 @@ export class CombatScene {
   _onPlayerDied: (() => void) | null;
   _onCombatReady: (() => void) | null;
   _cleanupPotions: (() => void) | null;
+  _cleanupAbilities: (() => void) | null;
   _cleanupKeyboard: (() => void) | null;
   _onPlayerBanned: ((data: any) => void) | null;
 
@@ -97,6 +98,7 @@ export class CombatScene {
     this._onPlayerDied = null;
     this._onCombatReady = null;
     this._cleanupPotions = null;
+    this._cleanupAbilities = null;
     this._cleanupKeyboard = null;
     this._onPlayerBanned = null;
 
@@ -292,7 +294,9 @@ export class CombatScene {
       },
       onAbility: (idx) => {
         const btn = this.container.querySelector(`#ability-${idx}`) as HTMLButtonElement | null;
-        if (btn && !btn.classList.contains("action-slot--empty")) btn.click();
+        if (btn && !btn.classList.contains("action-slot--empty") && !btn.classList.contains("action-slot--on-cd")) {
+          btn.click();
+        }
       },
       onPotion: (slot) => {
         const btn = this.container.querySelector(`#potion-${slot}`) as HTMLButtonElement | null;
@@ -349,6 +353,23 @@ export class CombatScene {
       equipment: activeChar?.inventory?.equipment || {},
       onUsePotion: (slot) => { if (this.combat) this.combat.usePotion(slot); },
       events: this.events,
+    });
+
+    // ── Wire ability buttons with equipped skills ──────────
+    let equippedSkills = activeChar?.equippedSkills || [null, null, null, null];
+    // Fallback: if all slots empty but skills are unlocked, auto-fill from unlocked
+    if (equippedSkills.every((s: string | null) => !s) && activeChar?.unlockedActiveSkills?.length) {
+      equippedSkills = [...activeChar.unlockedActiveSkills.slice(0, 4)];
+      while (equippedSkills.length < 4) equippedSkills.push(null);
+    }
+    initAbilitySlots({
+      container: this.container,
+      equippedSkills,
+      projectileLayer: this.battleScene!.projectileLayer,
+      onCastSkill: (skillId) => { if (this.combat) this.combat.castSkill(skillId); },
+      events: this.events,
+    }).then((cleanup) => {
+      this._cleanupAbilities = cleanup;
     });
 
     // Listen for player death — switch to death screen after brief delay.
@@ -558,9 +579,11 @@ export class CombatScene {
       this.events.off("playerBanned", this._onPlayerBanned);
       this._onPlayerBanned = null;
     }
-    // Clean up action bar (potions + keyboard)
+    // Clean up action bar (potions + abilities + keyboard)
     this._cleanupPotions?.();
     this._cleanupPotions = null;
+    this._cleanupAbilities?.();
+    this._cleanupAbilities = null;
     this._cleanupKeyboard?.();
     this._cleanupKeyboard = null;
     // Clean up loading overlay timers

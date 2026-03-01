@@ -8,6 +8,9 @@ import { getCharacterClass } from "../data/character-classes.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
 import { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
 import { ELEMENT_COLORS } from "@shared/types";
+import { ACTIVE_SKILLS, CLASS_ACTIVE_SKILLS } from "@shared/active-skills";
+import type { ActiveSkillDef, ClassId } from "@shared/active-skills";
+import { buildSkillTree } from "../data/skill-tree.js";
 import type { SharedDeps, SkinConfig, Character } from "../types.js";
 import { music } from "../ui/music.js";
 
@@ -509,6 +512,8 @@ export class HideoutScene {
           </div>
           ` : ""}
 
+          ${this._buildSkillsSection(char)}
+
           ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0) ? `
           <div class="stats-overlay__section-title">Equipment Bonuses</div>
           ${(char as any).armor > 0 ? this._statRowSimple("🛡️", "Armor", String(Math.floor((char as any).armor))) : ""}
@@ -594,6 +599,67 @@ export class HideoutScene {
       <span class="stats-overlay__stat-label">${label}</span>
       <span class="stats-overlay__stat-current" style="color:var(--game-accent, #00bfff)">${value}</span>
     </div>`;
+  }
+
+  /** Build active skills section for stats overlay */
+  _buildSkillsSection(char: Character): string {
+    const tree = buildSkillTree();
+    const allocSet = new Set(char.allocatedNodes || []);
+
+    // Find unlocked active skills from allocated tree nodes
+    const unlockedSkills: ActiveSkillDef[] = [];
+    for (const nodeId of allocSet) {
+      const node = tree.nodes[nodeId];
+      if (!node || node.type !== "activeSkill") continue;
+      const skillId = node.def?.activeSkillId;
+      if (skillId && ACTIVE_SKILLS[skillId as keyof typeof ACTIVE_SKILLS]) {
+        unlockedSkills.push(ACTIVE_SKILLS[skillId as keyof typeof ACTIVE_SKILLS]);
+      }
+    }
+
+    // Also show locked skills for this class (dimmed)
+    const classId = char.classId as ClassId;
+    const allClassSkills = (CLASS_ACTIVE_SKILLS[classId] || [])
+      .map(id => ACTIVE_SKILLS[id as keyof typeof ACTIVE_SKILLS])
+      .filter(Boolean);
+    const unlockedIds = new Set(unlockedSkills.map(s => s.id));
+
+    if (allClassSkills.length === 0) return "";
+
+    const baseDmg = char.tapDamage || 1;
+
+    let html = `<div class="stats-overlay__section-title">Active Skills (${unlockedSkills.length}/${allClassSkills.length})</div>`;
+    html += `<div class="stats-overlay__skills-list">`;
+
+    for (const skill of allClassSkills) {
+      const unlocked = unlockedIds.has(skill.id);
+      const dimClass = unlocked ? "" : " stats-overlay__skill--locked";
+
+      let infoStr = "";
+      if (skill.skillType === "damage") {
+        const estDmg = Math.floor(baseDmg * skill.damageMultiplier);
+        infoStr = `<span class="stats-overlay__skill-dmg">${estDmg} dmg</span>`;
+      } else if (skill.skillType === "heal") {
+        infoStr = `<span class="stats-overlay__skill-heal">${Math.round((skill.healPercent || 0) * 100)}% HP</span>`;
+      } else if (skill.skillType === "buff" && skill.effect) {
+        const val = skill.effect.value < 1 ? `${Math.round(skill.effect.value * 100)}%` : String(Math.round(skill.effect.value));
+        infoStr = `<span class="stats-overlay__skill-buff">+${val} ${skill.effect.stat}</span>`;
+      } else if (skill.skillType === "debuff" && skill.effect) {
+        const val = skill.effect.value < 1 ? `${Math.round(skill.effect.value * 100)}%` : String(Math.round(skill.effect.value));
+        infoStr = `<span class="stats-overlay__skill-debuff">-${val} ${skill.effect.stat}</span>`;
+      }
+
+      const cdStr = `${(skill.cooldownMs / 1000).toFixed(1)}s`;
+
+      html += `<div class="stats-overlay__skill-row${dimClass}">
+        <span class="stats-overlay__skill-name">${skill.name}</span>
+        <span class="stats-overlay__skill-info">${infoStr}</span>
+        <span class="stats-overlay__skill-cd">${cdStr}</span>
+      </div>`;
+    }
+
+    html += `</div>`;
+    return html;
   }
 
   /* -- Cleanup -------------------------------------------- */

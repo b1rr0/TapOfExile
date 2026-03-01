@@ -46,6 +46,18 @@ export class LootController {
     return { success: true };
   }
 
+  @Post('sell/:itemId')
+  @ApiOperation({ summary: 'Sell item from bag for gold' })
+  @ApiResponse({ status: 201, description: 'Item sold, returns gold earned' })
+  @ApiResponse({ status: 404, description: 'Item not found' })
+  async sellItem(
+    @CurrentUser('telegramId') telegramId: string,
+    @Param('itemId') itemId: string,
+  ) {
+    const pl = await this.playerService.getActivePlayerLeague(telegramId);
+    return this.lootService.sellItem(pl.id, itemId);
+  }
+
   @Post('equip-potion')
   @ApiOperation({ summary: 'Equip a potion from bag to consumable slot' })
   @ApiResponse({ status: 201, description: 'Potion equipped' })

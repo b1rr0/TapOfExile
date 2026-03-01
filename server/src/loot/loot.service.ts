@@ -110,6 +110,60 @@ export class LootService {
     await this.itemRepo.remove(item);
   }
 
+  /**
+   * Sell an item from the league bag for gold.
+   * Price = basePrice × qualityMultiplier.
+   * Returns the gold earned.
+   */
+  async sellItem(playerLeagueId: string, itemId: string): Promise<{ gold: number }> {
+    const item = await this.itemRepo.findOne({
+      where: { id: itemId, playerLeagueId, status: 'bag' },
+    });
+    if (!item) throw new NotFoundException('Item not found in bag');
+
+    const gold = this.calculateSellPrice(item);
+
+    // Add gold to player league
+    const pl = await this.playerLeagueRepo.findOneBy({ id: playerLeagueId });
+    if (!pl) throw new NotFoundException('Player league not found');
+    pl.gold = (BigInt(pl.gold) + BigInt(gold)).toString();
+    await this.playerLeagueRepo.save(pl);
+
+    // Remove item
+    await this.itemRepo.remove(item);
+
+    return { gold };
+  }
+
+  /**
+   * Calculate sell price for an item.
+   * Equipment: itemLevel × qualityMul (common=1, rare=3, epic=8, legendary=20)
+   * Potions: 5 × qualityMul
+   * Map keys: tier × 10
+   * Boss keys: bossKeyTier × 50
+   */
+  calculateSellPrice(item: Item): number {
+    const qualityMul: Record<string, number> = {
+      common: 1, rare: 3, epic: 8, legendary: 20,
+    };
+    const mul = qualityMul[item.quality] || 1;
+
+    if (item.type === 'equipment') {
+      const iLvl = (item.properties as any)?.itemLevel || item.level || 1;
+      return Math.max(1, Math.floor(iLvl * mul));
+    }
+    if (item.type === 'potion') {
+      return Math.max(1, 5 * mul);
+    }
+    if (item.type === 'map_key') {
+      return Math.max(1, (item.tier || 1) * 10);
+    }
+    if (item.type === 'boss_map_key') {
+      return Math.max(1, (item.bossKeyTier || 1) * 50);
+    }
+    return 1;
+  }
+
   // ── Potion equip/unequip ───────────────────────────────
 
   /**

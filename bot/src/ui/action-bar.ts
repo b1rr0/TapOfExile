@@ -1,4 +1,6 @@
 import { haptic } from "../utils/haptic.js";
+import { ACTIVE_SKILLS, type ActiveSkillId } from "@shared/active-skills.js";
+import type { ProjectileLayer } from "./projectile-layer.js";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -190,6 +192,115 @@ export function initPotionSlots(opts: PotionSlotOptions): () => void {
     if (events && onPotionUsed) {
       events.off("potionUsed", onPotionUsed);
     }
+  };
+}
+
+// ── initAbilitySlots ─────────────────────────────────────
+
+export interface AbilitySlotOptions {
+  container: HTMLElement;
+  /** Up to 4 equipped skill IDs (null = empty slot) */
+  equippedSkills: (string | null)[];
+  /** ProjectileLayer — used for icon extraction (first frame) and preloading sprites */
+  projectileLayer: ProjectileLayer;
+  /** Called when player taps an ability button */
+  onCastSkill: (skillId: string) => void;
+  /** EventBus for listening to skillHit cooldown data */
+  events: { on(e: string, cb: (data: any) => void): void; off(e: string, cb: (data: any) => void): void };
+}
+
+/**
+ * Populate the 4 ability slots with equipped skill icons,
+ * wire click handlers, and manage cooldown overlays.
+ * Returns a cleanup function.
+ */
+export async function initAbilitySlots(opts: AbilitySlotOptions): Promise<() => void> {
+  const { container, equippedSkills, projectileLayer, onCastSkill, events } = opts;
+
+  // Track cooldown timers for cleanup
+  const cooldownTimers: ReturnType<typeof setInterval>[] = [];
+  const skillSlotMap = new Map<string, HTMLButtonElement>();
+
+  // Load sprites + populate buttons
+  for (let i = 0; i < 4; i++) {
+    const skillId = equippedSkills[i];
+    const btn = container.querySelector(`#ability-${i}`) as HTMLButtonElement | null;
+    if (!btn) continue;
+
+    if (!skillId) {
+      btn.classList.add("action-slot--empty");
+      continue;
+    }
+
+    const def = ACTIVE_SKILLS[skillId as ActiveSkillId];
+    if (!def) {
+      btn.classList.add("action-slot--empty");
+      continue;
+    }
+
+    // Load sprite into projectile layer
+    const jsonUrl = `/assets/${def.spritePath}`;
+    await projectileLayer.load(skillId, jsonUrl);
+
+    // Extract first frame as icon
+    const iconCanvas = projectileLayer.getIcon(skillId, 28);
+    if (iconCanvas) {
+      iconCanvas.className = "ability-icon";
+      btn.prepend(iconCanvas);
+      btn.classList.remove("action-slot--empty");
+    }
+
+    btn.title = `${def.name} (${(def.cooldownMs / 1000).toFixed(1)}s)`;
+    skillSlotMap.set(skillId, btn);
+
+    // Click handler
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (btn.classList.contains("action-slot--on-cd")) return;
+      onCastSkill(skillId);
+      haptic("light");
+    });
+  }
+
+  // Listen for skill result → start cooldown overlay
+  const onSkillHit = (data: any) => {
+    if (!data.cooldownUntil || !data.skillId) return;
+    const btn = skillSlotMap.get(data.skillId);
+    if (!btn) return;
+
+    const def = ACTIVE_SKILLS[data.skillId as ActiveSkillId];
+    if (!def) return;
+
+    const cdOverlay = btn.querySelector(".action-slot__cooldown") as HTMLElement | null;
+    if (!cdOverlay) return;
+
+    const now = Date.now();
+    const totalMs = def.cooldownMs;
+    const endsAt = data.cooldownUntil;
+
+    btn.classList.add("action-slot--on-cd");
+    cdOverlay.style.height = "100%";
+
+    const tick = setInterval(() => {
+      const remaining = endsAt - Date.now();
+      if (remaining <= 0) {
+        clearInterval(tick);
+        btn.classList.remove("action-slot--on-cd");
+        cdOverlay.style.height = "0%";
+        return;
+      }
+      const pct = (remaining / totalMs) * 100;
+      cdOverlay.style.height = `${pct}%`;
+    }, 50);
+
+    cooldownTimers.push(tick);
+  };
+
+  events.on("skillHit", onSkillHit);
+
+  return () => {
+    events.off("skillHit", onSkillHit);
+    for (const t of cooldownTimers) clearInterval(t);
   };
 }
 

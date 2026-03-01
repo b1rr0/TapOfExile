@@ -13,6 +13,7 @@ export {
   EMBLEM_RADIUS,
   NODE_RADIUS,
   MAX_CLASS_SKILLS,
+  getMaxClassSkills,
   CLASS_IDS,
   CLASS_IMG,
 } from "@shared/skill-tree";

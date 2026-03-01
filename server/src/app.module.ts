@@ -21,6 +21,7 @@ import { LeagueModule } from './league/league.module';
 import { FriendsModule } from './friends/friends.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { TradeModule } from './trade/trade.module';
+import { SkillEquipModule } from './skills/skill-equip.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { TradeModule } from './trade/trade.module';
     FriendsModule,
     LeaderboardModule,
     TradeModule,
+    SkillEquipModule,
     TypeOrmModule.forFeature([Player]),
   ],
   providers: [

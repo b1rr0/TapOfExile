@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bot-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../../bot/node_modules/vite/bin/vite.js", "../../bot", "--port", "5173", "--host", "--config", "../../bot/vite.config.js"],
+      "port": 5173
+    }
+  ]
+}

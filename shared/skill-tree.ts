@@ -16,7 +16,8 @@
 
 import {
   MINOR_POOL, NOTABLE_POOL, KEYSTONE_POOL, FIGURE_ENTRY_POOL,
-  CLASS_SKILLS, NodeDef, StatModifier,
+  CLASS_SKILLS, ACTIVE_SKILL_NODES, SKILL_CONNECTOR_DEFS,
+  NodeDef, StatModifier,
 } from "./skill-node-defs";
 import type { NodeType } from "./types";
 import {
@@ -62,11 +63,17 @@ const CLASS_ANGLE: Record<string, number> = { samurai: 0, warrior: Math.PI / 2, 
 
 const START_RADIUS: number = 210;
 export const EMBLEM_RADIUS: number = 100;
-export const MAX_CLASS_SKILLS: number = 8;
+export const MAX_CLASS_SKILLS: number = 16; // legacy constant, prefer getMaxClassSkills(level)
+
+/** Level-gated class skill budget: 0 until lv10, then +1 every 5 levels, max 8 at lv45 */
+export function getMaxClassSkills(level: number): number {
+  if (level < 10) return 0;
+  return Math.min(8, 1 + Math.floor((level - 10) / 5));
+}
 
 // Node rendering radii (shared between FE, wiki, and layout validation)
 export const NODE_RADIUS: Record<string, number> = {
-  keystone: 9, notable: 11, start: 7, classSkill: 8, minor: 7, figureEntry: 9,
+  keystone: 9, notable: 11, start: 7, classSkill: 8, activeSkill: 10, minor: 7, figureEntry: 9,
 };
 // Minimum distance = 4× diameter = 8× radius
 const MIN_DIST_MULT: number = 8;
@@ -284,7 +291,7 @@ function nodeR(type: string): number { return NODE_RADIUS[type] || 8; }
 
 /** True if node is part of the outer (non-emblem) tree */
 function isOuter(n: SkillNode): boolean {
-  return n.type !== "start" && n.type !== "classSkill";
+  return n.type !== "start" && n.type !== "classSkill" && n.type !== "activeSkill";
 }
 
 /** True if edge is in the outer tree (both endpoints are outer nodes) */
@@ -1091,9 +1098,9 @@ function hydrateTree(): SkillTreeResult {
   const nodes: SkillNode[] = TREE_NODES.map((raw) => {
     const def = raw.defId ? defIndex.get(raw.defId) || null : null;
     const node = new SkillNode(
-      raw.id, raw.nodeId, raw.type as NodeType, raw.classAffinity,
+      raw.id, raw.nodeId, raw.type as NodeType, raw.classAffinity || "",
       raw.x, raw.y,
-      def || { label: raw.label, name: raw.name, stat: raw.stat, value: raw.value },
+      def || { label: raw.label || "", name: raw.name ?? null, stat: raw.stat ?? null, value: raw.value ?? 0 },
     );
     node.connections = raw.connections;
     node.connector = (raw as any).connector || false;
@@ -1126,6 +1133,12 @@ function buildDefIndex(): Map<string, NodeDef> {
   for (const d of FIGURE_ENTRY_POOL) map.set(d.id, d);
   for (const skills of Object.values(CLASS_SKILLS)) {
     for (const d of skills) map.set(d.id, d);
+  }
+  for (const defs of Object.values(ACTIVE_SKILL_NODES)) {
+    for (const d of defs) map.set(d.id, d);
+  }
+  for (const defs of Object.values(SKILL_CONNECTOR_DEFS)) {
+    for (const d of defs) map.set(d.id, d);
   }
   return map;
 }
@@ -1197,63 +1210,44 @@ export function generateSkillTree(): SkillTreeResult {
     b.addEmblem(cls, ecx, ecy, n.id);
   }
 
-  // ── 2. Class skill mini-trees (15 per class = 60) ──────
+  // ── 2. Class skill mini-trees (16 per class = 64) ──────
   //
   // Stretched layout — tree grows INWARD from start (at emblem edge r=100).
-  // D1 at r=80 (4/5 of emblem radius). Branches fill the emblem interior.
+  // D1 at r=75 (bridge). Branches fill the emblem interior.
   //
   //   Topology:
-  //     Long branches (0, 1, 3): D2(conn)→D3(skill)→D4(conn)→D5(skill)
-  //     Fork branch  (2):       D2(conn)→skill2→junction(conn)→ forkL(skill4) / forkR(skill5)
-  //     Middle branch (1):      D2(conn)→D3(skill1, leaf)
+  //     Long branches (0, 3): D2(conn)→D3(skill)→D4(conn)→D5(skill)
+  //     Fork branch  (2):    D2(conn)→skill→junction(conn)→ forkL(skill) / forkR(skill)
+  //     Middle branch (1):   D2(conn)→D3(skill, leaf)
   //
-  //   ◉ = classSkill (red), connector=false   — 8 total
-  //   ○ = classSkill (path node), connector=true  — 7 total
-  //   MAX_CLASS_SKILLS = 8
+  //   ◉ = activeSkill (hex), connector=false — 8 total
+  //   ○ = classSkill (path node), connector=true — 8 total
+  //   MAX_CLASS_SKILLS = 16
   //
-  //   Layout: 2 circumference branches (0, 3) arc along the edge at r≈66-78;
-  //           2 middle branches (1, 2) dive toward center at r≈14-60.
-  //   Edge lengths increase with depth (wider angular spread).
+  //   Node mapping from sketch:
+  //   D1=root, B0: 1→2→3, B1: 4→11, B2 fork: 6→(9,10), B3: 5→7→8
 
-  const FORK_IDX = 2; // which of the 4 branches is the fork
+  const FORK_IDX = 2;
 
-  // ── Sketch-based layout ──────────────────────────────────
-  // Hand-crafted from user sketch (samurai, d=500px, scaled ×0.4).
-  // Each node: [angle_offset_from_startA (radians), radius].
-  // Auto-rotated per class via startA.
-  //
-  // Tree grows DOWNWARD from start like an inverted tree.
-  // Branches fill the circle interior; endpoints reach far edges.
-  //
-  // Node mapping from sketch:
-  //   D1=root, B0: 1→2→3, B1: 4→(interp)→11, B2 fork: 6→(9,10), B3: 5→7→8
-
-  // Two concentric circles for node placement:
-  //   Side radius:   r = 75  (branches 0, 3)
-  //   Middle radius: r = 45  (branches 1, 2 + fork tips)
-  //   D1 at r = 90 (10px from start at r=100)
   const R_SIDE = 75;
   const R_MID  = 45;
 
-  const D1_POS: [number, number] = [0.0, 75]; // 25px from start
+  const D1_POS: [number, number] = [0.0, 75];
 
-  // [D2(conn), D3(skill), D4(conn), D5(skill)] — per branch
-  // Angular steps ~0.55 rad between consecutive nodes
   const BRANCH_POS: [number, number][][] = [
-    // Branch 0 (side-left): all on r=75, angles ×1.25
+    // Branch 0 (side-left): all on r=75
     [[-0.625, R_SIDE], [-1.3125, R_SIDE], [-2.00, R_SIDE], [-2.6875, R_SIDE]],
     // Branch 1 (middle-left): D2 -35°, D3 (skill 1, leaf) -70°
     [[-35 * Math.PI / 180, R_MID], [-70 * Math.PI / 180, R_MID]],
     // Branch 2 (fork): D2 +35°, junction(conn) +70° → forkL/forkR/skill2(+105°)
     [[+35 * Math.PI / 180, R_MID], [+70 * Math.PI / 180, R_MID], [+105 * Math.PI / 180, R_MID]],
-    // Branch 3 (side-right): all on r=75, angles ×1.25
+    // Branch 3 (side-right): all on r=75
     [[+0.625, R_SIDE], [+1.3125, R_SIDE], [+2.00, R_SIDE], [+2.6875, R_SIDE]],
   ];
 
-  // Fork endpoints from D3[FORK_IDX] — on middle circle r=50
   const FORK_POS: [number, number][] = [
-    [200 * Math.PI / 180, R_MID],   // fork-L: 200° ≈ 3.491 rad
-    [160 * Math.PI / 180, R_MID],   // fork-R: 160° ≈ 2.793 rad
+    [200 * Math.PI / 180, R_MID],   // fork-L
+    [160 * Math.PI / 180, R_MID],   // fork-R
   ];
 
   for (let ci = 0; ci < 4; ci++) {
@@ -1264,15 +1258,19 @@ export function generateSkillTree(): SkillTreeResult {
     let si = 0;
     let cni = 0;
 
+    const skillDefs = ACTIVE_SKILL_NODES[cls] || [];
+    const connDefs = SKILL_CONNECTOR_DEFS[cls] || [];
+
     function emPolar(angle: number, r: number): [number, number] {
       return [ecx + Math.cos(angle) * r, ecy + Math.sin(angle) * r];
     }
 
     function mkSkill(aOff: number, r: number): SkillNode {
       const [nx, ny] = emPolar(startA + aOff, r);
+      const def = skillDefs[si] || null;
       const n = b.createNode(
-        `${cls}-cs-s${si}`, "classSkill", cls, nx, ny,
-        { label: `${cls} skill ${si}` },
+        `${cls}-cs-s${si}`, "activeSkill", cls, nx, ny,
+        def || { label: `${cls} skill ${si}` },
       );
       si++;
       n.connector = false;
@@ -1281,9 +1279,10 @@ export function generateSkillTree(): SkillTreeResult {
 
     function mkConn(aOff: number, r: number): SkillNode {
       const [nx, ny] = emPolar(startA + aOff, r);
+      const def = connDefs[cni] || null;
       const n = b.createNode(
         `${cls}-cs-c${cni}`, "classSkill", cls, nx, ny,
-        { label: cls },
+        def || { label: cls },
       );
       cni++;
       n.connector = true;
@@ -1295,11 +1294,22 @@ export function generateSkillTree(): SkillTreeResult {
     b.link(starts[ci], d1);
 
     // D2 — 4 path connectors
-    const d2 = BRANCH_POS.map(bp => {
+    // Branches 0,1,3 bypass d1 hub; branch 2 (fork) goes through d1
+    const d2 = BRANCH_POS.map((bp, i) => {
       const n = mkConn(bp[0][0], bp[0][1]);
-      b.link(d1, n);
+      if (i === FORK_IDX) {
+        b.link(d1, n);  // fork branch through d1
+      }
       return n;
     });
+    // Connect branches 0, 1, 3 directly to start (bypass d1 hub)
+    b.link(starts[ci], d2[0]);  // start → c1
+    b.link(starts[ci], d2[1]);  // start → c2 (only connects to start & s1)
+    b.link(starts[ci], d2[3]);  // start → c4 (only connects to start & s3)
+
+    // Reposition d1: between d2[0](node5) and d2[3](node8), 60/40 biased right, same height
+    d1.x = d2[0].x + 0.6 * (d2[3].x - d2[0].x);
+    d1.y = d2[0].y + 0.6 * (d2[3].y - d2[0].y);
 
     const longIndices = [0, 3];
 
@@ -1310,7 +1320,6 @@ export function generateSkillTree(): SkillTreeResult {
 
       if (!isLong && bp.length > 2) {
         // Fork: D2→skill(+70°)→junction(conn,+105°) — fork branches from junction
-        // Other: D2→skill→skill chain
         let prev = d2[i];
         for (let k = 1; k < bp.length - 1; k++) {
           const mid = mkSkill(bp[k][0], bp[k][1]);
@@ -1345,7 +1354,7 @@ export function generateSkillTree(): SkillTreeResult {
     b.link(d3[FORK_IDX], forkL);
     b.link(d3[FORK_IDX], forkR);
 
-    // D5 — 3 skill endpoints for long branches
+    // D5 — skill endpoints for long branches
     for (const li of longIndices) {
       const n = mkSkill(BRANCH_POS[li][3][0], BRANCH_POS[li][3][1]);
       b.link(d4Conn[li]!, n);
@@ -1633,5 +1642,6 @@ export function diamondPath(cx: number, cy: number, r: number): string {
 
 /** Returns SVG shape name for a node type. */
 export function getNodeShape(nodeType: string, isConnector: boolean): 'circle' | 'hex' | 'diamond' {
+  if (nodeType === 'activeSkill') return 'hex';
   return 'circle';
 }

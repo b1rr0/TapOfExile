@@ -137,6 +137,8 @@ export class GameState {
       bag: [], // Bag is per-league, not per-character
       endgame: c.endgame,
       allocatedNodes: c.allocatedNodes || [],
+      unlockedActiveSkills: c.unlockedActiveSkills || [],
+      equippedSkills: c.equippedSkills || [null, null, null, null],
       dailyBonusRemaining: c.dailyBonusRemaining ?? 3,
     }));
 

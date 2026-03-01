@@ -130,6 +130,14 @@ export class Character {
   @Column({ type: 'jsonb', default: '[]' })
   allocatedNodes: number[];
 
+  // Active skills unlocked via skill tree (derived from activeSkill nodes)
+  @Column({ type: 'jsonb', default: '[]' })
+  unlockedActiveSkills: string[];
+
+  // Equipped action bar (4 slots — null = empty)
+  @Column({ type: 'jsonb', default: '[null, null, null, null]' })
+  equippedSkills: (string | null)[];
+
   // Dojo best all-time total damage (10s round)
   @Column({ type: 'int', default: 0 })
   dojoBestDamage: number;

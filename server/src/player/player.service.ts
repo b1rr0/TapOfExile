@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { aggregateEquipmentStats, applyBonuses } from '@shared/equipment-bonus';
+import { buildSkillTree } from '@shared/skill-tree';
 
 const DAILY_BONUS_WINS_MAX = 3;
 
@@ -243,6 +244,7 @@ export class PlayerService {
             totalMapsRun: c.totalMapsRun,
           },
           allocatedNodes: c.allocatedNodes || [],
+          ...this.deriveSkillFields(c),
           dailyBonusRemaining,
         });
       }
@@ -342,6 +344,49 @@ export class PlayerService {
       })
       .where('telegramId = :telegramId', { telegramId })
       .execute();
+  }
+
+  /**
+   * Derive unlockedActiveSkills from allocatedNodes on the fly,
+   * and auto-fill equippedSkills from unlocked if slots are empty.
+   * This handles characters whose allocations were saved before
+   * the sync logic was added to acceptAllocations.
+   */
+  private deriveSkillFields(c: any): {
+    unlockedActiveSkills: string[];
+    equippedSkills: (string | null)[];
+  } {
+    const tree = buildSkillTree();
+    const allocated = c.allocatedNodes || [];
+
+    // Derive unlocked from allocated activeSkill nodes
+    const unlocked: string[] = [];
+    for (const nodeId of allocated) {
+      const node = tree.nodes[nodeId];
+      if (node && node.type === 'activeSkill' && node.def?.activeSkillId) {
+        unlocked.push(node.def.activeSkillId);
+      }
+    }
+
+    // Start with stored equipped, clean up invalid entries
+    const unlockedSet = new Set(unlocked);
+    const equipped: (string | null)[] = [...(c.equippedSkills || [null, null, null, null])];
+    while (equipped.length < 4) equipped.push(null);
+    for (let i = 0; i < equipped.length; i++) {
+      if (equipped[i] && !unlockedSet.has(equipped[i]!)) equipped[i] = null;
+    }
+
+    // Auto-fill empty slots with unlocked skills
+    const alreadyEquipped = new Set(equipped.filter(Boolean));
+    for (const skillId of unlocked) {
+      if (alreadyEquipped.has(skillId)) continue;
+      const emptySlot = equipped.indexOf(null);
+      if (emptySlot === -1) break;
+      equipped[emptySlot] = skillId;
+      alreadyEquipped.add(skillId);
+    }
+
+    return { unlockedActiveSkills: unlocked, equippedSkills: equipped };
   }
 
 }

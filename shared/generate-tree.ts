@@ -47,6 +47,7 @@ async function main() {
     stat: n.stat,
     value: n.value,
     defId: n.def ? n.def.id : null,
+    activeSkillId: n.def?.activeSkillId || null,
     mods: n.mods.map((m: InstanceType<typeof StatModifier>) => ({
       stat: m.stat, value: m.value, mode: m.mode,
     })),
@@ -77,17 +78,19 @@ export interface RawNode {
   id: number;
   nodeId: string;
   type: string;
-  classAffinity: string;
+  classAffinity?: string;
   x: number;
   y: number;
-  label: string;
-  name: string | null;
-  stat: string | null;
-  value: number;
-  defId: string | null;
-  mods: { stat: string; value: number; mode: string }[];
+  label?: string;
+  name?: string | null;
+  stat?: string | null;
+  value?: number;
+  defId?: string | null;
+  activeSkillId?: string | null;
+  mods?: { stat: string; value: number; mode: string }[];
   connections: number[];
-  connector: boolean;
+  connector?: boolean;
+  stats?: Record<string, unknown>;
 }
 
 export const TREE_NODES: RawNode[] = ${JSON.stringify(serializedNodes)};

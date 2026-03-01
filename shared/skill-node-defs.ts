@@ -11,6 +11,7 @@
  */
 
 import type { ModMode } from "./types";
+import { ACTIVE_SKILLS, CLASS_ACTIVE_SKILLS, type ActiveSkillId } from "./active-skills";
 
 // ── StatModifier ──────────────────────────────────────────
 
@@ -51,6 +52,8 @@ export class NodeDef {
   readonly mods: StatModifier[];
   readonly stat: string | null;
   readonly value: number;
+  /** For activeSkill nodes — references the ActiveSkillId this node unlocks */
+  activeSkillId: ActiveSkillId | null;
 
   constructor(id: string, label: string, name: string | null, type: string, ...mods: StatModifier[]) {
     this.id = id;
@@ -63,7 +66,7 @@ export class NodeDef {
     this.stat = mods.length > 0 ? mods[0].stat : null;
     this.value = mods.length > 0 ? mods[0].value : 0;
 
-    Object.freeze(this);
+    this.activeSkillId = null;
   }
 }
 
@@ -95,6 +98,12 @@ export function classSkill(id: string, label: string, name: string, ...mods: Sta
 
 export function figureEntry(id: string, label: string): NodeDef {
   return new NodeDef(id, label, null, "figureEntry");
+}
+
+export function activeSkillNode(id: string, label: string, name: string, skillId: ActiveSkillId): NodeDef {
+  const def = new NodeDef(id, label, name, "activeSkill");
+  def.activeSkillId = skillId;
+  return def;
 }
 
 // ── Stat key → player property mapping ────────────────────
@@ -335,6 +344,86 @@ export const CLASS_SKILLS: Record<string, NodeDef[]> = {
   ],
 };
 
+// ── Active skill node defs (8 per class = 32) ──────────────
+//
+// Each activeSkill node unlocks an active combat skill. No stat bonuses —
+// the node's purpose is gating the skill behind tree allocation.
+// Generated from CLASS_ACTIVE_SKILLS mapping.
+
+function buildActiveSkillNodes(): Record<string, NodeDef[]> {
+  const result: Record<string, NodeDef[]> = {};
+  for (const [cls, skillIds] of Object.entries(CLASS_ACTIVE_SKILLS)) {
+    result[cls] = skillIds.map(skillId => {
+      const skill = ACTIVE_SKILLS[skillId];
+      return activeSkillNode(`as_${skillId}`, skill.name, skill.name, skillId);
+    });
+  }
+  return result;
+}
+
+export const ACTIVE_SKILL_NODES: Record<string, NodeDef[]> = buildActiveSkillNodes();
+
+// ── Skill connector stat defs (8 per class = 32) ───────────
+//
+// Stat bonuses on the path connectors between active skill nodes.
+// Index matches connector index (c0–c7) in the class skill mini-tree:
+//
+//   Start → c0(bridge) → c1 → s0 → c6 → s6
+//                       → c2 → s1
+//                       → c3 → s2 → c5 → s4/s5
+//                       → c4 → s3 → c7 → s7
+
+export const SKILL_CONNECTOR_DEFS: Record<string, NodeDef[]> = {
+
+  /** Mage connectors — fire path (left) + cold path (right) */
+  mage: [
+    classSkill("sc_mag_0", "+3% DPS",               "Arcane Flow",    pct("dps", 0.03)),
+    classSkill("sc_mag_1", "+8% HP",                 "Mana Well",      pct("hp", 0.08)),
+    classSkill("sc_mag_2", "+5% Fire Dmg",           "Spark",          pct("fireDmg", 0.05)),
+    classSkill("sc_mag_3", "+5% Fire Dmg",           "Ember Path",     pct("fireDmg", 0.05)),
+    classSkill("sc_mag_4", "+5% Cold Dmg",           "Chill Touch",    pct("coldDmg", 0.05)),
+    classSkill("sc_mag_5", "+8% Fire, +5% Crit",    "Ignition",       pct("fireDmg", 0.08), pct("critChance", 0.05)),
+    classSkill("sc_mag_6", "+6% CritDmg, +5% Fire", "Combustion",     pct("critMulti", 0.06), pct("fireDmg", 0.05)),
+    classSkill("sc_mag_7", "+4% DPS",               "Ether Link",     pct("dps", 0.04)),
+  ],
+
+  /** Samurai connectors — physical/crit (left) + lightning (right) */
+  samurai: [
+    classSkill("sc_sam_0", "+3% Damage",              "Blade Focus",    pct("damage", 0.03)),
+    classSkill("sc_sam_1", "+5% Damage",              "Sharp Edge",     pct("damage", 0.05)),
+    classSkill("sc_sam_2", "+5% Crit Chance",         "Keen Eye",       pct("critChance", 0.05)),
+    classSkill("sc_sam_3", "+5% Lightning Dmg",       "Storm Path",     pct("lightningDmg", 0.05)),
+    classSkill("sc_sam_4", "+5% Lightning Dmg",       "Charged Blade",  pct("lightningDmg", 0.05)),
+    classSkill("sc_sam_5", "+6% CritDmg, +5% Crit",  "Lethal Point",   pct("critMulti", 0.06), pct("critChance", 0.05)),
+    classSkill("sc_sam_6", "+4% DPS",                 "Swift Wind",     pct("dps", 0.04)),
+    classSkill("sc_sam_7", "+6% Lightning Dmg",       "Thunder Step",   pct("lightningDmg", 0.06)),
+  ],
+
+  /** Warrior connectors — HP/physical tank path */
+  warrior: [
+    classSkill("sc_war_0", "+5% HP",                  "Iron Resolve",   pct("hp", 0.05)),
+    classSkill("sc_war_1", "+5% Damage",              "Heavy Arm",      pct("damage", 0.05)),
+    classSkill("sc_war_2", "+8% HP",                  "Tough Hide",     pct("hp", 0.08)),
+    classSkill("sc_war_3", "+5% Damage",              "Brute Path",     pct("damage", 0.05)),
+    classSkill("sc_war_4", "+5% Dmg, +5% Fire",      "Tempered Steel", pct("damage", 0.05), pct("fireDmg", 0.05)),
+    classSkill("sc_war_5", "+8% HP, +5% Damage",     "Battle Stance",  pct("hp", 0.08), pct("damage", 0.05)),
+    classSkill("sc_war_6", "+5% HP",                  "Stone Skin",     pct("hp", 0.05)),
+    classSkill("sc_war_7", "+10% HP",                 "Endure",         pct("hp", 0.10)),
+  ],
+
+  /** Archer connectors — lightning (left) + cold (right) + crit */
+  archer: [
+    classSkill("sc_arc_0", "+3% Crit Chance",         "Steady Aim",     pct("critChance", 0.03)),
+    classSkill("sc_arc_1", "+5% Lightning Dmg",       "Spark Touch",    pct("lightningDmg", 0.05)),
+    classSkill("sc_arc_2", "+5% Crit Chance",         "Focus",          pct("critChance", 0.05)),
+    classSkill("sc_arc_3", "+5% Cold Dmg",            "Frost Tip",      pct("coldDmg", 0.05)),
+    classSkill("sc_arc_4", "+5% Cold Dmg",            "Icy Wind",       pct("coldDmg", 0.05)),
+    classSkill("sc_arc_5", "+5% Ltn, +5% Cold",      "Elemental Aim",  pct("lightningDmg", 0.05), pct("coldDmg", 0.05)),
+    classSkill("sc_arc_6", "+4% DPS",                 "Quick Draw",     pct("dps", 0.04)),
+    classSkill("sc_arc_7", "+5% Lightning Dmg",       "Charged Arrow",  pct("lightningDmg", 0.05)),
+  ],
+};
+
 // ── Bonus aggregation utility ─────────────────────────────
 
 /**
@@ -353,7 +442,7 @@ export function computeAllocatedBonuses(
 
   for (const nodeId of allocated) {
     const node = nodes[nodeId];
-    if (!node || node.type === "start") continue;
+    if (!node || node.type === "start" || node.type === "activeSkill") continue;
 
     const mods = node.mods;
     if (mods && mods.length > 0) {

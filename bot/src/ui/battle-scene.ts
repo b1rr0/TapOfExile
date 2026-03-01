@@ -3,6 +3,7 @@ import { HeroCharacter } from "./characters/hero-character.js";
 import { EnemyCharacter } from "./characters/enemy-character.js";
 import { ProjectileLayer } from "./projectile-layer.js";
 import { getHeroSkin, getEnemySkin, getSkinForMonster, resolveEnemySkin } from "../data/sprite-registry.js";
+import { ACTIVE_SKILLS, type ActiveSkillId } from "@shared/active-skills.js";
 import type { Monster, Rarity, SkinConfig } from "../types.js";
 
 /**
@@ -407,10 +408,14 @@ export class BattleScene {
       this._onSkillCast(data?.skillId || "fireball");
     });
 
-    // Skill hit from server — update monster HP bar (no hero attack anim)
+    // Skill hit from server — update monster HP bar + launch looping effects for buff/debuff
     this._on("skillHit", (data: any) => {
       if (data.monster) {
         this._updateHp(data.monster);
+      }
+      // Launch looping visual effects for buff/debuff skills
+      if (data.skillType === "buff" || data.skillType === "debuff") {
+        this._onBuffDebuffApplied(data.skillId, data.skillType, data.effectDuration);
       }
     });
   }
@@ -437,6 +442,36 @@ export class BattleScene {
       // On impact — shake enemy
       if (this.enemy) this.enemy.hit();
     });
+  }
+
+  /**
+   * Launch a looping visual effect for buff/debuff at the appropriate target.
+   */
+  _onBuffDebuffApplied(skillId: string, skillType: string, durationMs?: number): void {
+    if (!this.useSprites || !this.hero || !this.enemy) return;
+
+    const def = ACTIVE_SKILLS[skillId as ActiveSkillId];
+    if (!def?.effect) return;
+
+    const w = this._canvasW;
+    const h = this._canvasH;
+    const dpr = this._dpr;
+
+    const heroX = w * 0.18 + 20 * dpr;
+    const heroY = h * 0.78;
+    const enemyX = w * 0.82 - 20 * dpr;
+    const enemyY = h * 0.78;
+
+    const dur = durationMs || def.effect.durationMs;
+    const tag = `${def.effect.id}_${skillType}`;
+
+    this.projectileLayer.launchLooping(
+      skillId,
+      tag,
+      heroX, heroY,
+      enemyX, enemyY,
+      dur,
+    );
   }
 
   _onDamage(data: DamageData): void {
@@ -469,6 +504,8 @@ export class BattleScene {
     if (this.useSprites && this.enemy) {
       this.enemy.die();
     }
+    // Clear all debuff looping effects (they die with the monster)
+    this.projectileLayer.clearEnemyEffects();
   }
 
   _onMonsterSpawned(monster: Monster): void {

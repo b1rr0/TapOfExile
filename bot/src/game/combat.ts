@@ -155,7 +155,7 @@ export class CombatManager {
       }
     });
 
-    // Active skill result (same structure as tap-result + skillId)
+    // Active skill result (same structure as tap-result + skillId + skillType)
     this._socket.on("combat:skill-result", (result: any) => {
       if (!this.monster) return;
 
@@ -168,11 +168,16 @@ export class CombatManager {
 
       this.events.emit("skillHit", {
         skillId: result.skillId,
+        skillType: result.skillType,
         damage: result.damage,
         damageBreakdown: result.damageBreakdown,
         isCrit: result.isCrit,
         monster: this.monster,
         cooldownUntil: result.cooldownUntil,
+        healAmount: result.healAmount,
+        effectId: result.effectId,
+        effectDuration: result.effectDuration,
+        activeEffects: result.activeEffects,
       });
 
       if (result.playerHp !== undefined) {
@@ -447,6 +452,8 @@ export class CombatManager {
   castSkill(skillId: string): void {
     if (this._deathCooldown || !this.monster || !this._sessionId || !this._socket) return;
     this._socket.emit("combat:cast-skill", { sessionId: this._sessionId, skillId });
+    // Emit skillCast immediately for client-side animation (server result comes later as skillHit)
+    this.events.emit("skillCast", { skillId });
   }
 
   // ─── Tap ────────────────────────────────────────────────────

@@ -1,5 +1,7 @@
-import { buildSkillTree, getClassStartNode, hexPath, diamondPath, getNodeShape, EMBLEM_RADIUS, NODE_RADIUS, MAX_CLASS_SKILLS } from "../data/skill-tree.js";
+import { buildSkillTree, getClassStartNode, hexPath, diamondPath, getNodeShape, EMBLEM_RADIUS, NODE_RADIUS, getMaxClassSkills } from "../data/skill-tree.js";
 import { validateAllocations } from "@shared/skill-tree-validation";
+import { ACTIVE_SKILLS } from "@shared/active-skills";
+import type { ActiveSkillDef } from "@shared/active-skills";
 import { api } from "../api.js";
 import type { SharedDeps, SkillTreeResult, NodeType } from "../types.js";
 import type { SkillNode } from "@shared/skill-tree";
@@ -118,7 +120,7 @@ export class SkillTreeScene {
           <span class="skill-tree__title">Passive Tree</span>
           <div class="skill-tree__pts-wrap">
             <span class="skill-tree__points" id="st-points">${totalPoints - usedPoints} pts</span>
-            <span class="skill-tree__class-pts" id="st-class-pts">${classUsed}/${MAX_CLASS_SKILLS} class</span>
+            <span class="skill-tree__class-pts" id="st-class-pts">${classUsed}/${this._getMaxClassSkills()} class</span>
           </div>
         </div>
         <div class="skill-tree__actions-row">
@@ -365,13 +367,25 @@ export class SkillTreeScene {
       return;
     }
 
-    // Class skill cap check
-    if (node.type === "classSkill" && this._getClassSkillCount() >= MAX_CLASS_SKILLS) return;
+    // Class/active skill cap check
+    const isClassNode = node.type === "classSkill" || node.type === "activeSkill";
+    if (isClassNode && this._getClassSkillCount() >= this._getMaxClassSkills()) return;
+
+    // Active skill budget: 0 by default, scales with level, 8 by level 45
+    if (node.type === "activeSkill") {
+      const playerLevel = this.state.data.player?.level || 1;
+      const maxActiveSkills = Math.min(8, Math.floor(playerLevel * 8 / 45));
+      let activeSkillsAllocated = 0;
+      for (const id of this._allocated) {
+        if (this._tree!.nodes[id]?.type === "activeSkill") activeSkillsAllocated++;
+      }
+      if (activeSkillsAllocated >= maxActiveSkills) return;
+    }
 
     const totalPoints = this._getTotalPoints();
     const usedOuter = this._getOuterUsedCount();
-    // Class skills don't consume normal points (they're free picks, limited to 6)
-    if (node.type !== "classSkill" && usedOuter >= totalPoints) return;
+    // Class/active skills don't consume normal points (limited by class budget + level gates)
+    if (!isClassNode && usedOuter >= totalPoints) return;
     if (!this._isReachable(node.id)) return;
 
     this._allocated.add(node.id);
@@ -415,20 +429,26 @@ export class SkillTreeScene {
     return p ? Math.max(0, p.level - 1) : 0;
   }
 
+  _getMaxClassSkills(): number {
+    const p = this.state.data.player;
+    return getMaxClassSkills(p?.level || 1);
+  }
+
   _getClassSkillCount(): number {
     let c = 0;
     for (const id of this._allocated) {
-      if (this._tree!.nodes[id] && this._tree!.nodes[id].type === "classSkill") c++;
+      const t = this._tree!.nodes[id]?.type;
+      if (t === "classSkill" || t === "activeSkill") c++;
     }
     return c;
   }
 
   _getOuterUsedCount(): number {
-    // All allocated except start and classSkills
+    // All allocated except start, classSkills, and activeSkills
     let c = 0;
     for (const id of this._allocated) {
       const n = this._tree!.nodes[id];
-      if (n && n.type !== "start" && n.type !== "classSkill") c++;
+      if (n && n.type !== "start" && n.type !== "classSkill" && n.type !== "activeSkill") c++;
     }
     return c;
   }
@@ -438,7 +458,7 @@ export class SkillTreeScene {
     const usedOuter = this._getOuterUsedCount();
     const classUsed = this._getClassSkillCount();
     if (this._pointsEl) this._pointsEl.textContent = `${total - usedOuter} pts`;
-    if (this._classPtsEl) this._classPtsEl.textContent = `${classUsed}/${MAX_CLASS_SKILLS} class`;
+    if (this._classPtsEl) this._classPtsEl.textContent = `${classUsed}/${this._getMaxClassSkills()} class`;
   }
 
   /* -- Tooltip -------------------------------------------- */
@@ -446,6 +466,68 @@ export class SkillTreeScene {
   _showTooltip(node: SkillNode): void {
     if (!this._tooltip) return;
     let html = "";
+
+    // Active skill nodes — rich description
+    const skillId = node.def?.activeSkillId;
+    if (node.type === "activeSkill" && skillId) {
+      const skill = ACTIVE_SKILLS[skillId as keyof typeof ACTIVE_SKILLS] as ActiveSkillDef | undefined;
+      if (skill) {
+        html += `<div class="st-tip__name">${skill.name}</div>`;
+        html += `<div class="st-tip__type" style="color:#DFFFFE">active skill</div>`;
+        html += `<div class="st-tip__skill-info">`;
+
+        if (skill.skillType === "damage") {
+          html += `<span class="st-tip__stat">DMG ×${skill.damageMultiplier}</span>`;
+        } else if (skill.skillType === "heal") {
+          html += `<span class="st-tip__stat">Heal ${Math.round((skill.healPercent || 0) * 100)}% HP</span>`;
+        } else if (skill.skillType === "buff" || skill.skillType === "debuff") {
+          html += `<span class="st-tip__stat">${skill.skillType}</span>`;
+        }
+
+        html += `<span class="st-tip__cd">CD ${(skill.cooldownMs / 1000).toFixed(1)}s</span>`;
+        html += `</div>`;
+
+        // Elemental profile
+        const elems = Object.entries(skill.elementalProfile).filter(([, v]) => v > 0);
+        if (elems.length > 0) {
+          const elemStr = elems.map(([el, v]) => `${el} ${Math.round(v * 100)}%`).join(", ");
+          html += `<div class="st-tip__elem">${elemStr}</div>`;
+        }
+
+        // Effect description
+        if (skill.effect) {
+          const eff = skill.effect;
+          const dur = (eff.durationMs / 1000).toFixed(0);
+          const sign = eff.target === "enemy" ? "-" : "+";
+          const valStr = eff.value < 1 ? `${Math.round(eff.value * 100)}%` : String(eff.value);
+          html += `<div class="st-tip__effect">${sign}${valStr} ${eff.stat} (${dur}s)</div>`;
+        }
+
+        // Level requirement + status hint
+        const playerLevel = this.state.data.player?.level || 1;
+        const maxActiveSkills = Math.min(8, Math.floor(playerLevel * 8 / 45));
+        let activeAllocated = 0;
+        for (const id of this._allocated) {
+          if (this._tree!.nodes[id]?.type === "activeSkill") activeAllocated++;
+        }
+
+        if (this._allocated.has(node.id)) {
+          html += `<div class="st-tip__hint">tap to remove</div>`;
+        } else if (activeAllocated >= maxActiveSkills) {
+          // Calculate next level needed for +1 active skill
+          const nextLevel = Math.ceil((activeAllocated + 1) * 45 / 8);
+          html += `<div class="st-tip__hint" style="color:#A40239">requires level ${nextLevel}</div>`;
+        } else {
+          html += `<div class="st-tip__hint">tap to unlock</div>`;
+        }
+
+        this._tooltip.innerHTML = html;
+        this._tooltip.classList.remove("hidden");
+        return;
+      }
+    }
+
+    // Regular nodes
     if (node.name) html += `<div class="st-tip__name">${node.name}</div>`;
     html += `<div class="st-tip__label">${node.label}</div>`;
     if (node.type === "classSkill") html += `<div class="st-tip__type">class skill</div>`;
@@ -559,10 +641,10 @@ export class SkillTreeScene {
     if (!validation.valid) {
       console.error("[SkillTree] FE validation failed:", validation.errors);
       if (this._acceptBtn) {
-        this._acceptBtn.textContent = "\u2716 Invalid";
+        this._acceptBtn.textContent = `\u2716 ${validation.errors[0] || "Invalid"}`;
         setTimeout(() => {
           if (this._acceptBtn) this._acceptBtn.textContent = "\u2714 Accept";
-        }, 2000);
+        }, 3000);
       }
       return;
     }
@@ -583,13 +665,14 @@ export class SkillTreeScene {
           if (this._acceptBtn) this._acceptBtn.textContent = "\u2714 Accept";
         }, 1500);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("[SkillTree] Accept failed:", err);
+      const msg = err?.response?.data?.message || err?.message || "Error";
       if (this._acceptBtn) {
-        this._acceptBtn.textContent = "\u2716 Error";
+        this._acceptBtn.textContent = `\u2716 ${msg}`;
         setTimeout(() => {
           if (this._acceptBtn) this._acceptBtn.textContent = "\u2714 Accept";
-        }, 2000);
+        }, 3000);
       }
     } finally {
       if (this._acceptBtn) this._acceptBtn.disabled = false;

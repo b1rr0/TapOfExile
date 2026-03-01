@@ -350,12 +350,14 @@ export function rollMapDrops(
     return drops;
   }
 
-  // Regular map drops
-  if (Math.random() < S.regular.sameTierChance) {
-    drops.push(createMapKey(tier));
-  }
-  if (tier < MAX_TIER && Math.random() < S.regular.tierUpChance) {
+  // Regular map drops — mutually exclusive: same-tier OR tier+1 (not both)
+  const keyRoll = Math.random();
+  if (keyRoll < S.regular.tierUpChance && tier < MAX_TIER) {
+    // Tier+1 wins (checked first — rarer outcome, 20%)
     drops.push(createMapKey(Math.min(MAX_TIER, tier + 1)));
+  } else if (keyRoll < S.regular.tierUpChance + S.regular.sameTierChance) {
+    // Same tier (60% band)
+    drops.push(createMapKey(tier));
   }
   // Boss key based on chosen direction
   if (tier >= S.regular.bossKeyMinTier && Math.random() < S.regular.bossKeyChance) {

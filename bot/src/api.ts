@@ -235,6 +235,10 @@ export const loot = {
     return del(`/loot/bag/${itemId}`);
   },
 
+  sellItem(itemId: string): Promise<{ gold: number }> {
+    return post(`/loot/sell/${itemId}`);
+  },
+
   equipPotion(itemId: string, slot: string) {
     return post("/loot/equip-potion", { itemId, slot });
   },

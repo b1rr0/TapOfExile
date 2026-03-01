@@ -1064,15 +1064,30 @@ body {
 
 .action-slot__cooldown {
   position: absolute;
-  inset: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0%;
   background: rgba(0, 0, 0, 0.7);
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s;
+  transition: height 0.05s linear;
 }
 
-.action-slot--on-cooldown .action-slot__cooldown {
-  opacity: 1;
+.action-slot--on-cooldown .action-slot__cooldown,
+.action-slot--on-cd .action-slot__cooldown {
+  height: 100%;
+}
+
+.action-slot--on-cd {
+  filter: grayscale(0.5);
+}
+
+.ability-icon {
+  image-rendering: pixelated;
+  width: 28px;
+  height: 28px;
+  display: block;
+  margin: 0 auto;
 }
 
 .action-slot--empty {
@@ -2651,8 +2666,39 @@ body {
 }
 
 /* Discard button */
-.bag-modal__discard-btn {
+.bag-modal__actions-row {
+  display: flex;
+  gap: 8px;
   width: 100%;
+}
+
+.bag-modal__sell-btn {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid rgba(249, 207, 135, 0.3);
+  border-radius: 8px;
+  background: rgba(60, 45, 10, 0.5);
+  color: #f9cf87;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bag-modal__sell-btn:active {
+  transform: scale(0.95);
+  border-color: rgba(249, 207, 135, 0.6);
+  background: rgba(249, 207, 135, 0.15);
+}
+
+.bag-modal__sell-price {
+  font-weight: 800;
+  color: #ffd700;
+}
+
+.bag-modal__discard-btn {
+  flex: 1;
   padding: 8px;
   border: 2px solid rgba(255, 80, 80, 0.25);
   border-radius: 8px;
@@ -3898,6 +3944,56 @@ body {
   color: var(--ds-cyan-mid);
 }
 
+/* Active skills list (stats overlay) */
+.stats-overlay__skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-overlay__skill-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  background: rgba(223,255,254,0.04);
+  border: 1px solid rgba(223,255,254,0.12);
+  border-radius: 6px;
+  gap: 6px;
+}
+
+.stats-overlay__skill-row.stats-overlay__skill--locked {
+  opacity: 0.35;
+  border-color: rgba(100,100,100,0.2);
+  background: rgba(30,30,40,0.3);
+}
+
+.stats-overlay__skill-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-gold-bright);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-overlay__skill-info {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.stats-overlay__skill-dmg { color: #DFFFFE; }
+.stats-overlay__skill-heal { color: #7fef7f; }
+.stats-overlay__skill-buff { color: #F9CF87; }
+.stats-overlay__skill-debuff { color: #B9508D; }
+
+.stats-overlay__skill-cd {
+  font-size: 10px;
+  color: rgba(249,207,135,0.65);
+  white-space: nowrap;
+}
+
 /* Special ability row (stats overlay) */
 .stats-overlay__special {
   display: flex;
@@ -5099,6 +5195,30 @@ body {
   50%      { filter: drop-shadow(0 0 9px rgba(255,51,102,0.7)); }
 }
 
+/* ── Active Skill nodes — hexagon shape (inside emblem) ── */
+
+.st-node--activeSkill path {
+  fill: #0a1520;
+  stroke: #DFFFFE;
+  stroke-width: 2;
+}
+
+.st-node--activeSkill.st-node--allocated path {
+  fill: #1a3040;
+  stroke: #F9CF87;
+  filter: drop-shadow(0 0 8px rgba(249,207,135,0.6));
+}
+
+.st-node--activeSkill.st-node--reachable path {
+  stroke: rgba(223,255,254,0.8);
+  animation: st-pulse-active 2s ease-in-out infinite;
+}
+
+@keyframes st-pulse-active {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(223,255,254,0.3)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(223,255,254,0.7)); }
+}
+
 /* ── Class connector nodes — dim circle nodes (inside emblem) ── */
 
 .st-node--classConnector circle,
@@ -5165,6 +5285,36 @@ body {
   margin-top: 2px;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.st-tip__skill-info {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.st-tip__stat {
+  color: #DFFFFE;
+  font-weight: 600;
+}
+
+.st-tip__cd {
+  color: rgba(249,207,135,0.85);
+}
+
+.st-tip__elem {
+  font-size: 10px;
+  color: rgba(200,180,240,0.7);
+  margin-top: 2px;
+}
+
+.st-tip__effect {
+  font-size: 11px;
+  color: #B9508D;
+  margin-top: 3px;
+  font-weight: 500;
 }
 
 .st-tip__hint {

@@ -46,14 +46,59 @@ type TabType = "all" | string;
 /** Quality tier order for sorting (higher = better). */
 const QUALITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
 
-/** Tab display config. */
+/** Tab display config — equipment broken into individual slot types. */
 const TAB_CONFIG: Record<string, { label: string; icon: string }> = {
   all:          { label: "All",       icon: "&#x2B1A;" },
-  equipment:    { label: "Gear",      icon: "&#x2694;" },
+  // Equipment slot tabs
+  weapon:       { label: "Weapon",    icon: "&#x2694;" },
+  helmet:       { label: "Helmet",    icon: "&#x1FA96;" },
+  armor:        { label: "Armor",     icon: "&#x1F6E1;" },
+  gloves:       { label: "Gloves",    icon: "&#x1F9E4;" },
+  belt:         { label: "Belt",      icon: "&#x1F4BF;" },
+  boots:        { label: "Boots",     icon: "&#x1F462;" },
+  ring:         { label: "Ring",      icon: "&#x1F48D;" },
+  amulet:       { label: "Amulet",    icon: "&#x1F4FF;" },
+  // Non-equipment tabs
   potion:       { label: "Potions",   icon: "&#x1F9EA;" },
   map_key:      { label: "Maps",      icon: "&#x1F5FA;" },
   boss_map_key: { label: "Boss",      icon: "&#x1F480;" },
 };
+
+/** Map equipment slot to tab key. */
+const SLOT_TO_TAB: Record<string, string> = {
+  one_hand: "weapon",
+  two_hand: "weapon",
+  helmet: "helmet",
+  armor: "armor",
+  gloves: "gloves",
+  belt: "belt",
+  boots: "boots",
+  ring: "ring",
+  amulet: "amulet",
+};
+
+/** Get the tab key for a bag item. */
+function getItemTabKey(item: BagItem): string {
+  if (item.type === "equipment" && item.properties?.slot) {
+    return SLOT_TO_TAB[item.properties.slot as string] || "weapon";
+  }
+  return item.type;
+}
+
+/** Sell price calculation (mirrors server logic). */
+const QUALITY_MUL: Record<string, number> = { common: 1, rare: 3, epic: 8, legendary: 20 };
+
+function calcSellPrice(item: BagItem): number {
+  const mul = QUALITY_MUL[item.quality] || 1;
+  if (item.type === "equipment") {
+    const iLvl = item.properties?.itemLevel || item.level || 1;
+    return Math.max(1, Math.floor((iLvl as number) * mul));
+  }
+  if (item.type === "potion") return Math.max(1, 5 * mul);
+  if (item.type === "map_key") return Math.max(1, (item.tier || 1) * 10);
+  if (item.type === "boss_map_key") return Math.max(1, (item.bossKeyTier || 1) * 50);
+  return 1;
+}
 
 const GRID_COLS = 4;
 const GRID_ROWS = 8;
@@ -227,18 +272,31 @@ export class ChestPanel {
     if (!tabsEl) return;
 
     const items = this._getBagItems();
-    const types = new Set(items.map((i) => i.type));
 
+    // Collect all unique tab keys present in bag
+    const tabKeys = new Set<string>();
+    for (const item of items) {
+      tabKeys.add(getItemTabKey(item));
+    }
+
+    // "All" tab always first
     let html = `<button class="bag-tab ${this._activeTab === "all" ? "bag-tab--active" : ""}" data-tab="all">
       <span class="bag-tab__icon">${TAB_CONFIG.all.icon}</span>
       <span class="bag-tab__label">${TAB_CONFIG.all.label}</span>
       <span class="bag-tab__count">${items.length}</span>
     </button>`;
 
-    for (const type of types) {
-      const cfg = TAB_CONFIG[type] || { label: type, icon: "?" };
-      const count = items.filter((i) => i.type === type).length;
-      html += `<button class="bag-tab ${this._activeTab === type ? "bag-tab--active" : ""}" data-tab="${type}">
+    // Ordered tab keys (equipment slots first, then non-equipment)
+    const orderedKeys = [
+      "weapon", "helmet", "armor", "gloves", "belt", "boots", "ring", "amulet",
+      "potion", "map_key", "boss_map_key",
+    ];
+
+    for (const key of orderedKeys) {
+      if (!tabKeys.has(key)) continue;
+      const cfg = TAB_CONFIG[key] || { label: key, icon: "?" };
+      const count = items.filter((i) => getItemTabKey(i) === key).length;
+      html += `<button class="bag-tab ${this._activeTab === key ? "bag-tab--active" : ""}" data-tab="${key}">
         <span class="bag-tab__icon">${cfg.icon}</span>
         <span class="bag-tab__label">${cfg.label}</span>
         <span class="bag-tab__count">${count}</span>
@@ -260,9 +318,9 @@ export class ChestPanel {
 
     let items = this._getBagItems();
 
-    // Filter by active tab
+    // Filter by active tab (using slot-based keys for equipment)
     if (this._activeTab !== "all") {
-      items = items.filter((i) => i.type === this._activeTab);
+      items = items.filter((i) => getItemTabKey(i) === this._activeTab);
     }
 
     // Sort
@@ -403,12 +461,19 @@ export class ChestPanel {
       ? `<div class="equip-potion-modal__lore">${loreText}</div>`
       : '';
 
+    const sellPrice = calcSellPrice(item);
+
     contentEl.innerHTML = `
       <button class="bag-modal__close">&times;</button>
       <div class="bag-modal__name" style="color:${q.color}">${item.name}</div>
       <div class="bag-modal__quality" style="color:${q.color}">${q.label}</div>
       ${bodyHtml}
-      <button class="bag-modal__discard-btn" data-item-id="${item.id}">Discard</button>
+      <div class="bag-modal__actions-row">
+        <button class="bag-modal__sell-btn" data-item-id="${item.id}">
+          Sell <span class="bag-modal__sell-price">${sellPrice} &#x1FA99;</span>
+        </button>
+        <button class="bag-modal__discard-btn" data-item-id="${item.id}">Discard</button>
+      </div>
       ${loreHtml}
     `;
 
@@ -417,6 +482,11 @@ export class ChestPanel {
 
     // Wire close
     contentEl.querySelector(".bag-modal__close")!.addEventListener("click", () => this._closeModal());
+
+    // Wire sell
+    contentEl.querySelector(".bag-modal__sell-btn")!.addEventListener("click", async () => {
+      await this._sellItem(item.id);
+    });
 
     // Wire discard
     contentEl.querySelector(".bag-modal__discard-btn")!.addEventListener("click", async () => {
@@ -615,6 +685,19 @@ export class ChestPanel {
       if (err?.message?.includes('too low')) {
         alert(err.message);
       }
+    }
+  }
+
+  async _sellItem(itemId: string): Promise<void> {
+    try {
+      const result = await loot.sellItem(itemId);
+      this._closeModal();
+      await this.state.refreshState();
+      this._renderTabs();
+      this._renderGrid();
+      this.events.emit("goldChanged", { gold: result.gold });
+    } catch (err) {
+      console.error("[ChestPanel] Sell failed:", err);
     }
   }
 
