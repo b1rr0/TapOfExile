@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
+import { aggregateEquipmentStats, applyBonuses } from '@shared/equipment-bonus';
 
 const DAILY_BONUS_WINS_MAX = 3;
 
@@ -142,19 +143,52 @@ export class PlayerService {
 
         // Build equipment map from EquipmentSlot relations (same shape as old JSONB)
         const equipmentMap: Record<string, any> = {};
+        const gearItems: Array<{ properties: Record<string, any> }> = [];
         for (const slot of c.equipmentSlots || []) {
           if (slot.item) {
-            equipmentMap[slot.slotId] = {
-              bagItemId: slot.item.id,
-              flaskType: slot.item.flaskType,
-              quality: slot.item.quality,
-              name: slot.item.name,
-              maxCharges: slot.item.maxCharges,
-              currentCharges: slot.item.maxCharges, // always full outside combat
-              healPercent: slot.item.healPercent,
-            };
+            if (slot.item.type === 'equipment') {
+              // Gear item — include all properties
+              equipmentMap[slot.slotId] = {
+                bagItemId: slot.item.id,
+                name: slot.item.name,
+                type: slot.item.type,
+                quality: slot.item.quality,
+                level: slot.item.level,
+                icon: slot.item.icon,
+                properties: slot.item.properties || {},
+              };
+              gearItems.push({ properties: slot.item.properties || {} });
+            } else {
+              // Potion / other — legacy format
+              equipmentMap[slot.slotId] = {
+                bagItemId: slot.item.id,
+                flaskType: slot.item.flaskType,
+                quality: slot.item.quality,
+                name: slot.item.name,
+                maxCharges: slot.item.maxCharges,
+                currentCharges: slot.item.maxCharges, // always full outside combat
+                healPercent: slot.item.healPercent,
+              };
+            }
           }
         }
+
+        // Compute equipment-adjusted effective stats
+        const bonuses = aggregateEquipmentStats(gearItems);
+        const eff = applyBonuses(
+          {
+            tapDamage: c.tapDamage,
+            maxHp: c.maxHp,
+            hp: c.hp,
+            critChance: c.critChance,
+            critMultiplier: c.critMultiplier,
+            dodgeChance: c.dodgeChance,
+            specialValue: c.specialValue,
+            resistance: c.resistance || {},
+            elementalDamage: c.elementalDamage || { physical: 1.0 },
+          },
+          bonuses,
+        );
 
         allCharacters.push({
           id: c.id,
@@ -168,15 +202,26 @@ export class PlayerService {
           level: c.level,
           xp: Number(c.xp),
           xpToNext: Number(c.xpToNext),
-          hp: c.hp,
-          maxHp: c.maxHp,
-          tapDamage: c.tapDamage,
-          critChance: c.critChance,
-          critMultiplier: c.critMultiplier,
-          dodgeChance: c.dodgeChance,
-          specialValue: c.specialValue,
-          resistance: c.resistance || {},
-          elementalDamage: c.elementalDamage || { physical: 1.0 },
+          // Effective stats (with equipment bonuses)
+          hp: eff.hp,
+          maxHp: eff.maxHp,
+          tapDamage: eff.tapDamage,
+          critChance: eff.critChance,
+          critMultiplier: eff.critMultiplier,
+          dodgeChance: eff.dodgeChance,
+          specialValue: eff.specialValue,
+          resistance: eff.resistance,
+          elementalDamage: eff.elementalDamage,
+          // Equipment bonus utility stats (for UI display)
+          gearFireDmg: eff.gearFireDmg,
+          gearColdDmg: eff.gearColdDmg,
+          gearLightningDmg: eff.gearLightningDmg,
+          goldFind: eff.goldFind,
+          xpBonus: eff.xpBonus,
+          lifeOnHit: eff.lifeOnHit,
+          lifeRegen: eff.lifeRegen,
+          armor: eff.armor,
+          blockChance: eff.blockChance,
           combat: {
             currentStage: c.combatCurrentStage,
             currentWave: c.combatCurrentWave,
@@ -234,12 +279,12 @@ export class PlayerService {
           maxCharges: item.maxCharges,
           currentCharges: item.currentCharges,
           healPercent: item.healPercent,
+          properties: item.properties || {},
         })),
       meta: {
         lastSaveTime: Number(player.lastSaveTime),
         totalTaps: Number(player.totalTaps),
         totalKills: Number(player.totalKills),
-        totalGold: Number(player.totalGold),
         version: player.gameVersion,
       },
     };
@@ -286,7 +331,6 @@ export class PlayerService {
     telegramId: string,
     taps: number,
     kills: number,
-    gold: number,
   ): Promise<void> {
     await this.playerRepo
       .createQueryBuilder()
@@ -294,7 +338,6 @@ export class PlayerService {
       .set({
         totalTaps: () => `"totalTaps" + ${taps}`,
         totalKills: () => `"totalKills" + ${kills}`,
-        totalGold: () => `"totalGold" + ${gold}`,
         lastSaveTime: String(Date.now()),
       })
       .where('telegramId = :telegramId', { telegramId })

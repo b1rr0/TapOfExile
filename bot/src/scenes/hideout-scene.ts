@@ -1,6 +1,7 @@
 import { Equipment } from "../ui/equipment.js";
 import { ChestPanel } from "../ui/chest-panel.js";
 import { FriendsPanel } from "../ui/friends-panel.js";
+import { TradePanel } from "../ui/trade-panel.js";
 import { IS_TESTING } from "../config.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { getCharacterClass } from "../data/character-classes.js";
@@ -28,6 +29,7 @@ export class HideoutScene {
   equipment: Equipment | null;
   chestPanel: ChestPanel | null;
   friendsPanel: FriendsPanel | null;
+  tradePanel: TradePanel | null;
   _goldHandler: ((data: any) => void) | null;
   _levelHandler: ((data: any) => void) | null;
   _xpHandler: (() => void) | null;
@@ -59,6 +61,7 @@ export class HideoutScene {
     this.equipment = null;
     this.chestPanel = null;
     this.friendsPanel = null;
+    this.tradePanel = null;
     this._goldHandler = null;
     this._levelHandler = null;
     this._xpHandler = null;
@@ -168,6 +171,10 @@ export class HideoutScene {
               <span class="hideout-btn__icon">&#x1F333;</span>
               <span class="hideout-btn__label">Tree</span>
             </button>
+            <button class="hideout-btn hideout-btn--trade" id="hideout-trade-btn">
+              <span class="hideout-btn__icon">&#x1F4B0;</span>
+              <span class="hideout-btn__label">Trade</span>
+            </button>
             <button class="hideout-btn hideout-btn--friends" id="hideout-friends-btn">
               <span class="hideout-btn__icon">&#x1F465;</span>
               <span class="hideout-btn__label">Friends</span>
@@ -212,6 +219,7 @@ export class HideoutScene {
     this.equipment = new Equipment(hideoutEl, this.events, this.state);
     this.chestPanel = new ChestPanel(hideoutEl, this.events, this.state);
     this.friendsPanel = new FriendsPanel(hideoutEl, this.events, this.state);
+    this.tradePanel = new TradePanel(hideoutEl, this.events, this.state);
 
     // -- Bottom nav buttons --------------------------------
     (this.container.querySelector("#hideout-map-btn") as HTMLButtonElement).addEventListener("click", () => {
@@ -228,6 +236,10 @@ export class HideoutScene {
 
     (this.container.querySelector("#hideout-tree-btn") as HTMLButtonElement).addEventListener("click", () => {
       if (this.sceneManager) this.sceneManager.switchTo("skillTree");
+    });
+
+    (this.container.querySelector("#hideout-trade-btn") as HTMLButtonElement).addEventListener("click", () => {
+      if (this.tradePanel) this.tradePanel.toggle();
     });
 
     (this.container.querySelector("#hideout-friends-btn") as HTMLButtonElement).addEventListener("click", () => {
@@ -497,6 +509,16 @@ export class HideoutScene {
           </div>
           ` : ""}
 
+          ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0) ? `
+          <div class="stats-overlay__section-title">Equipment Bonuses</div>
+          ${(char as any).armor > 0 ? this._statRowSimple("🛡️", "Armor", String(Math.floor((char as any).armor))) : ""}
+          ${(char as any).blockChance > 0 ? this._statRowSimple("🔰", "Block", Math.round((char as any).blockChance * 100) + "%") : ""}
+          ${(char as any).lifeOnHit > 0 ? this._statRowSimple("💚", "Life on Hit", "+" + Math.floor((char as any).lifeOnHit)) : ""}
+          ${(char as any).lifeRegen > 0 ? this._statRowSimple("💗", "Life Regen", "+" + ((char as any).lifeRegen as number).toFixed(1) + "/s") : ""}
+          ${(char as any).goldFind > 0 ? this._statRowSimple("💰", "Gold Find", "+" + Math.round((char as any).goldFind) + "%") : ""}
+          ${(char as any).xpBonus > 0 ? this._statRowSimple("✨", "XP Bonus", "+" + Math.round((char as any).xpBonus) + "%") : ""}
+          ` : ""}
+
           <div class="stats-overlay__section-title">Damage Type</div>
           <div class="stats-overlay__elem-row">
             ${elemEntries.map(([elem, frac]) =>
@@ -505,6 +527,14 @@ export class HideoutScene {
               </span>`
             ).join("")}
           </div>
+
+          ${((char as any).gearFireDmg > 0 || (char as any).gearColdDmg > 0 || (char as any).gearLightningDmg > 0) ? `
+          <div class="stats-overlay__elem-row" style="margin-top:4px;">
+            ${(char as any).gearFireDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#ff4500;color:#ff4500">+' + Math.floor((char as any).gearFireDmg) + ' fire</span>' : ""}
+            ${(char as any).gearColdDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#87ceeb;color:#87ceeb">+' + Math.floor((char as any).gearColdDmg) + ' cold</span>' : ""}
+            ${(char as any).gearLightningDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#00bfff;color:#00bfff">+' + Math.floor((char as any).gearLightningDmg) + ' lightning</span>' : ""}
+          </div>
+          ` : ""}
 
           <div class="stats-overlay__section-title">Resistances</div>
           ${Object.entries(RESISTANCE_LABELS).map(([key, r]) => {
@@ -557,6 +587,15 @@ export class HideoutScene {
     </div>`;
   }
 
+  /** Simple stat row without max comparison (for equipment bonuses) */
+  _statRowSimple(icon: string, label: string, value: string): string {
+    return `<div class="stats-overlay__stat-row">
+      <span class="stats-overlay__stat-icon">${icon}</span>
+      <span class="stats-overlay__stat-label">${label}</span>
+      <span class="stats-overlay__stat-current" style="color:var(--game-accent, #00bfff)">${value}</span>
+    </div>`;
+  }
+
   /* -- Cleanup -------------------------------------------- */
 
   unmount(): void {
@@ -599,6 +638,10 @@ export class HideoutScene {
     if (this.friendsPanel) {
       this.friendsPanel.destroy();
       this.friendsPanel = null;
+    }
+    if (this.tradePanel) {
+      this.tradePanel.destroy();
+      this.tradePanel = null;
     }
     this._xpFill = null;
     this._xpText = null;

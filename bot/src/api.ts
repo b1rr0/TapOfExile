@@ -242,6 +242,14 @@ export const loot = {
   unequipPotion(slot: string) {
     return post("/loot/unequip-potion", { slot });
   },
+
+  equipItem(itemId: string, slotId: string) {
+    return post("/loot/equip-item", { itemId, slotId });
+  },
+
+  unequipItem(slotId: string) {
+    return post("/loot/unequip-item", { slotId });
+  },
 };
 
 /* ── Skill Tree ────────────────────────────────────────── */
@@ -304,6 +312,53 @@ export const friends = {
   },
 };
 
+/* ── Trade ─────────────────────────────────────────────── */
+
+export const trade = {
+  browse(params: {
+    itemType?: string;
+    quality?: string;
+    itemSubtype?: string;
+    search?: string;
+    sort?: string;
+    offset?: number;
+    limit?: number;
+    leagueId?: string;
+  } = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== '') qs.set(k, String(v));
+    }
+    const q = qs.toString();
+    return get(`/trade/browse${q ? '?' + q : ''}`);
+  },
+
+  myListings() {
+    return get('/trade/my');
+  },
+
+  history() {
+    return get('/trade/history');
+  },
+
+  createListing(itemId: string, price: string) {
+    return post('/trade/list', { itemId, price });
+  },
+
+  buy(listingId: string) {
+    return post('/trade/buy', { listingId });
+  },
+
+  cancel(listingId: string) {
+    return post('/trade/cancel', { listingId });
+  },
+
+  stats(leagueId?: string) {
+    const q = leagueId ? `?leagueId=${leagueId}` : '';
+    return get(`/trade/stats${q}`);
+  },
+};
+
 /* ── Default export ────────────────────────────────────── */
 
 export const api = {
@@ -315,4 +370,5 @@ export const api = {
   loot,
   skillTree,
   friends,
+  trade,
 };

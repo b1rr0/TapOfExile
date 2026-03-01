@@ -15,7 +15,6 @@ function createDefault(): GameData {
       lastSaveTime: Date.now(),
       totalTaps: 0,
       totalKills: 0,
-      totalGold: 0,
       version: 4,
     },
   };
@@ -158,13 +157,13 @@ export class GameState {
       maxCharges: item.maxCharges,
       currentCharges: item.currentCharges,
       healPercent: item.healPercent,
+      properties: item.properties,
     }));
 
     this.data.meta = {
       lastSaveTime: state.meta.lastSaveTime,
       totalTaps: state.meta.totalTaps,
       totalKills: state.meta.totalKills,
-      totalGold: state.meta.totalGold,
       version: state.meta.version,
     };
 
@@ -288,6 +287,7 @@ export class GameState {
       maxCharges: item.maxCharges,
       currentCharges: item.currentCharges,
       healPercent: item.healPercent,
+      properties: item.properties,
     }));
   }
 

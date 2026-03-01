@@ -126,7 +126,7 @@ function setupPotionBtn(
   btn.dataset.flaskType = flaskType;
 
   const img = document.createElement("img");
-  img.src = `/assets/potions/${flaskType}/red_${Math.min(Math.max(charges, 1), 5)}.png`;
+  img.src = `/assets/equipments/consumables/${flaskType}s/red_${Math.min(Math.max(charges, 1), 5)}.png`;
   img.className = "potion-sprite";
   img.style.width = "24px";
   img.style.height = "24px";
@@ -177,7 +177,7 @@ export function initPotionSlots(opts: PotionSlotOptions): () => void {
       const img = btn.querySelector(".potion-sprite") as HTMLImageElement | null;
       if (img && data.remainingCharges > 0) {
         const flaskType = btn.dataset.flaskType || "";
-        img.src = `/assets/potions/${flaskType}/red_${data.remainingCharges}.png`;
+        img.src = `/assets/equipments/consumables/${flaskType}s/red_${data.remainingCharges}.png`;
       } else if (img && data.remainingCharges <= 0) {
         btn.classList.add("action-slot--empty");
         img.style.opacity = "0.3";

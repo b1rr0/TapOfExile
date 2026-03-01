@@ -6,6 +6,8 @@
  */
 
 import type { BagItem } from "../types.js";
+import { STAT_DEFS, SUBTYPES } from "@shared/equipment-defs";
+import type { StatId } from "@shared/equipment-defs";
 
 /** Quality display colours. */
 export const QUALITY_COLORS: Record<string, { label: string; color: string }> = {
@@ -20,6 +22,7 @@ const TYPE_LABELS: Record<string, string> = {
   potion:       "Potion",
   map_key:      "Map Key",
   boss_map_key: "Boss Key",
+  equipment:    "Equipment",
 };
 
 export class ItemTooltip {
@@ -84,7 +87,7 @@ export class ItemTooltip {
       const spriteIdx = Math.min(Math.max(charges, 1), 5);
       statsHtml = `
         <div class="item-tooltip__sprite">
-          <img src="/assets/potions/${item.flaskType}/red_${spriteIdx}.png"
+          <img src="/assets/equipments/consumables/${item.flaskType}s/red_${spriteIdx}.png"
                style="width:40px;height:40px;image-rendering:pixelated">
         </div>
         <div class="item-tooltip__stat">Heal: <span class="item-tooltip__val item-tooltip__val--heal">${healPct}%</span> HP</div>
@@ -100,6 +103,27 @@ export class ItemTooltip {
       statsHtml = `
         <div class="item-tooltip__stat">Boss Tier: <span class="item-tooltip__val">${tierName}</span></div>
       `;
+    } else if (item.type === "equipment" && item.properties) {
+      const props = item.properties;
+      const sub = SUBTYPES.find(s => s.code === props.subtype);
+      if (sub) {
+        statsHtml += `<div class="item-tooltip__stat" style="color:#aaa;font-size:11px">${sub.name}</div>`;
+      }
+      if (props.baseDamage) statsHtml += `<div class="item-tooltip__stat">DMG: <span class="item-tooltip__val">${props.baseDamage}</span></div>`;
+      if (props.baseArmor) statsHtml += `<div class="item-tooltip__stat">ARM: <span class="item-tooltip__val">${props.baseArmor}</span></div>`;
+      // Show first 2 rolled stats (compact for tooltip)
+      for (const stat of (props.stats || []).slice(0, 2)) {
+        const def = STAT_DEFS[stat.id as StatId];
+        const name = def?.name || stat.id;
+        const unit = def?.unit === '+N%' ? '%' : '';
+        statsHtml += `<div class="item-tooltip__stat"><span class="item-tooltip__val">+${stat.value}${unit}</span> ${name}</div>`;
+      }
+      if ((props.stats?.length || 0) > 2) {
+        statsHtml += `<div class="item-tooltip__stat" style="color:#666">+${(props.stats?.length || 0) - 2} more...</div>`;
+      }
+      if (props.reqLevel) {
+        statsHtml += `<div class="item-tooltip__stat" style="color:#888;font-size:10px">Req Lv. ${props.reqLevel}</div>`;
+      }
     }
 
     this._el.innerHTML = `

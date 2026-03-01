@@ -8,9 +8,21 @@
  * Tap: opens item detail modal (equip potions, discard, compare).
  */
 
-import type { BagItem } from "../types.js";
+import type { BagItem, Character } from "../types.js";
 import { ItemTooltip, QUALITY_COLORS } from "./item-tooltip.js";
 import { loot } from "../api.js";
+import { STAT_DEFS, SUBTYPES, getValidUISlots } from "@shared/equipment-defs";
+import type { StatId, EquipmentSlotId } from "@shared/equipment-defs";
+import { getLore } from "@shared/equipment-lore";
+
+const POTION_LORE: Record<string, string> = {
+  small_vial: 'Concentrated to the point where a single drop can mend a sword-wound, these vials are the assassin\'s friend — small enough to hide in a sleeve, potent enough to cheat death.',
+  round_flask: 'Brewed in the cellars of wandering alchemists, this flask holds a crimson draught that knits torn flesh and mends shattered bone. The warmth it brings is fleeting, but in battle, a heartbeat is all one needs.',
+  corked_flask: 'Sealed with wax etched in forgotten sigils, the cork holds back more than liquid — it restrains a living remedy that yearns to mend. Those who drink speak of fire rushing through their veins, burning away pain and weakness alike.',
+  tall_bottle: 'Forged in the crucibles of the Order of the Crimson Eye, this slender vessel carries a distillation of life itself. Each sip restores what the battlefield takes, though the alchemists warn: the body remembers every debt.',
+  wide_bottle: 'A vessel of war, broad-shouldered and built to endure the chaos of battle. The draught within pulses with a deep scarlet glow, as if the blood of the earth itself has been captured and made to serve mortal need.',
+  jug: 'An ancient vessel passed down through generations of warriors. Its contents swirl with a depth that defies its humble appearance — a single draught can pull a dying soul back from the brink, though the price is whispered to be paid in years, not coin.',
+};
 
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
@@ -21,6 +33,7 @@ interface EventBus {
 interface GameState {
   getActiveCharacter(): {
     bag: BagItem[];
+    level: number;
     inventory?: { equipment?: Record<string, any> };
   } | null;
   bag: BagItem[];
@@ -36,6 +49,7 @@ const QUALITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2, leg
 /** Tab display config. */
 const TAB_CONFIG: Record<string, { label: string; icon: string }> = {
   all:          { label: "All",       icon: "&#x2B1A;" },
+  equipment:    { label: "Gear",      icon: "&#x2694;" },
   potion:       { label: "Potions",   icon: "&#x1F9EA;" },
   map_key:      { label: "Maps",      icon: "&#x1F5FA;" },
   boss_map_key: { label: "Boss",      icon: "&#x1F480;" },
@@ -279,7 +293,10 @@ export class ChestPanel {
   _getItemIconHtml(item: BagItem): string {
     if (item.type === "potion" && item.flaskType) {
       const charges = Math.min(Math.max(item.currentCharges ?? item.maxCharges ?? 1, 1), 5);
-      return `<img src="/assets/potions/${item.flaskType}/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+      return `<img src="/assets/equipments/consumables/${item.flaskType}s/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+    }
+    if (item.type === "equipment" && item.icon) {
+      return `<img src="${item.icon}" style="width:32px;height:32px;image-rendering:pixelated">`;
     }
     return item.icon || "?";
   }
@@ -287,6 +304,9 @@ export class ChestPanel {
   _getItemBadge(item: BagItem): string {
     if (item.type === "potion" && item.maxCharges) {
       return `${item.currentCharges ?? item.maxCharges}/${item.maxCharges}`;
+    }
+    if (item.type === "equipment" && item.properties?.reqLevel) {
+      return `Lv.${item.properties.reqLevel}`;
     }
     if (item.tier) return `T${item.tier}`;
     if (item.level) return `Lv.${item.level}`;
@@ -330,7 +350,7 @@ export class ChestPanel {
 
       bodyHtml = `
         <div class="bag-modal__sprite">
-          <img src="/assets/potions/${item.flaskType}/red_${spriteIdx}.png"
+          <img src="/assets/equipments/consumables/${item.flaskType}s/red_${spriteIdx}.png"
                style="width:64px;height:64px;image-rendering:pixelated">
         </div>
         <div class="bag-modal__stats">
@@ -369,7 +389,19 @@ export class ChestPanel {
           </div>
         </div>
       `;
+    } else if (item.type === "equipment") {
+      bodyHtml = this._renderEquipmentModal(item, char, equipment);
     }
+
+    // Lore (equipment from catalogs, potions from POTION_LORE)
+    const loreText = item.type === 'equipment' && item.icon
+      ? getLore(item.icon)
+      : item.type === 'potion' && item.flaskType
+        ? POTION_LORE[item.flaskType] || undefined
+        : undefined;
+    const loreHtml = loreText
+      ? `<div class="equip-potion-modal__lore">${loreText}</div>`
+      : '';
 
     contentEl.innerHTML = `
       <button class="bag-modal__close">&times;</button>
@@ -377,6 +409,7 @@ export class ChestPanel {
       <div class="bag-modal__quality" style="color:${q.color}">${q.label}</div>
       ${bodyHtml}
       <button class="bag-modal__discard-btn" data-item-id="${item.id}">Discard</button>
+      ${loreHtml}
     `;
 
     // Show modal
@@ -390,11 +423,20 @@ export class ChestPanel {
       await this._discardItem(item.id);
     });
 
-    // Wire equip buttons
+    // Wire equip buttons (potions)
     contentEl.querySelectorAll(".bag-modal__equip-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const slot = (btn as HTMLElement).dataset.slot!;
         await this._equipPotion(item.id, slot);
+      });
+    });
+
+    // Wire equip-item buttons (gear)
+    contentEl.querySelectorAll(".bag-modal__equip-item-btn").forEach((btn) => {
+      if ((btn as HTMLElement).classList.contains("bag-modal__equip-item-btn--disabled")) return;
+      btn.addEventListener("click", async () => {
+        const slot = (btn as HTMLElement).dataset.slot!;
+        await this._equipItem(item.id, slot);
       });
     });
   }
@@ -418,7 +460,7 @@ export class ChestPanel {
       compHtml = `
         <div class="bag-modal__compare">
           <div class="bag-modal__compare-current">
-            <img src="/assets/potions/${current.flaskType}/red_${spriteIdx}.png"
+            <img src="/assets/equipments/consumables/${current.flaskType}s/red_${spriteIdx}.png"
                  style="width:24px;height:24px;image-rendering:pixelated">
             <span class="bag-modal__compare-name">${current.name || current.flaskType}</span>
           </div>
@@ -440,6 +482,105 @@ export class ChestPanel {
     `;
   }
 
+  /** Render the item detail body for equipment items (stats + equip buttons). */
+  _renderEquipmentModal(
+    item: BagItem,
+    char: { level: number; inventory?: { equipment?: Record<string, any> } } | null,
+    equipment: Record<string, any>,
+  ): string {
+    const props = item.properties || {};
+    const sub = SUBTYPES.find(s => s.code === props.subtype);
+    const subtypeName = sub?.name || props.subtype || '';
+    const reqLevel = props.reqLevel || 0;
+    const charLevel = char?.level || 0;
+    const canEquip = charLevel >= reqLevel;
+
+    let statsHtml = '<div class="bag-modal__stats">';
+
+    // Base stats
+    if (props.baseDamage) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base Damage</span><span class="bag-modal__stat-val">${props.baseDamage}</span></div>`;
+    }
+    if (props.baseArmor) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base Armour</span><span class="bag-modal__stat-val">${props.baseArmor}</span></div>`;
+    }
+    if (props.baseEvasion) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base Evasion</span><span class="bag-modal__stat-val">${props.baseEvasion}</span></div>`;
+    }
+    if (props.baseES) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base ES</span><span class="bag-modal__stat-val">${props.baseES}</span></div>`;
+    }
+
+    // Implicit
+    if (props.implicit) {
+      const implDef = STAT_DEFS[props.implicit.id as StatId];
+      const implName = implDef?.name || props.implicit.id;
+      const implUnit = implDef?.unit === '+N%' ? '%' : implDef?.unit === '+N/s' ? '/s' : '';
+      statsHtml += `<div class="bag-modal__stat-row" style="color:#b0a060"><span class="bag-modal__stat-label">Implicit</span><span class="bag-modal__stat-val">+${props.implicit.value}${implUnit} ${implName}</span></div>`;
+    }
+
+    // Rolled stats
+    for (const stat of props.stats || []) {
+      const def = STAT_DEFS[stat.id as StatId];
+      const name = def?.name || stat.id;
+      const unit = def?.unit === '+N%' ? '%' : def?.unit === '+N/s' ? '/s' : '';
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">${name}</span><span class="bag-modal__stat-val">+${stat.value}${unit}</span></div>`;
+    }
+
+    // Req level
+    const lvlColor = canEquip ? '#888' : '#ff4444';
+    statsHtml += `<div class="bag-modal__stat-row" style="margin-top:6px"><span class="bag-modal__stat-label" style="color:${lvlColor}">Required Level</span><span class="bag-modal__stat-val" style="color:${lvlColor}">${reqLevel}</span></div>`;
+    statsHtml += '</div>';
+
+    // Equip buttons
+    const itemSlot = props.slot as EquipmentSlotId;
+    const validSlots = itemSlot ? getValidUISlots(itemSlot) : [];
+
+    const SLOT_LABELS: Record<string, string> = {
+      'weapon-left': 'Left Hand', 'weapon-right': 'Right Hand',
+      'head': 'Helmet', 'chest': 'Armor',
+      'accessory-1': 'Ring L', 'accessory-2': 'Amulet', 'accessory-3': 'Ring R',
+      'gloves': 'Gloves', 'belt': 'Belt', 'boots': 'Boots',
+    };
+
+    let equipHtml = '<div class="bag-modal__equip-row">';
+    for (const slotId of validSlots) {
+      const label = SLOT_LABELS[slotId] || slotId;
+      const disabledCls = canEquip ? '' : 'bag-modal__equip-item-btn--disabled';
+      const disabledTitle = canEquip ? '' : `title="Level ${reqLevel} required"`;
+      equipHtml += `
+        <div class="bag-modal__equip-slot">
+          <button class="bag-modal__equip-item-btn ${disabledCls}" data-slot="${slotId}" ${disabledTitle}>
+            Equip → ${label}
+          </button>
+        </div>
+      `;
+    }
+    equipHtml += '</div>';
+
+    if (!canEquip) {
+      equipHtml += `<div class="bag-modal__level-warn" style="color:#ff4444;font-size:12px;text-align:center;margin-top:4px">Your level ${charLevel} is too low (need ${reqLevel})</div>`;
+    }
+
+    // Lore from catalog
+    const loreText = item.icon ? getLore(item.icon) : undefined;
+    const loreHtml = loreText
+      ? `<div class="equip-potion-modal__lore">${loreText}</div>`
+      : '';
+
+    // Equipment icon sprite
+    const iconHtml = item.icon
+      ? `<div class="bag-modal__sprite"><img src="${item.icon}" style="width:64px;height:64px;image-rendering:pixelated"></div>`
+      : '';
+
+    return `
+      ${iconHtml}
+      <div class="bag-modal__type-label">${subtypeName}</div>
+      ${statsHtml}
+      ${equipHtml}
+    `;
+  }
+
   _closeModal(): void {
     if (this._modalEl) {
       this._modalEl.classList.add("hidden");
@@ -457,6 +598,23 @@ export class ChestPanel {
       this._renderGrid();
     } catch (err) {
       console.error("[ChestPanel] Equip failed:", err);
+    }
+  }
+
+  async _equipItem(itemId: string, slotId: string): Promise<void> {
+    try {
+      await loot.equipItem(itemId, slotId);
+      this._closeModal();
+      await this.state.refreshState();
+      this._renderTabs();
+      this._renderGrid();
+      this.events.emit("equipmentChanged");
+    } catch (err: any) {
+      console.error("[ChestPanel] Equip item failed:", err);
+      // Show error message to user if it's a level check failure
+      if (err?.message?.includes('too low')) {
+        alert(err.message);
+      }
     }
   }
 

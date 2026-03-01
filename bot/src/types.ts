@@ -45,7 +45,6 @@ export interface Meta {
   lastSaveTime: number;
   totalTaps: number;
   totalKills: number;
-  totalGold: number;
   version: number;
 }
 
@@ -91,6 +90,21 @@ export interface BagItem {
   maxCharges?: number;
   currentCharges?: number;
   healPercent?: number;
+  /** Equipment properties (type='equipment') — stored in Item.properties JSONB */
+  properties?: {
+    slot?: string;
+    subtype?: string;
+    rarity?: string;
+    itemLevel?: number;
+    reqLevel?: number;
+    baseDamage?: number;
+    baseArmor?: number;
+    baseEvasion?: number;
+    baseES?: number;
+    implicit?: { id: string; value: number };
+    stats?: { id: string; value: number }[];
+    [key: string]: unknown;
+  };
 }
 
 export interface Character {
@@ -113,6 +127,17 @@ export interface Character {
   dodgeChance: number;
   specialValue: number;
   resistance?: import("@shared/types").ElementalResistance;
+  elementalDamage?: import("@shared/types").ElementalDamage;
+  /** Equipment bonus stats (effective, with gear applied) */
+  gearFireDmg?: number;
+  gearColdDmg?: number;
+  gearLightningDmg?: number;
+  goldFind?: number;
+  xpBonus?: number;
+  lifeOnHit?: number;
+  lifeRegen?: number;
+  armor?: number;
+  blockChance?: number;
   combat: CombatState;
   locations: LocationState;
   inventory: InventoryState;

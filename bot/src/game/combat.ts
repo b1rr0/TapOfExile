@@ -27,6 +27,8 @@ export class CombatManager {
   monster: Monster | null;
   private _deathCooldown: boolean;
   private _tapping: boolean;
+  /** Timestamp of last emitted tap — client-side throttle to avoid anticheat ban */
+  private _lastTapEmit: number;
 
   // Server session
   private _sessionId: string | null;
@@ -56,6 +58,7 @@ export class CombatManager {
     this.monster = null;
     this._deathCooldown = false;
     this._tapping = false;
+    this._lastTapEmit = 0;
 
     this._sessionId = null;
     this._socket = null;
@@ -450,6 +453,12 @@ export class CombatManager {
 
   handleTap(): void {
     if (this._deathCooldown || !this.monster || !this._sessionId || this._tapping || !this._socket) return;
+
+    // Client-side throttle: max ~9 taps/sec to stay under anticheat limit
+    const now = performance.now();
+    if (now - this._lastTapEmit < 110) return;
+    this._lastTapEmit = now;
+
     this._tapping = true;
 
     this._socket.emit("combat:tap", { sessionId: this._sessionId });

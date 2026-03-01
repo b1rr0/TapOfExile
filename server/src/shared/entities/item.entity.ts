@@ -37,7 +37,7 @@ export class Item {
   @Column({ type: 'int', nullable: true })
   level: number | null;
 
-  @Column({ type: 'varchar', length: 32, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   icon: string | null;
 
   @Column({ type: 'bigint' })

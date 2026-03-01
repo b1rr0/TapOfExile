@@ -20,6 +20,7 @@ import { EndgameModule } from './endgame/endgame.module';
 import { LeagueModule } from './league/league.module';
 import { FriendsModule } from './friends/friends.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { TradeModule } from './trade/trade.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     LeagueModule,
     FriendsModule,
     LeaderboardModule,
+    TradeModule,
     TypeOrmModule.forFeature([Player]),
   ],
   providers: [

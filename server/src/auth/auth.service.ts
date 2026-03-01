@@ -87,9 +87,9 @@ export class AuthService {
 
     await this.playerRepo.query(
       `INSERT INTO players ("telegramId", "telegramUsername", "telegramFirstName",
-                            "activeLeagueId", "totalTaps", "totalKills", "totalGold",
+                            "activeLeagueId", "totalTaps", "totalKills",
                             "lastSaveTime", "gameVersion")
-       VALUES ($1, $2, $3, NULL, 0, 0, 0, $4, 4)
+       VALUES ($1, $2, $3, NULL, 0, 0, $4, 4)
        ON CONFLICT ("telegramId") DO UPDATE SET
          "telegramUsername" = EXCLUDED."telegramUsername",
          "telegramFirstName" = EXCLUDED."telegramFirstName"`,

@@ -104,6 +104,78 @@
     padding: 16px; margin-top: 16px; font-size: 12px;
     white-space: pre-wrap; max-height: 400px; overflow-y: auto;
   }
+
+  /* ── Equipment tab ── */
+  .equip-section {
+    margin-bottom: 24px; border: 1px solid #333; border-radius: 8px;
+    padding: 16px; background: #0d1120;
+  }
+  .equip-section h2 {
+    font-size: 14px; margin-bottom: 12px; color: #DFFFFE;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+  .equip-section h3 {
+    font-size: 12px; margin-bottom: 8px; color: #B9508D;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .equip-cards { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .equip-card {
+    background: #1a2040; border: 1px solid #333; border-radius: 6px;
+    padding: 10px 14px; min-width: 140px; flex: 1;
+  }
+  .equip-card .card-title { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+  .equip-card .card-detail { font-size: 10px; color: #888; line-height: 1.5; }
+  .equip-table {
+    width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;
+  }
+  .equip-table th {
+    background: #1a2040; color: #DFFFFE; text-align: left; padding: 6px 8px;
+    border-bottom: 2px solid #A40239; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 1px; white-space: nowrap;
+  }
+  .equip-table td {
+    padding: 5px 8px; border-bottom: 1px solid #222; vertical-align: top;
+  }
+  .equip-table tr:hover { background: #1a2040; }
+  .rarity-badge {
+    display: inline-block; padding: 1px 6px; border-radius: 3px;
+    font-size: 10px; font-weight: bold; color: #000;
+  }
+  .slot-badge {
+    display: inline-block; padding: 1px 5px; border-radius: 3px;
+    font-size: 9px; background: #2a3060; color: #DFFFFE; margin: 1px;
+  }
+  .stat-badge {
+    display: inline-block; padding: 1px 5px; border-radius: 3px;
+    font-size: 9px; margin: 1px; background: #1a2040; border: 1px solid #444;
+  }
+  .stat-badge.offensive { color: #ff6b6b; border-color: #ff6b6b44; }
+  .stat-badge.defensive { color: #4488ff; border-color: #4488ff44; }
+  .stat-badge.utility { color: #DFFFFE; border-color: #DFFFFE44; }
+  .tier-val { font-family: monospace; font-size: 10px; color: #F9CF87; }
+  .implicit-tag { color: #B9508D; font-style: italic; font-size: 10px; }
+  details.equip-details {
+    margin-bottom: 8px; border: 1px solid #333; border-radius: 6px;
+    background: #0d1120;
+  }
+  details.equip-details summary {
+    cursor: pointer; padding: 8px 12px; font-size: 12px;
+    color: #DFFFFE; font-weight: bold; text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  details.equip-details summary:hover { background: #1a2040; }
+  details.equip-details[open] summary { border-bottom: 1px solid #333; }
+  details.equip-details .details-body { padding: 12px; }
+  .formula-box {
+    background: #1a2040; border: 1px solid #A40239; border-radius: 6px;
+    padding: 12px 16px; font-family: monospace; font-size: 11px;
+    color: #F9CF87; line-height: 1.8;
+  }
+  .cat-header td {
+    background: #12182e; color: #B9508D; font-weight: bold; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px; padding: 6px 8px;
+    border-bottom: 1px solid #A40239;
+  }
 </style>
 </head>
 <body>
@@ -115,6 +187,7 @@
   <button class="active" data-tab="characters">Characters</button>
   <button data-tab="enemies">Enemies</button>
   <button data-tab="skills">Skills</button>
+  <button data-tab="equipment">Equipment</button>
 </div>
 
 <!-- Global Controls (Speed / Pause / Step) -->
@@ -199,6 +272,14 @@
   <div class="status" id="skills-status">Switch to this tab to load…</div>
   <div class="grid" id="skills-grid"></div>
   <div id="skills-report" style="display:none"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAB: Equipment                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="tab-equipment" class="tab-pane">
+  <div class="status" id="equip-status">Switch to this tab to load…</div>
+  <div id="equip-content"></div>
 </div>
 
 <script>
@@ -308,6 +389,205 @@ const SKILLS = [
 ];
 
 // ═════════════════════════════════════════════════════════════════
+// EQUIPMENT DATA (mirrored from shared/equipment-defs.ts)
+// ═════════════════════════════════════════════════════════════════
+
+const EQUIP_RARITIES = {
+  common:    { label: 'Common',    color: '#9d9d9d', statCount: [2,2], dropWeight: 60 },
+  rare:      { label: 'Rare',      color: '#4488ff', statCount: [2,3], dropWeight: 25 },
+  epic:      { label: 'Epic',      color: '#a335ee', statCount: [3,4], dropWeight: 12 },
+  legendary: { label: 'Legendary', color: '#ff8000', statCount: [4,4], dropWeight: 3  },
+};
+
+const EQUIP_TIER_RANGES = [[1,19],[20,39],[40,59],[60,79],[80,100]];
+const EQUIP_TIER_NAMES = ['T5','T4','T3','T2','T1'];
+
+const EQUIP_SLOT_DEFS = {
+  one_hand: { name: 'One-Hand Weapon', desc: 'Swords, axes, daggers, wands, maces. Can use shield.' },
+  two_hand: { name: 'Two-Hand Weapon', desc: 'Bows, staves, greatswords. ~1.5x stats, no shield.' },
+  helmet:   { name: 'Helmet',          desc: 'HP, armor, evasion, ES, XP bonus.' },
+  amulet:   { name: 'Amulet',          desc: 'Offensive + defensive + passive DPS bonus.' },
+  armor:    { name: 'Body Armour',     desc: 'Highest HP, armor, evasion, ES values.' },
+  ring:     { name: 'Ring',            desc: 'Crit, elemental damage, resists, gold find.' },
+  gloves:   { name: 'Gloves',          desc: 'Hybrid: defense + crit + life on hit.' },
+  belt:     { name: 'Belt',            desc: 'HP, gold find, armor, life regen.' },
+  boots:    { name: 'Boots',           desc: 'HP, armor, evasion, ES, resists.' },
+};
+
+const EQUIP_STAT_DEFS = {
+  flat_phys_dmg:      { name: 'Flat Physical Damage',     unit: '+N',   cat: 'offensive' },
+  pct_phys_dmg:       { name: '% Physical Damage',        unit: '+N%',  cat: 'offensive' },
+  flat_fire_dmg:      { name: 'Flat Fire Damage',         unit: '+N',   cat: 'offensive' },
+  flat_cold_dmg:      { name: 'Flat Cold Damage',         unit: '+N',   cat: 'offensive' },
+  flat_lightning_dmg:  { name: 'Flat Lightning Damage',    unit: '+N',   cat: 'offensive' },
+  crit_chance:        { name: 'Critical Strike Chance',   unit: '+N%',  cat: 'offensive' },
+  crit_multiplier:    { name: 'Critical Strike Multiplier',unit: '+N%', cat: 'offensive' },
+  flat_hp:            { name: 'Flat Life',                 unit: '+N',   cat: 'defensive' },
+  pct_hp:             { name: '% Increased Life',          unit: '+N%',  cat: 'defensive' },
+  flat_armor:         { name: 'Flat Armour',               unit: '+N',   cat: 'defensive' },
+  pct_armor:          { name: '% Increased Armour',        unit: '+N%',  cat: 'defensive' },
+  flat_evasion:       { name: 'Flat Evasion',              unit: '+N',   cat: 'defensive' },
+  pct_evasion:        { name: '% Increased Evasion',       unit: '+N%',  cat: 'defensive' },
+  flat_energy_shield: { name: 'Flat Energy Shield',        unit: '+N',   cat: 'defensive' },
+  pct_energy_shield:  { name: '% Increased Energy Shield', unit: '+N%',  cat: 'defensive' },
+  block_chance:       { name: 'Block Chance',              unit: '+N%',  cat: 'defensive' },
+  fire_res:           { name: 'Fire Resistance',           unit: '+N%',  cat: 'defensive' },
+  cold_res:           { name: 'Cold Resistance',           unit: '+N%',  cat: 'defensive' },
+  lightning_res:      { name: 'Lightning Resistance',      unit: '+N%',  cat: 'defensive' },
+  phys_res:           { name: 'Physical Resistance',       unit: '+N%',  cat: 'defensive' },
+  gold_find:          { name: 'Gold Find',                 unit: '+N%',  cat: 'utility'   },
+  xp_bonus:           { name: 'Experience Bonus',          unit: '+N%',  cat: 'utility'   },
+  life_regen:         { name: 'Life Regeneration',         unit: '+N/s', cat: 'utility'   },
+  life_on_hit:        { name: 'Life on Hit',               unit: '+N',   cat: 'utility'   },
+  passive_dps_bonus:  { name: 'Passive DPS Bonus',         unit: '+N%',  cat: 'utility'   },
+};
+
+const EQUIP_SUBTYPES = [
+  { code:'oh_sword',  name:'Sword',       slot:'one_hand', desc:'Balance of damage and crit' },
+  { code:'oh_axe',    name:'Axe',         slot:'one_hand', desc:'High phys damage' },
+  { code:'oh_dagger', name:'Dagger',      slot:'one_hand', desc:'High crit' },
+  { code:'oh_wand',   name:'Wand',        slot:'one_hand', desc:'Elemental damage' },
+  { code:'oh_mace',   name:'Mace',        slot:'one_hand', desc:'High damage, low speed' },
+  { code:'th_sword',  name:'Greatsword',  slot:'two_hand', desc:'High phys damage' },
+  { code:'th_axe',    name:'Greataxe',    slot:'two_hand', desc:'Max phys damage' },
+  { code:'th_bow',    name:'Bow',         slot:'two_hand', desc:'Ranged, crit' },
+  { code:'th_staff',  name:'Staff',       slot:'two_hand', desc:'Elemental damage' },
+  { code:'th_mace',   name:'Greatmace',   slot:'two_hand', desc:'Huge damage, slow' },
+  { code:'helm_heavy',  name:'Heavy Helm', slot:'helmet', desc:'Armor, HP' },
+  { code:'helm_light',  name:'Light Helm', slot:'helmet', desc:'Evasion, ES' },
+  { code:'helm_circlet',name:'Circlet',    slot:'helmet', desc:'ES, XP bonus' },
+  { code:'amu_pendant', name:'Pendant',    slot:'amulet', desc:'Balanced offense/defense' },
+  { code:'amu_talisman',name:'Talisman',   slot:'amulet', desc:'Elemental focus' },
+  { code:'amu_locket',  name:'Locket',     slot:'amulet', desc:'Defensive focus' },
+  { code:'arm_plate',   name:'Plate',      slot:'armor', desc:'Max armor' },
+  { code:'arm_leather', name:'Leather',    slot:'armor', desc:'Evasion' },
+  { code:'arm_robe',    name:'Robe',       slot:'armor', desc:'Energy Shield' },
+  { code:'arm_chain',   name:'Chain',      slot:'armor', desc:'Armor + Evasion hybrid' },
+  { code:'ring_ruby',     name:'Ruby Ring',     slot:'ring', desc:'Implicit: +flat_hp',            implicit:{stat:'flat_hp',           tr:[[5,12],[5,22],[5,35],[5,50],[5,70]]} },
+  { code:'ring_sapphire', name:'Sapphire Ring', slot:'ring', desc:'Implicit: +flat_cold_dmg',      implicit:{stat:'flat_cold_dmg',     tr:[[1,3],[1,6],[1,10],[1,16],[1,24]]} },
+  { code:'ring_topaz',    name:'Topaz Ring',    slot:'ring', desc:'Implicit: +flat_lightning_dmg',  implicit:{stat:'flat_lightning_dmg', tr:[[1,4],[1,8],[1,14],[1,22],[1,32]]} },
+  { code:'ring_gold',     name:'Gold Ring',     slot:'ring', desc:'Implicit: +gold_find',          implicit:{stat:'gold_find',         tr:[[3,8],[3,14],[3,22],[3,32],[3,45]]} },
+  { code:'ring_iron',     name:'Iron Ring',     slot:'ring', desc:'Implicit: +flat_phys_dmg',      implicit:{stat:'flat_phys_dmg',     tr:[[1,2],[1,5],[1,9],[1,14],[1,20]]} },
+  { code:'glov_gauntlet', name:'Gauntlets', slot:'gloves', desc:'Armor, attack' },
+  { code:'glov_bracer',   name:'Bracers',   slot:'gloves', desc:'Evasion, crit' },
+  { code:'glov_wrap',     name:'Wraps',     slot:'gloves', desc:'ES, crit' },
+  { code:'belt_leather', name:'Leather Belt', slot:'belt', desc:'Implicit: +flat_hp',            implicit:{stat:'flat_hp',           tr:[[5,15],[5,28],[5,45],[5,65],[5,90]]} },
+  { code:'belt_chain',   name:'Chain Belt',   slot:'belt', desc:'Implicit: +flat_energy_shield', implicit:{stat:'flat_energy_shield',tr:[[2,6],[2,12],[2,20],[2,30],[2,42]]} },
+  { code:'belt_heavy',   name:'Heavy Belt',   slot:'belt', desc:'Implicit: +flat_armor',         implicit:{stat:'flat_armor',        tr:[[3,12],[3,25],[3,42],[3,62],[3,85]]} },
+  { code:'belt_cloth',   name:'Cloth Belt',   slot:'belt', desc:'Implicit: +gold_find',          implicit:{stat:'gold_find',         tr:[[3,8],[3,15],[3,25],[3,38],[3,55]]} },
+  { code:'boot_plate',   name:'Plate Boots',   slot:'boots', desc:'Armor, HP' },
+  { code:'boot_leather', name:'Leather Boots', slot:'boots', desc:'Evasion' },
+  { code:'boot_silk',    name:'Silk Shoes',    slot:'boots', desc:'Energy Shield' },
+  { code:'boot_chain',   name:'Chain Boots',   slot:'boots', desc:'Armor + Evasion hybrid' },
+];
+
+const EQUIP_SLOT_STAT_POOLS = {
+  one_hand: ['flat_phys_dmg','pct_phys_dmg','flat_fire_dmg','flat_cold_dmg','flat_lightning_dmg','crit_chance','crit_multiplier','block_chance','life_on_hit'],
+  two_hand: ['flat_phys_dmg','pct_phys_dmg','flat_fire_dmg','flat_cold_dmg','flat_lightning_dmg','crit_chance','crit_multiplier','life_on_hit'],
+  helmet:   ['flat_hp','pct_hp','flat_armor','pct_armor','flat_evasion','pct_evasion','flat_energy_shield','pct_energy_shield','xp_bonus','fire_res','cold_res','lightning_res','phys_res'],
+  amulet:   ['pct_phys_dmg','flat_fire_dmg','flat_cold_dmg','flat_lightning_dmg','crit_chance','crit_multiplier','flat_hp','pct_hp','gold_find','xp_bonus','life_regen','passive_dps_bonus','fire_res','cold_res','lightning_res','phys_res'],
+  armor:    ['flat_hp','pct_hp','flat_armor','pct_armor','flat_evasion','pct_evasion','flat_energy_shield','pct_energy_shield','life_regen','fire_res','cold_res','lightning_res','phys_res'],
+  ring:     ['pct_phys_dmg','flat_fire_dmg','flat_cold_dmg','flat_lightning_dmg','crit_chance','crit_multiplier','flat_hp','pct_hp','gold_find','xp_bonus','life_regen','life_on_hit','passive_dps_bonus','fire_res','cold_res','lightning_res','phys_res'],
+  gloves:   ['pct_phys_dmg','crit_chance','flat_armor','flat_evasion','flat_energy_shield','life_on_hit'],
+  belt:     ['flat_hp','pct_hp','flat_armor','gold_find','life_regen','fire_res','cold_res','lightning_res','phys_res'],
+  boots:    ['flat_hp','flat_armor','flat_evasion','flat_energy_shield','fire_res','cold_res','lightning_res'],
+};
+
+const EQUIP_STAT_RANGES = {
+  one_hand: {
+    flat_phys_dmg:[[1,5],[1,12],[1,25],[1,45],[1,75]], pct_phys_dmg:[[5,20],[5,40],[5,70],[5,110],[5,160]],
+    flat_fire_dmg:[[1,4],[1,10],[1,20],[1,38],[1,60]], flat_cold_dmg:[[1,4],[1,10],[1,20],[1,38],[1,60]],
+    flat_lightning_dmg:[[1,6],[1,15],[1,30],[1,50],[1,80]], crit_chance:[[0.5,2],[0.5,4],[0.5,6],[0.5,9],[0.5,12]],
+    crit_multiplier:[[5,15],[5,25],[5,40],[5,60],[5,85]], block_chance:[[1,3],[1,5],[1,8],[1,12],[1,15]],
+    life_on_hit:[[1,3],[1,7],[1,14],[1,22],[1,35]],
+  },
+  two_hand: {
+    flat_phys_dmg:[[2,8],[2,18],[2,38],[2,68],[2,112]], pct_phys_dmg:[[8,30],[8,60],[8,105],[8,165],[8,240]],
+    flat_fire_dmg:[[1,6],[1,15],[1,30],[1,57],[1,90]], flat_cold_dmg:[[1,6],[1,15],[1,30],[1,57],[1,90]],
+    flat_lightning_dmg:[[1,9],[1,22],[1,45],[1,75],[1,120]], crit_chance:[[0.5,2],[0.5,4],[0.5,6],[0.5,9],[0.5,12]],
+    crit_multiplier:[[8,22],[8,38],[8,60],[8,90],[8,128]], life_on_hit:[[1,5],[1,10],[1,21],[1,33],[1,52]],
+  },
+  helmet: {
+    flat_hp:[[5,20],[5,40],[5,65],[5,95],[5,130]], pct_hp:[[2,6],[2,10],[2,15],[2,20],[2,28]],
+    flat_armor:[[3,15],[3,35],[3,60],[3,95],[3,140]], pct_armor:[[3,10],[3,20],[3,35],[3,55],[3,80]],
+    flat_evasion:[[3,12],[3,28],[3,50],[3,78],[3,115]], pct_evasion:[[3,10],[3,20],[3,35],[3,55],[3,80]],
+    flat_energy_shield:[[2,8],[2,18],[2,32],[2,50],[2,75]], pct_energy_shield:[[3,10],[3,22],[3,40],[3,60],[3,85]],
+    xp_bonus:[[1,3],[1,5],[1,8],[1,12],[1,16]],
+    fire_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], cold_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+    lightning_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], phys_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+  },
+  amulet: {
+    pct_phys_dmg:[[3,12],[3,25],[3,45],[3,70],[3,100]],
+    flat_fire_dmg:[[1,3],[1,8],[1,16],[1,28],[1,45]], flat_cold_dmg:[[1,3],[1,8],[1,16],[1,28],[1,45]],
+    flat_lightning_dmg:[[1,5],[1,12],[1,24],[1,40],[1,65]], crit_chance:[[0.5,1.5],[0.5,3],[0.5,5],[0.5,7],[0.5,10]],
+    crit_multiplier:[[5,12],[5,22],[5,35],[5,52],[5,72]], flat_hp:[[3,15],[3,30],[3,50],[3,75],[3,105]],
+    pct_hp:[[2,5],[2,8],[2,12],[2,16],[2,22]], gold_find:[[3,10],[3,20],[3,35],[3,55],[3,80]],
+    xp_bonus:[[1,3],[1,5],[1,8],[1,12],[1,16]], life_regen:[[0.5,2],[0.5,5],[0.5,10],[0.5,18],[0.5,28]],
+    passive_dps_bonus:[[2,8],[2,15],[2,28],[2,45],[2,65]],
+    fire_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], cold_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+    lightning_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], phys_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+  },
+  armor: {
+    flat_hp:[[8,30],[8,60],[8,100],[8,145],[8,200]], pct_hp:[[3,8],[3,14],[3,22],[3,30],[3,40]],
+    flat_armor:[[5,25],[5,55],[5,100],[5,155],[5,220]], pct_armor:[[5,15],[5,30],[5,50],[5,75],[5,110]],
+    flat_evasion:[[4,20],[4,45],[4,80],[4,125],[4,180]], pct_evasion:[[5,15],[5,30],[5,50],[5,75],[5,110]],
+    flat_energy_shield:[[3,14],[3,30],[3,55],[3,85],[3,125]], pct_energy_shield:[[5,15],[5,30],[5,55],[5,80],[5,115]],
+    life_regen:[[0.5,3],[0.5,7],[0.5,14],[0.5,24],[0.5,38]],
+    fire_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], cold_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+    lightning_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], phys_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+  },
+  ring: {
+    pct_phys_dmg:[[2,8],[2,16],[2,28],[2,42],[2,60]],
+    flat_fire_dmg:[[1,3],[1,7],[1,14],[1,24],[1,38]], flat_cold_dmg:[[1,3],[1,7],[1,14],[1,24],[1,38]],
+    flat_lightning_dmg:[[1,5],[1,10],[1,20],[1,34],[1,52]], crit_chance:[[0.3,1],[0.3,2],[0.3,3.5],[0.3,5],[0.3,7]],
+    crit_multiplier:[[3,10],[3,18],[3,30],[3,45],[3,62]], flat_hp:[[3,12],[3,25],[3,42],[3,62],[3,85]],
+    pct_hp:[[1,4],[1,6],[1,9],[1,12],[1,16]], gold_find:[[2,8],[2,15],[2,25],[2,40],[2,58]],
+    xp_bonus:[[1,2],[1,4],[1,6],[1,9],[1,12]], life_regen:[[0.3,1.5],[0.3,4],[0.3,8],[0.3,14],[0.3,22]],
+    life_on_hit:[[1,2],[1,5],[1,10],[1,16],[1,25]], passive_dps_bonus:[[1,5],[1,10],[1,18],[1,30],[1,45]],
+    fire_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], cold_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+    lightning_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], phys_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+  },
+  gloves: {
+    pct_phys_dmg:[[2,8],[2,16],[2,28],[2,42],[2,60]], crit_chance:[[0.3,1.5],[0.3,3],[0.3,4.5],[0.3,6.5],[0.3,9]],
+    flat_armor:[[2,10],[2,22],[2,40],[2,62],[2,90]], flat_evasion:[[2,8],[2,18],[2,32],[2,50],[2,72]],
+    flat_energy_shield:[[1,5],[1,12],[1,22],[1,35],[1,50]], life_on_hit:[[1,2],[1,5],[1,10],[1,16],[1,25]],
+  },
+  belt: {
+    flat_hp:[[5,18],[5,35],[5,58],[5,85],[5,120]], pct_hp:[[2,5],[2,9],[2,14],[2,20],[2,28]],
+    flat_armor:[[2,10],[2,22],[2,38],[2,58],[2,82]], gold_find:[[3,10],[3,18],[3,30],[3,48],[3,70]],
+    life_regen:[[0.5,2],[0.5,5],[0.5,10],[0.5,18],[0.5,28]],
+    fire_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], cold_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+    lightning_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], phys_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+  },
+  boots: {
+    flat_hp:[[4,16],[4,32],[4,55],[4,80],[4,112]], flat_armor:[[2,10],[2,22],[2,40],[2,62],[2,90]],
+    flat_evasion:[[2,8],[2,18],[2,32],[2,50],[2,72]], flat_energy_shield:[[1,5],[1,12],[1,22],[1,35],[1,50]],
+    fire_res:[[3,8],[3,14],[3,22],[3,32],[3,45]], cold_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+    lightning_res:[[3,8],[3,14],[3,22],[3,32],[3,45]],
+  },
+};
+
+const EQUIP_BASE_WEAPON_DMG = {
+  one_hand: [[3,8],[7,18],[15,35],[28,55],[45,90]],
+  two_hand: [[5,12],[10,27],[22,52],[42,82],[68,135]],
+};
+
+const EQUIP_BASE_DEFENSES = {
+  helmet: {
+    armor:[[5,12],[12,28],[25,50],[45,80],[70,120]], evasion:[[3,8],[8,18],[16,35],[30,55],[48,85]], es:[[2,6],[5,14],[10,25],[20,42],[35,65]],
+  },
+  armor: {
+    armor:[[10,25],[22,55],[48,95],[85,155],[135,230]], evasion:[[6,16],[14,36],[30,65],[55,105],[90,165]], es:[[4,12],[10,28],[22,50],[40,82],[65,125]],
+  },
+  gloves: {
+    armor:[[3,8],[8,18],[16,32],[28,52],[45,80]], evasion:[[2,6],[5,12],[10,22],[18,36],[30,55]], es:[[1,4],[3,9],[7,16],[12,28],[22,42]],
+  },
+  boots: {
+    armor:[[3,8],[8,18],[16,32],[28,52],[45,80]], evasion:[[2,6],[5,12],[10,22],[18,36],[30,55]], es:[[1,4],[3,9],[7,16],[12,28],[22,42]],
+  },
+};
+
+// ═════════════════════════════════════════════════════════════════
 // GLOBAL STATE
 // ═════════════════════════════════════════════════════════════════
 
@@ -324,7 +604,7 @@ const enemyData    = {};
 const skillData    = {};
 
 // Loaded flags — lazy per tab
-const tabLoaded = { characters: false, enemies: false, skills: false };
+const tabLoaded = { characters: false, enemies: false, skills: false, equipment: false };
 
 // Enemy variant (0–7)
 let enemyVariantIdx = 0;
@@ -459,6 +739,7 @@ document.querySelectorAll('.tab-nav button').forEach(btn => {
       if      (activeTab === 'characters') loadCharacters();
       else if (activeTab === 'enemies')    loadEnemies();
       else if (activeTab === 'skills')     loadSkills();
+      else if (activeTab === 'equipment')  renderEquipment();
     }
   };
 });
@@ -869,6 +1150,211 @@ function runValidation() {
     : `\nTotal: ${totalIssues} issues (${errorCount} errors, ${warnCount} warnings)\n`;
 
   skillsReport.textContent = report;
+}
+
+// ═════════════════════════════════════════════════════════════════
+// TAB: EQUIPMENT
+// ═════════════════════════════════════════════════════════════════
+
+function renderEquipment() {
+  const container = document.getElementById('equip-content');
+  const status    = document.getElementById('equip-status');
+  container.innerHTML = '';
+
+  // Helper: tier range cell
+  const trCell = (ranges, tierIdx) => {
+    if (!ranges || !ranges[tierIdx]) return '<td class="tier-val">—</td>';
+    const [mn,mx] = ranges[tierIdx];
+    return `<td class="tier-val">${mn}–${mx}</td>`;
+  };
+
+  // Helper: rarity badge
+  const rarBadge = (id, def) =>
+    `<span class="rarity-badge" style="background:${def.color}">${def.label}</span>`;
+
+  // Helper: stat badge
+  const statBdg = (statId) => {
+    const sd = EQUIP_STAT_DEFS[statId];
+    if (!sd) return '';
+    return `<span class="stat-badge ${sd.cat}">${sd.name}</span>`;
+  };
+
+  let html = '';
+
+  // ── 1. RARITIES ──
+  html += '<div class="equip-section"><h2>Rarities</h2><div class="equip-cards">';
+  for (const [id, r] of Object.entries(EQUIP_RARITIES)) {
+    html += `<div class="equip-card" style="border-color:${r.color}">
+      <div class="card-title" style="color:${r.color}">${r.label}</div>
+      <div class="card-detail">
+        Stats: ${r.statCount[0]}${r.statCount[1] !== r.statCount[0] ? '–'+r.statCount[1] : ''}<br>
+        Drop weight: ${r.dropWeight}%
+      </div>
+    </div>`;
+  }
+  html += '</div></div>';
+
+  // ── 2. TIERS ──
+  html += `<div class="equip-section"><h2>Tier System</h2>
+    <table class="equip-table"><thead><tr>
+      <th>Tier</th><th>Item Level</th><th>Req Level</th>
+    </tr></thead><tbody>`;
+  for (let i = 0; i < 5; i++) {
+    const [lo, hi] = EQUIP_TIER_RANGES[i];
+    const reqLo = Math.floor(lo * 0.75);
+    const reqHi = Math.floor(hi * 0.75);
+    html += `<tr>
+      <td style="color:#DFFFFE;font-weight:bold">${EQUIP_TIER_NAMES[i]}</td>
+      <td class="tier-val">${lo}–${hi}</td>
+      <td class="tier-val">${reqLo}–${reqHi}</td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  // ── 3. EQUIPMENT SLOTS ──
+  html += '<div class="equip-section"><h2>Equipment Slots</h2><div class="equip-cards" style="flex-wrap:wrap">';
+  const slotOrder = ['one_hand','two_hand','helmet','amulet','armor','ring','gloves','belt','boots'];
+  const slotIcons = { one_hand:'\u2694\uFE0F', two_hand:'\uD83D\uDDE1\uFE0F', helmet:'\u26D1\uFE0F', amulet:'\uD83D\uDCFF', armor:'\uD83E\uDEE7', ring:'\uD83D\uDC8D', gloves:'\uD83E\uDDE4', belt:'\uD83E\uDE96', boots:'\uD83E\uDD7E' };
+  for (const slotId of slotOrder) {
+    const s = EQUIP_SLOT_DEFS[slotId];
+    const pool = EQUIP_SLOT_STAT_POOLS[slotId] || [];
+    const subtypeCount = EQUIP_SUBTYPES.filter(st => st.slot === slotId).length;
+    html += `<div class="equip-card" style="min-width:200px">
+      <div class="card-title">${slotIcons[slotId] || ''} ${s.name}</div>
+      <div class="card-detail">${s.desc}<br>Subtypes: ${subtypeCount} | Stats pool: ${pool.length}</div>
+      <div style="margin-top:4px">${pool.map(statBdg).join('')}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+
+  // ── 4. ALL SUBTYPES ──
+  html += `<div class="equip-section"><h2>All Subtypes (${EQUIP_SUBTYPES.length})</h2>
+    <table class="equip-table"><thead><tr>
+      <th>Subtype</th><th>Slot</th><th>Description</th><th>Implicit</th><th>T5</th><th>T4</th><th>T3</th><th>T2</th><th>T1</th>
+    </tr></thead><tbody>`;
+  let lastSlot = '';
+  for (const st of EQUIP_SUBTYPES) {
+    const slotName = EQUIP_SLOT_DEFS[st.slot]?.name || st.slot;
+    if (st.slot !== lastSlot) {
+      html += `<tr class="cat-header"><td colspan="9">${slotName}</td></tr>`;
+      lastSlot = st.slot;
+    }
+    const imp = st.implicit;
+    const impName = imp ? (EQUIP_STAT_DEFS[imp.stat]?.name || imp.stat) : '';
+    html += `<tr>
+      <td style="color:#F9CF87;font-weight:bold">${st.name}</td>
+      <td><span class="slot-badge">${slotName}</span></td>
+      <td style="color:#888;font-size:10px">${st.desc}</td>
+      <td class="implicit-tag">${impName}</td>`;
+    for (let t = 0; t < 5; t++) {
+      html += imp ? trCell(imp.tr, t) : '<td class="tier-val">—</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+
+  // ── 5. STAT REFERENCE ──
+  const catOrder = ['offensive','defensive','utility'];
+  const catLabels = { offensive: '\u2694\uFE0F Offensive', defensive: '\uD83D\uDEE1\uFE0F Defensive', utility: '\u2699\uFE0F Utility' };
+  html += `<div class="equip-section"><h2>Stat Reference (${Object.keys(EQUIP_STAT_DEFS).length})</h2>
+    <table class="equip-table"><thead><tr>
+      <th>Stat</th><th>Unit</th><th>Available In</th>
+    </tr></thead><tbody>`;
+  for (const cat of catOrder) {
+    html += `<tr class="cat-header"><td colspan="3">${catLabels[cat]}</td></tr>`;
+    for (const [statId, sd] of Object.entries(EQUIP_STAT_DEFS)) {
+      if (sd.cat !== cat) continue;
+      const slots = Object.entries(EQUIP_SLOT_STAT_POOLS)
+        .filter(([,pool]) => pool.includes(statId))
+        .map(([slotId]) => `<span class="slot-badge">${EQUIP_SLOT_DEFS[slotId]?.name || slotId}</span>`)
+        .join('');
+      html += `<tr>
+        <td style="color:#F9CF87">${sd.name}</td>
+        <td style="color:#DFFFFE;font-family:monospace">${sd.unit}</td>
+        <td>${slots}</td>
+      </tr>`;
+    }
+  }
+  html += '</tbody></table></div>';
+
+  // ── 6. BASE WEAPON DAMAGE ──
+  html += `<div class="equip-section"><h2>Base Weapon Damage</h2>
+    <table class="equip-table"><thead><tr>
+      <th>Weapon</th><th>T5</th><th>T4</th><th>T3</th><th>T2</th><th>T1</th>
+    </tr></thead><tbody>`;
+  for (const [slot, ranges] of Object.entries(EQUIP_BASE_WEAPON_DMG)) {
+    const name = EQUIP_SLOT_DEFS[slot]?.name || slot;
+    html += `<tr><td style="color:#F9CF87;font-weight:bold">${name}</td>`;
+    for (let t = 0; t < 5; t++) html += trCell(ranges, t);
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+
+  // ── 7. BASE DEFENSES ──
+  html += `<div class="equip-section"><h2>Base Defenses</h2>
+    <table class="equip-table"><thead><tr>
+      <th>Slot</th><th>Type</th><th>T5</th><th>T4</th><th>T3</th><th>T2</th><th>T1</th>
+    </tr></thead><tbody>`;
+  for (const [slot, defs] of Object.entries(EQUIP_BASE_DEFENSES)) {
+    const name = EQUIP_SLOT_DEFS[slot]?.name || slot;
+    let first = true;
+    for (const [defType, ranges] of Object.entries(defs)) {
+      html += `<tr>`;
+      if (first) {
+        html += `<td rowspan="3" style="color:#F9CF87;font-weight:bold;vertical-align:middle">${name}</td>`;
+        first = false;
+      }
+      html += `<td style="color:#DFFFFE">${defType.charAt(0).toUpperCase()+defType.slice(1)}</td>`;
+      for (let t = 0; t < 5; t++) html += trCell(ranges, t);
+      html += '</tr>';
+    }
+  }
+  html += '</tbody></table></div>';
+
+  // ── 8. STAT RANGES BY SLOT ──
+  html += '<div class="equip-section"><h2>Stat Ranges by Slot</h2>';
+  for (const slotId of slotOrder) {
+    const slotName = EQUIP_SLOT_DEFS[slotId]?.name || slotId;
+    const ranges = EQUIP_STAT_RANGES[slotId];
+    if (!ranges) continue;
+    html += `<details class="equip-details"><summary>${slotIcons[slotId] || ''} ${slotName}</summary>
+      <div class="details-body">
+        <table class="equip-table"><thead><tr>
+          <th>Stat</th><th>T5</th><th>T4</th><th>T3</th><th>T2</th><th>T1</th>
+        </tr></thead><tbody>`;
+    for (const [statId, tiers] of Object.entries(ranges)) {
+      const sd = EQUIP_STAT_DEFS[statId];
+      html += `<tr><td style="color:#F9CF87">${sd ? sd.name : statId}</td>`;
+      for (let t = 0; t < 5; t++) html += trCell(tiers, t);
+      html += '</tr>';
+    }
+    html += '</tbody></table></div></details>';
+  }
+  html += '</div>';
+
+  // ── 9. FORMULAS ──
+  html += `<div class="equip-section"><h2>Equipment Formulas</h2>
+    <div class="formula-box">
+      <strong>Physical Damage:</strong><br>
+      &nbsp;&nbsp;finalDmg = floor((baseDmg + flat_phys_dmg) \u00D7 (1 + pct_phys_dmg / 100))<br><br>
+      <strong>Max HP:</strong><br>
+      &nbsp;&nbsp;maxHp = floor((baseHp + flat_hp) \u00D7 (1 + pct_hp / 100))<br><br>
+      <strong>Armor Reduction:</strong><br>
+      &nbsp;&nbsp;reduction = armor / (armor + 10 \u00D7 enemyDamage)<br><br>
+      <strong>Elemental Resistance:</strong><br>
+      &nbsp;&nbsp;cap = 75% (fire, cold, lightning, physical)<br><br>
+      <strong>Block:</strong><br>
+      &nbsp;&nbsp;Block chance from equipment (stacks with warrior class special)<br><br>
+      <strong>Gold Find:</strong><br>
+      &nbsp;&nbsp;goldReward = baseGold \u00D7 (1 + goldFind / 100)<br><br>
+      <strong>XP Bonus:</strong><br>
+      &nbsp;&nbsp;xpReward = baseXp \u00D7 (1 + xpBonus / 100)
+    </div>
+  </div>`;
+
+  container.innerHTML = html;
+  status.textContent = `Equipment reference loaded: ${EQUIP_SUBTYPES.length} subtypes, ${Object.keys(EQUIP_STAT_DEFS).length} stats, 5 tiers, 4 rarities`;
+  tabLoaded.equipment = true;
 }
 
 // ═════════════════════════════════════════════════════════════════

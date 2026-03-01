@@ -1396,7 +1396,7 @@ body {
 
 .hideout-nav {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   padding: 12px 12px 8px;
   background: rgba(5, 2, 8, 0.95);
@@ -2727,6 +2727,16 @@ body {
   margin-bottom: 10px;
 }
 
+.equip-potion-modal__lore {
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1.4;
+  color: rgba(180, 160, 120, 0.65);
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(180, 160, 120, 0.15);
+}
+
 .equip-potion-modal__unequip-btn {
   width: 100%;
   padding: 8px;
@@ -2764,6 +2774,108 @@ body {
 
 .equip-potion-modal__close-btn:active {
   transform: scale(0.95);
+}
+
+/* Actions row (Unequip + Change side by side) */
+.equip-potion-modal__actions-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.equip-potion-modal__actions-row .equip-potion-modal__unequip-btn {
+  flex: 1;
+  margin-top: 0;
+}
+.equip-potion-modal__change-btn {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid rgba(100, 180, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(10, 30, 60, 0.5);
+  color: #64b5f6;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.equip-potion-modal__change-btn:active {
+  transform: scale(0.95);
+  border-color: rgba(100, 180, 255, 0.5);
+  background: rgba(100, 180, 255, 0.15);
+}
+
+/* ── Equip Picker (item list in equipment panel) ──── */
+.equip-picker__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-cyan-mid, #8EEEED);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.equip-picker__list {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.equip-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.equip-picker__item:active {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+.equip-picker__item--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.equip-picker__icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.equip-picker__info {
+  flex: 1;
+  min-width: 0;
+}
+.equip-picker__name {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.equip-picker__meta {
+  font-size: 10px;
+  color: rgba(200, 185, 240, 0.6);
+  margin-top: 1px;
+}
+.equip-picker__stats {
+  font-size: 10px;
+  color: rgba(180, 220, 180, 0.7);
+  margin-top: 1px;
+}
+.equip-picker__warn {
+  font-size: 10px;
+  color: #ff4444;
+  margin-top: 1px;
 }
 
 /* Empty potion slot styling */
@@ -6408,4 +6520,614 @@ body {
 
 .friends-profile__remove-btn:active {
   background: rgba(192, 57, 43, 0.35);
+}
+
+/* ══════════════════════════════════════════════════════════
+   Trade Panel
+   ══════════════════════════════════════════════════════════ */
+
+.trade-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+.trade-overlay.hidden {
+  pointer-events: none;
+}
+.trade-overlay.hidden .trade-panel {
+  transform: translateY(110%);
+}
+.trade-overlay.trade-visible {
+  background: rgba(0, 0, 0, 0.8);
+  pointer-events: auto;
+}
+.trade-overlay.trade-visible .trade-panel {
+  transform: translateY(0);
+}
+.trade-overlay.trade-closing {
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+}
+.trade-overlay.trade-closing .trade-panel {
+  transform: translateY(110%);
+}
+
+.trade-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--game-bg);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.trade-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 1.6rem;
+  background: none;
+  border: none;
+  color: var(--game-muted);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.trade-title {
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--game-gold);
+  margin: 12px 0 4px;
+  font-weight: 700;
+}
+
+.trade-gold-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+.trade-gold-icon { font-size: 1.1rem; }
+.trade-gold-value {
+  color: var(--game-gold);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* ── Tabs ─────────────────────────────────────── */
+
+.trade-tabs {
+  display: flex;
+  padding: 0 12px;
+  gap: 2px;
+  border-bottom: 1px solid var(--game-border);
+  flex-shrink: 0;
+}
+
+.trade-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 0.78rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  text-align: center;
+}
+.trade-tab--active {
+  color: var(--game-gold);
+  border-bottom-color: var(--ds-crimson, #A40239);
+}
+
+/* ── Content area ─────────────────────────────── */
+
+.trade-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.trade-loading {
+  text-align: center;
+  color: var(--game-muted);
+  padding: 2rem;
+}
+.trade-empty {
+  text-align: center;
+  color: var(--game-muted);
+  padding: 2rem;
+  font-size: 0.85rem;
+}
+
+/* ── Filters ──────────────────────────────────── */
+
+.trade-filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.trade-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.trade-chip {
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  border: 1px solid var(--game-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.trade-chip--active {
+  background: var(--ds-crimson, #A40239);
+  border-color: var(--ds-crimson, #A40239);
+  color: #fff;
+}
+.trade-chip--common.trade-chip--active { background: #607D8B; border-color: #607D8B; }
+.trade-chip--rare.trade-chip--active { background: #1976D2; border-color: #1976D2; }
+.trade-chip--epic.trade-chip--active { background: #7B1FA2; border-color: #7B1FA2; }
+.trade-chip--legendary.trade-chip--active { background: #F57F17; border-color: #F57F17; }
+
+.trade-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--game-text);
+  outline: none;
+}
+.trade-search-input:focus {
+  border-color: var(--ds-crimson, #A40239);
+}
+
+.trade-sort-row {
+  display: flex;
+  gap: 6px;
+}
+.trade-sort-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 0.72rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.trade-sort-btn--active {
+  color: var(--ds-cyan, #DFFFFE);
+  border-color: var(--ds-cyan, #DFFFFE);
+}
+
+/* ── Listing cards (market browse) ────────────── */
+
+.trade-listings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trade-listing-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.trade-listing-card:active {
+  border-color: var(--game-border-active);
+}
+
+.trade-listing-card__icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+.trade-listing-card__info {
+  flex: 1;
+  min-width: 0;
+}
+.trade-listing-card__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trade-listing-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: var(--game-muted);
+  margin-top: 2px;
+}
+.trade-listing-card__quality {
+  text-transform: capitalize;
+}
+.trade-listing-card__seller { color: var(--ds-cyan-mid, #8EEEED); }
+
+.trade-listing-card__price-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.trade-listing-card__price {
+  color: var(--game-gold);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.trade-listing-card__buy-btn {
+  padding: 4px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 4px;
+  background: var(--ds-crimson, #A40239);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.trade-listing-card__buy-btn:active {
+  filter: brightness(0.8);
+}
+
+/* ── Own listing marker ────────────────────────── */
+.trade-listing-card--own {
+  opacity: 0.65;
+  border-left: 3px solid var(--ds-cyan-mid, #8EEEED);
+}
+.trade-listing-card__own-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--ds-cyan-mid, #8EEEED);
+  color: var(--ds-navy, #101524);
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+}
+.trade-listing-card__own-label {
+  font-size: 0.68rem;
+  color: var(--ds-cyan-mid, #8EEEED);
+  font-style: italic;
+}
+
+/* ── Sell tab ─────────────────────────────────── */
+
+.trade-sell-header {
+  font-size: 0.85rem;
+  color: var(--game-muted);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.trade-sell-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.trade-sell-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.trade-sell-item:active {
+  border-color: var(--game-border-active);
+}
+.trade-sell-item__icon {
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+.trade-sell-item__name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.trade-sell-item__meta {
+  font-size: 0.62rem;
+  color: var(--game-muted);
+  text-transform: capitalize;
+}
+
+/* ── My Listings / History rows ───────────────── */
+
+.trade-listing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid var(--game-border);
+}
+.trade-listing-row__icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.trade-listing-row__info {
+  flex: 1;
+  min-width: 0;
+}
+.trade-listing-row__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trade-listing-row__meta {
+  font-size: 0.68rem;
+  color: var(--game-muted);
+  margin-top: 2px;
+}
+.trade-listing-row__cancel-btn {
+  padding: 5px 14px;
+  font-size: 0.72rem;
+  border: 1px solid var(--ds-crimson, #A40239);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ds-crimson-bright, #FF4D6A);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.trade-listing-row__cancel-btn:active {
+  background: rgba(164, 2, 57, 0.2);
+}
+
+.trade-history-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--game-border);
+}
+.trade-history-badge {
+  padding: 2px 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.trade-badge--buy { background: rgba(79, 195, 247, 0.15); color: var(--ds-cyan-mid, #8EEEED); }
+.trade-badge--sell { background: rgba(164, 2, 57, 0.15); color: var(--ds-crimson-bright, #FF4D6A); }
+.trade-badge--cancelled { background: rgba(128, 128, 128, 0.15); color: var(--game-muted); }
+
+.trade-history-row__info { flex: 1; min-width: 0; }
+.trade-history-row__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trade-history-row__meta {
+  font-size: 0.68rem;
+  color: var(--game-muted);
+}
+
+/* ── Modal ────────────────────────────────────── */
+
+.trade-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.trade-modal.hidden { display: none; }
+
+.trade-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+.trade-modal__content {
+  position: relative;
+  width: 90%;
+  max-width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--game-bg);
+  border: 1px solid var(--game-border-active);
+  border-radius: 10px;
+  padding: 16px;
+  z-index: 1;
+}
+.trade-modal__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 1.4rem;
+  background: none;
+  border: none;
+  color: var(--game-muted);
+  cursor: pointer;
+}
+.trade-modal__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--game-gold);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.trade-modal__item-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.trade-modal__item-icon { font-size: 1.6rem; flex-shrink: 0; }
+.trade-modal__item-info { flex: 1; }
+.trade-modal__item-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.trade-modal__item-meta {
+  font-size: 0.72rem;
+  color: var(--game-muted);
+  text-transform: capitalize;
+  margin-top: 2px;
+}
+.trade-modal__stat {
+  font-size: 0.72rem;
+  color: var(--ds-cyan-mid, #8EEEED);
+  margin-top: 2px;
+}
+
+.trade-modal__price-breakdown {
+  margin-bottom: 14px;
+}
+.trade-modal__price-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 0.82rem;
+  color: var(--game-muted);
+}
+.trade-modal__price-row--total {
+  border-top: 1px solid var(--game-border);
+  margin-top: 4px;
+  padding-top: 8px;
+  font-weight: 700;
+  color: var(--game-text);
+}
+.trade-modal__gold {
+  color: var(--game-gold);
+  font-weight: 700;
+}
+
+.trade-modal__price-input-row {
+  margin-bottom: 8px;
+}
+.trade-modal__label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--game-muted);
+  margin-bottom: 4px;
+}
+.trade-price-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--game-gold);
+  font-weight: 700;
+  outline: none;
+  text-align: center;
+}
+.trade-price-input:focus {
+  border-color: var(--ds-crimson, #A40239);
+}
+
+.trade-commission-preview {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--game-muted);
+  margin-bottom: 14px;
+}
+.trade-commission-note {
+  color: var(--game-muted);
+  font-size: 0.68rem;
+}
+
+.trade-modal__actions {
+  display: flex;
+  gap: 8px;
+}
+.trade-modal__confirm-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  background: var(--ds-crimson, #A40239);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.trade-modal__confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.trade-modal__confirm-btn:active:not(:disabled) {
+  filter: brightness(0.8);
+}
+.trade-modal__cancel-btn {
+  flex: 0.6;
+  padding: 10px;
+  font-size: 0.85rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+}
+
+/* ── Toast ────────────────────────────────────── */
+
+.trade-toast {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--game-text);
+  font-size: 0.82rem;
+  border-radius: 20px;
+  border: 1px solid var(--game-border-active);
+  z-index: 70;
+  pointer-events: none;
+  animation: trade-toast-in 0.3s ease;
+}
+@keyframes trade-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }

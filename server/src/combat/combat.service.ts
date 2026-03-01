@@ -38,6 +38,14 @@ import {
   QUALITY_CHARGES,
   type LootEntry,
 } from '@shared/potion-drops';
+import { rollEquipment, SUBTYPES, type EquipmentSlotId } from '@shared/equipment-defs';
+import { pickRandomIcon } from '@shared/equipment-icons';
+import {
+  aggregateEquipmentStats,
+  applyBonuses,
+  emptyBonuses,
+  type EquipmentBonuses,
+} from '@shared/equipment-bonus';
 
 /** Cached character stats — loaded once at combat start, used from Redis for 0 DB hits. */
 export interface CachedCharStats {
@@ -54,6 +62,20 @@ export interface CachedCharStats {
   xpToNext: string;
   maxHp: number;
   hp: number;
+  /** Equipment bonuses — stored for re-application after level-up */
+  equipBonuses: EquipmentBonuses;
+  /** Extra flat elemental damage from gear */
+  gearFireDmg: number;
+  gearColdDmg: number;
+  gearLightningDmg: number;
+  /** Utility stats from equipment */
+  goldFind: number;
+  xpBonus: number;
+  lifeOnHit: number;
+  lifeRegen: number;
+  armor: number;
+  blockChance: number;
+  passiveDpsBonus: number;
 }
 
 /** Cached potion data — stored in Redis session for 0 DB hits during combat. */
@@ -337,51 +359,120 @@ export class CombatService {
   }
 
   /**
-   * Build CachedCharStats from a Character entity.
+   * Build CachedCharStats from a Character entity + equipment bonuses.
    */
-  private buildCachedStats(char: Character): CachedCharStats {
-    return {
+  private buildCachedStats(char: Character, bonuses: EquipmentBonuses): CachedCharStats {
+    const base = {
       tapDamage: char.tapDamage,
+      maxHp: char.maxHp,
+      hp: char.hp,
       critChance: char.critChance,
       critMultiplier: char.critMultiplier,
       dodgeChance: char.dodgeChance,
       specialValue: char.specialValue,
-      classId: char.classId,
-      elementalDamage: char.elementalDamage || { physical: 1.0 },
       resistance: char.resistance || {},
+      elementalDamage: char.elementalDamage || { physical: 1.0 },
+    };
+
+    const eff = applyBonuses(base, bonuses);
+
+    return {
+      tapDamage: eff.tapDamage,
+      critChance: eff.critChance,
+      critMultiplier: eff.critMultiplier,
+      dodgeChance: eff.dodgeChance,
+      specialValue: eff.specialValue,
+      classId: char.classId,
+      elementalDamage: eff.elementalDamage as ElementalDamage,
+      resistance: eff.resistance as ElementalResistance,
       level: char.level,
       xp: char.xp,
       xpToNext: char.xpToNext,
-      maxHp: char.maxHp,
-      hp: char.hp,
+      maxHp: eff.maxHp,
+      hp: eff.hp,
+      // Store bonuses for re-application after level-up
+      equipBonuses: bonuses,
+      // Gear elemental damage
+      gearFireDmg: eff.gearFireDmg,
+      gearColdDmg: eff.gearColdDmg,
+      gearLightningDmg: eff.gearLightningDmg,
+      // Utility stats
+      goldFind: eff.goldFind,
+      xpBonus: eff.xpBonus,
+      lifeOnHit: eff.lifeOnHit,
+      lifeRegen: eff.lifeRegen,
+      armor: eff.armor,
+      blockChance: eff.blockChance,
+      passiveDpsBonus: eff.passiveDpsBonus,
     };
   }
 
   /**
-   * Load equipped potions from equipment_slots for a character.
+   * Re-apply equipment bonuses after level-up (base stats changed).
    */
-  private async buildEquippedPotions(
-    characterId: string,
-  ): Promise<{ 'consumable-1': CachedPotion | null; 'consumable-2': CachedPotion | null }> {
-    const result: { 'consumable-1': CachedPotion | null; 'consumable-2': CachedPotion | null } = {
+  private reapplyEquipBonuses(stats: CachedCharStats): void {
+    // Guard: old Redis sessions may not have equipBonuses
+    if (!stats.equipBonuses) return;
+
+    const base = {
+      tapDamage: stats.tapDamage,
+      maxHp: stats.maxHp,
+      hp: stats.hp,
+      critChance: stats.critChance,
+      critMultiplier: stats.critMultiplier,
+      dodgeChance: stats.dodgeChance,
+      specialValue: stats.specialValue,
+      resistance: stats.resistance || {},
+      elementalDamage: stats.elementalDamage || { physical: 1.0 },
+    };
+
+    const eff = applyBonuses(base, stats.equipBonuses);
+
+    stats.tapDamage = eff.tapDamage;
+    stats.maxHp = eff.maxHp;
+    stats.hp = eff.hp;
+    stats.critChance = eff.critChance;
+    stats.critMultiplier = eff.critMultiplier;
+    stats.dodgeChance = eff.dodgeChance;
+    stats.resistance = eff.resistance as ElementalResistance;
+    stats.gearFireDmg = eff.gearFireDmg;
+    stats.gearColdDmg = eff.gearColdDmg;
+    stats.gearLightningDmg = eff.gearLightningDmg;
+    stats.armor = eff.armor;
+    stats.blockChance = eff.blockChance;
+  }
+
+  /**
+   * Load all equipment slots and build combat cache in one query.
+   * Returns cached stats (with equipment bonuses) and equipped potions.
+   */
+  private async buildCombatCache(char: Character): Promise<{
+    cachedStats: CachedCharStats;
+    equippedPotions: { 'consumable-1': CachedPotion | null; 'consumable-2': CachedPotion | null };
+  }> {
+    const slots = await this.equipSlotRepo.find({
+      where: { characterId: char.id },
+      relations: ['item'],
+    });
+
+    // Extract potions
+    const potions: { 'consumable-1': CachedPotion | null; 'consumable-2': CachedPotion | null } = {
       'consumable-1': null,
       'consumable-2': null,
     };
 
-    const slots = await this.equipSlotRepo.find({
-      where: { characterId },
-      relations: ['item'],
-    });
+    // Extract gear items for stat bonuses
+    const gearItems: Array<{ properties: Record<string, any> }> = [];
 
     for (const slot of slots) {
+      if (!slot.item) continue;
+
       if (
         (slot.slotId === 'consumable-1' || slot.slotId === 'consumable-2') &&
-        slot.item &&
         slot.item.type === 'potion'
       ) {
         const maxCharges = slot.item.maxCharges!;
-        // Potions always start combat fully charged (charges live in Redis only)
-        result[slot.slotId] = {
+        potions[slot.slotId] = {
           itemId: slot.item.id,
           flaskType: slot.item.flaskType!,
           quality: slot.item.quality,
@@ -390,10 +481,16 @@ export class CombatService {
           currentCharges: maxCharges,
           healPercent: slot.item.healPercent!,
         };
+      } else if (slot.item.type === 'equipment') {
+        gearItems.push({ properties: slot.item.properties || {} });
       }
     }
 
-    return result;
+    // Aggregate equipment bonuses and build stats
+    const bonuses = aggregateEquipmentStats(gearItems);
+    const cachedStats = this.buildCachedStats(char, bonuses);
+
+    return { cachedStats, equippedPotions: potions };
   }
 
   // Potion charges are NOT persisted to DB — they reset to max every combat.
@@ -420,9 +517,8 @@ export class CombatService {
       actNumber,
     );
 
-    // Cache stats + potions at combat start (only DB reads happen here)
-    const cachedStats = this.buildCachedStats(char);
-    const equippedPotions = await this.buildEquippedPotions(char.id);
+    // Cache stats + potions at combat start (single DB query for all equipment)
+    const { cachedStats, equippedPotions } = await this.buildCombatCache(char);
 
     const now = Date.now();
     const sessionId = uuidv4();
@@ -443,8 +539,8 @@ export class CombatService {
       locationId,
       locationAct: actNumber,
       playerLevel: char.level,
-      playerCurrentHp: char.maxHp,
-      playerMaxHp: char.maxHp,
+      playerCurrentHp: cachedStats.maxHp,
+      playerMaxHp: cachedStats.maxHp,
       lastEnemyAttackTime: now,
       nextAttackIn: this.getFirstAttackDelay(queue[0]),
       cachedStats,
@@ -458,8 +554,8 @@ export class CombatService {
       sessionId,
       totalMonsters: queue.length,
       currentMonster: queue[0] || null,
-      playerHp: char.maxHp,
-      playerMaxHp: char.maxHp,
+      playerHp: cachedStats.maxHp,
+      playerMaxHp: cachedStats.maxHp,
     };
   }
 
@@ -492,9 +588,8 @@ export class CombatService {
       mapTier,
     );
 
-    // Cache stats + potions at combat start
-    const cachedStats = this.buildCachedStats(char);
-    const equippedPotions = await this.buildEquippedPotions(char.id);
+    // Cache stats + potions at combat start (single DB query for all equipment)
+    const { cachedStats, equippedPotions } = await this.buildCombatCache(char);
 
     const now = Date.now();
     const sessionId = uuidv4();
@@ -515,8 +610,8 @@ export class CombatService {
       mapTier,
       bossId,
       playerLevel: char.level,
-      playerCurrentHp: char.maxHp,
-      playerMaxHp: char.maxHp,
+      playerCurrentHp: cachedStats.maxHp,
+      playerMaxHp: cachedStats.maxHp,
       lastEnemyAttackTime: now,
       nextAttackIn: this.getFirstAttackDelay(queue[0]),
       cachedStats,
@@ -530,8 +625,8 @@ export class CombatService {
       sessionId,
       totalMonsters: queue.length,
       currentMonster: queue[0] || null,
-      playerHp: char.maxHp,
-      playerMaxHp: char.maxHp,
+      playerHp: cachedStats.maxHp,
+      playerMaxHp: cachedStats.maxHp,
     };
   }
 
@@ -683,9 +778,11 @@ export class CombatService {
         continue;
       }
 
-      // Warrior block check (class special: blockChance)
+      // Block check: warrior class special + equipment blockChance (stacks)
       const classDef = CLASS_DEFS[stats.classId];
-      if (classDef?.special.id === 'blockChance' && Math.random() < stats.specialValue) {
+      const totalBlockChance = (classDef?.special.id === 'blockChance' ? stats.specialValue : 0)
+        + (stats.blockChance || 0);
+      if (totalBlockChance > 0 && Math.random() < totalBlockChance) {
         attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null, attackName });
         session.nextAttackIn = chosenAttack
           ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
@@ -696,6 +793,19 @@ export class CombatService {
       // Compute elemental damage: attack profile + multiplier vs player's resistance
       const rawDamage = Math.floor(monster.scaledDamage * dmgMul);
       const breakdown = computeElementalDamage(rawDamage, dmgProfile, charResistance);
+
+      // Apply armor-based physical damage reduction
+      // Formula: reduction = armor / (armor + 10 * physicalDamage)
+      if (stats.armor > 0 && breakdown.total > 0) {
+        // Estimate physical portion from the damage profile
+        const physFraction = (dmgProfile as any).physical || 0;
+        if (physFraction > 0) {
+          const physDmg = Math.floor(breakdown.total * physFraction);
+          const reduction = stats.armor / (stats.armor + 10 * physDmg);
+          const reduced = Math.floor(physDmg * reduction);
+          breakdown.total = Math.max(1, breakdown.total - reduced);
+        }
+      }
 
       session.playerCurrentHp -= breakdown.total;
       if (session.playerCurrentHp < 0) session.playerCurrentHp = 0;
@@ -718,6 +828,17 @@ export class CombatService {
 
     // Advance lastEnemyAttackTime by consumed time
     session.lastEnemyAttackTime = now - timeBank;
+
+    // Life regeneration: heal based on elapsed time (HP per second)
+    if (stats.lifeRegen > 0 && session.playerCurrentHp > 0 && elapsed > 0) {
+      const regenHp = Math.floor(stats.lifeRegen * elapsed / 1000);
+      if (regenHp > 0) {
+        session.playerCurrentHp = Math.min(
+          session.playerMaxHp,
+          session.playerCurrentHp + regenHp,
+        );
+      }
+    }
 
     return {
       attacks,
@@ -816,9 +937,31 @@ export class CombatService {
     const monsterResistance = monster.resistance || {};
     const breakdown = computeElementalDamage(rawDamage, damageProfile, monsterResistance);
 
+    // Add flat elemental damage from equipment (applied after profile split)
+    if (stats.gearFireDmg > 0) {
+      const fireAfterRes = Math.floor(stats.gearFireDmg * (1 - (monsterResistance.fire || 0) / 100));
+      breakdown.total += Math.max(0, fireAfterRes);
+    }
+    if (stats.gearColdDmg > 0) {
+      const coldAfterRes = Math.floor(stats.gearColdDmg * (1 - (monsterResistance.cold || 0) / 100));
+      breakdown.total += Math.max(0, coldAfterRes);
+    }
+    if (stats.gearLightningDmg > 0) {
+      const lightAfterRes = Math.floor(stats.gearLightningDmg * (1 - (monsterResistance.lightning || 0) / 100));
+      breakdown.total += Math.max(0, lightAfterRes);
+    }
+
     monster.currentHp -= breakdown.total;
     session.totalTaps++;
     session.lastTapTime = now;
+
+    // Life on Hit: heal player on each tap
+    if (stats.lifeOnHit > 0 && session.playerCurrentHp > 0) {
+      session.playerCurrentHp = Math.min(
+        session.playerMaxHp,
+        session.playerCurrentHp + Math.floor(stats.lifeOnHit),
+      );
+    }
 
     let killed = false;
     let xpGained = 0;
@@ -830,13 +973,24 @@ export class CombatService {
     if (monster.currentHp <= 0) {
       monster.currentHp = 0;
       killed = true;
-      session.totalGoldEarned += monster.goldReward;
+
+      // Apply goldFind bonus from equipment
+      const goldReward = stats.goldFind > 0
+        ? Math.floor(monster.goldReward * (1 + stats.goldFind / 100))
+        : monster.goldReward;
+      session.totalGoldEarned += goldReward;
 
       // XP level-scaling: XP = BaseXP / (1 + a * D²)
       const D = Math.abs(session.playerLevel - (monster.level || session.playerLevel));
-      const scaledXp = Math.max(1, Math.floor(
+      let scaledXp = Math.max(1, Math.floor(
         monster.xpReward / (1 + B.XP_LEVEL_SCALING_A * D * D),
       ));
+
+      // Apply xpBonus from equipment
+      if (stats.xpBonus > 0) {
+        scaledXp = Math.floor(scaledXp * (1 + stats.xpBonus / 100));
+      }
+
       session.totalXpEarned += scaledXp;
       xpGained = scaledXp;
 
@@ -854,7 +1008,7 @@ export class CombatService {
           Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, stats.level - 1)),
         );
 
-        // Apply class-based stat growth
+        // Apply class-based stat growth (base stats without equipment)
         const newStatsForLevel = statsAtLevel(stats.classId, stats.level);
         stats.maxHp = newStatsForLevel.hp;
         stats.hp = newStatsForLevel.hp;
@@ -863,6 +1017,10 @@ export class CombatService {
         stats.critMultiplier = newStatsForLevel.critMultiplier;
         stats.dodgeChance = newStatsForLevel.dodgeChance;
         stats.specialValue = specialAtLevel(stats.classId, stats.level);
+        stats.resistance = newStatsForLevel.resistance as ElementalResistance;
+
+        // Re-apply equipment bonuses on top of new base stats
+        this.reapplyEquipBonuses(stats);
       }
 
       // Clamp XP at max level
@@ -883,18 +1041,19 @@ export class CombatService {
         session.playerMaxHp = stats.maxHp;
       }
 
-      // Persist XP/level to DB (only DB write in hot path)
+      // Persist XP/level to DB (base stats only — equipment bonuses are dynamic)
       if (leveledUp) {
+        const baseStatsForDb = statsAtLevel(stats.classId, stats.level);
         await this.charRepo.update(session.characterId, {
           level: stats.level,
           xp: stats.xp,
           xpToNext: stats.xpToNext,
-          maxHp: stats.maxHp,
-          hp: stats.hp,
-          tapDamage: stats.tapDamage,
-          critChance: stats.critChance,
-          critMultiplier: stats.critMultiplier,
-          dodgeChance: stats.dodgeChance,
+          maxHp: baseStatsForDb.hp,
+          hp: baseStatsForDb.hp,
+          tapDamage: baseStatsForDb.tapDamage,
+          critChance: baseStatsForDb.critChance,
+          critMultiplier: baseStatsForDb.critMultiplier,
+          dodgeChance: baseStatsForDb.dodgeChance,
           specialValue: stats.specialValue,
         });
       } else {
@@ -969,7 +1128,6 @@ export class CombatService {
       .createQueryBuilder()
       .update(Player)
       .set({
-        totalGold: () => `"totalGold"::bigint + ${session.totalGoldEarned}`,
         totalKills: () => `"totalKills"::bigint + ${session.monsterQueue.length}`,
         totalTaps: () => `"totalTaps"::bigint + ${session.totalTaps}`,
         lastSaveTime: String(Date.now()),
@@ -1052,7 +1210,7 @@ export class CombatService {
       }
     }
 
-    // Roll loot drops (3 independent rolls, ALL combat modes)
+    // Roll potion drops (3 independent rolls, ALL combat modes)
     let lootDrops: Partial<Item>[] = [];
     {
       const actOrTier = session.mode === 'location'
@@ -1079,13 +1237,66 @@ export class CombatService {
           });
         }
       }
+    }
 
-      if (lootDrops.length > 0) {
-        await this.lootService.addItemsToBag(
-          session.playerLeagueId,
-          lootDrops,
+    // Equipment drops — 3 independent 50% rolls (separate from potion pool)
+    {
+      const EQUIP_ROLLS = 3;
+      const EQUIP_CHANCE = 0.5;
+      const ALL_SLOTS: EquipmentSlotId[] = [
+        'one_hand', 'two_hand', 'helmet', 'amulet',
+        'armor', 'ring', 'gloves', 'belt', 'boots',
+      ];
+
+      // Zone level = max monster level in this combat session
+      const zoneLevel = session.monsterQueue.length > 0
+        ? Math.max(...session.monsterQueue.map(m => m.level))
+        : (char?.level ?? session.cachedStats.level);
+
+      for (let i = 0; i < EQUIP_ROLLS; i++) {
+        if (Math.random() >= EQUIP_CHANCE) continue;
+
+        const slot = ALL_SLOTS[Math.floor(Math.random() * ALL_SLOTS.length)];
+        const itemLevel = Math.min(
+          Math.max(zoneLevel + Math.floor(Math.random() * 7) - 3, 1),
+          100,
         );
+
+        const rolled = rollEquipment(slot, itemLevel);
+        const sub = SUBTYPES.find(s => s.code === rolled.subtype);
+        const iconPath = pickRandomIcon(rolled.subtype);
+
+        lootDrops.push({
+          id: `equip_${rolled.subtype}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          name: sub?.name ?? rolled.subtype,
+          type: 'equipment',
+          quality: rolled.rarity,
+          level: rolled.itemLevel,
+          icon: iconPath,
+          acquiredAt: String(Date.now()),
+          properties: {
+            slot: rolled.slot,
+            subtype: rolled.subtype,
+            rarity: rolled.rarity,
+            itemLevel: rolled.itemLevel,
+            reqLevel: rolled.reqLevel,
+            baseDamage: rolled.baseDamage,
+            baseArmor: rolled.baseArmor,
+            baseEvasion: rolled.baseEvasion,
+            baseES: rolled.baseES,
+            implicit: rolled.implicit,
+            stats: rolled.stats,
+          },
+        });
       }
+    }
+
+    // Save all drops (potions + equipment) to bag
+    if (lootDrops.length > 0) {
+      await this.lootService.addItemsToBag(
+        session.playerLeagueId,
+        lootDrops,
+      );
     }
 
     // Save audit record to PostgreSQL
@@ -1133,6 +1344,8 @@ export class CombatService {
         maxCharges: d.maxCharges,
         currentCharges: d.currentCharges,
         healPercent: d.healPercent,
+        level: d.level,
+        properties: d.properties,
       })),
       locationId: session.locationId || null,
       dailyBonusRemaining,
@@ -1208,7 +1421,7 @@ export class CombatService {
     });
     if (!char) throw new NotFoundException('Character not found');
 
-    const cachedStats = this.buildCachedStats(char);
+    const { cachedStats, equippedPotions } = await this.buildCombatCache(char);
     const now = Date.now();
     const dojoEndsAt = now + B.DOJO_COUNTDOWN_MS + B.DOJO_ROUND_MS;
     const sessionId = uuidv4();
@@ -1228,12 +1441,12 @@ export class CombatService {
       lastTapTime: 0,
       startedAt: now,
       playerLevel: char.level,
-      playerCurrentHp: char.maxHp,
-      playerMaxHp: char.maxHp,
+      playerCurrentHp: cachedStats.maxHp,
+      playerMaxHp: cachedStats.maxHp,
       lastEnemyAttackTime: now,
       nextAttackIn: 0,
       cachedStats,
-      equippedPotions: { 'consumable-1': null, 'consumable-2': null },
+      equippedPotions,
       dojoEndsAt,
       dojoTotalDamage: 0,
       dojoTotalTaps: 0,

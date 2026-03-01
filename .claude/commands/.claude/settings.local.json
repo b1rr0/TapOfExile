@@ -23,7 +23,17 @@
       "Bash(done)",
       "Bash(echo \"=== SEARCHING FOR ID: $id ===\")",
       "Bash(xargs grep -l \"skill-tree\\\\|SkillTree\")",
-      "Bash(sed 's/\\\\.png$//')"
+      "Bash(sed 's/\\\\.png$//')",
+      "Bash(./bot/node_modules/.bin/tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution node shared/equipment-defs.ts)",
+      "Bash(docker compose build)",
+      "Bash(xargs grep -l \"completeSession\\\\|completeCombat\")",
+      "Bash(wc -l /d/programs/code/TapOfExile/shared/public/assets/equipments/*/*/*_catalog.md)",
+      "Bash(grep -h \"^> \\\\*\\\\*Total items:\" /d/programs/code/TapOfExile/shared/public/assets/equipments/*/*/*_catalog.md)",
+      "Bash(docker compose exec postgres psql -U tap_user -d tapofexile -c \"SELECT \"\"telegramId\"\", \"\"bannedUntil\"\", \"\"banReason\"\" FROM players WHERE \"\"bannedUntil\"\" IS NOT NULL;\")",
+      "Bash(docker compose exec postgres psql -U tap_of_exile -d tap_of_exile -c \"UPDATE players SET \"\"bannedUntil\"\" = NULL, \"\"banReason\"\" = NULL WHERE \"\"bannedUntil\"\" IS NOT NULL;\")",
+      "Bash(docker compose exec redis redis-cli DEL \"anticheat:ban:602796587\")",
+      "Bash(docker compose build bot-tg)",
+      "Bash(docker compose build --no-cache)"
     ]
   }
 }

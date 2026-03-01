@@ -13,6 +13,7 @@ import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { LootService } from './loot.service';
 import { PlayerService } from '../player/player.service';
 import { EquipPotionDto, UnequipPotionDto } from './dto/equip-potion.dto';
+import { EquipItemDto, UnequipItemDto } from './dto/equip-item.dto';
 
 @ApiTags('loot')
 @ApiBearerAuth()
@@ -76,6 +77,43 @@ export class LootController {
       pl.id,
       pl.activeCharacterId!,
       dto.slot,
+    );
+    return { success: true };
+  }
+
+  // ── Gear equip/unequip ──────────────────────────────────
+
+  @Post('equip-item')
+  @ApiOperation({ summary: 'Equip a gear item from bag to equipment slot' })
+  @ApiResponse({ status: 201, description: 'Item equipped' })
+  @ApiResponse({ status: 400, description: 'Invalid slot, wrong item type, or level too low' })
+  async equipItem(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body() dto: EquipItemDto,
+  ) {
+    const pl = await this.playerService.getActivePlayerLeague(telegramId);
+    await this.lootService.equipItem(
+      pl.id,
+      pl.activeCharacterId!,
+      dto.itemId,
+      dto.slotId,
+    );
+    return { success: true };
+  }
+
+  @Post('unequip-item')
+  @ApiOperation({ summary: 'Unequip a gear item from equipment slot back to bag' })
+  @ApiResponse({ status: 201, description: 'Item unequipped' })
+  @ApiResponse({ status: 400, description: 'Invalid slot' })
+  async unequipItem(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body() dto: UnequipItemDto,
+  ) {
+    const pl = await this.playerService.getActivePlayerLeague(telegramId);
+    await this.lootService.unequipItem(
+      pl.id,
+      pl.activeCharacterId!,
+      dto.slotId,
     );
     return { success: true };
   }

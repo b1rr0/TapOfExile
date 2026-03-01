@@ -70,11 +70,15 @@ export class VictoryScene {
         // Render potion sprite if flaskType is available
         if (d.type === 'potion' && d.flaskType) {
           const charges = Math.min(d.maxCharges ?? 2, 5);
-          iconHtml = `<img class="victory-drop__icon" src="/assets/potions/${d.flaskType}/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+          iconHtml = `<img class="victory-drop__icon" src="/assets/equipments/consumables/${d.flaskType}s/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+        } else if (d.type === 'equipment' && d.icon) {
+          iconHtml = `<img class="victory-drop__icon" src="${d.icon}" style="width:32px;height:32px;image-rendering:pixelated">`;
         }
+        const levelBadge = d.level ? `<span class="victory-drop__level">iLvl ${d.level}</span>` : '';
         return `<div class="victory-drop victory-drop--${d.quality}">
           ${iconHtml}
           <span class="victory-drop__name">${d.name}</span>
+          ${levelBadge}
         </div>`;
       }).join("");
       dropsHtml = `

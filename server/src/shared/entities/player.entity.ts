@@ -29,9 +29,6 @@ export class Player {
   @Column({ type: 'bigint', default: 0 })
   totalKills: string;
 
-  @Column({ type: 'bigint', default: 0 })
-  totalGold: string;
-
   @Column({ type: 'int', default: 4 })
   gameVersion: number;
 

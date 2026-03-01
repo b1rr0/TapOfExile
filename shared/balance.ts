@@ -119,7 +119,7 @@ export const B = {
 
   /* ── Anti-cheat ──────────────────────────── */
   ANTICHEAT_WINDOW_MS: 3000,              // 3-second counting window
-  ANTICHEAT_MSG_LIMIT: 30,               // max socket messages per 3-sec window
+  ANTICHEAT_MSG_LIMIT: 50,               // max socket messages per 3-sec window (~17/s)
   ANTICHEAT_BAN_DURATION_MS: 86_400_000,  // 1 day (24h)
 
   /* ── Dojo ──────────────────────────────── */
