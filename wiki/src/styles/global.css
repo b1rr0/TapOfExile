@@ -1322,6 +1322,37 @@ a:hover {
   transition: background 0.2s;
 }
 
+/* ── Language switcher ──────────────────────── */
+.lang-switcher {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  margin-right: 0.5rem;
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid var(--border-color);
+}
+.lang-btn {
+  padding: 0.25rem 0.6rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.05em;
+}
+.lang-btn:hover {
+  color: var(--text-heading);
+}
+.lang-btn.active {
+  background: var(--ds-crimson, #A40239);
+  color: #fff;
+}
+
 /* ── Footer updated ─────────────────────────── */
 .footer-inner {
   max-width: 1280px;

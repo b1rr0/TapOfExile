@@ -1,0 +1,12 @@
+{
+  "title": "Enemies",
+  "subtitle": "{{count}} monster types across 5 acts. Each has unique elemental properties, resistances, and 5 attack patterns.",
+  "tabTypes": "Monster Types", "tabRarities": "Rarity Tiers",
+  "firstAppears": "First appears: Stage {{stage}}", "resistance": "Resistance", "damageType": "Damage Type",
+  "thRarity": "Rarity", "thHpMult": "HP Mult", "thGoldMult": "Gold Mult", "thXpMult": "XP Mult", "thDmgMult": "DMG Mult", "thResistBonus": "Resist Bonus",
+  "resistCapTitle": "Resistance Cap",
+  "resistCapDesc": "Maximum resistance per element is capped at <strong>{{cap}}%</strong>. Boss rarity gets +{{bonus}}% bonus to all resistances on top of their base values.",
+  "attacksTitle": "Enemy Attacks",
+  "attacksSub": "Each monster type has 5 unique attack patterns with different elemental splits and weighted probabilities. Enemies attack once per second.",
+  "attacksDesc": "Enemy damage scales with location order, act, and rarity. Rare, epic, and boss monsters hit significantly harder. Damage also has slight random variance, keeping combat unpredictable."
+}

@@ -1,0 +1,31 @@
+{
+  "nav": {
+    "home": "Головна", "champions": "Чемпіони", "trade": "Торгівля",
+    "wiki": "Вікі", "play": "Грати", "discord": "Discord", "telegramBot": "Telegram Бот"
+  },
+  "footer": { "copyright": "© EKNM, underground since 201X" },
+  "wikiNav": {
+    "overview": "Огляд", "classes": "Класи", "enemies": "Вороги",
+    "equipment": "Спорядження", "skillTree": "Древо Навичок", "damage": "Урон",
+    "plot": "Сюжет", "maps": "Карти"
+  },
+  "stats": {
+    "hp": "HP", "damage": "Урон", "critChance": "Шанс Крит.",
+    "critDmg": "Крит. Урон", "dodge": "Ухилення", "resistance": "Опір",
+    "resistances": "Опори", "level": "Рівень"
+  },
+  "quality": { "common": "Звичайна", "rare": "Рідкісна", "epic": "Епічна", "legendary": "Легендарна" },
+  "rarity": { "common": "Звичайний", "rare": "Рідкісний", "epic": "Епічний", "boss": "Бос" },
+  "elements": { "physical": "Фізичний", "fire": "Вогонь", "lightning": "Блискавка", "cold": "Холод", "pure": "Чистий" },
+  "ui": {
+    "loading": "Завантаження...", "noRecords": "Ще немає записів. Будь першим!",
+    "all": "Всі", "main": "Основна", "side": "Побічна", "buff": "бафф", "debuff": "дебафф",
+    "prev": "« Назад", "next": "Далі »",
+    "page": "Сторінка {{current}} з {{total}} ({{count}} лотів)"
+  },
+  "table": {
+    "tier": "Тір", "name": "Назва", "type": "Тип", "slot": "Слот",
+    "description": "Опис", "class": "Клас", "value": "Значення", "parameter": "Параметр"
+  },
+  "lang": { "en": "EN", "ua": "UA" }
+}

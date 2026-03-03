@@ -1,23 +1,25 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ENEMY_DEFS } from '@shared/enemies';
 import { B, RARITY_DEFS } from '@shared/balance';
 
 export default function EnemiesPage() {
+  const { t } = useTranslation('enemies');
   const [tab, setTab] = useState<'types' | 'rarities'>('types');
 
   return (
     <>
       <div className="page-heading">
-        <h1>Enemies</h1>
-        <p>{ENEMY_DEFS.length} monster types across 5 acts. Each has unique elemental properties, resistances, and 5 attack patterns.</p>
+        <h1>{t('title')}</h1>
+        <p>{t('subtitle', { count: ENEMY_DEFS.length })}</p>
       </div>
 
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'types' ? 'active' : ''}`} onClick={() => setTab('types')}>
-          Monster Types
+          {t('tabTypes')}
         </button>
         <button className={`tab-btn ${tab === 'rarities' ? 'active' : ''}`} onClick={() => setTab('rarities')}>
-          Rarity Tiers
+          {t('tabRarities')}
         </button>
       </div>
 
@@ -29,13 +31,13 @@ export default function EnemiesPage() {
                 <div className="card-icon" style={{ background: `${m.bodyColor}22` }}>{m.icon}</div>
                 <div>
                   <div className="card-title">{m.name}</div>
-                  <div className="card-subtitle">First appears: Stage {m.minStage}</div>
+                  <div className="card-subtitle">{t('firstAppears', { stage: m.minStage })}</div>
                 </div>
               </div>
               <div className="card-body" style={{ marginBottom: '0.75rem' }}>{m.description}</div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Resistance</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('resistance')}</span>
                   <div style={{ marginTop: '0.25rem' }}>
                     {m.resistance.split(' + ').map((r) => (
                       <span key={r} className={`badge badge-${r.toLowerCase()}`} style={{ marginRight: '0.25rem' }}>{r}</span>
@@ -43,7 +45,7 @@ export default function EnemiesPage() {
                   </div>
                 </div>
                 <div style={{ marginLeft: 'auto' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Damage Type</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('damageType')}</span>
                   <div style={{ marginTop: '0.25rem' }}>
                     {m.element.split(' + ').map((e) => (
                       <span key={e} className={`badge badge-${e.toLowerCase()}`} style={{ marginRight: '0.25rem' }}>{e}</span>
@@ -62,12 +64,12 @@ export default function EnemiesPage() {
             <table className="wiki-table">
               <thead>
                 <tr>
-                  <th>Rarity</th>
-                  <th>HP Mult</th>
-                  <th>Gold Mult</th>
-                  <th>XP Mult</th>
-                  <th>DMG Mult</th>
-                  <th>Resist Bonus</th>
+                  <th>{t('thRarity')}</th>
+                  <th>{t('thHpMult')}</th>
+                  <th>{t('thGoldMult')}</th>
+                  <th>{t('thXpMult')}</th>
+                  <th>{t('thDmgMult')}</th>
+                  <th>{t('thResistBonus')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -88,18 +90,16 @@ export default function EnemiesPage() {
           </div>
 
           <div className="info-box" style={{ marginTop: '1.5rem' }}>
-            <h4>Resistance Cap</h4>
-            <p>Maximum resistance per element is capped at <strong style={{ color: 'var(--accent-gold)' }}>{(B.RESISTANCE_CAP * 100).toFixed(0)}%</strong>. Boss rarity gets +{(B.RARITY_RESISTANCE_BONUS.boss * 100).toFixed(0)}% bonus to all resistances on top of their base values.</p>
+            <h4>{t('resistCapTitle')}</h4>
+            <p dangerouslySetInnerHTML={{ __html: t('resistCapDesc', { cap: (B.RESISTANCE_CAP * 100).toFixed(0), bonus: (B.RARITY_RESISTANCE_BONUS.boss * 100).toFixed(0) }) }} />
           </div>
         </>
       )}
 
-      <h2 className="section-title" style={{ marginTop: '2rem' }}>Enemy Attacks</h2>
-      <p className="section-subtitle">
-        Each monster type has 5 unique attack patterns with different elemental splits, speed multipliers, and weighted probabilities. Attacks deal damage every 1 second.
-      </p>
-      <div className="formula-box">
-        Monster Damage = MONSTER_DMG_BASE({B.MONSTER_DMG_BASE}) * DMG_GROWTH({B.MONSTER_DMG_GROWTH})^(order-1) * RARITY_DMG_MUL * actMul * [1 +/- {(B.MONSTER_DMG_RANDOM * 100).toFixed(0)}%]
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>{t('attacksTitle')}</h2>
+      <p className="section-subtitle">{t('attacksSub')}</p>
+      <div className="info-box">
+        <p>{t('attacksDesc')}</p>
       </div>
     </>
   );

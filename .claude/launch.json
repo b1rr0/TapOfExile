@@ -9,8 +9,8 @@
     },
     {
       "name": "wiki",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "wiki", "run", "dev"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "wiki", "--port", "3002"],
       "port": 3002
     },
     {

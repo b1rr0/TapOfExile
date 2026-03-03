@@ -76,7 +76,24 @@
       "Bash(docker compose build --no-cache bot-tg)",
       "Bash(docker compose build --no-cache server)",
       "Bash(docker compose up -d server bot-tg)",
-      "Bash(find /d/programs/code/TapOfExile/server/src/combat -name \"*.ts\" -exec grep -l \"allocatedNodes\" {} ;)"
+      "Bash(find /d/programs/code/TapOfExile/server/src/combat -name \"*.ts\" -exec grep -l \"allocatedNodes\" {} ;)",
+      "WebFetch(domain:terraria.wiki.gg)",
+      "Bash(wc -l \"D:\\\\programs\\\\code\\\\TapOfExile\\\\wiki\\\\src\\\\pages\"/*.tsx)",
+      "Bash(npm install i18next react-i18next)",
+      "Bash(git diff-index HEAD -- wiki/src/i18n/)",
+      "Bash(npm ls i18next react-i18next)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/en/common.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/ua/common.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/en/home.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/ua/home.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/en/wiki.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/ua/wiki.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/en/characters.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/ua/characters.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/en/enemies.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/ua/enemies.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/en/damage.json\":*)",
+      "Bash(\"D:/programs/code/TapOfExile/wiki/src/i18n/ua/damage.json\":*)"
     ]
   }
 }

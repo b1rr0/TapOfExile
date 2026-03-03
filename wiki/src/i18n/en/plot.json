@@ -1,0 +1,14 @@
+{
+  "title": "Main Plot", "subtitle": "Journey through 5 acts with 50 unique locations, each with its own enemies, story, and modifiers.",
+  "actLabel": "Act {{num}}: {{name}}", "actBoss": "Act Boss:", "actModifiers": "Act Modifiers",
+  "locations": "Locations ({{count}})",
+  "thOrder": "Order", "thLocation": "Location", "thDescription": "Description", "thType": "Type",
+  "progressionTitle": "Progression Rules", "unlockPattern": "Location Unlock Pattern",
+  "unlock1": "Order 1 is always unlocked", "unlock2": "Orders 2-8: complete the previous location first",
+  "unlock3": "Order 9 branches off Order 3", "unlock4": "Order 10 branches off Order 5",
+  "actUnlock": "Act Unlock Requirements",
+  "actUnlockDesc": "Complete the main chain (orders 1-8) of an act to unlock the next one. Side branches (orders 9-10) are optional and don't block progression.",
+  "monsterLevels": "Monster Levels",
+  "monsterLevelsDesc": "Monster level increases with each location and act. Early Act 1 enemies start at low levels, while Act 5 late-stage monsters can reach level <strong>50</strong>. Match your character level to the area for optimal XP.",
+  "act1": "The Castle", "act2": "Open Meadow", "act3": "The Fields", "act4": "Snow Mountain", "act5": "The Depths"
+}

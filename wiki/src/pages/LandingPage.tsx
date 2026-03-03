@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import BattleMockup from '../components/BattleMockup';
 
 const API_BASE = '/api';
@@ -20,62 +21,12 @@ function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
-function formatLeagueEnd(endsAt: string | null): string {
-  if (!endsAt) return 'Permanent';
-  const d = new Date(endsAt);
-  return `Ends ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-}
-
-/* ── HOW TO PLAY steps ───────────────────────────────────── */
-const HOW_TO_PLAY = [
-  {
-    step: '01',
-    icon: '📱',
-    title: 'Open Telegram',
-    desc: 'Find @Tap_Of_Exile_Bot in Telegram and press Start. No download needed — runs right in Telegram.',
-  },
-  {
-    step: '02',
-    icon: '⚔️',
-    title: 'Pick Your Class',
-    desc: 'Choose from Warrior, Samurai, Mage, or Archer — each with unique abilities, resistances, and playstyle.',
-  },
-  {
-    step: '03',
-    icon: '🗡️',
-    title: 'Fight & Grow',
-    desc: 'Tap to deal damage, collect loot, allocate passive nodes, and conquer 5 acts and 10 endgame map tiers.',
-  },
-];
-
-/* ── LEAGUE INFO cards ───────────────────────────────────── */
-const LEAGUE_INFO: Record<string, { title: string; desc: string; features: string[] }> = {
-  standard: {
-    title: 'Standard League',
-    desc: 'The permanent league. Progress never resets — grow your character indefinitely and explore all content at your own pace.',
-    features: ['No time pressure', 'Permanent character progress', 'Open to all players anytime'],
-  },
-  monthly: {
-    title: 'Monthly League',
-    desc: 'A competitive fresh-start league that resets each month. Climb the leaderboard and fight for seasonal rewards.',
-    features: ['Monthly fresh start', 'Seasonal leaderboard prizes', 'Competitive environment'],
-  },
-};
-
-/* ── GAME FEATURES preview ───────────────────────────────── */
-const GAME_FEATURES = [
-  { icon: '🗡️', title: '4 Unique Classes', desc: 'Warrior, Samurai, Mage, Archer — each with distinct stats, abilities, and skill tree paths.' },
-  { icon: '🌍', title: '5 Acts, 50 Locations', desc: 'From the Castle to The Depths. Fight through 50 unique locations with escalating challenges.' },
-  { icon: '🗺️', title: 'Endgame Maps', desc: '10-tier map system with 8 unique boss encounters. Three levels of boss keys for ultimate challenge.' },
-  { icon: '🌳', title: '200+ Passive Nodes', desc: 'Build your character exactly how you want with a massive passive skill tree.' },
-  { icon: '⚗️', title: 'Loot System', desc: '6 flask types, 4 quality tiers. Every kill has a chance to drop something useful.' },
-  { icon: '🏆', title: 'Live Leaderboards', desc: 'Compete in Dojo damage challenges and XP rankings. Rise to become a Champion.' },
-];
-
 /* ══════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════ */
 export default function LandingPage() {
+  const { t } = useTranslation('home');
+
   /* Online data */
   const [leagues, setLeagues] = useState<LeagueOnline[]>([]);
   const [totalOnline, setTotalOnline] = useState<number | null>(null);
@@ -95,6 +46,41 @@ export default function LandingPage() {
       .finally(() => setOnlineLoading(false));
   }, []);
 
+  /* ── Translated data arrays ─────────────────────────── */
+  const HOW_TO_PLAY = [
+    { step: '01', icon: '📱', title: t('step01Title'), desc: t('step01Desc') },
+    { step: '02', icon: '⚔️', title: t('step02Title'), desc: t('step02Desc') },
+    { step: '03', icon: '🗡️', title: t('step03Title'), desc: t('step03Desc') },
+  ];
+
+  const LEAGUE_INFO: Record<string, { title: string; desc: string; features: string[] }> = {
+    standard: {
+      title: t('standardTitle'),
+      desc: t('standardDesc'),
+      features: [t('standardFeature1'), t('standardFeature2'), t('standardFeature3')],
+    },
+    monthly: {
+      title: t('monthlyTitle'),
+      desc: t('monthlyDesc'),
+      features: [t('monthlyFeature1'), t('monthlyFeature2'), t('monthlyFeature3')],
+    },
+  };
+
+  const GAME_FEATURES = [
+    { icon: '🗡️', title: t('feat1Title'), desc: t('feat1Desc') },
+    { icon: '🌍', title: t('feat2Title'), desc: t('feat2Desc') },
+    { icon: '🗺️', title: t('feat3Title'), desc: t('feat3Desc') },
+    { icon: '🌳', title: t('feat4Title'), desc: t('feat4Desc') },
+    { icon: '⚗️', title: t('feat5Title'), desc: t('feat5Desc') },
+    { icon: '🏆', title: t('feat6Title'), desc: t('feat6Desc') },
+  ];
+
+  function formatLeagueEnd(endsAt: string | null): string {
+    if (!endsAt) return t('permanent');
+    const d = new Date(endsAt);
+    return t('endsAt', { date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) });
+  }
+
   /* ── Render ──────────────────────────────────────────── */
   return (
     <div className="landing-page">
@@ -102,13 +88,12 @@ export default function LandingPage() {
       {/* ════════════ HERO ════════════ */}
       <section className="landing-hero">
         <div className="landing-hero-content">
-          <div className="landing-hero-badge">Telegram Mini-App RPG</div>
+          <div className="landing-hero-badge">{t('badge')}</div>
           <h1 className="landing-hero-title">
-            ⚔️ Tap of Exile
+            ⚔️ {t('title')}
           </h1>
           <p className="landing-hero-sub">
-            Idle tactical RPG. Choose your class, build your skill tree,<br />
-            battle through 5 acts and conquer the endgame.
+            {t('subtitle')}
           </p>
 
           <div className="landing-hero-actions">
@@ -118,7 +103,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="btn-cta"
             >
-              🎮 Play on Telegram
+              🎮 {t('playBtn')}
             </a>
             <a
               href="https://discord.gg/mgCNqp9q"
@@ -126,7 +111,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="btn-secondary"
             >
-              💬 Join Discord
+              💬 {t('discordBtn')}
             </a>
           </div>
 
@@ -134,10 +119,12 @@ export default function LandingPage() {
           <div className="landing-online-pill">
             <span className="online-dot" />
             {onlineLoading ? (
-              <span>Checking…</span>
+              <span>{t('checking')}</span>
             ) : (
               <span>
-                <strong>{formatNumber(totalOnline ?? 0)}</strong> players online right now
+                <Trans i18nKey="playersOnline" ns="home" values={{ count: formatNumber(totalOnline ?? 0) }}>
+                  <strong>{'{{count}}'}</strong> players online right now
+                </Trans>
               </span>
             )}
           </div>
@@ -154,8 +141,8 @@ export default function LandingPage() {
       {/* ════════════ HOW TO PLAY ════════════ */}
       <section className="landing-section landing-section--dark">
         <div className="landing-section-header">
-          <h2>🎮 How to Play</h2>
-          <p>Get started in three simple steps — no download, no install.</p>
+          <h2>🎮 {t('howToPlay')}</h2>
+          <p>{t('howToPlaySub')}</p>
         </div>
 
         <div className="landing-steps">
@@ -173,22 +160,21 @@ export default function LandingPage() {
       {/* ════════════ LEAGUES ════════════ */}
       <section className="landing-section">
         <div className="landing-section-header">
-          <h2>🛡️ Choose Your League</h2>
-          <p>Two leagues, two experiences. Pick your battlefield.</p>
+          <h2>🛡️ {t('chooseLeague')}</h2>
+          <p>{t('chooseLeagueSub')}</p>
         </div>
 
         <div className="landing-leagues-grid">
           {onlineLoading ? (
-            <div className="landing-loading">Loading leagues…</div>
+            <div className="landing-loading">{t('loadingLeagues')}</div>
           ) : leagues.length === 0 ? (
-            /* Fallback static cards when server is offline */
             <>
               {Object.entries(LEAGUE_INFO).map(([type, info]) => (
                 <div key={type} className={`league-card league-card--${type}`}>
                   <div className="league-card-header">
                     <span className="league-badge">{type === 'monthly' ? '🏆' : '🛡️'}</span>
                     <h3>{info.title}</h3>
-                    <span className="league-status league-status--offline">Offline</span>
+                    <span className="league-status league-status--offline">{t('offline')}</span>
                   </div>
                   <p className="league-desc">{info.desc}</p>
                   <ul className="league-features">
@@ -201,21 +187,18 @@ export default function LandingPage() {
             leagues.map((league) => {
               const info = LEAGUE_INFO[league.type] || {
                 title: league.name,
-                desc: 'Active league.',
+                desc: t('activeLeague'),
                 features: [],
               };
               const isMonthly = league.type === 'monthly';
               return (
-                <div
-                  key={league.id}
-                  className={`league-card league-card--${league.type}`}
-                >
+                <div key={league.id} className={`league-card league-card--${league.type}`}>
                   <div className="league-card-header">
                     <span className="league-badge">{isMonthly ? '🏆' : '🛡️'}</span>
                     <h3>{league.name}</h3>
                     <div className="league-online">
                       <span className="online-dot" />
-                      <span>{league.online} online</span>
+                      <span>{t('online', { count: league.online })}</span>
                     </div>
                   </div>
                   <p className="league-end-date">{formatLeagueEnd(league.endsAt)}</p>
@@ -233,8 +216,8 @@ export default function LandingPage() {
       {/* ════════════ GAME FEATURES ════════════ */}
       <section className="landing-section landing-section--dark">
         <div className="landing-section-header">
-          <h2>🗡️ What Awaits You</h2>
-          <p>Dozens of hours of content, deep mechanics, endless builds.</p>
+          <h2>🗡️ {t('whatAwaits')}</h2>
+          <p>{t('whatAwaitsSub')}</p>
         </div>
         <div className="landing-features-grid">
           {GAME_FEATURES.map((f) => (
@@ -257,8 +240,8 @@ export default function LandingPage() {
       {/* ════════════ COMMUNITY ════════════ */}
       <section className="landing-section landing-section--dark">
         <div className="landing-community">
-          <h2>🌐 Join the Community</h2>
-          <p>Chat with other players, share builds, report bugs, and stay up to date.</p>
+          <h2>🌐 {t('community')}</h2>
+          <p>{t('communitySub')}</p>
           <div className="community-links">
             <a
               href="https://t.me/Tap_Of_Exile_Bot"
@@ -266,7 +249,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="community-btn community-btn--telegram"
             >
-              ✈️ Telegram Bot
+              ✈️ {t('telegramBtn')}
             </a>
             <a
               href="https://discord.gg/mgCNqp9q"
@@ -274,7 +257,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="community-btn community-btn--discord"
             >
-              💬 Discord Server
+              💬 {t('discordServerBtn')}
             </a>
           </div>
         </div>

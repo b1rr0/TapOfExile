@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE = '/api';
 
@@ -45,13 +46,6 @@ const CATEGORY_ICONS: Record<ItemType, string> = {
   equipment: '\u2694\uFE0F',
 };
 
-const CATEGORY_LABELS: Record<ItemType, string> = {
-  potion: 'Potions',
-  map_key: 'Map Keys',
-  boss_key: 'Boss Keys',
-  equipment: 'Equipment',
-};
-
 function formatGold(n: number | string) {
   const num = typeof n === 'string' ? Number(n) : n;
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
@@ -74,17 +68,13 @@ function timeAgo(dateStr: string): string {
 
 type Tab = 'market' | 'prices' | 'how';
 
-const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'market', label: 'Market',       icon: '\uD83D\uDCCA' },
-  { key: 'prices', label: 'Price Watch',  icon: '\uD83D\uDCB0' },
-  { key: 'how',    label: 'How It Works', icon: '\uD83D\uDCD6' },
-];
-
 const PAGE_SIZE = 20;
 
 /* ── Component ─────────────────────────────────────────────────── */
 
 export default function TradePage() {
+  const { t } = useTranslation('trade');
+  const { t: tc } = useTranslation('common');
   const [tab, setTab] = useState<Tab>('market');
 
   /* Filters */
@@ -102,6 +92,19 @@ export default function TradePage() {
 
   /* Stats */
   const [stats, setStats] = useState<StatsResponse | null>(null);
+
+  const CATEGORY_LABELS: Record<ItemType, string> = {
+    potion: t('catPotions'),
+    map_key: t('catMapKeys'),
+    boss_key: t('catBossKeys'),
+    equipment: t('catEquipment'),
+  };
+
+  const TABS: { key: Tab; label: string; icon: string }[] = [
+    { key: 'market', label: t('tabMarket'), icon: '\uD83D\uDCCA' },
+    { key: 'prices', label: t('tabPrices'), icon: '\uD83D\uDCB0' },
+    { key: 'how', label: t('tabHow'), icon: '\uD83D\uDCD6' },
+  ];
 
   /* ── Fetch stats ─────────────────────────────────── */
   useEffect(() => {
@@ -153,26 +156,26 @@ export default function TradePage() {
     <>
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="page-heading">
-        <h1>Trade Market</h1>
-        <p>Browse potions, map keys, boss keys, and equipment listed by other players.</p>
+        <h1>{t('title')}</h1>
+        <p>{t('subtitle')}</p>
       </div>
 
       {/* ── Live stats strip ───────────────────────────────── */}
       <div className="trade-stats-strip">
         <div className="trade-stat">
-          <span className="trade-stat__label">Listings</span>
+          <span className="trade-stat__label">{t('statListings')}</span>
           <span className="trade-stat__value">
             {stats ? formatGold(stats.activeListings) : '—'}
           </span>
         </div>
         <div className="trade-stat">
-          <span className="trade-stat__label">Trades (24h)</span>
+          <span className="trade-stat__label">{t('statTrades')}</span>
           <span className="trade-stat__value" style={{ color: 'var(--ds-cyan)' }}>
             {stats ? formatGold(stats.soldLast24h) : '—'}
           </span>
         </div>
         <div className="trade-stat">
-          <span className="trade-stat__label">Gold Volume</span>
+          <span className="trade-stat__label">{t('statVolume')}</span>
           <span className="trade-stat__value" style={{ color: 'var(--ds-gold-bright)' }}>
             {stats ? formatGold(stats.volumeLast24h) : '—'}
           </span>
@@ -181,20 +184,18 @@ export default function TradePage() {
 
       {/* ── Tabs ───────────────────────────────────────────── */}
       <div className="tab-bar">
-        {TABS.map((t) => (
+        {TABS.map((tabItem) => (
           <button
-            key={t.key}
-            className={`tab-btn${tab === t.key ? ' active' : ''}`}
-            onClick={() => setTab(t.key)}
+            key={tabItem.key}
+            className={`tab-btn${tab === tabItem.key ? ' active' : ''}`}
+            onClick={() => setTab(tabItem.key)}
           >
-            {t.icon} {t.label}
+            {tabItem.icon} {tabItem.label}
           </button>
         ))}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════
-           TAB: Market Listings
-         ═══════════════════════════════════════════════════════ */}
+      {/* ═══ TAB: Market Listings ═══ */}
       {tab === 'market' && (
         <>
           {/* ── Filters ───────────────────────────────────────── */}
@@ -202,15 +203,15 @@ export default function TradePage() {
             <input
               className="trade-search"
               type="text"
-              placeholder="Search items..."
+              placeholder={t('searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
 
             <div className="trade-filter-group">
-              <label className="trade-filter-label">Category</label>
+              <label className="trade-filter-label">{t('filterCategory')}</label>
               <div className="trade-filter-chips">
-                <button className={`trade-chip${catFilter === 'all' ? ' active' : ''}`} onClick={() => setCatFilter('all')}>All</button>
+                <button className={`trade-chip${catFilter === 'all' ? ' active' : ''}`} onClick={() => setCatFilter('all')}>{tc('ui.all')}</button>
                 {(Object.keys(CATEGORY_LABELS) as ItemType[]).map((c) => (
                   <button key={c} className={`trade-chip${catFilter === c ? ' active' : ''}`} onClick={() => setCatFilter(c)}>
                     {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
@@ -220,9 +221,9 @@ export default function TradePage() {
             </div>
 
             <div className="trade-filter-group">
-              <label className="trade-filter-label">Quality</label>
+              <label className="trade-filter-label">{t('filterQuality')}</label>
               <div className="trade-filter-chips">
-                <button className={`trade-chip${qualFilter === 'all' ? ' active' : ''}`} onClick={() => setQualFilter('all')}>All</button>
+                <button className={`trade-chip${qualFilter === 'all' ? ' active' : ''}`} onClick={() => setQualFilter('all')}>{tc('ui.all')}</button>
                 {(['common', 'rare', 'epic', 'legendary'] as Quality[]).map((q) => (
                   <button key={q} className={`trade-chip trade-chip--${q}${qualFilter === q ? ' active' : ''}`} onClick={() => setQualFilter(q)}>
                     {q}
@@ -232,13 +233,13 @@ export default function TradePage() {
             </div>
 
             <div className="trade-filter-group">
-              <label className="trade-filter-label">Sort</label>
+              <label className="trade-filter-label">{t('filterSort')}</label>
               <div className="trade-filter-chips">
                 {([
-                  ['newest',     'Newest'],
-                  ['price_asc',  'Price \u2191'],
-                  ['price_desc', 'Price \u2193'],
-                  ['quality',    'Quality'],
+                  ['newest', t('sortNewest')],
+                  ['price_asc', t('sortPriceAsc')],
+                  ['price_desc', t('sortPriceDesc')],
+                  ['quality', t('sortQuality')],
                 ] as [SortKey, string][]).map(([key, label]) => (
                   <button key={key} className={`trade-chip${sort === key ? ' active' : ''}`} onClick={() => setSort(key)}>
                     {label}
@@ -251,7 +252,7 @@ export default function TradePage() {
           {/* ── Loading / Error ─────────────────────────────────── */}
           {loading && (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-              Loading listings...
+              {t('loadingListings')}
             </div>
           )}
           {error && (
@@ -268,18 +269,18 @@ export default function TradePage() {
                   <thead>
                     <tr>
                       <th style={{ width: 44 }}></th>
-                      <th>Item</th>
-                      <th>Quality</th>
-                      <th>Price</th>
-                      <th>Seller</th>
-                      <th style={{ width: 60 }}>Listed</th>
+                      <th>{t('thItem')}</th>
+                      <th>{t('thQuality')}</th>
+                      <th>{t('thPrice')}</th>
+                      <th>{t('thSeller')}</th>
+                      <th style={{ width: 60 }}>{t('thListed')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {listings.length === 0 && (
                       <tr>
                         <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                          No listings match your filters.
+                          {t('noListings')}
                         </td>
                       </tr>
                     )}
@@ -306,7 +307,7 @@ export default function TradePage() {
                           {formatGold(l.price)}
                         </td>
                         <td style={{ color: 'var(--ds-cyan-mid)' }}>
-                          {l.sellerName ?? 'Unknown'}
+                          {l.sellerName ?? t('unknown')}
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                           {timeAgo(l.createdAt)}
@@ -325,128 +326,93 @@ export default function TradePage() {
                     disabled={page === 0}
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                   >
-                    &laquo; Prev
+                    {tc('ui.prev')}
                   </button>
                   <span style={{ padding: '0.4rem 0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    Page {page + 1} of {totalPages} ({total} listings)
+                    {tc('ui.page', { current: page + 1, total: totalPages, count: total })}
                   </span>
                   <button
                     className="trade-chip"
                     disabled={page >= totalPages - 1}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    Next &raquo;
+                    {tc('ui.next')}
                   </button>
                 </div>
               )}
 
               <div className="info-box" style={{ textAlign: 'center', marginTop: '1rem' }}>
-                To buy or sell items, open the Trade panel in the game&apos;s Hideout.
+                {t('buyHint')}
               </div>
             </>
           )}
         </>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-           TAB: Price Watch (placeholder — needs price aggregation API)
-         ═══════════════════════════════════════════════════════ */}
+      {/* ═══ TAB: Price Watch ═══ */}
       {tab === 'prices' && (
         <>
-          <p className="section-subtitle">
-            Average market prices over the last 24 hours. Use this to gauge fair value before buying or selling.
-          </p>
-
+          <p className="section-subtitle">{t('priceWatchSub')}</p>
           <div className="info-box" style={{ marginTop: '1rem', textAlign: 'center' }}>
-            <h4>Price Watch</h4>
-            <p style={{ color: 'var(--text-muted)' }}>
-              Price history and aggregations are coming soon.
-              For now, browse the Market tab to see current listing prices.
-            </p>
+            <h4>{t('priceWatchTitle')}</h4>
+            <p style={{ color: 'var(--text-muted)' }}>{t('priceWatchSoon')}</p>
           </div>
         </>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-           TAB: How It Works
-         ═══════════════════════════════════════════════════════ */}
+      {/* ═══ TAB: How It Works ═══ */}
       {tab === 'how' && (
         <>
-          <h2 className="section-title">Trading System</h2>
-          <p className="section-subtitle">
-            The Tap of Exile marketplace lets players exchange items for gold in a secure, server-verified environment.
-          </p>
+          <h2 className="section-title">{t('tradingSystem')}</h2>
+          <p className="section-subtitle">{t('tradingSystemSub')}</p>
 
           <div className="card-grid cols-2">
             <div className="card">
               <div className="card-header">
                 <div className="card-icon">{'\uD83D\uDCE4'}</div>
-                <div>
-                  <div className="card-title">1. Create a Listing</div>
-                </div>
+                <div><div className="card-title">{t('step1Title')}</div></div>
               </div>
-              <div className="card-body">
-                Select an item from your bag, set your asking price in gold, and publish.
-                The item is moved to escrow and cannot be used while listed.
-              </div>
+              <div className="card-body">{t('step1Desc')}</div>
             </div>
-
             <div className="card">
               <div className="card-header">
                 <div className="card-icon">{'\uD83D\uDD0D'}</div>
-                <div>
-                  <div className="card-title">2. Browse & Search</div>
-                </div>
+                <div><div className="card-title">{t('step2Title')}</div></div>
               </div>
-              <div className="card-body">
-                Filter the market by category, quality, subtype, and price.
-                Sort by newest, cheapest, or quality to find what you need.
-              </div>
+              <div className="card-body">{t('step2Desc')}</div>
             </div>
-
             <div className="card">
               <div className="card-header">
                 <div className="card-icon">{'\uD83E\uDD1D'}</div>
-                <div>
-                  <div className="card-title">3. Buy Instantly</div>
-                </div>
+                <div><div className="card-title">{t('step3Title')}</div></div>
               </div>
-              <div className="card-body">
-                Found a good deal? Click &ldquo;Buy&rdquo; in the game to purchase instantly.
-                Gold is deducted and the item is delivered to your bag immediately.
-              </div>
+              <div className="card-body">{t('step3Desc')}</div>
             </div>
-
             <div className="card">
               <div className="card-header">
                 <div className="card-icon">{'\uD83D\uDD10'}</div>
-                <div>
-                  <div className="card-title">4. Secure & Verified</div>
-                </div>
+                <div><div className="card-title">{t('step4Title')}</div></div>
               </div>
-              <div className="card-body">
-                All trades are processed server-side with serializable transactions.
-                Items are held in escrow preventing duplication or double-spend.
-              </div>
+              <div className="card-body">{t('step4Desc')}</div>
             </div>
           </div>
 
-          <h2 className="section-title" style={{ marginTop: '2rem' }}>Tradable Items</h2>
+          <h2 className="section-title" style={{ marginTop: '2rem' }}>{t('tradableTitle')}</h2>
           <div style={{ overflowX: 'auto' }}>
             <table className="wiki-table">
               <thead>
                 <tr>
                   <th style={{ width: 44 }}></th>
-                  <th>Category</th>
-                  <th>Items</th>
-                  <th>Qualities</th>
+                  <th>{t('thCategory')}</th>
+                  <th>{t('thItems')}</th>
+                  <th>{t('thQualities')}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td style={{ fontSize: '1.3rem', textAlign: 'center' }}>{'\uD83E\uDDEA'}</td>
-                  <td><strong style={{ color: 'var(--text-heading)' }}>Potions</strong></td>
-                  <td>Small Vial, Round Flask, Corked Flask, Tall Bottle, Wide Bottle, Jug</td>
+                  <td><strong style={{ color: 'var(--text-heading)' }}>{t('catPotions')}</strong></td>
+                  <td>{t('potionItems')}</td>
                   <td>
                     <span className="badge badge-common">common</span>{' '}
                     <span className="badge badge-rare">rare</span>{' '}
@@ -456,8 +422,8 @@ export default function TradePage() {
                 </tr>
                 <tr>
                   <td style={{ fontSize: '1.3rem', textAlign: 'center' }}>{'\uD83D\uDDFA\uFE0F'}</td>
-                  <td><strong style={{ color: 'var(--text-heading)' }}>Map Keys</strong></td>
-                  <td>Tier 1 through Tier 10</td>
+                  <td><strong style={{ color: 'var(--text-heading)' }}>{t('catMapKeys')}</strong></td>
+                  <td>{t('mapKeyItems')}</td>
                   <td>
                     <span className="badge badge-common">T1-3</span>{' '}
                     <span className="badge badge-rare">T4-6</span>{' '}
@@ -467,8 +433,8 @@ export default function TradePage() {
                 </tr>
                 <tr>
                   <td style={{ fontSize: '1.3rem', textAlign: 'center' }}>{'\uD83D\uDC80'}</td>
-                  <td><strong style={{ color: 'var(--text-heading)' }}>Boss Keys</strong></td>
-                  <td>Standard, Empowered, Mythic</td>
+                  <td><strong style={{ color: 'var(--text-heading)' }}>{t('catBossKeys')}</strong></td>
+                  <td>{t('bossKeyItems')}</td>
                   <td>
                     <span className="badge badge-common">Standard</span>{' '}
                     <span className="badge badge-epic">Empowered</span>{' '}
@@ -477,8 +443,8 @@ export default function TradePage() {
                 </tr>
                 <tr>
                   <td style={{ fontSize: '1.3rem', textAlign: 'center' }}>{'\u2694\uFE0F'}</td>
-                  <td><strong style={{ color: 'var(--text-heading)' }}>Equipment</strong></td>
-                  <td>Helmets, Armor, Boots, Gloves, Weapons, Rings, Amulets, Belts</td>
+                  <td><strong style={{ color: 'var(--text-heading)' }}>{t('catEquipment')}</strong></td>
+                  <td>{t('equipmentItems')}</td>
                   <td>
                     <span className="badge badge-common">common</span>{' '}
                     <span className="badge badge-rare">rare</span>{' '}
@@ -491,23 +457,21 @@ export default function TradePage() {
           </div>
 
           <div className="info-box" style={{ marginTop: '1.5rem' }}>
-            <h4>Trade Rules</h4>
+            <h4>{t('rulesTitle')}</h4>
             <ul style={{ paddingLeft: '1.2rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-              <li>Minimum character level: <strong>10</strong></li>
-              <li>Commission: <strong>10%</strong> on both sides &mdash; buyer pays asking price + 10%, seller receives asking price &minus; 10%</li>
-              <li>Maximum active listings per player: <strong>20</strong></li>
-              <li>Listings expire after <strong>48 hours</strong> if not sold</li>
-              <li>Expired or cancelled items return to your bag automatically</li>
-              <li>Equipped items must be unequipped before listing</li>
-              <li>Trades are scoped per league &mdash; you can only buy/sell within your active league</li>
+              <li dangerouslySetInnerHTML={{ __html: t('rule1') }} />
+              <li dangerouslySetInnerHTML={{ __html: t('rule2') }} />
+              <li dangerouslySetInnerHTML={{ __html: t('rule3') }} />
+              <li dangerouslySetInnerHTML={{ __html: t('rule4') }} />
+              <li>{t('rule5')}</li>
+              <li>{t('rule6')}</li>
+              <li>{t('rule7')}</li>
             </ul>
           </div>
 
-          <div className="formula-box" style={{ marginTop: '1.5rem' }}>
-            <strong>Commission formula:</strong><br />
-            Buyer pays = Price &times; 1.10 (price + 10%)<br />
-            Seller receives = Price &times; 0.90 (price &minus; 10%)<br />
-            Total gold sink = 20% of listed price
+          <div className="info-box" style={{ marginTop: '1.5rem' }}>
+            <h4>{t('commissionTitle')}</h4>
+            <p dangerouslySetInnerHTML={{ __html: t('commissionDesc') }} />
           </div>
         </>
       )}

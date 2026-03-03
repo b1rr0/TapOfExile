@@ -1,0 +1,9 @@
+{
+  "title": "Класи Персонажів",
+  "subtitle": "Обери свій шлях. Кожен клас має унікальні базові стати, темпи зростання та спеціальну здібність.",
+  "previewLevel": "Перегляд на Рівні:", "levelStats": "Стати рівня {{level}}",
+  "highHpGrowth": "Високе зростання HP", "modHpGrowth": "Помірне зростання HP", "lowHpGrowth": "Низьке зростання HP",
+  "highDmgGrowth": "Високе зростання урону", "modDmgGrowth": "Помірне зростання урону", "steadyDmgGrowth": "Стабільне зростання урону",
+  "comparisonTitle": "Порівняння Класів (Рівень 60)",
+  "thClass": "Клас", "thHP": "HP", "thDamage": "Урон", "thCritPct": "Крит %", "thCritDmg": "Крит. Урон", "thDodgePct": "Ухил %", "thSpecial": "Спеціальна"
+}

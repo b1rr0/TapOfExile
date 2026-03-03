@@ -1,0 +1,9 @@
+{
+  "title": "Character Classes",
+  "subtitle": "Choose your path. Each class has unique base stats, growth rates, and a special ability.",
+  "previewLevel": "Preview at Level:", "levelStats": "Level {{level}} stats",
+  "highHpGrowth": "High HP growth", "modHpGrowth": "Moderate HP growth", "lowHpGrowth": "Low HP growth",
+  "highDmgGrowth": "High damage growth", "modDmgGrowth": "Moderate damage growth", "steadyDmgGrowth": "Steady damage growth",
+  "comparisonTitle": "Class Comparison (Level 60)",
+  "thClass": "Class", "thHP": "HP", "thDamage": "Damage", "thCritPct": "Crit %", "thCritDmg": "Crit Dmg", "thDodgePct": "Dodge %", "thSpecial": "Special"
+}

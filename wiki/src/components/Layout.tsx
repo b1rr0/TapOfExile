@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGS, type Lang } from '../i18n/i18n';
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { t, i18n } = useTranslation('common');
+
+  const switchLang = (lng: Lang) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem('toe-lang', lng);
+  };
 
   return (
     <div className="app-layout">
@@ -15,13 +23,13 @@ export default function Layout() {
 
           <nav className="header-nav" data-open={menuOpen}>
             <NavLink to="/" end onClick={() => setMenuOpen(false)}>
-              Home
+              {t('nav.home')}
             </NavLink>
             <NavLink to="/champions" onClick={() => setMenuOpen(false)}>
-              &#127942; Champions
+              &#127942; {t('nav.champions')}
             </NavLink>
             <NavLink to="/trade" onClick={() => setMenuOpen(false)}>
-              &#128176; Trade
+              &#128176; {t('nav.trade')}
             </NavLink>
             <NavLink
               to="/wiki"
@@ -30,7 +38,7 @@ export default function Layout() {
               }
               onClick={() => setMenuOpen(false)}
             >
-              &#128214; Wiki
+              &#128214; {t('nav.wiki')}
             </NavLink>
             <a
               href="https://t.me/Tap_Of_Exile_Bot"
@@ -39,7 +47,7 @@ export default function Layout() {
               className="nav-cta"
               onClick={() => setMenuOpen(false)}
             >
-              &#9992;&#65039; Play
+              &#9992;&#65039; {t('nav.play')}
             </a>
             <a
               href="https://discord.gg/mgCNqp9q"
@@ -48,9 +56,22 @@ export default function Layout() {
               className="nav-discord"
               onClick={() => setMenuOpen(false)}
             >
-              &#128172; Discord
+              &#128172; {t('nav.discord')}
             </a>
           </nav>
+
+          {/* Language switcher */}
+          <div className="lang-switcher">
+            {SUPPORTED_LANGS.map((lng) => (
+              <button
+                key={lng}
+                className={`lang-btn${i18n.language === lng ? ' active' : ''}`}
+                onClick={() => switchLang(lng)}
+              >
+                {t(`lang.${lng}`)}
+              </button>
+            ))}
+          </div>
 
           <button
             className="header-burger"
@@ -72,12 +93,12 @@ export default function Layout() {
             <span>&#9876;&#65039;</span> Tap of Exile
           </Link>
           <div className="footer-links">
-            <a href="https://discord.gg/mgCNqp9q" target="_blank" rel="noopener noreferrer">Discord</a>
-            <a href="https://t.me/Tap_Of_Exile_Bot" target="_blank" rel="noopener noreferrer">Telegram Bot</a>
-            <Link to="/wiki">Wiki</Link>
-            <Link to="/champions">Champions</Link>
+            <a href="https://discord.gg/mgCNqp9q" target="_blank" rel="noopener noreferrer">{t('nav.discord')}</a>
+            <a href="https://t.me/Tap_Of_Exile_Bot" target="_blank" rel="noopener noreferrer">{t('nav.telegramBot')}</a>
+            <Link to="/wiki">{t('nav.wiki')}</Link>
+            <Link to="/champions">{t('nav.champions')}</Link>
           </div>
-          <p className="footer-copy">&copy; EKNM, underground since 201X</p>
+          <p className="footer-copy">{t('footer.copyright')}</p>
         </div>
       </footer>
     </div>

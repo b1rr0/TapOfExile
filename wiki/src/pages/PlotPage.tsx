@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ActData {
   act: number;
@@ -122,14 +123,16 @@ const ACTS: ActData[] = [
 ];
 
 export default function PlotPage() {
+  const { t } = useTranslation('plot');
+  const { t: tc } = useTranslation('common');
   const [selectedAct, setSelectedAct] = useState(0);
   const act = ACTS[selectedAct];
 
   return (
     <>
       <div className="page-heading">
-        <h1>Main Plot</h1>
-        <p>Journey through 5 acts with 50 unique locations, each with its own enemies, story, and modifiers.</p>
+        <h1>{t('title')}</h1>
+        <p>{t('subtitle')}</p>
       </div>
 
       <div className="tab-bar">
@@ -139,7 +142,7 @@ export default function PlotPage() {
             className={`tab-btn ${i === selectedAct ? 'active' : ''}`}
             onClick={() => setSelectedAct(i)}
           >
-            {a.icon} Act {a.act}: {a.name}
+            {a.icon} {t('actLabel', { num: a.act, name: a.name })}
           </button>
         ))}
       </div>
@@ -148,16 +151,16 @@ export default function PlotPage() {
         <div className="card-header">
           <div className="card-icon" style={{ fontSize: '2.5rem' }}>{act.icon}</div>
           <div>
-            <div className="card-title" style={{ fontSize: '1.4rem' }}>Act {act.act}: {act.name}</div>
+            <div className="card-title" style={{ fontSize: '1.4rem' }}>{t('actLabel', { num: act.act, name: act.name })}</div>
             <div className="card-subtitle">{act.theme}</div>
           </div>
         </div>
         <div className="card-body">
-          <strong>Act Boss:</strong> {act.bossDesc}
+          <strong>{t('actBoss')}</strong> {act.bossDesc}
         </div>
       </div>
 
-      <h3 className="section-title">Act Modifiers</h3>
+      <h3 className="section-title">{t('actModifiers')}</h3>
       <div className="card-grid cols-2" style={{ marginBottom: '1.5rem' }}>
         {act.modifiers.map((m) => (
           <div key={m.name} className="card" style={{
@@ -167,22 +170,22 @@ export default function PlotPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '1.3rem' }}>{m.icon}</span>
               <strong style={{ color: 'var(--text-heading)' }}>{m.name}</strong>
-              <span className={`badge ${m.type === 'buff' ? 'badge-rare' : 'badge-boss'}`}>{m.type}</span>
+              <span className={`badge ${m.type === 'buff' ? 'badge-rare' : 'badge-boss'}`}>{tc(`ui.${m.type}`)}</span>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem' }}>{m.description}</p>
           </div>
         ))}
       </div>
 
-      <h3 className="section-title">Locations ({act.locations.length})</h3>
+      <h3 className="section-title">{t('locations', { count: act.locations.length })}</h3>
       <div style={{ overflowX: 'auto' }}>
         <table className="wiki-table">
           <thead>
             <tr>
-              <th>Order</th>
-              <th>Location</th>
-              <th>Description</th>
-              <th>Type</th>
+              <th>{t('thOrder')}</th>
+              <th>{t('thLocation')}</th>
+              <th>{t('thDescription')}</th>
+              <th>{t('thType')}</th>
             </tr>
           </thead>
           <tbody>
@@ -193,8 +196,8 @@ export default function PlotPage() {
                 <td style={{ maxWidth: '400px' }}>{loc.description}</td>
                 <td>
                   {loc.order <= 8
-                    ? <span className="badge badge-rare">Main</span>
-                    : <span className="badge badge-common">Side</span>
+                    ? <span className="badge badge-rare">{tc('ui.main')}</span>
+                    : <span className="badge badge-common">{tc('ui.side')}</span>
                   }
                 </td>
               </tr>
@@ -203,33 +206,28 @@ export default function PlotPage() {
         </table>
       </div>
 
-      <h2 className="section-title" style={{ marginTop: '2rem' }}>Progression Rules</h2>
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>{t('progressionTitle')}</h2>
       <div className="card-grid cols-2">
         <div className="card">
-          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>Location Unlock Pattern</h4>
-          <div className="formula-box" style={{ margin: 0 }}>
-            Order 1: Always unlocked<br />
-            Order 2-8: Requires previous order<br />
-            Order 9: Requires Order 3<br />
-            Order 10: Requires Order 5
-          </div>
+          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>{t('unlockPattern')}</h4>
+          <ul style={{ paddingLeft: '1.2rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <li>{t('unlock1')}</li>
+            <li>{t('unlock2')}</li>
+            <li>{t('unlock3')}</li>
+            <li>{t('unlock4')}</li>
+          </ul>
         </div>
         <div className="card">
-          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>Act Unlock Requirements</h4>
-          <div className="formula-box" style={{ margin: 0 }}>
-            Act N+1 unlocks when Act N main chain<br />
-            (orders 1-8) is fully completed.<br />
-            Side branches (9-10) are optional.
-          </div>
+          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>{t('actUnlock')}</h4>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            {t('actUnlockDesc')}
+          </p>
         </div>
       </div>
 
       <div className="info-box" style={{ marginTop: '1.5rem' }}>
-        <h4>Monster Level Formula</h4>
-        <p>
-          <code style={{ color: 'var(--accent-gold)' }}>monsterLevel = (act - 1) * 10 + order</code>
-          <br />Range: Level 1 (Act 1, Order 1) to Level 50 (Act 5, Order 10)
-        </p>
+        <h4>{t('monsterLevels')}</h4>
+        <p dangerouslySetInnerHTML={{ __html: t('monsterLevelsDesc') }} />
       </div>
     </>
   );
