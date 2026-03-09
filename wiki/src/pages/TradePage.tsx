@@ -210,42 +210,50 @@ export default function TradePage() {
 
             <div className="trade-filter-group">
               <label className="trade-filter-label">{t('filterCategory')}</label>
-              <div className="trade-filter-chips">
-                <button className={`trade-chip${catFilter === 'all' ? ' active' : ''}`} onClick={() => setCatFilter('all')}>{tc('ui.all')}</button>
+              <select
+                className="trade-select"
+                value={catFilter}
+                onChange={(e) => setCatFilter(e.target.value as ItemType | 'all')}
+              >
+                <option value="all">{tc('ui.all')}</option>
                 {(Object.keys(CATEGORY_LABELS) as ItemType[]).map((c) => (
-                  <button key={c} className={`trade-chip${catFilter === c ? ' active' : ''}`} onClick={() => setCatFilter(c)}>
+                  <option key={c} value={c}>
                     {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
-                  </button>
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             <div className="trade-filter-group">
               <label className="trade-filter-label">{t('filterQuality')}</label>
-              <div className="trade-filter-chips">
-                <button className={`trade-chip${qualFilter === 'all' ? ' active' : ''}`} onClick={() => setQualFilter('all')}>{tc('ui.all')}</button>
+              <select
+                className="trade-select"
+                value={qualFilter}
+                onChange={(e) => setQualFilter(e.target.value as Quality | 'all')}
+              >
+                <option value="all">{tc('ui.all')}</option>
                 {(['common', 'rare', 'epic', 'legendary'] as Quality[]).map((q) => (
-                  <button key={q} className={`trade-chip trade-chip--${q}${qualFilter === q ? ' active' : ''}`} onClick={() => setQualFilter(q)}>
-                    {q}
-                  </button>
+                  <option key={q} value={q}>{q}</option>
                 ))}
-              </div>
+              </select>
             </div>
 
             <div className="trade-filter-group">
               <label className="trade-filter-label">{t('filterSort')}</label>
-              <div className="trade-filter-chips">
+              <select
+                className="trade-select"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+              >
                 {([
                   ['newest', t('sortNewest')],
                   ['price_asc', t('sortPriceAsc')],
                   ['price_desc', t('sortPriceDesc')],
                   ['quality', t('sortQuality')],
                 ] as [SortKey, string][]).map(([key, label]) => (
-                  <button key={key} className={`trade-chip${sort === key ? ' active' : ''}`} onClick={() => setSort(key)}>
-                    {label}
-                  </button>
+                  <option key={key} value={key}>{label}</option>
                 ))}
-              </div>
+              </select>
             </div>
           </div>
 

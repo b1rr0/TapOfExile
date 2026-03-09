@@ -2429,65 +2429,40 @@ body {
    BAG TABS — dynamic type filter tabs
    ============================================= */
 
-.bag-tabs {
-  display: flex;
-  gap: 6px;
+.bag-filter-row {
   padding: 0 16px 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
 }
 
-.bag-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.bag-tab {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  padding: 6px 10px;
+.bag-type-select {
+  width: 100%;
+  padding: 8px 12px;
   border: 2px solid #3a2878;
   border-radius: 8px;
   background: linear-gradient(145deg, #1e1548 0%, #15103a 100%);
-  color: rgba(160, 140, 210, 0.7);
-  font-size: 11px;
+  color: #e0d4ff;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.3px;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a08cd2' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.bag-tab:active {
-  transform: scale(0.95);
-}
-
-.bag-tab--active {
+.bag-type-select:focus {
   border-color: #7b5cf0;
-  color: #e0d4ff;
-  background: linear-gradient(145deg, #2a1e60 0%, #1e1548 100%);
   box-shadow: 0 0 8px rgba(123, 92, 240, 0.3);
 }
 
-.bag-tab__icon {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.bag-tab__label {
-  white-space: nowrap;
-}
-
-.bag-tab__count {
-  font-size: 9px;
-  color: rgba(160, 140, 210, 0.5);
-  font-weight: 600;
-}
-
-.bag-tab--active .bag-tab__count {
-  color: rgba(200, 185, 240, 0.7);
+.bag-type-select option {
+  background: #15103a;
+  color: #e0d4ff;
+  padding: 6px;
 }
 
 /* =============================================

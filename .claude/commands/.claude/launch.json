@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "wiki",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../../wiki/node_modules/vite/bin/vite.js", "../../wiki", "--port", "3002", "--host"],
+      "port": 3002
+    },
+    {
       "name": "tree-viewer",
       "runtimeExecutable": "node",
       "runtimeArgs": ["../../bot/node_modules/tsx/dist/cli.mjs", "../../shared/serve-tree.ts", "3333"],

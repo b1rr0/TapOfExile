@@ -145,8 +145,12 @@ export class ChestPanel {
 
         <h2 class="bag-title">Chest</h2>
 
-        <!-- Tabs -->
-        <div class="bag-tabs" id="bag-tabs"></div>
+        <!-- Type filter dropdown -->
+        <div class="bag-filter-row">
+          <select class="bag-type-select" id="bag-type-select">
+            <option value="all">All</option>
+          </select>
+        </div>
 
         <!-- Sort buttons -->
         <div class="bag-sort-row">
@@ -195,16 +199,10 @@ export class ChestPanel {
       this._renderGrid();
     });
 
-    // Tab clicks (delegated)
-    this._el.querySelector("#bag-tabs")!.addEventListener("click", (e: Event) => {
-      const btn = (e.target as HTMLElement).closest(".bag-tab") as HTMLElement | null;
-      if (!btn) return;
-      const tab = btn.dataset.tab as TabType;
-      if (tab === this._activeTab) return;
-      this._activeTab = tab;
-      this._el!.querySelectorAll(".bag-tab").forEach((b) => {
-        b.classList.toggle("bag-tab--active", (b as HTMLElement).dataset.tab === tab);
-      });
+    // Type filter dropdown
+    this._el.querySelector("#bag-type-select")!.addEventListener("change", (e: Event) => {
+      const select = e.target as HTMLSelectElement;
+      this._activeTab = select.value as TabType;
       this._renderGrid();
     });
 
@@ -265,11 +263,11 @@ export class ChestPanel {
     });
   }
 
-  /* ── Tabs ───────────────────────────────────────────────── */
+  /* ── Type filter dropdown ────────────────────────────────── */
 
   _renderTabs(): void {
-    const tabsEl = this._el!.querySelector("#bag-tabs");
-    if (!tabsEl) return;
+    const selectEl = this._el!.querySelector("#bag-type-select") as HTMLSelectElement | null;
+    if (!selectEl) return;
 
     const items = this._getBagItems();
 
@@ -279,12 +277,10 @@ export class ChestPanel {
       tabKeys.add(getItemTabKey(item));
     }
 
-    // "All" tab always first
-    let html = `<button class="bag-tab ${this._activeTab === "all" ? "bag-tab--active" : ""}" data-tab="all">
-      <span class="bag-tab__icon">${TAB_CONFIG.all.icon}</span>
-      <span class="bag-tab__label">${TAB_CONFIG.all.label}</span>
-      <span class="bag-tab__count">${items.length}</span>
-    </button>`;
+    // Build options — "All" always first
+    let html = `<option value="all" ${this._activeTab === "all" ? "selected" : ""}>
+      ${TAB_CONFIG.all.icon} ${TAB_CONFIG.all.label} (${items.length})
+    </option>`;
 
     // Ordered tab keys (equipment slots first, then non-equipment)
     const orderedKeys = [
@@ -296,14 +292,12 @@ export class ChestPanel {
       if (!tabKeys.has(key)) continue;
       const cfg = TAB_CONFIG[key] || { label: key, icon: "?" };
       const count = items.filter((i) => getItemTabKey(i) === key).length;
-      html += `<button class="bag-tab ${this._activeTab === key ? "bag-tab--active" : ""}" data-tab="${key}">
-        <span class="bag-tab__icon">${cfg.icon}</span>
-        <span class="bag-tab__label">${cfg.label}</span>
-        <span class="bag-tab__count">${count}</span>
-      </button>`;
+      html += `<option value="${key}" ${this._activeTab === key ? "selected" : ""}>
+        ${cfg.icon} ${cfg.label} (${count})
+      </option>`;
     }
 
-    tabsEl.innerHTML = html;
+    selectEl.innerHTML = html;
   }
 
   /* ── Grid rendering ────────────────────────────────────── */
