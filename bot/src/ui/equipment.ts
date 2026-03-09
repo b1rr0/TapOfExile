@@ -56,6 +56,7 @@ export class Equipment {
   _el: HTMLElement | null;
   _toggleBtn: HTMLButtonElement | null;
   _goldEl: HTMLElement | null;
+  _levelEl: HTMLElement | null;
   _potionModalEl: HTMLElement | null;
   _onGoldChanged: ((data: GoldChangedData) => void) | null;
   _onStateLoaded: ((state: GameData) => void) | null;
@@ -75,6 +76,7 @@ export class Equipment {
     this._el = null;
     this._toggleBtn = null;
     this._goldEl = null;
+    this._levelEl = null;
     this._potionModalEl = null;
     this._onGoldChanged = null;
     this._onStateLoaded = null;
@@ -116,10 +118,16 @@ export class Equipment {
       <div class="equipment-panel">
         <button class="equipment-close-btn" id="equipment-close">&times;</button>
 
-        <!-- Gold (only visible in equipment) -->
-        <div class="equipment-gold-row">
-          <span class="equipment-gold__icon">&#9789;</span>
-          <span class="equipment-gold__value" id="equipment-gold">0</span>
+        <!-- Info bar: level + gold -->
+        <div class="equipment-info-row">
+          <div class="equipment-info-item">
+            <span class="equipment-info__label">Lv</span>
+            <span class="equipment-info__value" id="equipment-level">1</span>
+          </div>
+          <div class="equipment-info-item">
+            <span class="equipment-info__icon">&#x1FA99;</span>
+            <span class="equipment-info__value" id="equipment-gold">0</span>
+          </div>
         </div>
 
         <h2 class="equipment-title">Equipment</h2>
@@ -204,8 +212,9 @@ export class Equipment {
 
     this.container.appendChild(this._el);
 
-    // Gold display ref
+    // Info bar refs
     this._goldEl = this._el.querySelector("#equipment-gold");
+    this._levelEl = this._el.querySelector("#equipment-level");
     this._potionModalEl = this._el.querySelector("#equip-potion-modal");
 
     // Listen for gold changes
@@ -214,9 +223,14 @@ export class Equipment {
     };
     this.events.on("goldChanged", this._onGoldChanged);
 
-    // Sync initial gold + potion slots when state is loaded
+    // Sync initial gold + level + potion slots when state is loaded
     this._onStateLoaded = (state: GameData): void => {
       if (this._goldEl && state.player) this._goldEl.textContent = String(state.player.gold);
+      if (this._levelEl) {
+        const chars = state.characters || [];
+        const active = state.activeCharacterId ? chars.find((c: any) => c.id === state.activeCharacterId) : null;
+        if (active) this._levelEl.textContent = String(active.level || 1);
+      }
       this._renderPotionSlots(state);
     };
     this.events.on("stateLoaded", this._onStateLoaded);
@@ -280,7 +294,7 @@ export class Equipment {
     this._showPotionModal(`
       <div class="equip-potion-modal__sprite">
         <img src="/assets/equipments/consumables/${potionData.flaskType}s/red_${spriteIdx}.png"
-             style="width:48px;height:48px;image-rendering:pixelated">
+             style="width:62px;height:62px;image-rendering:pixelated">
       </div>
       <div class="equip-potion-modal__name" style="color:${q.color}">${potionData.name || potionData.flaskType}</div>
       <div class="equip-potion-modal__quality" style="color:${q.color}">${q.label}</div>
@@ -351,7 +365,7 @@ export class Equipment {
       return `
         <div class="equip-picker__item" data-item-id="${item.id}">
           <div class="equip-picker__icon">
-            <img src="/assets/equipments/consumables/${item.flaskType}s/red_${spriteIdx}.png" style="width:32px;height:32px;image-rendering:pixelated">
+            <img src="/assets/equipments/consumables/${item.flaskType}s/red_${spriteIdx}.png" style="width:42px;height:42px;image-rendering:pixelated">
           </div>
           <div class="equip-picker__info">
             <div class="equip-picker__name" style="color:${q.color}">${item.name || item.flaskType}</div>
@@ -432,6 +446,10 @@ export class Equipment {
     this._renderPotionSlots(this.state.data);
     if (this._goldEl && this.state.data.player) {
       this._goldEl.textContent = String(this.state.data.player.gold);
+    }
+    const char = this._getActiveCharacter();
+    if (this._levelEl && char) {
+      this._levelEl.textContent = String(char.level || 1);
     }
 
     this._el!.classList.remove("hidden", "equipment-closing");
@@ -524,7 +542,7 @@ export class Equipment {
       : '';
 
     const iconHtml = gearData.icon
-      ? `<div class="equip-potion-modal__sprite"><img src="${gearData.icon}" style="width:48px;height:48px;image-rendering:pixelated"></div>`
+      ? `<div class="equip-potion-modal__sprite"><img src="${gearData.icon}" style="width:96px;height:96px;image-rendering:pixelated"></div>`
       : '';
 
     this._showPotionModal(`
@@ -624,7 +642,7 @@ export class Equipment {
       return `
         <div class="equip-picker__item ${disabledCls}" data-item-id="${item.id}">
           <div class="equip-picker__icon">
-            ${item.icon ? `<img src="${item.icon}" style="width:32px;height:32px;image-rendering:pixelated">` : '?'}
+            ${item.icon ? `<img src="${item.icon}" style="width:64px;height:64px;image-rendering:pixelated">` : '?'}
           </div>
           <div class="equip-picker__info">
             <div class="equip-picker__name" style="color:${q.color}">${item.name}</div>
@@ -705,17 +723,16 @@ export class Equipment {
         const charges = potionData.currentCharges || 0;
         const maxCharges = potionData.maxCharges || 0;
         const spriteIdx = Math.min(Math.max(charges, 1), 5);
-        iconEl.innerHTML = `<img src="/assets/equipments/consumables/${potionData.flaskType}s/red_${spriteIdx}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+        iconEl.innerHTML = `<img src="/assets/equipments/consumables/${potionData.flaskType}s/red_${spriteIdx}.png" style="width:42px;height:42px;image-rendering:pixelated">`;
         const labelEl = slotEl.querySelector('.inv-slot__label') as HTMLElement | null;
-        if (labelEl) {
-          labelEl.textContent = charges > 0 ? `${charges}/${maxCharges}` : slotId === 'consumable-1' ? 'Q' : 'E';
-        }
+        if (labelEl) labelEl.style.display = 'none';
         slotEl.classList.remove("inv-slot--potion-empty");
       } else {
         iconEl.innerHTML = "&#x1F9EA;";
         const labelEl = slotEl.querySelector('.inv-slot__label') as HTMLElement | null;
         if (labelEl) {
           labelEl.textContent = slotId === 'consumable-1' ? 'Q' : 'E';
+          labelEl.style.display = '';
         }
         slotEl.classList.add("inv-slot--potion-empty");
       }
@@ -740,12 +757,12 @@ export class Equipment {
         slotEl.style.borderColor = q.color;
         slotEl.classList.add('inv-slot--filled');
         if (iconEl && gearData.icon) {
-          iconEl.innerHTML = `<img src="${gearData.icon}" style="width:36px;height:36px;image-rendering:pixelated">`;
+          const imgSize = slotId === 'chest' ? 109 : 72;
+          iconEl.innerHTML = `<img src="${gearData.icon}" style="width:${imgSize}px;height:${imgSize}px;image-rendering:pixelated">`;
         }
+        // Hide label when item is equipped — let the image fill the slot
         if (labelEl) {
-          const props = gearData.properties || {};
-          labelEl.textContent = `Lv.${props.reqLevel || '?'}`;
-          labelEl.style.color = q.color;
+          labelEl.style.display = 'none';
         }
       } else {
         slotEl.style.borderColor = '';
@@ -781,6 +798,7 @@ export class Equipment {
           };
           labelEl.textContent = defaultLabels[slotId] || slotId;
           labelEl.style.color = '';
+          labelEl.style.display = '';
         }
       }
     }

@@ -102,7 +102,7 @@ export class TradePanel {
         <h2 class="trade-title">Trade Market</h2>
 
         <div class="trade-gold-row">
-          <span class="trade-gold-icon">&#x1F4B0;</span>
+          <span class="trade-gold-icon">&#x1FA99;</span>
           <span class="trade-gold-value" id="trade-gold-value">${formatGold(this.state.data.gold)}</span>
         </div>
 

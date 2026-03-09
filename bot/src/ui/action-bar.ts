@@ -243,7 +243,7 @@ export async function initAbilitySlots(opts: AbilitySlotOptions): Promise<() => 
     await projectileLayer.load(skillId, jsonUrl);
 
     // Extract first frame as icon
-    const iconCanvas = projectileLayer.getIcon(skillId, 28);
+    const iconCanvas = projectileLayer.getIcon(skillId, 56);
     if (iconCanvas) {
       iconCanvas.className = "ability-icon";
       btn.prepend(iconCanvas);

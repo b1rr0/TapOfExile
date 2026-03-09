@@ -848,8 +848,8 @@ describe('tierQuality', () => {
 describe('getTierDef', () => {
   it('returns correct tier definition', () => {
     expect(getTierDef(1).hpMul).toBe(1.0);
-    expect(getTierDef(5).hpMul).toBe(4.5);
-    expect(getTierDef(10).hpMul).toBe(25.0);
+    expect(getTierDef(5).hpMul).toBe(2.8);
+    expect(getTierDef(10).hpMul).toBe(10.0);
   });
 
   it('clamps to tier 1 when tier <= 0', () => {
@@ -1076,24 +1076,24 @@ describe('statsAtLevel', () => {
       expect(stats.dodgeChance).toBe(0.02);
     });
 
-    it('level 2: hp = floor(100 + 18*1) = 118', () => {
-      expect(statsAtLevel('warrior', 2).hp).toBe(118);
+    it('level 2: hp = floor(100 + 20*1) = 120', () => {
+      expect(statsAtLevel('warrior', 2).hp).toBe(120);
     });
 
-    it('level 2: tapDamage = floor(2 + 1.4*1) = floor(3.4) = 3', () => {
-      expect(statsAtLevel('warrior', 2).tapDamage).toBe(3);
+    it('level 2: tapDamage = floor(2 + 2.0*1) = floor(4.0) = 4', () => {
+      expect(statsAtLevel('warrior', 2).tapDamage).toBe(4);
     });
 
-    it('level 2: critChance = 0.05 + 0.001 = 0.051', () => {
-      expect(statsAtLevel('warrior', 2).critChance).toBeCloseTo(0.051, 4);
+    it('level 2: critChance = 0.05 + 0.002 = 0.052', () => {
+      expect(statsAtLevel('warrior', 2).critChance).toBeCloseTo(0.052, 4);
     });
 
-    it('level 60: hp = floor(100 + 18*59) = 1162', () => {
-      expect(statsAtLevel('warrior', 60).hp).toBe(1162);
+    it('level 60: hp = floor(100 + 20*59) = 1280', () => {
+      expect(statsAtLevel('warrior', 60).hp).toBe(1280);
     });
 
-    it('level 60: tapDamage = floor(2 + 1.4*59) = floor(84.6) = 84', () => {
-      expect(statsAtLevel('warrior', 60).tapDamage).toBe(84);
+    it('level 60: tapDamage = floor(2 + 2.0*59) = floor(120.0) = 120', () => {
+      expect(statsAtLevel('warrior', 60).tapDamage).toBe(120);
     });
 
     it('level > MAX_LEVEL is clamped to MAX_LEVEL (60)', () => {
@@ -1171,16 +1171,16 @@ describe('statsAtLevel', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('specialAtLevel', () => {
-  it('warrior block at level 1 = 0.15 (15%)', () => {
-    expect(specialAtLevel('warrior', 1)).toBe(0.15);
+  it('warrior block at level 1 = 0.20 (20%)', () => {
+    expect(specialAtLevel('warrior', 1)).toBe(0.20);
   });
 
-  it('warrior block at level 10: 0.15 + 0.002*9 = 0.168', () => {
-    expect(specialAtLevel('warrior', 10)).toBeCloseTo(0.168, 4);
+  it('warrior block at level 10: 0.20 + 0.003*9 = 0.227', () => {
+    expect(specialAtLevel('warrior', 10)).toBeCloseTo(0.227, 4);
   });
 
-  it('warrior block at level 60: 0.15 + 0.002*59 = 0.268', () => {
-    expect(specialAtLevel('warrior', 60)).toBeCloseTo(0.268, 4);
+  it('warrior block at level 60: 0.20 + 0.003*59 = 0.377', () => {
+    expect(specialAtLevel('warrior', 60)).toBeCloseTo(0.377, 4);
   });
 
   it('samurai lethal precision at level 1 = 0.50', () => {
@@ -1281,8 +1281,8 @@ describe('XP level-scaling formula', () => {
     return Math.max(1, Math.floor(baseXp / (1 + A * D * D)));
   }
 
-  it('A = 0.4 (scaling coefficient)', () => {
-    expect(A).toBe(0.4);
+  it('A = 0.3 (scaling coefficient — softer penalty)', () => {
+    expect(A).toBe(0.3);
   });
 
   it('D=0 (same level): no reduction', () => {
@@ -1290,28 +1290,28 @@ describe('XP level-scaling formula', () => {
     expect(scaleXp(500, 0)).toBe(500);
   });
 
-  it('D=1: floor(100 / 1.4) = 71', () => {
-    // 1 + 0.4*1 = 1.4 → floor(100/1.4) = floor(71.43) = 71
-    expect(scaleXp(100, 1)).toBe(71);
+  it('D=1: floor(100 / 1.3) = 76', () => {
+    // 1 + 0.3*1 = 1.3 → floor(100/1.3) = floor(76.92) = 76
+    expect(scaleXp(100, 1)).toBe(76);
   });
 
-  it('D=5: floor(100 / 11) = 9', () => {
-    // 1 + 0.4*25 = 11 → floor(100/11) = 9
-    expect(scaleXp(100, 5)).toBe(9);
+  it('D=5: floor(100 / 8.5) = 11', () => {
+    // 1 + 0.3*25 = 8.5 → floor(100/8.5) = 11
+    expect(scaleXp(100, 5)).toBe(11);
   });
 
-  it('D=10: floor(100 / 41) = 2', () => {
-    // 1 + 0.4*100 = 41 → floor(100/41) = 2
-    expect(scaleXp(100, 10)).toBe(2);
+  it('D=10: floor(100 / 31) = 3', () => {
+    // 1 + 0.3*100 = 31 → floor(100/31) = 3
+    expect(scaleXp(100, 10)).toBe(3);
   });
 
   it('large D: always minimum 1 (never drops to 0)', () => {
-    expect(scaleXp(1, 50)).toBe(1);   // 1/(1+0.4*2500)=1/1001 ≈ 0 → max(1,0)=1
+    expect(scaleXp(1, 50)).toBe(1);   // 1/(1+0.3*2500)=1/751 ≈ 0 → max(1,0)=1
     expect(scaleXp(1, 100)).toBe(1);
   });
 
   it('minimum 1 guarantee applies even with tiny baseXp', () => {
-    expect(scaleXp(1, 10)).toBe(1);   // 1/41 ≈ 0 → 1
+    expect(scaleXp(1, 10)).toBe(1);   // 1/31 ≈ 0 → 1
   });
 
   it('higher D means less XP (monotonically decreasing)', () => {
@@ -1324,8 +1324,9 @@ describe('XP level-scaling formula', () => {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 18. Monster stat formulas (using B constants)
-//     hp = MONSTER_HP_BASE * MONSTER_HP_GROWTH^(order-1) * rarityMul
-//     dmg = MONSTER_DMG_BASE * MONSTER_DMG_GROWTH^(order-1) * rarityDmgMul
+//     hp  = MONSTER_HP_BASE  * HP_GROWTH^(order-1) * ACT_HP_SCALING^(act-1)  * rarityHpMul
+//     dmg = MONSTER_DMG_BASE * DMG_GROWTH^(order-1) * ACT_DMG_SCALING^(act-1) * rarityDmgMul
+//     Design: HP >> DMG (PoE-style spongy monsters, dangerous attacks)
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('Monster HP formula', () => {
@@ -1335,28 +1336,37 @@ describe('Monster HP formula', () => {
       B.RARITY_MULTIPLIERS[rarity].hpMul;
   }
 
-  it('order 1, common: HP = BASE = 10', () => {
-    expect(monsterHp(1, 'common')).toBe(10);
+  it('order 1, common: HP = BASE = 300', () => {
+    expect(monsterHp(1, 'common')).toBe(300);
   });
 
-  it('order 2, common: HP = 10 * 1.5 = 15', () => {
-    expect(monsterHp(2, 'common')).toBeCloseTo(15, 5);
+  it('order 2, common: HP = 300 * 1.55 = 465', () => {
+    expect(monsterHp(2, 'common')).toBeCloseTo(465, 0);
   });
 
-  it('order 3, common: HP = 10 * 1.5^2 = 22.5', () => {
-    expect(monsterHp(3, 'common')).toBeCloseTo(22.5, 5);
+  it('order 3, common: HP = 300 * 1.55^2 = 720.75', () => {
+    expect(monsterHp(3, 'common')).toBeCloseTo(720.75, 0);
   });
 
-  it('order 1, rare: HP = 10 * 1.6 = 16', () => {
-    expect(monsterHp(1, 'rare')).toBeCloseTo(16, 5);
+  it('order 1, rare: HP = 300 * 1.6 = 480', () => {
+    expect(monsterHp(1, 'rare')).toBeCloseTo(480, 0);
   });
 
-  it('order 1, epic: HP = 10 * 2.5 = 25', () => {
-    expect(monsterHp(1, 'epic')).toBeCloseTo(25, 5);
+  it('order 1, epic: HP = 300 * 2.5 = 750', () => {
+    expect(monsterHp(1, 'epic')).toBeCloseTo(750, 0);
   });
 
-  it('order 1, boss: HP = 10 * 4.0 = 40', () => {
-    expect(monsterHp(1, 'boss')).toBeCloseTo(40, 5);
+  it('order 1, boss: HP = 300 * 4.0 = 1200', () => {
+    expect(monsterHp(1, 'boss')).toBeCloseTo(1200, 0);
+  });
+
+  it('A5 O10 boss HP ≈ 16M (target: 10-20M)', () => {
+    const a5o10boss = B.MONSTER_HP_BASE *
+      Math.pow(B.MONSTER_HP_GROWTH, 9) *
+      Math.pow(B.ACT_HP_SCALING, 4) *
+      B.RARITY_MULTIPLIERS.boss.hpMul;
+    expect(a5o10boss).toBeGreaterThan(10_000_000);
+    expect(a5o10boss).toBeLessThan(20_000_000);
   });
 
   it('higher order = higher HP (exponential growth)', () => {
@@ -1373,6 +1383,12 @@ describe('Monster HP formula', () => {
       expect(vals[i]).toBeLessThan(vals[i + 1]);
     }
   });
+
+  it('HP >> DMG ratio (PoE-style): A5O10 HP:DMG > 300:1', () => {
+    const hp = B.MONSTER_HP_BASE * Math.pow(B.MONSTER_HP_GROWTH, 9) * Math.pow(B.ACT_HP_SCALING, 4);
+    const dmg = B.MONSTER_DMG_BASE * Math.pow(B.MONSTER_DMG_GROWTH, 9) * Math.pow(B.ACT_DMG_SCALING, 4);
+    expect(hp / dmg).toBeGreaterThan(300);
+  });
 });
 
 describe('Monster damage formula', () => {
@@ -1382,20 +1398,29 @@ describe('Monster damage formula', () => {
       B.RARITY_DMG_MULTIPLIERS[rarity];
   }
 
-  it('order 1, common: DMG = BASE = 3', () => {
-    expect(monsterDmg(1, 'common')).toBe(3);
+  it('order 1, common: DMG = BASE = 15', () => {
+    expect(monsterDmg(1, 'common')).toBe(15);
   });
 
-  it('order 2, common: DMG = 3 * 1.4 = 4.2', () => {
-    expect(monsterDmg(2, 'common')).toBeCloseTo(4.2, 5);
+  it('order 2, common: DMG = 15 * 1.15 = 17.25', () => {
+    expect(monsterDmg(2, 'common')).toBeCloseTo(17.25, 2);
   });
 
-  it('order 1, rare: DMG = 3 * 1.3 = 3.9', () => {
-    expect(monsterDmg(1, 'rare')).toBeCloseTo(3.9, 5);
+  it('order 1, rare: DMG = 15 * 1.3 = 19.5', () => {
+    expect(monsterDmg(1, 'rare')).toBeCloseTo(19.5, 2);
   });
 
-  it('order 1, boss: DMG = 3 * 2.5 = 7.5', () => {
-    expect(monsterDmg(1, 'boss')).toBeCloseTo(7.5, 5);
+  it('order 1, boss: DMG = 15 * 2.5 = 37.5', () => {
+    expect(monsterDmg(1, 'boss')).toBeCloseTo(37.5, 2);
+  });
+
+  it('A5 O10 boss DMG ≈ 20K (target: 20-30K)', () => {
+    const a5o10bossDmg = B.MONSTER_DMG_BASE *
+      Math.pow(B.MONSTER_DMG_GROWTH, 9) *
+      Math.pow(B.ACT_DMG_SCALING, 4) *
+      B.RARITY_DMG_MULTIPLIERS['boss'];
+    expect(a5o10bossDmg).toBeGreaterThan(15_000);
+    expect(a5o10bossDmg).toBeLessThan(35_000);
   });
 
   it('±10% variance constant is correct', () => {
@@ -1420,14 +1445,20 @@ describe('Balance constants integrity', () => {
     expect(MAX_LEVEL).toBe(60);
   });
 
-  it('XP growth: XP_BASE=100, XP_GROWTH=1.3', () => {
+  it('XP growth: XP_BASE=100, XP_GROWTH=1.18', () => {
     expect(B.XP_BASE).toBe(100);
-    expect(B.XP_GROWTH).toBe(1.3);
+    expect(B.XP_GROWTH).toBe(1.18);
   });
 
   it('monster HP base/growth correct', () => {
-    expect(B.MONSTER_HP_BASE).toBe(10);
-    expect(B.MONSTER_HP_GROWTH).toBe(1.5);
+    expect(B.MONSTER_HP_BASE).toBe(300);
+    expect(B.MONSTER_HP_GROWTH).toBe(1.55);
+  });
+
+  it('separate act scaling: HP > DMG > Gold/XP', () => {
+    expect(B.ACT_HP_SCALING).toBe(4.0);
+    expect(B.ACT_DMG_SCALING).toBe(3.5);
+    expect(B.ACT_SCALING_BASE).toBe(3.5);
   });
 
   it('monster HP random variance is ±15%', () => {

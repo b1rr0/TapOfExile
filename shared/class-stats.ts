@@ -72,10 +72,10 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       resistance: { physical: 30, fire: 0, lightning: 0, cold: 0 },
     },
     growth: {
-      hp: 18,
-      tapDamage: 1.4,
-      critChance: 0.001,
-      critMultiplier: 0.01,
+      hp: 20,              // was 18 — best survivability
+      tapDamage: 2.0,      // was 1.4 — significant DPS buff to reduce gap with Mage
+      critChance: 0.002,   // was 0.001
+      critMultiplier: 0.015, // was 0.01
       dodgeChance: 0.001,
     },
     special: {
@@ -83,8 +83,8 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       name: 'Block',
       icon: '🛡️',
       description: 'Chance to block any incoming attack',
-      baseValue: 0.15,
-      growth: 0.002,
+      baseValue: 0.20,     // was 0.15 — stronger block baseline
+      growth: 0.003,       // was 0.002
       format: 'percent',
     },
   },

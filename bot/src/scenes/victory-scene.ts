@@ -118,7 +118,7 @@ export class VictoryScene {
 
           <div class="victory-rewards">
             <div class="victory-reward">
-              <span class="victory-reward__icon">&#9789;</span>
+              <span class="victory-reward__icon">&#x1FA99;</span>
               <span class="victory-reward__value">+${formatNumber(rewards.gold)}</span>
               <span class="victory-reward__label">Gold</span>
             </div>

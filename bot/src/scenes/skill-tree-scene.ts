@@ -3,6 +3,7 @@ import { validateAllocations } from "@shared/skill-tree-validation";
 import { ACTIVE_SKILLS } from "@shared/active-skills";
 import type { ActiveSkillDef } from "@shared/active-skills";
 import { api } from "../api.js";
+import { ProjectileLayer } from "../ui/projectile-layer.js";
 import type { SharedDeps, SkillTreeResult, NodeType } from "../types.js";
 import type { SkillNode } from "@shared/skill-tree";
 
@@ -55,6 +56,8 @@ export class SkillTreeScene {
   _classPtsEl: HTMLElement | null;
   _acceptBtn: HTMLButtonElement | null;
   _selectedNode: SkillNode | null;   // node currently showing tooltip (tap-to-inspect)
+  _projLayer: ProjectileLayer;
+  _iconCache: Map<string, HTMLCanvasElement>;
 
   _onPointerDown: ((e: PointerEvent) => void) | null;
   _onPointerMove: ((e: PointerEvent) => void) | null;
@@ -90,6 +93,8 @@ export class SkillTreeScene {
     this._classPtsEl = null;
     this._acceptBtn = null;
     this._selectedNode = null;
+    this._projLayer = new ProjectileLayer();
+    this._iconCache = new Map();
 
     this._onPointerDown = null;
     this._onPointerMove = null;
@@ -467,32 +472,35 @@ export class SkillTreeScene {
     if (!this._tooltip) return;
     let html = "";
 
-    // Active skill nodes — rich description
+    // Active skill nodes — rich preview card with icon
     const skillId = node.def?.activeSkillId;
     if (node.type === "activeSkill" && skillId) {
       const skill = ACTIVE_SKILLS[skillId as keyof typeof ACTIVE_SKILLS] as ActiveSkillDef | undefined;
       if (skill) {
+        // Icon placeholder + header row
+        html += `<div class="st-tip__preview">`;
+        html += `<div class="st-tip__icon-slot" id="st-tip-icon"></div>`;
+        html += `<div class="st-tip__preview-info">`;
         html += `<div class="st-tip__name">${skill.name}</div>`;
-        html += `<div class="st-tip__type" style="color:#DFFFFE">active skill</div>`;
-        html += `<div class="st-tip__skill-info">`;
+        html += `<div class="st-tip__type" style="color:#DFFFFE">active skill &middot; ${skill.skillType}</div>`;
+        html += `</div></div>`;
 
+        // Stats grid
+        html += `<div class="st-tip__stats-grid">`;
         if (skill.skillType === "damage") {
-          html += `<span class="st-tip__stat">DMG ×${skill.damageMultiplier}</span>`;
+          html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Damage</span><span class="st-tip__stat-value">&times;${skill.damageMultiplier}</span></div>`;
         } else if (skill.skillType === "heal") {
-          html += `<span class="st-tip__stat">Heal ${Math.round((skill.healPercent || 0) * 100)}% HP</span>`;
-        } else if (skill.skillType === "buff" || skill.skillType === "debuff") {
-          html += `<span class="st-tip__stat">${skill.skillType}</span>`;
+          html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Heal</span><span class="st-tip__stat-value">${Math.round((skill.healPercent || 0) * 100)}% HP</span></div>`;
         }
-
-        html += `<span class="st-tip__cd">CD ${(skill.cooldownMs / 1000).toFixed(1)}s</span>`;
-        html += `</div>`;
+        html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Cooldown</span><span class="st-tip__stat-value">${(skill.cooldownMs / 1000).toFixed(1)}s</span></div>`;
 
         // Elemental profile
         const elems = Object.entries(skill.elementalProfile).filter(([, v]) => v > 0);
         if (elems.length > 0) {
           const elemStr = elems.map(([el, v]) => `${el} ${Math.round(v * 100)}%`).join(", ");
-          html += `<div class="st-tip__elem">${elemStr}</div>`;
+          html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Element</span><span class="st-tip__stat-value">${elemStr}</span></div>`;
         }
+        html += `</div>`;
 
         // Effect description
         if (skill.effect) {
@@ -500,7 +508,7 @@ export class SkillTreeScene {
           const dur = (eff.durationMs / 1000).toFixed(0);
           const sign = eff.target === "enemy" ? "-" : "+";
           const valStr = eff.value < 1 ? `${Math.round(eff.value * 100)}%` : String(eff.value);
-          html += `<div class="st-tip__effect">${sign}${valStr} ${eff.stat} (${dur}s)</div>`;
+          html += `<div class="st-tip__effect">${sign}${valStr} ${eff.stat} for ${dur}s (${eff.target})</div>`;
         }
 
         // Level requirement + status hint
@@ -514,7 +522,6 @@ export class SkillTreeScene {
         if (this._allocated.has(node.id)) {
           html += `<div class="st-tip__hint">tap to remove</div>`;
         } else if (activeAllocated >= maxActiveSkills) {
-          // Calculate next level needed for +1 active skill
           const nextLevel = Math.ceil((activeAllocated + 1) * 45 / 8);
           html += `<div class="st-tip__hint" style="color:#A40239">requires level ${nextLevel}</div>`;
         } else {
@@ -523,6 +530,9 @@ export class SkillTreeScene {
 
         this._tooltip.innerHTML = html;
         this._tooltip.classList.remove("hidden");
+
+        // Async load icon into the slot
+        this._loadTooltipIcon(skillId, skill);
         return;
       }
     }
@@ -542,6 +552,46 @@ export class SkillTreeScene {
 
     this._tooltip.innerHTML = html;
     this._tooltip.classList.remove("hidden");
+  }
+
+  /** Load skill icon asynchronously and inject into tooltip */
+  async _loadTooltipIcon(skillId: string, skill: ActiveSkillDef): Promise<void> {
+    const slot = this._tooltip?.querySelector("#st-tip-icon");
+    if (!slot) return;
+
+    // Check cache first
+    if (this._iconCache.has(skillId)) {
+      const cached = this._iconCache.get(skillId)!;
+      const clone = document.createElement("canvas");
+      clone.width = cached.width;
+      clone.height = cached.height;
+      clone.className = "st-tip__icon-canvas";
+      clone.getContext("2d")!.drawImage(cached, 0, 0);
+      slot.appendChild(clone);
+      return;
+    }
+
+    // Load sprite and extract icon
+    const jsonUrl = `/assets/${skill.spritePath}`;
+    try {
+      await this._projLayer.load(skillId, jsonUrl);
+      const iconCanvas = this._projLayer.getIcon(skillId, 48);
+      if (iconCanvas) {
+        iconCanvas.className = "st-tip__icon-canvas";
+        this._iconCache.set(skillId, iconCanvas);
+        // Verify tooltip is still showing this skill
+        if (slot.isConnected) {
+          const clone = document.createElement("canvas");
+          clone.width = iconCanvas.width;
+          clone.height = iconCanvas.height;
+          clone.className = "st-tip__icon-canvas";
+          clone.getContext("2d")!.drawImage(iconCanvas, 0, 0);
+          slot.appendChild(clone);
+        }
+      }
+    } catch {
+      // Icon load failed silently
+    }
   }
 
   _hideTooltip(): void { if (this._tooltip) this._tooltip.classList.add("hidden"); }

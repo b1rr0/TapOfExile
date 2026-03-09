@@ -6,6 +6,7 @@ import { IS_TESTING } from "../config.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { getCharacterClass } from "../data/character-classes.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
+import { ProjectileLayer } from "../ui/projectile-layer.js";
 import { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
 import { ELEMENT_COLORS } from "@shared/types";
 import { ACTIVE_SKILLS, CLASS_ACTIVE_SKILLS } from "@shared/active-skills";
@@ -13,6 +14,11 @@ import type { ActiveSkillDef, ClassId } from "@shared/active-skills";
 import { buildSkillTree } from "../data/skill-tree.js";
 import type { SharedDeps, SkinConfig, Character } from "../types.js";
 import { music } from "../ui/music.js";
+
+/** Format number with thin-space thousands separator: 1 000 000 */
+function fmtN(n: number): string {
+  return String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u2009');
+}
 
 /**
  * HideoutScene — home hub screen.
@@ -120,7 +126,7 @@ export class HideoutScene {
                 <span class="hideout-dropdown__icon">&#x1F48E;</span> Shards
               </button>
               <button class="hideout-dropdown__item" data-action="market">
-                <span class="hideout-dropdown__icon">&#x1F4B0;</span> Market
+                <span class="hideout-dropdown__icon">&#x1FA99;</span> Market
               </button>
             </div>
           </div>
@@ -184,7 +190,7 @@ export class HideoutScene {
               <span class="hideout-btn__label">Tree</span>
             </button>
             <button class="hideout-btn hideout-btn--trade" id="hideout-trade-btn">
-              <span class="hideout-btn__icon">&#x1F4B0;</span>
+              <span class="hideout-btn__icon">&#x1FA99;</span>
               <span class="hideout-btn__label">Trade</span>
             </button>
             <button class="hideout-btn hideout-btn--friends" id="hideout-friends-btn">
@@ -200,7 +206,7 @@ export class HideoutScene {
             <span id="hideout-level" class="bottom-level-display">Lv.${player.level}</span>
             <div class="xp-bar bottom-xp-bar" id="hideout-xp-bar">
               <div class="xp-bar__fill" id="hideout-xp-fill" style="width:${player.xpToNext > 0 ? (player.xp / player.xpToNext * 100) : 0}%"></div>
-              <div class="xp-bar__text" id="hideout-xp-text">${player.xp} / ${player.xpToNext}</div>
+              <div class="xp-bar__text" id="hideout-xp-text">${fmtN(player.xp)} / ${fmtN(player.xpToNext)}</div>
             </div>
             <div class="daily-bonus-indicator" id="daily-bonus-indicator" style="${(char?.dailyBonusRemaining ?? 3) <= 0 ? 'display:none' : ''}">
               <span class="daily-bonus-indicator__star">&#x2B50;</span>
@@ -367,7 +373,7 @@ export class HideoutScene {
     if (!p) return;
     const pct = p.xpToNext > 0 ? (p.xp / p.xpToNext) * 100 : 0;
     if (this._xpFill) (this._xpFill as HTMLElement).style.width = pct + "%";
-    if (this._xpText) this._xpText.textContent = `${p.xp} / ${p.xpToNext}`;
+    if (this._xpText) this._xpText.textContent = `${fmtN(p.xp)} / ${fmtN(p.xpToNext)}`;
   }
 
   /* -- Daily bonus indicator ------------------------------ */
@@ -503,76 +509,87 @@ export class HideoutScene {
           <button class="stats-overlay__close" id="stats-close">&times;</button>
         </div>
 
+        <div class="stats-overlay__tabs">
+          <button class="stats-overlay__tab-btn stats-overlay__tab-btn--active" data-stats-tab="general">Stats</button>
+          <button class="stats-overlay__tab-btn" data-stats-tab="skills">Skills</button>
+        </div>
+
         <div class="stats-overlay__body">
-          <div class="stats-overlay__section-title">Combat Stats</div>
-          ${this._statRow(STAT_LABELS.hp.icon, "HP", `${char.hp ?? curStats.hp} / ${char.maxHp ?? curStats.hp}`, String(maxStats.hp))}
-          ${this._statRow(STAT_LABELS.tapDamage.icon, "Damage", String(char.tapDamage), String(maxStats.tapDamage))}
-          ${this._statRow(STAT_LABELS.critChance.icon, "Crit Chance", fmtPct(char.critChance), fmtPct(maxStats.critChance))}
-          ${this._statRow(STAT_LABELS.critMultiplier.icon, "Crit Dmg", fmtPct(char.critMultiplier), fmtPct(maxStats.critMultiplier))}
-          ${this._statRow(STAT_LABELS.dodgeChance.icon, "Dodge", fmtPct(char.dodgeChance ?? 0), fmtPct(maxStats.dodgeChance))}
+          <!-- ═══ General Stats tab ═══ -->
+          <div class="stats-overlay__tab-content" id="stats-tab-general">
+            <div class="stats-overlay__section-title">Combat Stats</div>
+            ${this._statRow(STAT_LABELS.hp.icon, "HP", `${char.hp ?? curStats.hp} / ${char.maxHp ?? curStats.hp}`, String(maxStats.hp))}
+            ${this._statRow(STAT_LABELS.tapDamage.icon, "Damage", String(char.tapDamage), String(maxStats.tapDamage))}
+            ${this._statRow(STAT_LABELS.critChance.icon, "Crit Chance", fmtPct(char.critChance), fmtPct(maxStats.critChance))}
+            ${this._statRow(STAT_LABELS.critMultiplier.icon, "Crit Dmg", fmtPct(char.critMultiplier), fmtPct(maxStats.critMultiplier))}
+            ${this._statRow(STAT_LABELS.dodgeChance.icon, "Dodge", fmtPct(char.dodgeChance ?? 0), fmtPct(maxStats.dodgeChance))}
 
-          ${special ? `
-          <div class="stats-overlay__section-title">Unique Ability</div>
-          <div class="stats-overlay__special">
-            <span class="stats-overlay__special-icon">${special.icon}</span>
-            <div class="stats-overlay__special-info">
-              <span class="stats-overlay__special-name">${special.name}</span>
-              <span class="stats-overlay__special-desc">${special.description}</span>
+            ${special ? `
+            <div class="stats-overlay__section-title">Unique Ability</div>
+            <div class="stats-overlay__special">
+              <span class="stats-overlay__special-icon">${special.icon}</span>
+              <div class="stats-overlay__special-info">
+                <span class="stats-overlay__special-name">${special.name}</span>
+                <span class="stats-overlay__special-desc">${special.description}</span>
+              </div>
+              <span class="stats-overlay__special-value">${IS_TESTING ? `${fmtSpecial(curSpecial)} → ${fmtSpecial(maxSpecial)}` : fmtSpecial(curSpecial)}</span>
             </div>
-            <span class="stats-overlay__special-value">${IS_TESTING ? `${fmtSpecial(curSpecial)} → ${fmtSpecial(maxSpecial)}` : fmtSpecial(curSpecial)}</span>
+            ` : ""}
+
+            ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0) ? `
+            <div class="stats-overlay__section-title">Equipment Bonuses</div>
+            ${(char as any).armor > 0 ? this._statRowSimple("🛡️", "Armor", String(Math.floor((char as any).armor))) : ""}
+            ${(char as any).blockChance > 0 ? this._statRowSimple("🔰", "Block", Math.round((char as any).blockChance * 100) + "%") : ""}
+            ${(char as any).lifeOnHit > 0 ? this._statRowSimple("💚", "Life on Hit", "+" + Math.floor((char as any).lifeOnHit)) : ""}
+            ${(char as any).lifeRegen > 0 ? this._statRowSimple("💗", "Life Regen", "+" + ((char as any).lifeRegen as number).toFixed(1) + "/s") : ""}
+            ${(char as any).goldFind > 0 ? this._statRowSimple("💰", "Gold Find", "+" + Math.round((char as any).goldFind) + "%") : ""}
+            ${(char as any).xpBonus > 0 ? this._statRowSimple("✨", "XP Bonus", "+" + Math.round((char as any).xpBonus) + "%") : ""}
+            ` : ""}
+
+            <div class="stats-overlay__section-title">Damage Type</div>
+            <div class="stats-overlay__elem-row">
+              ${elemEntries.map(([elem, frac]) =>
+                `<span class="stats-overlay__elem-tag" style="border-color:${(ELEMENT_COLORS as any)[elem] || '#888'}; color:${(ELEMENT_COLORS as any)[elem] || '#888'}">
+                  ${elem} ${Math.round(frac * 100)}%
+                </span>`
+              ).join("")}
+            </div>
+
+            ${((char as any).gearFireDmg > 0 || (char as any).gearColdDmg > 0 || (char as any).gearLightningDmg > 0) ? `
+            <div class="stats-overlay__elem-row" style="margin-top:4px;">
+              ${(char as any).gearFireDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#ff4500;color:#ff4500">+' + Math.floor((char as any).gearFireDmg) + ' fire</span>' : ""}
+              ${(char as any).gearColdDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#87ceeb;color:#87ceeb">+' + Math.floor((char as any).gearColdDmg) + ' cold</span>' : ""}
+              ${(char as any).gearLightningDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#00bfff;color:#00bfff">+' + Math.floor((char as any).gearLightningDmg) + ' lightning</span>' : ""}
+            </div>
+            ` : ""}
+
+            <div class="stats-overlay__section-title">Resistances</div>
+            ${Object.entries(RESISTANCE_LABELS).map(([key, r]) => {
+              const val = char.resistance ? (char.resistance as any)[key] || 0 : (curStats.resistance as any)[key] || 0;
+              return `<div class="stats-overlay__res-row">
+                <span class="stats-overlay__res-dot" style="background:${r.color}"></span>
+                <span class="stats-overlay__res-label">${r.label}</span>
+                <span class="stats-overlay__res-value" style="color:${val > 0 ? r.color : 'var(--game-text)'}">${val}%</span>
+              </div>`;
+            }).join("")}
+
+            ${def && IS_TESTING ? `
+            <div class="stats-overlay__section-title">Per-Level Growth</div>
+            <div class="stats-overlay__growth-grid">
+              <span>HP</span><span>+${def.growth.hp}/lv</span>
+              <span>Damage</span><span>+${def.growth.tapDamage}/lv</span>
+              <span>Crit%</span><span>+${(def.growth.critChance * 100).toFixed(1)}%/lv</span>
+              <span>Crit Dmg</span><span>+${Math.round(def.growth.critMultiplier * 100)}%/lv</span>
+              <span>Dodge</span><span>+${(def.growth.dodgeChance * 100).toFixed(1)}%/lv</span>
+              ${special ? `<span>${special.name}</span><span>+${(def.special.growth * 100).toFixed(1)}%/lv</span>` : ""}
+            </div>
+            ` : ""}
           </div>
-          ` : ""}
 
-          ${this._buildSkillsSection(char)}
-
-          ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0) ? `
-          <div class="stats-overlay__section-title">Equipment Bonuses</div>
-          ${(char as any).armor > 0 ? this._statRowSimple("🛡️", "Armor", String(Math.floor((char as any).armor))) : ""}
-          ${(char as any).blockChance > 0 ? this._statRowSimple("🔰", "Block", Math.round((char as any).blockChance * 100) + "%") : ""}
-          ${(char as any).lifeOnHit > 0 ? this._statRowSimple("💚", "Life on Hit", "+" + Math.floor((char as any).lifeOnHit)) : ""}
-          ${(char as any).lifeRegen > 0 ? this._statRowSimple("💗", "Life Regen", "+" + ((char as any).lifeRegen as number).toFixed(1) + "/s") : ""}
-          ${(char as any).goldFind > 0 ? this._statRowSimple("💰", "Gold Find", "+" + Math.round((char as any).goldFind) + "%") : ""}
-          ${(char as any).xpBonus > 0 ? this._statRowSimple("✨", "XP Bonus", "+" + Math.round((char as any).xpBonus) + "%") : ""}
-          ` : ""}
-
-          <div class="stats-overlay__section-title">Damage Type</div>
-          <div class="stats-overlay__elem-row">
-            ${elemEntries.map(([elem, frac]) =>
-              `<span class="stats-overlay__elem-tag" style="border-color:${(ELEMENT_COLORS as any)[elem] || '#888'}; color:${(ELEMENT_COLORS as any)[elem] || '#888'}">
-                ${elem} ${Math.round(frac * 100)}%
-              </span>`
-            ).join("")}
+          <!-- ═══ Skills tab ═══ -->
+          <div class="stats-overlay__tab-content hidden" id="stats-tab-skills">
+            ${this._buildSkillsTab(char)}
           </div>
-
-          ${((char as any).gearFireDmg > 0 || (char as any).gearColdDmg > 0 || (char as any).gearLightningDmg > 0) ? `
-          <div class="stats-overlay__elem-row" style="margin-top:4px;">
-            ${(char as any).gearFireDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#ff4500;color:#ff4500">+' + Math.floor((char as any).gearFireDmg) + ' fire</span>' : ""}
-            ${(char as any).gearColdDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#87ceeb;color:#87ceeb">+' + Math.floor((char as any).gearColdDmg) + ' cold</span>' : ""}
-            ${(char as any).gearLightningDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#00bfff;color:#00bfff">+' + Math.floor((char as any).gearLightningDmg) + ' lightning</span>' : ""}
-          </div>
-          ` : ""}
-
-          <div class="stats-overlay__section-title">Resistances</div>
-          ${Object.entries(RESISTANCE_LABELS).map(([key, r]) => {
-            const val = char.resistance ? (char.resistance as any)[key] || 0 : (curStats.resistance as any)[key] || 0;
-            return `<div class="stats-overlay__res-row">
-              <span class="stats-overlay__res-dot" style="background:${r.color}"></span>
-              <span class="stats-overlay__res-label">${r.label}</span>
-              <span class="stats-overlay__res-value" style="color:${val > 0 ? r.color : 'var(--game-text)'}">${val}%</span>
-            </div>`;
-          }).join("")}
-
-          ${def && IS_TESTING ? `
-          <div class="stats-overlay__section-title">Per-Level Growth</div>
-          <div class="stats-overlay__growth-grid">
-            <span>HP</span><span>+${def.growth.hp}/lv</span>
-            <span>Damage</span><span>+${def.growth.tapDamage}/lv</span>
-            <span>Crit%</span><span>+${(def.growth.critChance * 100).toFixed(1)}%/lv</span>
-            <span>Crit Dmg</span><span>+${Math.round(def.growth.critMultiplier * 100)}%/lv</span>
-            <span>Dodge</span><span>+${(def.growth.dodgeChance * 100).toFixed(1)}%/lv</span>
-            ${special ? `<span>${special.name}</span><span>+${(def.special.growth * 100).toFixed(1)}%/lv</span>` : ""}
-          </div>
-          ` : ""}
         </div>
       </div>
     `;
@@ -584,6 +601,25 @@ export class HideoutScene {
     const close = () => overlay.remove();
     overlay.querySelector("#stats-close")!.addEventListener("click", close);
     overlay.querySelector(".stats-overlay__backdrop")!.addEventListener("click", close);
+
+    // Tab switching
+    overlay.querySelector(".stats-overlay__tabs")!.addEventListener("click", (e: Event) => {
+      const btn = (e.target as HTMLElement).closest(".stats-overlay__tab-btn") as HTMLElement | null;
+      if (!btn) return;
+      const tab = btn.dataset.statsTab;
+      if (!tab) return;
+      overlay.querySelectorAll(".stats-overlay__tab-btn").forEach(b => {
+        b.classList.toggle("stats-overlay__tab-btn--active", (b as HTMLElement).dataset.statsTab === tab);
+      });
+      overlay.querySelectorAll(".stats-overlay__tab-content").forEach(c => {
+        c.classList.toggle("hidden", (c as HTMLElement).id !== `stats-tab-${tab}`);
+      });
+      // Load skill icons when switching to skills tab
+      if (tab === "skills") this._loadStatsSkillIcons(overlay);
+    });
+
+    // Load skill icons asynchronously (for skills tab if visible)
+    this._loadStatsSkillIcons(overlay);
   }
 
   _statRow(icon: string, label: string, current: string, max: string): string {
@@ -612,8 +648,8 @@ export class HideoutScene {
     </div>`;
   }
 
-  /** Build active skills section for stats overlay */
-  _buildSkillsSection(char: Character): string {
+  /** Build Skills tab content — only unlocked skills with full detail */
+  _buildSkillsTab(char: Character): string {
     const tree = buildSkillTree();
     const allocSet = new Set(char.allocatedNodes || []);
 
@@ -628,49 +664,162 @@ export class HideoutScene {
       }
     }
 
-    // Also show locked skills for this class (dimmed)
-    const classId = char.classId as ClassId;
-    const allClassSkills = (CLASS_ACTIVE_SKILLS[classId] || [])
-      .map(id => ACTIVE_SKILLS[id as keyof typeof ACTIVE_SKILLS])
-      .filter(Boolean);
-    const unlockedIds = new Set(unlockedSkills.map(s => s.id));
-
-    if (allClassSkills.length === 0) return "";
-
     const baseDmg = char.tapDamage || 1;
+    const critChance = char.critChance || 0;
+    const critMult = char.critMultiplier || 1.5;
+    const expectedMult = (1 - critChance) + critChance * critMult;
 
-    let html = `<div class="stats-overlay__section-title">Active Skills (${unlockedSkills.length}/${allClassSkills.length})</div>`;
-    html += `<div class="stats-overlay__skills-list">`;
+    let html = `<div class="stats-overlay__skill-cards">`;
 
-    for (const skill of allClassSkills) {
-      const unlocked = unlockedIds.has(skill.id);
-      const dimClass = unlocked ? "" : " stats-overlay__skill--locked";
+    // ── Tap card (always shown) ──
+    const tapExpected = Math.floor(baseDmg * expectedMult);
+    html += `<div class="stats-overlay__skill-card stats-overlay__skill-card--tap">
+      <div class="stats-overlay__skill-card-head">
+        <div class="stats-overlay__skill-icon-slot" style="font-size:22px;background:rgba(164,2,57,0.15);border-color:rgba(164,2,57,0.3)">&#x1F44A;</div>
+        <div class="stats-overlay__skill-card-title">
+          <span class="stats-overlay__skill-card-name">Tap</span>
+          <span class="stats-overlay__skill-card-desc">Basic attack &middot; physical</span>
+        </div>
+      </div>
+      <div class="stats-overlay__skill-card-stats">
+        <div class="stats-overlay__skill-card-stat">
+          <span class="stats-overlay__skill-card-stat-label">Damage</span>
+          <span class="stats-overlay__skill-card-stat-value">${tapExpected.toLocaleString()}</span>
+        </div>
+        <div class="stats-overlay__skill-card-stat">
+          <span class="stats-overlay__skill-card-stat-label">Base</span>
+          <span class="stats-overlay__skill-card-stat-value stats-overlay__skill-card-stat-value--gold">${baseDmg}</span>
+        </div>
+      </div>
+    </div>`;
 
-      let infoStr = "";
+    // ── Unlocked skill cards ──
+    if (unlockedSkills.length === 0) {
+      html += `<div class="stats-overlay__skills-empty">No skills unlocked yet.<br>Allocate skill tree nodes to unlock active skills.</div>`;
+    }
+
+    for (const skill of unlockedSkills) {
+      const cdSec = skill.cooldownMs / 1000;
+
+      // Auto-generate description
+      let desc = "";
       if (skill.skillType === "damage") {
-        const estDmg = Math.floor(baseDmg * skill.damageMultiplier);
-        infoStr = `<span class="stats-overlay__skill-dmg">${estDmg} dmg</span>`;
+        desc = `Deals ${skill.damageMultiplier}&times; tap damage`;
       } else if (skill.skillType === "heal") {
-        infoStr = `<span class="stats-overlay__skill-heal">${Math.round((skill.healPercent || 0) * 100)}% HP</span>`;
+        desc = `Heals ${Math.round((skill.healPercent || 0) * 100)}% of max HP`;
       } else if (skill.skillType === "buff" && skill.effect) {
         const val = skill.effect.value < 1 ? `${Math.round(skill.effect.value * 100)}%` : String(Math.round(skill.effect.value));
-        infoStr = `<span class="stats-overlay__skill-buff">+${val} ${skill.effect.stat}</span>`;
+        desc = `+${val} ${skill.effect.stat} for ${(skill.effect.durationMs / 1000).toFixed(0)}s`;
       } else if (skill.skillType === "debuff" && skill.effect) {
         const val = skill.effect.value < 1 ? `${Math.round(skill.effect.value * 100)}%` : String(Math.round(skill.effect.value));
-        infoStr = `<span class="stats-overlay__skill-debuff">-${val} ${skill.effect.stat}</span>`;
+        desc = `&minus;${val} ${skill.effect.stat} on enemy for ${(skill.effect.durationMs / 1000).toFixed(0)}s`;
       }
 
-      const cdStr = `${(skill.cooldownMs / 1000).toFixed(1)}s`;
+      // Elemental tags
+      const elemEntries = Object.entries(skill.elementalProfile || {}).filter(([, v]) => (v as number) > 0);
+      const elemHtml = elemEntries.length > 0
+        ? `<div class="stats-overlay__skill-card-elems">${elemEntries.map(([elem, frac]) =>
+            `<span class="stats-overlay__elem-tag" style="border-color:${(ELEMENT_COLORS as any)[elem] || '#888'};color:${(ELEMENT_COLORS as any)[elem] || '#888'}">${elem} ${Math.round((frac as number) * 100)}%</span>`
+          ).join("")}</div>`
+        : "";
 
-      html += `<div class="stats-overlay__skill-row${dimClass}">
-        <span class="stats-overlay__skill-name">${skill.name}</span>
-        <span class="stats-overlay__skill-info">${infoStr}</span>
-        <span class="stats-overlay__skill-cd">${cdStr}</span>
+      // Stats grid (depends on skill type)
+      let statsHtml = "";
+      if (skill.skillType === "damage") {
+        const rawDmg = Math.floor(baseDmg * skill.damageMultiplier);
+        const expDmg = Math.floor(rawDmg * expectedMult);
+        const dps = (expDmg / cdSec).toFixed(0);
+        statsHtml = `
+          <div class="stats-overlay__skill-card-stats">
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">Damage</span>
+              <span class="stats-overlay__skill-card-stat-value">${expDmg.toLocaleString()}</span>
+            </div>
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">DPS</span>
+              <span class="stats-overlay__skill-card-stat-value stats-overlay__skill-card-stat-value--cyan">${Number(dps).toLocaleString()}</span>
+            </div>
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">Cooldown</span>
+              <span class="stats-overlay__skill-card-stat-value stats-overlay__skill-card-stat-value--gold">${cdSec.toFixed(1)}s</span>
+            </div>
+          </div>`;
+      } else if (skill.skillType === "heal") {
+        statsHtml = `
+          <div class="stats-overlay__skill-card-stats" style="grid-template-columns:1fr 1fr">
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">Heal</span>
+              <span class="stats-overlay__skill-card-stat-value" style="color:#7fef7f">${Math.round((skill.healPercent || 0) * 100)}%</span>
+            </div>
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">Cooldown</span>
+              <span class="stats-overlay__skill-card-stat-value stats-overlay__skill-card-stat-value--gold">${cdSec.toFixed(1)}s</span>
+            </div>
+          </div>`;
+      } else {
+        // buff / debuff
+        const eff = skill.effect;
+        const effVal = eff && eff.value < 1 ? `${Math.round(eff.value * 100)}%` : String(Math.round(eff?.value || 0));
+        statsHtml = `
+          <div class="stats-overlay__skill-card-stats" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">Value</span>
+              <span class="stats-overlay__skill-card-stat-value" style="color:${skill.skillType === 'buff' ? '#F9CF87' : '#B9508D'}">${effVal}</span>
+            </div>
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">Duration</span>
+              <span class="stats-overlay__skill-card-stat-value stats-overlay__skill-card-stat-value--cyan">${eff ? (eff.durationMs / 1000).toFixed(0) : "?"}s</span>
+            </div>
+            <div class="stats-overlay__skill-card-stat">
+              <span class="stats-overlay__skill-card-stat-label">Cooldown</span>
+              <span class="stats-overlay__skill-card-stat-value stats-overlay__skill-card-stat-value--gold">${cdSec.toFixed(1)}s</span>
+            </div>
+          </div>`;
+      }
+
+      html += `<div class="stats-overlay__skill-card">
+        <div class="stats-overlay__skill-card-head">
+          <div class="stats-overlay__skill-icon-slot" data-skill-id="${skill.id}"></div>
+          <div class="stats-overlay__skill-card-title">
+            <span class="stats-overlay__skill-card-name">${skill.name}</span>
+            <span class="stats-overlay__skill-card-desc">${desc}</span>
+          </div>
+        </div>
+        ${elemHtml}
+        ${statsHtml}
       </div>`;
     }
 
     html += `</div>`;
     return html;
+  }
+
+  /** Async load skill icons into the stats overlay skill cards */
+  async _loadStatsSkillIcons(overlay: HTMLElement): Promise<void> {
+    const projLayer = new ProjectileLayer();
+    const slots = overlay.querySelectorAll("[data-skill-id]");
+
+    for (const slot of slots) {
+      const skillId = (slot as HTMLElement).dataset.skillId;
+      if (!skillId) continue;
+      // Skip already loaded
+      if (slot.querySelector(".stats-overlay__skill-icon-img")) continue;
+
+      const skill = ACTIVE_SKILLS[skillId as keyof typeof ACTIVE_SKILLS];
+      if (!skill) continue;
+
+      try {
+        const jsonUrl = `/assets/${skill.spritePath}`;
+        await projLayer.load(skillId, jsonUrl);
+        const iconCanvas = projLayer.getIcon(skillId, 40);
+        if (iconCanvas && slot.isConnected) {
+          iconCanvas.className = "stats-overlay__skill-icon-img";
+          slot.appendChild(iconCanvas);
+        }
+      } catch {
+        // Silent fail for icon loading
+      }
+    }
   }
 
   /* -- Cleanup -------------------------------------------- */

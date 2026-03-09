@@ -345,10 +345,10 @@ export class ChestPanel {
   _getItemIconHtml(item: BagItem): string {
     if (item.type === "potion" && item.flaskType) {
       const charges = Math.min(Math.max(item.currentCharges ?? item.maxCharges ?? 1, 1), 5);
-      return `<img src="/assets/equipments/consumables/${item.flaskType}s/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+      return `<img src="/assets/equipments/consumables/${item.flaskType}s/red_${charges}.png" style="width:42px;height:42px;image-rendering:pixelated">`;
     }
     if (item.type === "equipment" && item.icon) {
-      return `<img src="${item.icon}" style="width:32px;height:32px;image-rendering:pixelated">`;
+      return `<img src="${item.icon}" style="width:64px;height:64px;image-rendering:pixelated">`;
     }
     return item.icon || "?";
   }
@@ -403,7 +403,7 @@ export class ChestPanel {
       bodyHtml = `
         <div class="bag-modal__sprite">
           <img src="/assets/equipments/consumables/${item.flaskType}s/red_${spriteIdx}.png"
-               style="width:64px;height:64px;image-rendering:pixelated">
+               style="width:83px;height:83px;image-rendering:pixelated">
         </div>
         <div class="bag-modal__stats">
           <div class="bag-modal__stat-row">
@@ -466,7 +466,6 @@ export class ChestPanel {
         <button class="bag-modal__sell-btn" data-item-id="${item.id}">
           Sell <span class="bag-modal__sell-price">${sellPrice} &#x1FA99;</span>
         </button>
-        <button class="bag-modal__discard-btn" data-item-id="${item.id}">Discard</button>
       </div>
       ${loreHtml}
     `;
@@ -482,10 +481,7 @@ export class ChestPanel {
       await this._sellItem(item.id);
     });
 
-    // Wire discard
-    contentEl.querySelector(".bag-modal__discard-btn")!.addEventListener("click", async () => {
-      await this._discardItem(item.id);
-    });
+    // Discard button removed — sell is sufficient
 
     // Wire equip buttons (potions)
     contentEl.querySelectorAll(".bag-modal__equip-btn").forEach((btn) => {
@@ -525,7 +521,7 @@ export class ChestPanel {
         <div class="bag-modal__compare">
           <div class="bag-modal__compare-current">
             <img src="/assets/equipments/consumables/${current.flaskType}s/red_${spriteIdx}.png"
-                 style="width:24px;height:24px;image-rendering:pixelated">
+                 style="width:31px;height:31px;image-rendering:pixelated">
             <span class="bag-modal__compare-name">${current.name || current.flaskType}</span>
           </div>
           <div class="bag-modal__compare-stats">
@@ -612,11 +608,52 @@ export class ChestPanel {
       const label = SLOT_LABELS[slotId] || slotId;
       const disabledCls = canEquip ? '' : 'bag-modal__equip-item-btn--disabled';
       const disabledTitle = canEquip ? '' : `title="Level ${reqLevel} required"`;
+
+      // Current slot preview with stats
+      let compHtml = "";
+      const currentGear = equipment[slotId];
+      if (currentGear && currentGear.type === 'equipment') {
+        const curQ = QUALITY_COLORS[currentGear.quality] || QUALITY_COLORS.common;
+        const curIcon = currentGear.icon
+          ? `<img src="${currentGear.icon}" style="width:28px;height:28px;image-rendering:pixelated">`
+          : '';
+        const curProps = currentGear.properties || {};
+
+        // Build current item stats summary
+        let curStatsHtml = '';
+        if (curProps.baseDamage) curStatsHtml += `<div class="bag-modal__compare-stat">Base Dmg: ${curProps.baseDamage}</div>`;
+        if (curProps.baseArmor) curStatsHtml += `<div class="bag-modal__compare-stat">Armour: ${curProps.baseArmor}</div>`;
+        if (curProps.baseEvasion) curStatsHtml += `<div class="bag-modal__compare-stat">Evasion: ${curProps.baseEvasion}</div>`;
+        if (curProps.baseES) curStatsHtml += `<div class="bag-modal__compare-stat">ES: ${curProps.baseES}</div>`;
+        if (curProps.implicit) {
+          const cImplDef = STAT_DEFS[curProps.implicit.id as StatId];
+          const cImplUnit = cImplDef?.unit === '+N%' ? '%' : cImplDef?.unit === '+N/s' ? '/s' : '';
+          curStatsHtml += `<div class="bag-modal__compare-stat" style="color:#b0a060">+${curProps.implicit.value}${cImplUnit} ${cImplDef?.name || curProps.implicit.id}</div>`;
+        }
+        for (const st of curProps.stats || []) {
+          const stDef = STAT_DEFS[st.id as StatId];
+          const stUnit = stDef?.unit === '+N%' ? '%' : stDef?.unit === '+N/s' ? '/s' : '';
+          curStatsHtml += `<div class="bag-modal__compare-stat">+${st.value}${stUnit} ${stDef?.name || st.id}</div>`;
+        }
+
+        compHtml = `
+          <div class="bag-modal__compare">
+            <div class="bag-modal__compare-header">Currently equipped:</div>
+            <div class="bag-modal__compare-current">
+              ${curIcon}
+              <span class="bag-modal__compare-name" style="color:${curQ.color}">${currentGear.name || 'Unknown'}</span>
+            </div>
+            ${curStatsHtml ? `<div class="bag-modal__compare-stats">${curStatsHtml}</div>` : ''}
+          </div>
+        `;
+      }
+
       equipHtml += `
         <div class="bag-modal__equip-slot">
           <button class="bag-modal__equip-item-btn ${disabledCls}" data-slot="${slotId}" ${disabledTitle}>
             Equip → ${label}
           </button>
+          ${compHtml}
         </div>
       `;
     }
@@ -634,7 +671,7 @@ export class ChestPanel {
 
     // Equipment icon sprite
     const iconHtml = item.icon
-      ? `<div class="bag-modal__sprite"><img src="${item.icon}" style="width:64px;height:64px;image-rendering:pixelated"></div>`
+      ? `<div class="bag-modal__sprite"><img src="${item.icon}" style="width:128px;height:128px;image-rendering:pixelated"></div>`
       : '';
 
     return `

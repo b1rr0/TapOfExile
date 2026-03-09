@@ -8,17 +8,24 @@
 export const B = {
 
   /* ── Scaling formulas ─────────────────────── */
-  ACT_SCALING_BASE: 2.5,            // actMul = 2.5^(act-1)
+  /**
+   * General act scaling — used for Gold & XP.
+   * HP and DMG have their own dedicated act scaling below.
+   */
+  ACT_SCALING_BASE: 3.5,            // actMul = 3.5^(act-1) — gold/xp
 
-  /* ── Monsters — base stats (location mode) ── */
-  MONSTER_HP_BASE: 10,
-  MONSTER_HP_GROWTH: 1.5,            // 1.5^(order-1)
+  /* ── Monsters — HP (PoE-style: HP >> DMG) ─── */
+  MONSTER_HP_BASE: 300,              // base HP at order=1, act=1, common
+  MONSTER_HP_GROWTH: 1.55,           // 1.55^(order-1) — within-act scaling
   MONSTER_HP_RANDOM: 0.15,           // +/-15%
+  ACT_HP_SCALING: 4.0,              // actHpMul = 4.0^(act-1) — A5O10 boss ≈ 16M
 
-  MONSTER_GOLD_BASE: 3,
+  /* ── Monsters — Gold ─────────────────────── */
+  MONSTER_GOLD_BASE: 15,             // was 3 — proportional to higher HP
   MONSTER_GOLD_GROWTH: 1.35,
 
-  MONSTER_XP_BASE: 5,
+  /* ── Monsters — XP ───────────────────────── */
+  MONSTER_XP_BASE: 15,               // was 5 — proportional to higher HP
   MONSTER_XP_GROWTH: 1.3,
 
   /* Legacy infinite mode */
@@ -61,10 +68,10 @@ export const B = {
   /* ── Player progression ───────────────────── */
   MAX_LEVEL: 60,
   XP_BASE: 100,                     // xpToNext = XP_BASE * XP_GROWTH^(level-1)
-  XP_GROWTH: 1.3,
+  XP_GROWTH: 1.18,                  // was 1.3 — flatter curve, L60 reachable in ~3K runs
 
   /** XP level-scaling: XP = BaseXP / (1 + a*D²), D = |playerLevel - enemyLevel| */
-  XP_LEVEL_SCALING_A: 0.4,
+  XP_LEVEL_SCALING_A: 0.3,          // was 0.4 — softer penalty for level difference
 
   /** Legacy fallback — class-specific stats in shared/class-stats.ts */
   STARTING_STATS: {
@@ -79,9 +86,10 @@ export const B = {
 
   /* ── Enemy attack system ─────────────────── */
   ENEMY_ATTACK_INTERVAL_MS: 1000,     // 1 attack per second
-  MONSTER_DMG_BASE: 3,                 // base damage at order=1, common
-  MONSTER_DMG_GROWTH: 1.4,             // dmg = BASE * GROWTH^(order-1)
+  MONSTER_DMG_BASE: 15,                // base damage at order=1, common (was 3)
+  MONSTER_DMG_GROWTH: 1.15,            // dmg per order = 1.15^(order-1) (was 1.4)
   MONSTER_DMG_RANDOM: 0.10,            // ±10% variance
+  ACT_DMG_SCALING: 3.5,               // actDmgMul = 3.5^(act-1) — A5O10 boss ≈ 20K
   RARITY_DMG_MULTIPLIERS: {
     common: 1.0,
     rare:   1.3,

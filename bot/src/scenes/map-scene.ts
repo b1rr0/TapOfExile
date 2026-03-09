@@ -314,7 +314,7 @@ export class MapScene {
             <div class="location-card__desc">${loc.description}</div>
           </div>
           <div class="location-card__rewards">
-            <span class="location-card__gold">&#9789; ${scaled.gold}</span>
+            <span class="location-card__gold">&#x1FA99; ${scaled.gold}</span>
             <span class="location-card__xp">XP ${scaled.xp}</span>
           </div>
         </div>
