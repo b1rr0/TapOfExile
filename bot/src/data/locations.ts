@@ -527,42 +527,57 @@ const ACT_NAMES: string[] = [
 ];
 
 /**
- * Visual buffs / debuffs per act (mock — cosmetic only, no gameplay effect yet).
- * Each entry: { icon, name, description, type: "buff"|"debuff" }
+ * Act modifiers — applied as permanent ActiveEffects during location combat.
+ * Each modifier maps to a concrete combat stat via { stat, target, value }.
+ *
+ * Supported stats:
+ *   self: 'damage' (% tap dmg), 'critChance', 'dodge', 'armor' (flat), 'damageTaken' (% incoming)
+ *   enemy: 'allVulnerability', 'physicalVulnerability', 'magicVulnerability'
+ *
+ * Difficulty curve: Act 1 net buff → Act 5 net debuff.
  */
 export const ACT_MODIFIERS: Record<number, ActModifier[]> = {
+  /* ── Act 1 — The Castle (easy, 2 buffs / 1 mild debuff) ── */
   1: [
-    { icon: "\uD83D\uDEE1\uFE0F", name: "Castle Walls",     description: "Stone walls reduce incoming ranged damage",   type: "buff" },
-    { icon: "\u2694\uFE0F",         name: "Armory Access",    description: "Tap damage slightly increased",               type: "buff" },
-    { icon: "\uD83D\uDD76\uFE0F",  name: "Dim Corridors",    description: "Enemy crit chance increased in dark rooms",    type: "debuff" },
+    { icon: "\uD83D\uDEE1\uFE0F", name: "Castle Walls",  description: "+10 armor from stone fortifications",    type: "buff",   stat: "armor",       target: "self",  value: 10 },
+    { icon: "\u2694\uFE0F",         name: "Armory Access", description: "+5% tap damage from nearby weapons",     type: "buff",   stat: "damage",      target: "self",  value: 0.05 },
+    { icon: "\uD83D\uDD76\uFE0F",  name: "Dim Corridors", description: "+3% incoming damage in dark rooms",      type: "debuff", stat: "damageTaken", target: "self",  value: 0.03 },
   ],
+
+  /* ── Act 2 — Open Meadow (balanced, 2 buffs / 1 debuff) ── */
   2: [
-    { icon: "\uD83C\uDF3F",         name: "Nature's Blessing",description: "HP regeneration from fresh air",              type: "buff" },
-    { icon: "\u2600\uFE0F",         name: "Open Sky",         description: "No ambush penalties — enemies visible early",  type: "buff" },
-    { icon: "\uD83D\uDC1B",         name: "Insect Swarm",     description: "Periodic minor poison damage over time",       type: "debuff" },
+    { icon: "\uD83C\uDF3F",         name: "Nature's Blessing", description: "+3% dodge from fresh meadow air",   type: "buff",   stat: "dodge",       target: "self",  value: 0.03 },
+    { icon: "\u2600\uFE0F",         name: "Open Sky",          description: "+3% crit chance in clear weather",   type: "buff",   stat: "critChance",  target: "self",  value: 0.03 },
+    { icon: "\uD83D\uDC1B",         name: "Insect Swarm",      description: "+5% incoming damage from bites",     type: "debuff", stat: "damageTaken", target: "self",  value: 0.05 },
   ],
+
+  /* ── Act 3 — The Fields (harder, 2 buffs / 2 debuffs) ── */
   3: [
-    { icon: "\uD83D\uDCA8",         name: "Tailwind",         description: "Movement speed buff — faster attack rate",     type: "buff" },
-    { icon: "\u2600\uFE0F",         name: "Scorching Heat",   description: "Passive DPS ticks deal bonus fire damage",     type: "buff" },
-    { icon: "\uD83C\uDF2A\uFE0F",   name: "Dust Storm",       description: "Reduced visibility — miss chance increased",   type: "debuff" },
-    { icon: "\uD83E\uDEA8",         name: "Rocky Terrain",    description: "Dodge chance reduced on uneven ground",        type: "debuff" },
+    { icon: "\uD83D\uDCA8",         name: "Tailwind",       description: "+5% tap damage from favorable winds",          type: "buff",   stat: "damage",              target: "self",  value: 0.05 },
+    { icon: "\u2600\uFE0F",         name: "Scorching Heat", description: "Enemies take +5% more elemental damage",       type: "buff",   stat: "magicVulnerability",  target: "enemy", value: 0.05 },
+    { icon: "\uD83C\uDF2A\uFE0F",   name: "Dust Storm",     description: "-5% crit chance from poor visibility",         type: "debuff", stat: "critChance",          target: "self",  value: -0.05 },
+    { icon: "\uD83E\uDEA8",         name: "Rocky Terrain",  description: "-3% dodge on uneven ground",                   type: "debuff", stat: "dodge",               target: "self",  value: -0.03 },
   ],
+
+  /* ── Act 4 — Snow Mountain (hard, 1 buff / 3 debuffs) ── */
   4: [
-    { icon: "\u2744\uFE0F",         name: "Frost Armor",      description: "Cold hardens your resolve — defense up",       type: "buff" },
-    { icon: "\u2744\uFE0F",         name: "Frostbite",        description: "Extreme cold slows attack speed",              type: "debuff" },
-    { icon: "\uD83C\uDF28\uFE0F",   name: "Blizzard",         description: "Periodic freeze chance on both sides",         type: "debuff" },
-    { icon: "\u26F0\uFE0F",         name: "Thin Air",         description: "Stamina drains faster at high altitude",       type: "debuff" },
+    { icon: "\u2744\uFE0F",         name: "Frost Armor",  description: "+15 armor from cold-hardened resolve",          type: "buff",   stat: "armor",       target: "self", value: 15 },
+    { icon: "\u2744\uFE0F",         name: "Frostbite",    description: "-8% tap damage from extreme cold",              type: "debuff", stat: "damage",      target: "self", value: -0.08 },
+    { icon: "\uD83C\uDF28\uFE0F",   name: "Blizzard",     description: "-5% dodge in heavy snowfall",                   type: "debuff", stat: "dodge",       target: "self", value: -0.05 },
+    { icon: "\u26F0\uFE0F",         name: "Thin Air",     description: "+5% incoming damage at high altitude",          type: "debuff", stat: "damageTaken", target: "self", value: 0.05 },
   ],
+
+  /* ── Act 5 — The Depths (brutal, 1 buff / 3 debuffs) ── */
   5: [
-    { icon: "\uD83D\uDD2E",         name: "Crystal Glow",     description: "Cave crystals boost crit multiplier",          type: "buff" },
-    { icon: "\uD83D\uDD25",         name: "Lava Veins",       description: "Fire damage over time from magma fissures",    type: "debuff" },
-    { icon: "\uD83E\uDDA7",         name: "Cave Darkness",    description: "Total darkness — high miss chance",            type: "debuff" },
-    { icon: "\u2620\uFE0F",         name: "Toxic Fumes",      description: "Poison stacks slowly drain HP",                type: "debuff" },
+    { icon: "\uD83D\uDD2E",         name: "Crystal Glow",  description: "+8% crit chance from crystal refraction",      type: "buff",   stat: "critChance",  target: "self", value: 0.08 },
+    { icon: "\uD83D\uDD25",         name: "Lava Veins",    description: "+8% incoming damage from magma heat",          type: "debuff", stat: "damageTaken", target: "self", value: 0.08 },
+    { icon: "\uD83E\uDD87",         name: "Cave Darkness", description: "-3% dodge in total darkness",                  type: "debuff", stat: "dodge",       target: "self", value: -0.03 },
+    { icon: "\u2620\uFE0F",         name: "Toxic Fumes",   description: "-5% tap damage from noxious gas",              type: "debuff", stat: "damage",      target: "self", value: -0.05 },
   ],
 };
 
 /**
- * Get modifiers for an act (visual / mock).
+ * Get modifiers for an act (applied in combat via ActiveEffects).
  */
 export function getActModifiers(actNumber: number): ActModifier[] {
   return ACT_MODIFIERS[actNumber] || [];

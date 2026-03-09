@@ -244,7 +244,6 @@ export class BattleScene {
       this._resizeObserver = new ResizeObserver(() => {
         this._resizeCanvas();
         this._ctx = this.sceneCanvas!.getContext("2d");
-        this.bgRenderer!._dirty = true;
         this._drawFrame();
       });
       this._resizeObserver.observe(this.container);
@@ -357,13 +356,13 @@ export class BattleScene {
       this.hero.draw(ctx, w, h, dpr);
     }
 
-    // 3. Projectiles (between hero and enemy)
-    this.projectileLayer.draw(ctx, dpr, w, h);
-
-    // 4. Enemy
+    // 3. Enemy
     if (this.enemy) {
       this.enemy.draw(ctx, w, h, dpr);
     }
+
+    // 4. Skill animations (topmost layer — above hero and enemy)
+    this.projectileLayer.draw(ctx, dpr, w, h);
   }
 
   // ─── Event Wiring ──────────────────────────────────────

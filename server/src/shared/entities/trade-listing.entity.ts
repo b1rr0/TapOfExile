@@ -97,7 +97,7 @@ export class TradeListing {
   @Column({ type: 'int', nullable: true })
   itemTier: number | null;
 
-  @Column({ type: 'varchar', length: 32, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   itemIcon: string | null;
 
   @Column({ type: 'varchar', length: 32, nullable: true })

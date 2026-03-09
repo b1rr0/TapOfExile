@@ -142,7 +142,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   heal: {
     id: "heal",
     name: "Mending Light",
-    cooldownMs: 5000,
+    cooldownMs: 20000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "heal",
@@ -155,7 +155,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   firebolt: {
     id: "firebolt",
     name: "Firebolt",
-    cooldownMs: 2500,
+    cooldownMs: 10000,
     damageMultiplier: 4,
     elementalProfile: { fire: 1.0 },
     skillType: "damage",
@@ -167,7 +167,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   fire_breath: {
     id: "fire_breath",
     name: "Fire Breath",
-    cooldownMs: 4500,
+    cooldownMs: 18000,
     damageMultiplier: 8,
     elementalProfile: { fire: 1.0 },
     skillType: "damage",
@@ -179,7 +179,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_ball: {
     id: "water_ball",
     name: "Frost Orb",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 5,
     elementalProfile: { cold: 1.0 },
     skillType: "damage",
@@ -191,7 +191,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   explosion: {
     id: "explosion",
     name: "Firecracker",
-    cooldownMs: 6000,
+    cooldownMs: 24000,
     damageMultiplier: 9,
     elementalProfile: { fire: 0.8, physical: 0.2 },
     skillType: "damage",
@@ -203,7 +203,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_blast_full: {
     id: "water_blast_full",
     name: "Glacial Cascade",
-    cooldownMs: 5000,
+    cooldownMs: 20000,
     damageMultiplier: 9,
     elementalProfile: { cold: 0.85, physical: 0.15 },
     skillType: "damage",
@@ -215,7 +215,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   explosion_2: {
     id: "explosion_2",
     name: "Grand Explosion",
-    cooldownMs: 15000,
+    cooldownMs: 60000,
     damageMultiplier: 28,
     elementalProfile: { fire: 0.8, physical: 0.2 },
     skillType: "damage",
@@ -227,7 +227,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_startup: {
     id: "water_startup",
     name: "Arcane Vulnerability",
-    cooldownMs: 8000,
+    cooldownMs: 32000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "debuff",
@@ -253,7 +253,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   slash: {
     id: "slash",
     name: "Quick Slash",
-    cooldownMs: 1800,
+    cooldownMs: 7200,
     damageMultiplier: 2.5,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -265,7 +265,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   sword_throw: {
     id: "sword_throw",
     name: "Sword Throw",
-    cooldownMs: 2500,
+    cooldownMs: 10000,
     damageMultiplier: 4,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -278,7 +278,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   slash_arc: {
     id: "slash_arc",
     name: "Crescent Slash",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 5,
     elementalProfile: { physical: 0.9, lightning: 0.1 },
     skillType: "damage",
@@ -290,7 +290,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   thunder_projectile: {
     id: "thunder_projectile",
     name: "Thunder Bolt",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 5,
     elementalProfile: { lightning: 1.0 },
     skillType: "damage",
@@ -302,7 +302,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   thunder_ball: {
     id: "thunder_ball",
     name: "Ball Lightning",
-    cooldownMs: 3500,
+    cooldownMs: 14000,
     damageMultiplier: 6,
     elementalProfile: { lightning: 1.0 },
     skillType: "damage",
@@ -314,7 +314,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   thunder_splash: {
     id: "thunder_splash",
     name: "Storm Burst",
-    cooldownMs: 4000,
+    cooldownMs: 16000,
     damageMultiplier: 7,
     elementalProfile: { lightning: 1.0 },
     skillType: "damage",
@@ -326,7 +326,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   thunder_strike: {
     id: "thunder_strike",
     name: "Tempest Strike",
-    cooldownMs: 6000,
+    cooldownMs: 24000,
     damageMultiplier: 11,
     elementalProfile: { lightning: 0.85, physical: 0.15 },
     skillType: "damage",
@@ -338,7 +338,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   effect_sparkle: {
     id: "effect_sparkle",
     name: "Weakness Mark",
-    cooldownMs: 10000,
+    cooldownMs: 40000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "debuff",
@@ -364,7 +364,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   slash_cross: {
     id: "slash_cross",
     name: "Cross Slash",
-    cooldownMs: 2500,
+    cooldownMs: 10000,
     damageMultiplier: 5,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -376,7 +376,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   slash_sweep: {
     id: "slash_sweep",
     name: "Cleaving Sweep",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 6,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -388,7 +388,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   wood_projectile: {
     id: "wood_projectile",
     name: "Thorn Javelin",
-    cooldownMs: 2800,
+    cooldownMs: 11200,
     damageMultiplier: 5,
     elementalProfile: { physical: 0.8, fire: 0.2 },
     skillType: "damage",
@@ -400,7 +400,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   earth_bump: {
     id: "earth_bump",
     name: "Earth Shatter",
-    cooldownMs: 3500,
+    cooldownMs: 14000,
     damageMultiplier: 7,
     elementalProfile: { physical: 0.7, fire: 0.3 },
     skillType: "damage",
@@ -412,7 +412,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   earth_wall: {
     id: "earth_wall",
     name: "Stone Shield",
-    cooldownMs: 4000,
+    cooldownMs: 16000,
     damageMultiplier: 3,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -424,7 +424,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   wood_thorns: {
     id: "wood_thorns",
     name: "Briar Eruption",
-    cooldownMs: 4000,
+    cooldownMs: 16000,
     damageMultiplier: 8,
     elementalProfile: { physical: 0.7, fire: 0.3 },
     skillType: "damage",
@@ -436,7 +436,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   earth_impact: {
     id: "earth_impact",
     name: "Crushed",
-    cooldownMs: 12000,
+    cooldownMs: 48000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "debuff",
@@ -457,7 +457,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   effect_embers: {
     id: "effect_embers",
     name: "Ember Armor",
-    cooldownMs: 15000,
+    cooldownMs: 60000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "buff",
@@ -483,7 +483,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   lightning_bolt: {
     id: "lightning_bolt",
     name: "Spark Arrow",
-    cooldownMs: 2000,
+    cooldownMs: 8000,
     damageMultiplier: 3,
     elementalProfile: { lightning: 0.8, physical: 0.2 },
     skillType: "damage",
@@ -495,7 +495,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   lightning_arc: {
     id: "lightning_arc",
     name: "Arc Shot",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 5,
     elementalProfile: { lightning: 0.7, physical: 0.3 },
     skillType: "damage",
@@ -507,7 +507,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   ice_shard: {
     id: "ice_shard",
     name: "Frost Shard",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 5,
     elementalProfile: { cold: 0.8, physical: 0.2 },
     skillType: "damage",
@@ -519,7 +519,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   ice_burst: {
     id: "ice_burst",
     name: "Ice Burst",
-    cooldownMs: 3500,
+    cooldownMs: 14000,
     damageMultiplier: 6,
     elementalProfile: { cold: 1.0 },
     skillType: "damage",
@@ -531,7 +531,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   lightning_strike_2: {
     id: "lightning_strike_2",
     name: "Thunder Judgment",
-    cooldownMs: 5000,
+    cooldownMs: 20000,
     damageMultiplier: 9,
     elementalProfile: { lightning: 0.9, physical: 0.1 },
     skillType: "damage",
@@ -543,7 +543,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   ice_shatter: {
     id: "ice_shatter",
     name: "Ice Shatter",
-    cooldownMs: 5000,
+    cooldownMs: 20000,
     damageMultiplier: 9,
     elementalProfile: { cold: 0.9, physical: 0.1 },
     skillType: "damage",
@@ -555,7 +555,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   lightning_sparks: {
     id: "lightning_sparks",
     name: "Static Charge",
-    cooldownMs: 10000,
+    cooldownMs: 40000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "debuff",
@@ -576,7 +576,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   lightning_ring: {
     id: "lightning_ring",
     name: "Storm Shield",
-    cooldownMs: 20000,
+    cooldownMs: 80000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "buff",
@@ -602,7 +602,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   fireball: {
     id: "fireball",
     name: "Fireball",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 5,
     elementalProfile: { fire: 1.0 },
     skillType: "damage",
@@ -615,7 +615,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   thrust_1: {
     id: "thrust_1",
     name: "Thrust",
-    cooldownMs: 2000,
+    cooldownMs: 8000,
     damageMultiplier: 3,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -627,7 +627,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   thrust_2: {
     id: "thrust_2",
     name: "Thrust II",
-    cooldownMs: 2000,
+    cooldownMs: 8000,
     damageMultiplier: 3.5,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -639,7 +639,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   effect_star: {
     id: "effect_star",
     name: "Star Burst",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 3,
     elementalProfile: { fire: 0.5, physical: 0.5 },
     skillType: "damage",
@@ -651,7 +651,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   effect_sparks: {
     id: "effect_sparks",
     name: "Sparks",
-    cooldownMs: 2000,
+    cooldownMs: 8000,
     damageMultiplier: 2,
     elementalProfile: { lightning: 1.0 },
     skillType: "damage",
@@ -663,7 +663,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   fire_hit: {
     id: "fire_hit",
     name: "Fire Hit",
-    cooldownMs: 2500,
+    cooldownMs: 10000,
     damageMultiplier: 3,
     elementalProfile: { fire: 1.0 },
     skillType: "damage",
@@ -675,7 +675,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   earth_projectile: {
     id: "earth_projectile",
     name: "Earth Projectile",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 4,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -687,7 +687,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   earth_rocks: {
     id: "earth_rocks",
     name: "Earth Rocks",
-    cooldownMs: 4000,
+    cooldownMs: 16000,
     damageMultiplier: 5,
     elementalProfile: { physical: 1.0 },
     skillType: "damage",
@@ -699,7 +699,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   thunder_hit: {
     id: "thunder_hit",
     name: "Thunder Hit",
-    cooldownMs: 2500,
+    cooldownMs: 10000,
     damageMultiplier: 3,
     elementalProfile: { lightning: 1.0 },
     skillType: "damage",
@@ -711,7 +711,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   lightning_wave: {
     id: "lightning_wave",
     name: "Lightning Wave",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 4,
     elementalProfile: { lightning: 1.0 },
     skillType: "damage",
@@ -723,7 +723,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_spike: {
     id: "water_spike",
     name: "Water Spike",
-    cooldownMs: 3500,
+    cooldownMs: 14000,
     damageMultiplier: 5,
     elementalProfile: { cold: 1.0 },
     skillType: "damage",
@@ -735,7 +735,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_splash: {
     id: "water_splash",
     name: "Water Splash",
-    cooldownMs: 3000,
+    cooldownMs: 12000,
     damageMultiplier: 4,
     elementalProfile: { cold: 1.0 },
     skillType: "damage",

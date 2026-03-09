@@ -164,6 +164,8 @@ export interface PlayerProxy {
 
 export interface GameData {
   gold: number;
+  shards: string;
+  purchasedSkins: string[];
   activeCharacterId: string | null;
   characters: Character[];
   leagues: LeagueInfo[];
@@ -236,6 +238,12 @@ export interface ActModifier {
   name: string;
   description: string;
   type: string;
+  /** Effect stat key used by combat system (e.g. 'damage', 'critChance', 'dodge', 'armor', 'damageTaken') */
+  stat: string;
+  /** Effect target: 'self' = player buff/debuff, 'enemy' = enemy debuff */
+  target: 'self' | 'enemy';
+  /** Additive modifier value (e.g. 0.05 = +5%, -0.05 = -5%, flat for armor) */
+  value: number;
 }
 
 // ── Character Class Types ────────────────────────────────

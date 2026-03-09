@@ -121,6 +121,32 @@ export const STAT_TO_PLAYER: Record<string, string> = {
   lightningDmg:"lightningDmg",
   coldDmg:     "coldDmg",
   pureDmg:     "pureDmg",
+  // Unique passive mechanics (flat mode, value = magnitude)
+  thorns:            "thorns",            // reflect X% damage taken
+  lifeSteal:         "lifeSteal",         // heal X% of damage dealt
+  multiStrike:       "multiStrike",       // X% chance to hit twice
+  luckyHits:         "luckyHits",         // roll crit twice, take better
+  execute:           "execute",           // +X% dmg to enemies <30% HP
+  armorDouble:       "armorDouble",       // armor effectiveness ×2
+  shieldBash:        "shieldBash",        // block deals X% damage back
+  firstStrike:       "firstStrike",       // first hit per monster deals Xx
+  critHeal:          "critHeal",          // heal flat HP on crit
+  regenBoost:        "regenBoost",        // life regen ×X
+  fireFromLightning: "fireFromLightning", // fire bonus = lightning bonus
+  coldFromFire:      "coldFromFire",      // cold bonus = fire bonus
+  lightningFromCold: "lightningFromCold", // lightning bonus = cold bonus
+  allElemental:      "allElemental",      // all elements = highest
+  penetration:       "penetration",       // ignore X% enemy resistance
+  bossSlayer:        "bossSlayer",        // +X% damage to bosses
+  secondWind:        "secondWind",        // X% survive lethal at 1HP
+  overkill:          "overkill",          // excess kill dmg → next enemy
+  critExplosion:     "critExplosion",     // crits deal X% burst AoE
+  dodgeCounter:      "dodgeCounter",      // on dodge, deal X% damage
+  // New unique mechanics (competitor-inspired)
+  glancingBlows:     "glancingBlows",     // 2× block chance, blocks prevent 50%
+  cullingStrike:     "cullingStrike",     // enemies below 10% HP die instantly
+  berserkerFury:     "berserkerFury",     // +1% dmg per 2% missing HP
+  dualWield2H:       "dualWield2H",       // can equip 2H in off-hand
 };
 
 // ── Minor pool (16) ──────────────────────────────────────

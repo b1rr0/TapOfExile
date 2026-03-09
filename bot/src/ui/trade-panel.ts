@@ -317,8 +317,8 @@ export class TradePanel {
 
   _openBuyModal(listing: any): void {
     const price = BigInt(listing.price);
-    const commission = price * 10n / 100n;
-    const total = price + commission;
+    const tax = price * 5n / 100n;
+    const total = price + tax;
 
     const snap = listing.itemSnapshot || {};
     const props = (snap.properties || {}) as Record<string, any>;
@@ -344,8 +344,8 @@ export class TradePanel {
           <span class="trade-modal__gold">${formatGold(listing.price)} gold</span>
         </div>
         <div class="trade-modal__price-row">
-          <span>Commission (10%)</span>
-          <span class="trade-modal__gold">${formatGold(commission.toString())} gold</span>
+          <span>Tax (5%)</span>
+          <span class="trade-modal__gold">${formatGold(tax.toString())} gold</span>
         </div>
         <div class="trade-modal__price-row trade-modal__price-row--total">
           <span>Total</span>
@@ -472,11 +472,11 @@ export class TradePanel {
     priceInput.addEventListener("input", () => {
       const val = parseInt(priceInput.value, 10);
       if (val > 0) {
-        const receive = BigInt(val) * 90n / 100n;
-        preview.innerHTML = `You will receive: <span class="trade-modal__gold">${formatGold(receive.toString())} gold</span> <span class="trade-commission-note">(10% fee)</span>`;
+        const listingFee = BigInt(val) * 3n / 100n + 20n;
+        preview.innerHTML = `Listing fee: <span class="trade-modal__gold">${formatGold(listingFee.toString())} gold</span> <span class="trade-commission-note">(3% + 20g)</span>`;
         confirmBtn.disabled = false;
       } else {
-        preview.innerHTML = `You will receive: <span class="trade-modal__gold">&mdash;</span>`;
+        preview.innerHTML = `Listing fee: <span class="trade-modal__gold">&mdash;</span>`;
         confirmBtn.disabled = true;
       }
     });

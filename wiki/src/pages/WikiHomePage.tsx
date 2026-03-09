@@ -37,6 +37,15 @@ export default function WikiHomePage() {
           </Link>
         ))}
       </div>
+
+      <div className="info-box" style={{ marginTop: '2rem' }}>
+        <h4>👥 Referral Program</h4>
+        <p>
+          Invite your friends and both of you receive <strong>50 shards</strong>!
+          Share your referral code from the Friends tab in the game.
+          Plus, you earn <strong>10%</strong> of every Stars purchase your referrals make.
+        </p>
+      </div>
     </div>
   );
 }

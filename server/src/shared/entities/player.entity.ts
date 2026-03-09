@@ -45,6 +45,21 @@ export class Player {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  // Premium currency (global, not per-league)
+  @Column({ type: 'bigint', default: 0 })
+  shards: string;
+
+  @Column({ type: 'int', default: 0 })
+  extraTradeSlots: number;
+
+  /** Skin IDs purchased with shards (default skins are always free) */
+  @Column({ type: 'jsonb', default: [] })
+  purchasedSkins: string[];
+
+  /** Telegram ID of the player who referred this user (set once on first login) */
+  @Column({ type: 'bigint', nullable: true })
+  referrerId: string | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   bannedUntil: Date | null;
 

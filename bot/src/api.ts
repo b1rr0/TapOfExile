@@ -98,7 +98,7 @@ function del<T = any>(path: string): Promise<T> {
 /* ── Auth ──────────────────────────────────────────────── */
 
 export const auth = {
-  async login(initData: string) {
+  async login(initData: string, startParam?: string) {
     const data = await post<{
       accessToken: string;
       refreshToken: string;
@@ -112,7 +112,7 @@ export const auth = {
         bannedUntil: number | null;
         banReason: string | null;
       };
-    }>("/auth/telegram", { initData });
+    }>("/auth/telegram", { initData, startParam });
     accessToken = data.accessToken;
     refreshToken = data.refreshToken;
     return data;
@@ -136,6 +136,10 @@ export const auth = {
 export const player = {
   getState() {
     return get("/player");
+  },
+
+  applyReferral(referralCode: string) {
+    return post<{ success: boolean }>("/player/apply-referral", { referralCode });
   },
 };
 
@@ -363,6 +367,43 @@ export const trade = {
   },
 };
 
+/* ── Shop ─────────────────────────────────────────────── */
+
+const shop = {
+  products() {
+    return get('/shop/products');
+  },
+
+  items() {
+    return get('/shop/items');
+  },
+
+  balance() {
+    return get<{ shards: string; extraTradeSlots: number; maxTradeSlots: number }>(
+      '/shop/balance',
+    );
+  },
+
+  createInvoice(productId: string) {
+    return post<{ invoiceLink: string }>('/shop/create-invoice', { productId });
+  },
+
+  buyItem(shopItemId: string) {
+    return post<{ shards: string; extraTradeSlots: number; maxTradeSlots: number }>(
+      '/shop/buy-item',
+      { shopItemId },
+    );
+  },
+
+  payments() {
+    return get('/shop/payments');
+  },
+
+  transactions() {
+    return get('/shop/transactions');
+  },
+};
+
 /* ── Default export ────────────────────────────────────── */
 
 export const api = {
@@ -375,4 +416,5 @@ export const api = {
   skillTree,
   friends,
   trade,
+  shop,
 };

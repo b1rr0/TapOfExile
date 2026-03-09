@@ -27,7 +27,6 @@ export const HERO_SKINS_META: readonly HeroSkinMeta[] = [
   { id: "samurai_4", name: "Samurai IV",  classId: "samurai", basePath: "/assets/characters/samurai/samurai_4" },
   // ── Knight / Warrior ──
   { id: "knight_1", name: "Knight",       classId: "warrior", basePath: "/assets/characters/knight/knight_1" },
-  { id: "knight_2", name: "Knight II",    classId: "warrior", basePath: "/assets/characters/knight/knight_2" },
   { id: "knight_3", name: "Knight III",   classId: "warrior", basePath: "/assets/characters/knight/knight_3" },
   { id: "knight_4", name: "Knight IV",    classId: "warrior", basePath: "/assets/characters/knight/knight_4" },
   // ── Wizard / Mage ──

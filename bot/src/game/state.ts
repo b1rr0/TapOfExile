@@ -8,6 +8,8 @@ import type { EventBus } from "./events.js";
 function createDefault(): GameData {
   return {
     gold: 0,
+    shards: "0",
+    purchasedSkins: [],
     activeCharacterId: null,
     characters: [],
     leagues: [],
@@ -42,11 +44,21 @@ export class GameState {
   /** Bag items (per-league, shared across characters) */
   bag: BagItem[];
 
+  /** Whether the player already has a referrer set */
+  hasReferrer: boolean;
+  referrerName: string | null;
+  referralCount: number;
+  referralIncome: number;
+
   constructor(events: EventBus) {
     this.events = events;
     this.data = createDefault();
     this._playerProxy = null;
     this.bag = [];
+    this.hasReferrer = false;
+    this.referrerName = null;
+    this.referralCount = 0;
+    this.referralIncome = 0;
   }
 
   /* ── Load from server ────────────────────────────────── */
@@ -64,8 +76,14 @@ export class GameState {
       throw new Error("Telegram initData required");
     }
 
-    // 1. Authenticate
-    const authResult = await api.auth.login(initData);
+    // 1. Authenticate (pass start_param for referral tracking)
+    // Check both Telegram's start_param and URL query string (bot passes ref via URL)
+    let startParam: string | undefined = tg?.initDataUnsafe?.start_param || undefined;
+    if (!startParam) {
+      const urlRef = new URLSearchParams(window.location.search).get("ref");
+      if (urlRef && /^ref_\d+$/.test(urlRef)) startParam = urlRef;
+    }
+    const authResult = await api.auth.login(initData, startParam);
 
     // Ban check at auth level
     if (authResult.player.banned) {
@@ -110,6 +128,8 @@ export class GameState {
     }
 
     this.data.gold = Number(state.gold);
+    this.data.shards = state.shards || "0";
+    this.data.purchasedSkins = state.purchasedSkins || [];
     this.data.activeCharacterId = state.activeCharacterId;
     this.data.characters = state.characters.map((c: any) => ({
       id: c.id,
@@ -161,6 +181,11 @@ export class GameState {
       healPercent: item.healPercent,
       properties: item.properties,
     }));
+
+    this.hasReferrer = !!state.hasReferrer;
+    this.referrerName = state.referrerName || null;
+    this.referralCount = state.referralCount || 0;
+    this.referralIncome = state.referralIncome || 0;
 
     this.data.meta = {
       lastSaveTime: state.meta.lastSaveTime,

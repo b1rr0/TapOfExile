@@ -512,8 +512,6 @@ export class StorybookScene {
     const battleEl = overlay.querySelector("#sb-loc-battle") as HTMLElement;
     this._locResizeObserver = new ResizeObserver(() => {
       this._resizeLocCanvas();
-      const sc = this._locScenes[this._locIndex];
-      if (sc) (sc.bgRenderer as any)._dirty = true;
     });
     this._locResizeObserver.observe(battleEl);
 
@@ -570,15 +568,11 @@ export class StorybookScene {
     this._locCanvasW = w;
     this._locCanvasH = h;
 
-    for (const sc of this._locScenes) {
-      (sc.bgRenderer as any)._dirty = true;
-    }
+    // No-op: BackgroundRenderer draws fresh every frame
   }
 
   _switchLocScene(): void {
     this._updateLocInfo();
-    const sc = this._locScenes[this._locIndex];
-    if (sc) (sc.bgRenderer as any)._dirty = true;
   }
 
   _updateLocInfo(): void {
@@ -988,7 +982,6 @@ export class StorybookScene {
     const battleEl = overlay.querySelector("#sb-skill-battle") as HTMLElement;
     this._skillResizeObserver = new ResizeObserver(() => {
       this._resizeSkillCanvas();
-      if (this._skillBg) (this._skillBg as any)._dirty = true;
     });
     this._skillResizeObserver.observe(battleEl);
 
@@ -1039,7 +1032,6 @@ export class StorybookScene {
     this._skillCanvasW = rect.width;
     this._skillCanvasH = rect.height;
 
-    if (this._skillBg) (this._skillBg as any)._dirty = true;
   }
 
   _updateSkillInfo(): void {

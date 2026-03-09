@@ -79,7 +79,7 @@ export class MapScene {
     this._listEl = this.container.querySelector("#map-list");
 
     // Delegated click on #map-list — handles both cards and mods toggle
-    this._listEl!.addEventListener("click", (e: MouseEvent) => {
+    this._listEl!.addEventListener("click", async (e: MouseEvent) => {
       // Modifiers toggle
       const toggle = (e.target as HTMLElement).closest("#map-mod-toggle");
       if (toggle) {
@@ -101,6 +101,7 @@ export class MapScene {
       const location = locations.find((l) => l.id === locId);
       if (location) {
         preconnectSocket(); // Start connecting before scene mount
+        await this.state.refreshState().catch(() => {});
         this.sceneManager.switchTo("combat", { location });
       }
     });
@@ -137,17 +138,15 @@ export class MapScene {
 
   _buildTabs(highestAct: number): string {
     let html = "";
-    for (let a = 1; a <= TOTAL_ACTS; a++) {
+    for (let a = 1; a <= highestAct; a++) {
       const def = ACT_DEFINITIONS[a - 1];
       const label: string = def ? def.name : `Act ${a}`;
 
       let cls = "map-tab";
       if (a === this._selectedAct) {
         cls += " map-tab--active";
-      } else if (a <= highestAct) {
-        cls += " map-tab--unlocked";
       } else {
-        cls += " map-tab--locked";
+        cls += " map-tab--unlocked";
       }
       html += `<button class="${cls}" data-act="${a}">${label}</button>`;
     }
@@ -160,20 +159,17 @@ export class MapScene {
     return html;
   }
 
-  _updateTabVisuals(highestAct: number): void {
+  _updateTabVisuals(_highestAct: number): void {
     const tabs = this.container.querySelectorAll(".map-tab") as NodeListOf<HTMLElement>;
     tabs.forEach((tab) => {
-      // Skip endgame tab — it manages its own classes
       if (tab.dataset.act === "endgame") return;
 
       const a = Number(tab.dataset.act);
       tab.className = "map-tab";
       if (a === this._selectedAct) {
         tab.classList.add("map-tab--active");
-      } else if (a <= highestAct) {
-        tab.classList.add("map-tab--unlocked");
       } else {
-        tab.classList.add("map-tab--locked");
+        tab.classList.add("map-tab--unlocked");
       }
     });
   }

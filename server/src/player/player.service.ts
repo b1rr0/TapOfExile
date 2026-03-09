@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
+import { ShardTransaction } from '../shared/entities/shard-transaction.entity';
 import { aggregateEquipmentStats, applyBonuses } from '@shared/equipment-bonus';
 import { buildSkillTree } from '@shared/skill-tree';
+import { computeAllocatedBonuses } from '@shared/skill-node-defs';
+import { statsAtLevel } from '@shared/class-stats';
+import { B } from '@shared/balance';
 
 const DAILY_BONUS_WINS_MAX = 3;
 
@@ -17,11 +21,14 @@ function getUtcDateString(): string {
 
 @Injectable()
 export class PlayerService {
+  private readonly logger = new Logger('PlayerService');
+
   constructor(
     @InjectRepository(Player)
     private playerRepo: Repository<Player>,
     @InjectRepository(PlayerLeague)
     private playerLeagueRepo: Repository<PlayerLeague>,
+    private dataSource: DataSource,
   ) {}
 
   async getPlayer(telegramId: string): Promise<Player> {
@@ -136,6 +143,7 @@ export class PlayerService {
     // Collect all characters from all leagues
     const today = getUtcDateString();
     const allCharacters: any[] = [];
+    let skillTree: ReturnType<typeof buildSkillTree> | null = null;
     for (const playerLeague of allPlayerLeagues) {
       for (const c of playerLeague.characters || []) {
         // Calculate daily bonus remaining
@@ -190,6 +198,37 @@ export class PlayerService {
           },
           bonuses,
         );
+
+        // Apply skill tree bonuses (additive from base stats, same as combat)
+        const allocSet = new Set<number>(c.allocatedNodes || []);
+        if (allocSet.size > 0) {
+          if (!skillTree) skillTree = buildSkillTree();
+          const treeBonuses = computeAllocatedBonuses(skillTree.nodes, allocSet);
+          const pct = treeBonuses.percent;
+          const base = statsAtLevel(c.classId, c.level);
+
+          eff.tapDamage += Math.floor(base.tapDamage * (pct.tapDamage || 0));
+          eff.maxHp += Math.floor(base.hp * (pct.hp || 0));
+          eff.hp = Math.min(eff.hp, eff.maxHp);
+          eff.critChance += (pct.critChance || 0);
+          eff.critMultiplier += (pct.critMultiplier || 0);
+          eff.dodgeChance += (pct.dodgeChance || 0);
+          eff.gearFireDmg += Math.floor(base.tapDamage * (pct.fireDmg || 0));
+          eff.gearColdDmg += Math.floor(base.tapDamage * (pct.coldDmg || 0));
+          eff.gearLightningDmg += Math.floor(base.tapDamage * (pct.lightningDmg || 0));
+
+          // Unique elemental conversions
+          const flat = treeBonuses.flat || {};
+          if (flat.fireFromLightning) eff.gearFireDmg = Math.max(eff.gearFireDmg, eff.gearLightningDmg);
+          if (flat.coldFromFire) eff.gearColdDmg = Math.max(eff.gearColdDmg, eff.gearFireDmg);
+          if (flat.lightningFromCold) eff.gearLightningDmg = Math.max(eff.gearLightningDmg, eff.gearColdDmg);
+          if (flat.allElemental) {
+            const hi = Math.max(eff.gearFireDmg, eff.gearColdDmg, eff.gearLightningDmg);
+            eff.gearFireDmg = hi; eff.gearColdDmg = hi; eff.gearLightningDmg = hi;
+          }
+          if (flat.armorDouble) eff.armor = Math.floor(eff.armor * 2);
+          if (flat.regenBoost) eff.lifeRegen = Math.floor(eff.lifeRegen * (flat.regenBoost as number));
+        }
 
         allCharacters.push({
           id: c.id,
@@ -253,6 +292,20 @@ export class PlayerService {
     return {
       banned: false,
       gold: pl.gold,
+      shards: player.shards,
+      extraTradeSlots: player.extraTradeSlots,
+      maxTradeSlots: B.BASE_TRADE_SLOTS + player.extraTradeSlots,
+      purchasedSkins: player.purchasedSkins || [],
+      hasReferrer: !!player.referrerId,
+      referrerName: player.referrerId
+        ? await this.playerRepo.findOne({ where: { telegramId: player.referrerId }, select: ['telegramUsername', 'telegramFirstName'] })
+            .then(r => r?.telegramUsername ? `@${r.telegramUsername}` : r?.telegramFirstName || `ID ${player.referrerId}`)
+        : null,
+      referralCount: await this.playerRepo.count({ where: { referrerId: player.telegramId } }),
+      referralIncome: await this.dataSource.query(
+        `SELECT COALESCE(SUM(amount), 0)::int AS total FROM shard_transactions WHERE "playerTelegramId" = $1 AND reason = 'referral_income'`,
+        [player.telegramId],
+      ).then((rows: any[]) => rows[0]?.total || 0),
       activeLeagueId: player.activeLeagueId,
       activeCharacterId: pl.activeCharacterId,
       league: {
@@ -387,6 +440,67 @@ export class PlayerService {
     }
 
     return { unlockedActiveSkills: unlocked, equippedSkills: equipped };
+  }
+
+  /**
+   * Apply a referral code (referrer's telegramId).
+   * Awards REFERRAL_REWARD_SHARDS to both players.
+   */
+  async applyReferral(telegramId: string, referralCode: string): Promise<{ success: boolean }> {
+    if (!referralCode || !/^\d+$/.test(referralCode)) {
+      throw new BadRequestException('Invalid referral code');
+    }
+
+    if (referralCode === telegramId) {
+      throw new BadRequestException('Cannot refer yourself');
+    }
+
+    return this.dataSource.transaction(async (em) => {
+      const [player, referrer] = await Promise.all([
+        em.findOne(Player, { where: { telegramId }, lock: { mode: 'pessimistic_write' } }),
+        em.findOne(Player, { where: { telegramId: referralCode }, lock: { mode: 'pessimistic_write' } }),
+      ]);
+
+      if (!player) throw new NotFoundException('Player not found');
+      if (!referrer) throw new BadRequestException('Referral code not found');
+      if (player.referrerId) throw new BadRequestException('Already have a referrer');
+
+      const reward = B.REFERRAL_REWARD_SHARDS;
+
+      // Award shards to player
+      const playerShards = BigInt(player.shards) + BigInt(reward);
+      player.shards = playerShards.toString();
+      player.referrerId = referralCode;
+      await em.save(Player, player);
+
+      // Award shards to referrer
+      const referrerShards = BigInt(referrer.shards) + BigInt(reward);
+      referrer.shards = referrerShards.toString();
+      await em.save(Player, referrer);
+
+      // Log transactions
+      const txPlayer = em.create(ShardTransaction, {
+        playerTelegramId: telegramId,
+        type: 'purchase',
+        amount: reward,
+        balanceAfter: playerShards.toString(),
+        reason: 'referral_bonus',
+        referenceId: referralCode,
+      });
+      const txReferrer = em.create(ShardTransaction, {
+        playerTelegramId: referralCode,
+        type: 'purchase',
+        amount: reward,
+        balanceAfter: referrerShards.toString(),
+        reason: 'referral_bonus',
+        referenceId: telegramId,
+      });
+      await em.save(ShardTransaction, [txPlayer, txReferrer]);
+
+      this.logger.log(`Referral applied: ${telegramId} referred by ${referralCode}, +${reward} shards each`);
+
+      return { success: true };
+    });
   }
 
 }

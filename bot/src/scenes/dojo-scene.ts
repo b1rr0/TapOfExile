@@ -3,7 +3,8 @@ import { getCharacterClass } from "../data/character-classes.js";
 import { HeroCharacter } from "../ui/characters/hero-character.js";
 import { EnemyCharacter } from "../ui/characters/enemy-character.js";
 import { BackgroundRenderer } from "../ui/background-renderer.js";
-import { renderActionBarHTML, initPotionSlots, initKeyboardHandler } from "../ui/action-bar.js";
+import { renderActionBarHTML, initPotionSlots, initKeyboardHandler, initAbilitySlots } from "../ui/action-bar.js";
+import { ProjectileLayer } from "../ui/projectile-layer.js";
 import { haptic } from "../utils/haptic.js";
 import { friends } from "../api.js";
 import { getSocket, waitForConnection } from "../combat-socket.js";
@@ -88,6 +89,8 @@ export class DojoScene {
   _tapHandler: ((e: MouseEvent) => void) | null;
   _cleanupKeyboard: (() => void) | null;
   _cleanupPotions: (() => void) | null;
+  _cleanupAbilities: (() => void) | null;
+  _projectileLayer: ProjectileLayer | null;
 
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;
@@ -130,6 +133,8 @@ export class DojoScene {
     this._tapHandler = null;
     this._cleanupKeyboard = null;
     this._cleanupPotions = null;
+    this._cleanupAbilities = null;
+    this._projectileLayer = null;
   }
 
   mount(_params: Record<string, unknown> = {}): void {
@@ -264,6 +269,32 @@ export class DojoScene {
       onTap: () => this._onTap(),
     });
 
+    // Ability slots — show equipped skills from the skill tree
+    {
+      let equippedSkills = char.equippedSkills || [null, null, null, null];
+      if (equippedSkills.every((s: string | null) => !s) && char.unlockedActiveSkills?.length) {
+        equippedSkills = [...char.unlockedActiveSkills.slice(0, 4)];
+        while (equippedSkills.length < 4) equippedSkills.push(null);
+      }
+      if (!this._projectileLayer) this._projectileLayer = new ProjectileLayer();
+      initAbilitySlots({
+        container: this.container,
+        equippedSkills,
+        projectileLayer: this._projectileLayer,
+        onCastSkill: (skillId) => {
+          if (this._socket && this._sessionId) {
+            this._socket.emit("combat:cast-skill", { sessionId: this._sessionId, skillId });
+          }
+        },
+        events: this.events,
+      }).then((cleanup) => {
+        this._cleanupAbilities = cleanup;
+      });
+    }
+
+    // Refresh stats before starting so action bar and server see same data
+    await this.state.refreshState().catch(() => {});
+
     // Connect socket and request dojo session
     try {
       this._socket = await getSocket();
@@ -356,6 +387,36 @@ export class DojoScene {
       this._endFight(data);
     });
 
+    this._socket.on("combat:skill-result", (data: {
+      skillId: string;
+      cooldownMs: number;
+      damage?: number;
+      isCrit?: boolean;
+      totalDamage?: number;
+      totalTaps?: number;
+    }) => {
+      if (this._phase !== "fight") return;
+      // Update totals if server returned them
+      if (data.totalDamage !== undefined) this._totalDamage = data.totalDamage;
+      if (data.totalTaps !== undefined) this._tapCount = data.totalTaps;
+      this._updateHud();
+      // Emit skillHit so the ability slot shows the cooldown overlay
+      this.events.emit("skillHit", {
+        skillId: data.skillId,
+        cooldownMs: data.cooldownMs,
+        damage: data.damage ?? 0,
+        isCrit: data.isCrit ?? false,
+      });
+      // Play hero attack animation
+      if (this._hero) this._hero.attack();
+      if (this._enemy) {
+        if (this._enemy.engine.hasAnimation("hurt")) {
+          this._enemy.play("hurt", { onComplete: () => this._enemy?.play("idle") });
+        }
+        if (data.damage && data.damage > 0) this._enemy.hit();
+      }
+    });
+
     this._socket.on("combat:error", (data: { message: string }) => {
       console.error("[DojoScene] Server error:", data.message);
       if (this._phase === "loading") {
@@ -394,6 +455,7 @@ export class DojoScene {
     if (!this._socket) return;
     this._socket.off("combat:dojo-started");
     this._socket.off("combat:tap-result");
+    this._socket.off("combat:skill-result");
     this._socket.off("combat:dojo-completed");
     this._socket.off("combat:error");
     this._socket.off("combat:banned");
@@ -462,7 +524,6 @@ export class DojoScene {
       this._resizeObserver = new ResizeObserver(() => {
         this._resizeCanvas();
         this._ctx = this._canvas!.getContext("2d");
-        if (this._bg) this._bg._dirty = true;
         this._drawFrame();
       });
       this._resizeObserver.observe(arenaEl);
@@ -832,6 +893,8 @@ export class DojoScene {
     this._cleanupKeyboard = null;
     this._cleanupPotions?.();
     this._cleanupPotions = null;
+    this._cleanupAbilities?.();
+    this._cleanupAbilities = null;
   }
 
   // ─── Overlay Helpers ────────────────────────────────────

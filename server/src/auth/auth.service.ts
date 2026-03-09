@@ -1,19 +1,23 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import { Player } from '../shared/entities/player.entity';
+import { ShardTransaction } from '../shared/entities/shard-transaction.entity';
 import { RedisService } from '../redis/redis.service';
 import { TelegramUser } from './interfaces/telegram-user.interface';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { B } from '@shared/balance';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger('AuthService');
   private readonly botToken: string;
   private readonly jwtAccessExpiry: number;
   private readonly jwtRefreshExpiry: number;
@@ -22,6 +26,7 @@ export class AuthService {
     private jwtService: JwtService,
     private config: ConfigService,
     private redis: RedisService,
+    private dataSource: DataSource,
     @InjectRepository(Player)
     private playerRepo: Repository<Player>,
   ) {
@@ -81,15 +86,17 @@ export class AuthService {
   /**
    * Find or create a Player record by Telegram user ID.
    * Uses PostgreSQL UPSERT — single query instead of SELECT + conditional INSERT/UPDATE.
+   * If startParam contains a referral code (ref_<id>), awards shards to both players.
    */
-  async findOrCreatePlayer(tgUser: TelegramUser): Promise<Player> {
+  async findOrCreatePlayer(tgUser: TelegramUser, startParam?: string): Promise<Player> {
     const telegramId = String(tgUser.id);
 
     await this.playerRepo.query(
       `INSERT INTO players ("telegramId", "telegramUsername", "telegramFirstName",
                             "activeLeagueId", "totalTaps", "totalKills",
-                            "lastSaveTime", "gameVersion")
-       VALUES ($1, $2, $3, NULL, 0, 0, $4, 4)
+                            "lastSaveTime", "gameVersion", "shards", "extraTradeSlots",
+                            "purchasedSkins", "referrerId")
+       VALUES ($1, $2, $3, NULL, 0, 0, $4, 4, 0, 0, '[]', NULL)
        ON CONFLICT ("telegramId") DO UPDATE SET
          "telegramUsername" = EXCLUDED."telegramUsername",
          "telegramFirstName" = EXCLUDED."telegramFirstName"`,
@@ -98,7 +105,79 @@ export class AuthService {
 
     const player = await this.playerRepo.findOne({ where: { telegramId } });
     if (!player) throw new Error('Player upsert failed');
+
+    // Process referral for newly created players
+    if (startParam && !player.referrerId) {
+      await this._processReferral(player, startParam);
+    }
+
     return player;
+  }
+
+  /**
+   * Process referral bonus: parse ref code, validate, award shards to both players.
+   */
+  private async _processReferral(player: Player, startParam: string): Promise<void> {
+    const match = startParam.match(/^ref_(\d+)$/);
+    if (!match) return;
+
+    const referrerId = match[1];
+
+    // Cannot refer yourself
+    if (referrerId === player.telegramId) return;
+
+    // Only award if player was just created (within 30 seconds)
+    const ageMs = Date.now() - player.createdAt.getTime();
+    if (ageMs > 30_000) return;
+
+    await this.dataSource.transaction(async (em) => {
+      // Lock both players
+      const [newPlayer, referrer] = await Promise.all([
+        em.findOne(Player, { where: { telegramId: player.telegramId }, lock: { mode: 'pessimistic_write' } }),
+        em.findOne(Player, { where: { telegramId: referrerId }, lock: { mode: 'pessimistic_write' } }),
+      ]);
+
+      if (!newPlayer || !referrer) return;
+      if (newPlayer.referrerId) return; // already referred
+
+      const reward = B.REFERRAL_REWARD_SHARDS;
+
+      // Award shards to new player
+      const newShards = BigInt(newPlayer.shards) + BigInt(reward);
+      newPlayer.shards = newShards.toString();
+      newPlayer.referrerId = referrerId;
+      await em.save(Player, newPlayer);
+
+      // Award shards to referrer
+      const refShards = BigInt(referrer.shards) + BigInt(reward);
+      referrer.shards = refShards.toString();
+      await em.save(Player, referrer);
+
+      // Log transactions
+      const txNew = em.create(ShardTransaction, {
+        playerTelegramId: newPlayer.telegramId,
+        type: 'purchase',
+        amount: reward,
+        balanceAfter: newShards.toString(),
+        reason: 'referral_bonus',
+        referenceId: referrerId,
+      });
+      const txRef = em.create(ShardTransaction, {
+        playerTelegramId: referrerId,
+        type: 'purchase',
+        amount: reward,
+        balanceAfter: refShards.toString(),
+        reason: 'referral_bonus',
+        referenceId: newPlayer.telegramId,
+      });
+      await em.save(ShardTransaction, [txNew, txRef]);
+
+      this.logger.log(`Referral bonus: ${newPlayer.telegramId} referred by ${referrerId}, +${reward} shards each`);
+
+      // Update in-memory player object
+      player.shards = newShards.toString();
+      player.referrerId = referrerId;
+    });
   }
 
   /**
@@ -169,6 +248,11 @@ export class AuthService {
    * Uses Telegram Bot API getChatMember.
    */
   async checkChannelMembership(telegramId: string): Promise<{ subscribed: boolean }> {
+    // Dev test bypass — test user is always considered subscribed
+    if (process.env.NODE_ENV !== 'production' && telegramId === '999999999') {
+      return { subscribed: true };
+    }
+
     const chatId = '@tap_of_exile';
     const url = `https://api.telegram.org/bot${this.botToken}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${telegramId}`;
 
@@ -203,10 +287,43 @@ export class AuthService {
   /**
    * Authenticate via Telegram initData: validate → find/create player → issue tokens.
    * Returns ban info if player is currently banned.
+   *
+   * Dev-only bypass: if initData starts with "test_user_id=" and NODE_ENV !== "production",
+   * skip HMAC validation and create a test player. Never active in production.
    */
-  async authenticateTelegram(initData: string) {
+  async authenticateTelegram(initData: string, startParam?: string) {
+    // ── Dev test bypass (disabled in production) ─────────────────
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      initData.startsWith('test_user_id=')
+    ) {
+      const testId = parseInt(initData.split('=')[1], 10) || 999999999;
+      const tgUser: TelegramUser = {
+        id: testId,
+        first_name: 'TestUser',
+        username: 'testuser',
+      };
+      const player = await this.findOrCreatePlayer(tgUser, startParam);
+      const tokens = await this.issueTokens(player);
+      const isBanned = player.bannedUntil && player.bannedUntil.getTime() > Date.now();
+      return {
+        ...tokens,
+        player: {
+          telegramId: player.telegramId,
+          username: player.telegramUsername,
+          firstName: player.telegramFirstName,
+          activeLeagueId: player.activeLeagueId,
+          gameVersion: player.gameVersion,
+          banned: isBanned ? true : false,
+          bannedUntil: isBanned ? player.bannedUntil!.getTime() : null,
+          banReason: isBanned ? (player.banReason || 'rate_limit') : null,
+        },
+      };
+    }
+    // ─────────────────────────────────────────────────────────────
+
     const tgUser = this.validateTelegramInitData(initData);
-    const player = await this.findOrCreatePlayer(tgUser);
+    const player = await this.findOrCreatePlayer(tgUser, startParam);
     const tokens = await this.issueTokens(player);
 
     // Ban check

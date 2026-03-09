@@ -20,10 +20,22 @@
       "port": 8092
     },
     {
+      "name": "server",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nest", "start", "--watch"],
+      "port": 3001
+    },
+    {
       "name": "sprite-tester",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd /d/programs/code/TapOfExile/shared/public/assets/skils_sprites && python -m http.server 8090"],
       "port": 8090
+    },
+    {
+      "name": "sprite-compare",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "shared/public/assets", "-p", "8093", "--cors", "-c-1"],
+      "port": 8093
     }
   ]
 }

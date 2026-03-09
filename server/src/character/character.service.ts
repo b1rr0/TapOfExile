@@ -4,11 +4,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Character } from '../shared/entities/character.entity';
 import { Player } from '../shared/entities/player.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { League } from '../shared/entities/league.entity';
+import { ShardTransaction } from '../shared/entities/shard-transaction.entity';
 import { B } from '../shared/constants/balance.constants';
 import { CLASS_DEFS, statsAtLevel, specialAtLevel } from '@shared/class-stats';
 import { CreateCharacterDto } from './dto/create-character.dto';
@@ -24,6 +25,7 @@ export class CharacterService {
     private playerLeagueRepo: Repository<PlayerLeague>,
     @InjectRepository(League)
     private leagueRepo: Repository<League>,
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -208,14 +210,86 @@ export class CharacterService {
     return char;
   }
 
+  /** Default skins (one per class) are always free. */
+  private isDefaultSkin(skinId: string): boolean {
+    return Object.values(CLASS_DEFS).some((c) => c.skinId === skinId);
+  }
+
   async changeSkin(
     telegramId: string,
     charId: string,
     skinId: string,
-  ): Promise<Character> {
+  ): Promise<{ character: Character; shards?: string; purchased?: boolean }> {
     const char = await this.getCharacter(telegramId, charId);
-    char.skinId = skinId;
-    await this.charRepo.save(char);
-    return char;
+
+    // Default skins are always free
+    if (this.isDefaultSkin(skinId)) {
+      char.skinId = skinId;
+      await this.charRepo.save(char);
+      return { character: char };
+    }
+
+    // Check if already purchased
+    const player = await this.playerRepo.findOne({
+      where: { telegramId },
+      select: ['telegramId', 'shards', 'purchasedSkins'],
+    });
+    if (!player) throw new NotFoundException('Player not found');
+
+    const owned = (player.purchasedSkins || []).includes(skinId);
+
+    if (owned) {
+      // Already purchased — just equip
+      char.skinId = skinId;
+      await this.charRepo.save(char);
+      return { character: char };
+    }
+
+    // Need to purchase — charge shards in a transaction
+    const cost = BigInt(B.SKIN_PRICE_SHARDS);
+
+    return this.dataSource.transaction(async (em) => {
+      const p = await em
+        .getRepository(Player)
+        .createQueryBuilder('p')
+        .setLock('pessimistic_write')
+        .where('p.telegramId = :telegramId', { telegramId })
+        .getOne();
+      if (!p) throw new NotFoundException('Player not found');
+
+      const currentShards = BigInt(p.shards);
+      if (currentShards < cost) {
+        throw new BadRequestException(
+          `Insufficient Shards. Need ${B.SKIN_PRICE_SHARDS}, have ${p.shards}`,
+        );
+      }
+
+      // Deduct shards
+      const newBalance = currentShards - cost;
+      p.shards = newBalance.toString();
+
+      // Add to purchased skins
+      const skins = [...(p.purchasedSkins || [])];
+      if (!skins.includes(skinId)) skins.push(skinId);
+      p.purchasedSkins = skins;
+      await em.save(p);
+
+      // Record shard transaction
+      const tx = em.getRepository(ShardTransaction).create({
+        playerTelegramId: telegramId,
+        type: 'spend',
+        amount: -B.SKIN_PRICE_SHARDS,
+        balanceAfter: newBalance.toString(),
+        reason: `skin:${skinId}`,
+        referenceId: skinId,
+      });
+      await em.save(tx);
+
+      // Equip skin
+      char.skinId = skinId;
+      await em.save(char);
+
+      return { character: char, shards: newBalance.toString(), purchased: true };
+    });
   }
 }

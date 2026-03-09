@@ -48,6 +48,7 @@ import {
 } from '@shared/equipment-bonus';
 import { buildSkillTree } from '@shared/skill-tree';
 import { computeAllocatedBonuses } from '@shared/skill-node-defs';
+import { getActModifierEffects } from '@shared/act-modifiers';
 
 /** Cached character stats — loaded once at combat start, used from Redis for 0 DB hits. */
 export interface CachedCharStats {
@@ -442,22 +443,22 @@ export class CombatService {
   /**
    * Apply skill tree percent/flat bonuses on top of equipment-modified stats.
    *
-   * Multiplicative for: tapDamage, maxHp/hp
+   * All percentages scale BASE stats (level-only, no equipment) — additive stacking.
    * Additive for:        critChance, critMultiplier, dodgeChance
-   * Utility additive:    goldFind, xpBonus (converted from decimal to %)
-   * Elemental % bonus:   adds flat elemental damage = floor(tapDamage × bonus)
+   * Elemental % bonus:   adds flat elemental damage = floor(baseDamage × bonus)
    */
   private applyTreeBonuses(stats: CachedCharStats): void {
     if (!stats.treeBonuses) return;
     const pct = stats.treeBonuses.percent;
 
-    // Multiplicative: damage and HP
-    const dmgMul = 1 + (pct.tapDamage || 0);
-    stats.tapDamage = Math.floor(stats.tapDamage * dmgMul);
+    // Base stats from class+level only (no equipment)
+    const base = statsAtLevel(stats.classId, stats.level);
 
-    const hpMul = 1 + (pct.hp || 0);
+    // Additive: tree % scales base stat, all bonuses sum (not multiply)
+    stats.tapDamage += Math.floor(base.tapDamage * (pct.tapDamage || 0));
+
     const oldMaxHp = stats.maxHp;
-    stats.maxHp = Math.floor(stats.maxHp * hpMul);
+    stats.maxHp += Math.floor(base.hp * (pct.hp || 0));
     // Scale current HP proportionally
     if (stats.maxHp > oldMaxHp && oldMaxHp > 0) {
       stats.hp = Math.floor(stats.hp * stats.maxHp / oldMaxHp);
@@ -469,15 +470,41 @@ export class CombatService {
     stats.critMultiplier += (pct.critMultiplier || 0);
     stats.dodgeChance += (pct.dodgeChance || 0);
 
-    // Utility: goldFind and xpBonus stored as percentage (5 = 5%),
-    // tree bonuses are decimal (0.05 = 5%), so multiply by 100
-    stats.goldFind += (pct.goldFind || 0) * 100;
-    stats.xpBonus += (pct.xpGain || 0) * 100;
+    // Elemental % bonuses: add as flat elemental damage based on BASE damage
+    stats.gearFireDmg += Math.floor(base.tapDamage * (pct.fireDmg || 0));
+    stats.gearColdDmg += Math.floor(base.tapDamage * (pct.coldDmg || 0));
+    stats.gearLightningDmg += Math.floor(base.tapDamage * (pct.lightningDmg || 0));
 
-    // Elemental % bonuses: add as flat elemental damage based on tap damage
-    stats.gearFireDmg += Math.floor(stats.tapDamage * (pct.fireDmg || 0));
-    stats.gearColdDmg += Math.floor(stats.tapDamage * (pct.coldDmg || 0));
-    stats.gearLightningDmg += Math.floor(stats.tapDamage * (pct.lightningDmg || 0));
+    // ── Unique passive mechanics (from flat bonuses) ──────────
+    const flat = stats.treeBonuses.flat || {};
+
+    // Elemental conversions: fire=lightning, cold=fire, lightning=cold
+    if (flat.fireFromLightning) {
+      stats.gearFireDmg = Math.max(stats.gearFireDmg, stats.gearLightningDmg);
+    }
+    if (flat.coldFromFire) {
+      stats.gearColdDmg = Math.max(stats.gearColdDmg, stats.gearFireDmg);
+    }
+    if (flat.lightningFromCold) {
+      stats.gearLightningDmg = Math.max(stats.gearLightningDmg, stats.gearColdDmg);
+    }
+    // All elemental = highest element
+    if (flat.allElemental) {
+      const highest = Math.max(stats.gearFireDmg, stats.gearColdDmg, stats.gearLightningDmg);
+      stats.gearFireDmg = highest;
+      stats.gearColdDmg = highest;
+      stats.gearLightningDmg = highest;
+    }
+
+    // Armor double
+    if (flat.armorDouble) {
+      stats.armor = Math.floor(stats.armor * 2);
+    }
+
+    // Regen boost
+    if (flat.regenBoost) {
+      stats.lifeRegen = Math.floor(stats.lifeRegen * flat.regenBoost);
+    }
   }
 
   /**
@@ -625,6 +652,9 @@ export class CombatService {
       equippedSkillIds: (char.equippedSkills || []).filter(Boolean) as string[],
       activeEffects: [],
     };
+
+    // Inject act modifiers as permanent effects
+    this.injectActModifiers(session, actNumber);
 
     await this.redis.setJson(this.sessionKey(sessionId), session, SESSION_TTL);
 
@@ -848,11 +878,18 @@ export class CombatService {
       const dmgMul = chosenAttack ? chosenAttack.damageMul : 1.0;
       const attackName = chosenAttack ? chosenAttack.name : undefined;
 
+      // Unique passives from tree
+      const tFlat = stats.treeBonuses?.flat || {};
+
       // Dodge check (including buff bonus)
       const dodgeBuff = this.sumEffects(session, 'self', 'dodge');
       if (Math.random() < stats.dodgeChance + dodgeBuff) {
+        // Unique passive: dodgeCounter — on dodge, deal X% damage back
+        if (tFlat.dodgeCounter) {
+          const counterDmg = Math.floor(stats.tapDamage * tFlat.dodgeCounter);
+          if (counterDmg > 0) monster.currentHp -= counterDmg;
+        }
         attacks.push({ dodged: true, damage: 0, breakdown: null, attackName });
-        // Next attack delay: attack speed (for next picked) — short for dodged
         session.nextAttackIn = chosenAttack
           ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
           : B.ENEMY_ATTACK_INTERVAL_MS;
@@ -861,10 +898,30 @@ export class CombatService {
 
       // Block check: warrior class special + equipment blockChance (stacks)
       const classDef = CLASS_DEFS[stats.classId];
-      const totalBlockChance = (classDef?.special.id === 'blockChance' ? stats.specialValue : 0)
+      let totalBlockChance = (classDef?.special.id === 'blockChance' ? stats.specialValue : 0)
         + (stats.blockChance || 0);
+
+      // Unique passive: glancingBlows — double block chance, but blocks prevent only 50%
+      const hasGlancing = !!tFlat.glancingBlows;
+      if (hasGlancing) totalBlockChance = Math.min(1, totalBlockChance * 2);
+
       if (totalBlockChance > 0 && Math.random() < totalBlockChance) {
-        attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null, attackName });
+        // Unique passive: shieldBash — block deals X% tap damage back
+        if (tFlat.shieldBash) {
+          const bashDmg = Math.floor(stats.tapDamage * tFlat.shieldBash);
+          if (bashDmg > 0) monster.currentHp -= bashDmg;
+        }
+
+        if (hasGlancing) {
+          // Glancing block: take 50% damage instead of 0
+          const rawDmg = Math.floor(monster.scaledDamage * dmgMul);
+          const halfDmg = Math.floor(rawDmg * 0.5);
+          session.playerCurrentHp -= halfDmg;
+          if (session.playerCurrentHp < 0) session.playerCurrentHp = 0;
+          attacks.push({ dodged: false, blocked: true, damage: halfDmg, breakdown: null, attackName });
+        } else {
+          attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null, attackName });
+        }
         session.nextAttackIn = chosenAttack
           ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
           : B.ENEMY_ATTACK_INTERVAL_MS;
@@ -890,7 +947,25 @@ export class CombatService {
         }
       }
 
+      // Apply damageTaken modifier (act modifiers, etc.) — positive = take MORE damage
+      const damageTakenMod = this.sumEffects(session, 'self', 'damageTaken');
+      if (damageTakenMod !== 0) {
+        breakdown.total = Math.max(1, Math.floor(breakdown.total * (1 + damageTakenMod)));
+      }
+
       session.playerCurrentHp -= breakdown.total;
+
+      // Unique passive: thorns — reflect X% damage taken back to enemy
+      if (tFlat.thorns && breakdown.total > 0) {
+        const thornsDmg = Math.floor(breakdown.total * tFlat.thorns);
+        if (thornsDmg > 0) monster.currentHp -= thornsDmg;
+      }
+
+      // Unique passive: secondWind — X% chance to survive lethal at 1 HP
+      if (session.playerCurrentHp <= 0 && tFlat.secondWind && Math.random() < tFlat.secondWind) {
+        session.playerCurrentHp = 1;
+      }
+
       if (session.playerCurrentHp < 0) session.playerCurrentHp = 0;
 
       attacks.push({
@@ -1016,8 +1091,13 @@ export class CombatService {
     const physVuln = this.sumEffects(session, 'enemy', 'physicalVulnerability');
     const magicVuln = this.sumEffects(session, 'enemy', 'magicVulnerability');
 
-    // Calculate raw damage (before elemental split)
-    const effectiveCrit = Math.min(1, stats.critChance + critBuff + critVuln);
+    // Unique passive: luckyHits — roll crit twice, take better
+    const treeFlat = stats.treeBonuses?.flat || {};
+    const effectiveCritBase = Math.min(1, stats.critChance + critBuff + critVuln);
+    let effectiveCrit = effectiveCritBase;
+    if (treeFlat.luckyHits) {
+      effectiveCrit = 1 - (1 - effectiveCritBase) * (1 - effectiveCritBase);
+    }
     const isCrit = Math.random() < effectiveCrit;
 
     // Accumulate all multipliers then floor once to avoid cascading rounding loss
@@ -1031,7 +1111,6 @@ export class CombatService {
     if (vulnMul > 1) {
       rawDamage *= vulnMul;
     }
-    rawDamage = Math.floor(rawDamage);
 
     // Apply damage to current monster
     const monster = session.monsterQueue[session.currentIndex];
@@ -1039,10 +1118,42 @@ export class CombatService {
       throw new BadRequestException('No monster to attack');
     }
 
+    // Unique passive: execute — +X% damage to enemies below 30% HP
+    if (treeFlat.execute && monster.currentHp < monster.maxHp * 0.3) {
+      rawDamage *= (1 + treeFlat.execute);
+    }
+
+    // Unique passive: firstStrike — first hit per monster deals X× damage
+    if (treeFlat.firstStrike && monster.currentHp === monster.maxHp) {
+      rawDamage *= (1 + treeFlat.firstStrike);
+    }
+
+    // Unique passive: bossSlayer — +X% damage to bosses
+    if (treeFlat.bossSlayer && (monster as any).isBoss) {
+      rawDamage *= (1 + treeFlat.bossSlayer);
+    }
+
+    // Unique passive: berserkerFury — +1% damage per 2% missing HP
+    if (treeFlat.berserkerFury && session.playerCurrentHp < session.playerMaxHp) {
+      const missingPct = 1 - session.playerCurrentHp / session.playerMaxHp;
+      rawDamage *= (1 + missingPct * 0.5); // 50% max bonus at 1 HP
+    }
+
+    rawDamage = Math.floor(rawDamage);
+
     // Elemental damage: split by profile, reduce by resistance
     const damageProfile = stats.elementalDamage || { physical: 1.0 };
     const monsterResistance = monster.resistance || {};
-    const breakdown = computeElementalDamage(rawDamage, damageProfile, monsterResistance);
+
+    // Unique passive: penetration — ignore X% enemy resistance
+    let effectiveResistance = monsterResistance;
+    if (treeFlat.penetration) {
+      effectiveResistance = {} as any;
+      for (const [key, val] of Object.entries(monsterResistance)) {
+        (effectiveResistance as any)[key] = Math.max(0, (val as number) * (1 - treeFlat.penetration));
+      }
+    }
+    const breakdown = computeElementalDamage(rawDamage, damageProfile, effectiveResistance);
 
     // Add flat elemental damage from equipment (into breakdown components, after resistance)
     if (stats.gearFireDmg > 0) {
@@ -1071,6 +1182,42 @@ export class CombatService {
         session.playerMaxHp,
         session.playerCurrentHp + Math.floor(stats.lifeOnHit),
       );
+    }
+
+    // Unique passive: lifeSteal — heal X% of damage dealt
+    if (treeFlat.lifeSteal && session.playerCurrentHp > 0) {
+      const stolen = Math.floor(breakdown.total * treeFlat.lifeSteal);
+      if (stolen > 0) {
+        session.playerCurrentHp = Math.min(session.playerMaxHp, session.playerCurrentHp + stolen);
+      }
+    }
+
+    // Unique passive: critHeal — heal flat HP on critical hit
+    if (treeFlat.critHeal && isCrit && session.playerCurrentHp > 0) {
+      session.playerCurrentHp = Math.min(
+        session.playerMaxHp,
+        session.playerCurrentHp + Math.floor(treeFlat.critHeal),
+      );
+    }
+
+    // Unique passive: critExplosion — crits deal X% as passive DPS burst
+    if (treeFlat.critExplosion && isCrit) {
+      const burstDmg = Math.floor(breakdown.total * treeFlat.critExplosion);
+      if (burstDmg > 0) {
+        monster.currentHp -= burstDmg;
+      }
+    }
+
+    // Unique passive: multiStrike — X% chance to hit twice
+    if (treeFlat.multiStrike && Math.random() < treeFlat.multiStrike) {
+      // Second strike at same damage (no crit reroll)
+      monster.currentHp -= breakdown.total;
+      session.totalTaps++;
+    }
+
+    // Unique passive: cullingStrike — enemies below 10% HP die instantly
+    if (treeFlat.cullingStrike && monster.currentHp > 0 && monster.currentHp < monster.maxHp * treeFlat.cullingStrike) {
+      monster.currentHp = 0;
     }
 
     let killed = false;
@@ -1353,9 +1500,9 @@ export class CombatService {
       }
     }
 
-    // Equipment drops — 3 independent 50% rolls (separate from potion pool)
+    // Equipment drops — 4 independent 50% rolls (separate from potion pool)
     {
-      const EQUIP_ROLLS = 3;
+      const EQUIP_ROLLS = 4;
       const EQUIP_CHANCE = 0.5;
       const ALL_SLOTS: EquipmentSlotId[] = [
         'one_hand', 'two_hand', 'helmet', 'amulet',
@@ -1409,6 +1556,9 @@ export class CombatService {
         });
       }
     }
+
+    // Cap total drops at 4 (4 rolls max by design)
+    if (lootDrops.length > 4) lootDrops.length = 4;
 
     // Save all drops (potions + equipment) to bag
     if (lootDrops.length > 0) {
@@ -1775,6 +1925,26 @@ export class CombatService {
    * Damage = tapDamage × skill.damageMultiplier, using the skill's elemental profile.
    */
   // ─── Effect helpers ──────────────────────────────────────
+
+  /** Inject act modifiers as permanent ActiveEffects (very long TTL). */
+  private injectActModifiers(session: RedisCombatSession, actNumber: number): void {
+    const mods = getActModifierEffects(actNumber);
+    if (!mods.length) return;
+    if (!session.activeEffects) session.activeEffects = [];
+    const farFuture = Date.now() + 24 * 60 * 60 * 1000; // 24h — outlasts any session
+    for (const mod of mods) {
+      session.activeEffects.push({
+        instanceId: `act${actNumber}_${mod.stat}`,
+        effectId: `act_modifier_${mod.stat}`,
+        sourceSkillId: 'act_modifier',
+        target: mod.target,
+        stat: mod.stat,
+        value: mod.value,
+        expiresAt: farFuture,
+        refreshable: false,
+      });
+    }
+  }
 
   /** Purge expired effects and debuffs on dead monsters */
   private cleanupEffects(session: RedisCombatSession): void {

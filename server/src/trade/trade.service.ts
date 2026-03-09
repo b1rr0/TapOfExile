@@ -12,10 +12,11 @@ import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { Character } from '../shared/entities/character.entity';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
 
-const MAX_ACTIVE_LISTINGS = 20;
 const MIN_TRADE_LEVEL = 10;
 const LISTING_EXPIRY_HOURS = 48;
-const COMMISSION_RATE = 10n; // 10%
+const LISTING_FEE_RATE = 3n; // 3% listing fee (seller pays upfront)
+const LISTING_FEE_FLAT = 20n; // +20 gold flat listing fee
+const BUYER_TAX_RATE = 5n; // 5% buyer tax on purchase
 const STATS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 @Injectable()
@@ -59,6 +60,7 @@ export class TradeService implements OnModuleInit {
     playerLeague: PlayerLeague,
     itemId: string,
     price: string,
+    maxActiveListings: number,
   ): Promise<TradeListing> {
     // 1. Validate character level
     const char = await this.charRepo.findOne({
@@ -78,9 +80,9 @@ export class TradeService implements OnModuleInit {
         status: 'active',
       },
     });
-    if (activeCount >= MAX_ACTIVE_LISTINGS) {
+    if (activeCount >= maxActiveListings) {
       throw new BadRequestException(
-        `Maximum ${MAX_ACTIVE_LISTINGS} active listings allowed`,
+        `Maximum ${maxActiveListings} active listings allowed. Purchase more trade slots in the shop.`,
       );
     }
 
@@ -94,6 +96,15 @@ export class TradeService implements OnModuleInit {
     const priceVal = BigInt(price);
     if (priceVal < 1n) {
       throw new BadRequestException('Price must be at least 1 gold');
+    }
+
+    // 4b. Calculate listing fee (3% + 20 gold) and check seller can afford it
+    const listingFee = priceVal * LISTING_FEE_RATE / 100n + LISTING_FEE_FLAT;
+    const sellerGold = BigInt(playerLeague.gold);
+    if (sellerGold < listingFee) {
+      throw new BadRequestException(
+        `Insufficient gold for listing fee. Need ${listingFee.toString()}, have ${sellerGold.toString()}`,
+      );
     }
 
     // 5. Derive item subtype for equipment filtering
@@ -121,6 +132,13 @@ export class TradeService implements OnModuleInit {
     const expiresAt = new Date(Date.now() + LISTING_EXPIRY_HOURS * 3600_000);
 
     return this.dataSource.transaction(async (em) => {
+      // Deduct listing fee from seller
+      const sellerPl = await em.getRepository(PlayerLeague).findOneBy({
+        id: playerLeague.id,
+      });
+      sellerPl!.gold = (BigInt(sellerPl!.gold) - listingFee).toString();
+      await em.save(sellerPl!);
+
       item.status = 'trade';
       await em.save(item);
 
@@ -185,8 +203,9 @@ export class TradeService implements OnModuleInit {
 
       // 5. Calculate gold
       const listPrice = BigInt(listing.price);
-      const buyerPays = listPrice * 110n / 100n; // +10% commission
-      const sellerReceives = listPrice * 90n / 100n; // -10% commission
+      const buyerTax = listPrice * BUYER_TAX_RATE / 100n;
+      const buyerPays = listPrice + buyerTax; // price + 5% tax
+      const sellerReceives = listPrice; // seller gets full price (already paid listing fee)
 
       // 6. Check buyer gold
       const buyerGold = BigInt(buyerPlayerLeague.gold);

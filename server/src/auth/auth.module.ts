@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { Player } from '../shared/entities/player.entity';
+import { ShardTransaction } from '../shared/entities/shard-transaction.entity';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { Player } from '../shared/entities/player.entity';
         },
       }),
     }),
-    TypeOrmModule.forFeature([Player]),
+    TypeOrmModule.forFeature([Player, ShardTransaction]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

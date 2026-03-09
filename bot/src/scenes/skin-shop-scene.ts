@@ -1,15 +1,20 @@
 import { getCharacterClass } from "../data/character-classes.js";
 import { getHeroSkin, getSkinsForClass } from "../data/sprite-registry.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
+import { CLASS_DEFS } from "@shared/class-stats";
+import { B } from "@shared/balance";
 import type { SharedDeps, SkinConfig } from "../types.js";
 
+/** Set of default skin IDs (one per class, always free). */
+const DEFAULT_SKINS = new Set(
+  Object.values(CLASS_DEFS).map((c: any) => c.skinId as string),
+);
+
 /**
- * SkinShopScene — skin selection screen.
+ * SkinShopScene — skin selection screen with paid skins.
  *
- * Shows all available skins for the active character's class.
- * Lets the player equip a different skin (free selection).
- *
- * Lifecycle: mount(params) / unmount()
+ * Default class skins are free. All others cost SKIN_PRICE_SHARDS.
+ * Purchased skins are stored on player.purchasedSkins.
  */
 export class SkinShopScene {
   container: HTMLElement;
@@ -26,7 +31,7 @@ export class SkinShopScene {
     this.state = deps.state;
     this.sceneManager = deps.sceneManager;
 
-    this._engines = []; // { engine, canvas, skin }
+    this._engines = [];
     this._raf = null;
   }
 
@@ -39,12 +44,16 @@ export class SkinShopScene {
 
     const cls = getCharacterClass(char.classId);
     const skins: SkinConfig[] = getSkinsForClass(char.classId);
+    const gd = this.state.data;
+    const purchased: string[] = gd.purchasedSkins || [];
+    const shards = gd.shards || "0";
 
     this.container.innerHTML = `
       <div class="skin-shop">
         <div class="skin-shop__header">
           <button class="skin-shop__back" id="ss-back">&larr;</button>
           <h2 class="skin-shop__title">Skins</h2>
+          <span class="skin-shop__shards">&#x1F48E; <span id="ss-shards">${shards}</span></span>
         </div>
 
         <div class="skin-shop__info">
@@ -54,16 +63,23 @@ export class SkinShopScene {
         <div class="skin-shop__grid" id="ss-grid">
           ${skins.map(skin => {
             const isEquipped = char.skinId === skin.id;
+            const isFree = DEFAULT_SKINS.has(skin.id);
+            const isOwned = isFree || purchased.includes(skin.id);
+
+            let statusHtml: string;
+            if (isEquipped) {
+              statusHtml = '<span class="skin-card__badge">Equipped</span>';
+            } else if (isOwned) {
+              statusHtml = `<button class="skin-card__select-btn" data-skin="${skin.id}">Select</button>`;
+            } else {
+              statusHtml = `<button class="skin-card__buy-btn" data-skin="${skin.id}">${B.SKIN_PRICE_SHARDS} &#x1F48E;</button>`;
+            }
+
             return `
-              <div class="skin-card ${isEquipped ? "skin-card--equipped" : ""}" data-skin="${skin.id}">
+              <div class="skin-card ${isEquipped ? "skin-card--equipped" : ""} ${!isOwned ? "skin-card--locked" : ""}" data-skin="${skin.id}">
                 <canvas class="skin-card__preview" data-skin="${skin.id}"></canvas>
                 <div class="skin-card__name">${skin.name}</div>
-                <div class="skin-card__status">
-                  ${isEquipped
-                    ? '<span class="skin-card__badge">Equipped</span>'
-                    : `<button class="skin-card__select-btn" data-skin="${skin.id}">Select</button>`
-                  }
-                </div>
+                <div class="skin-card__status">${statusHtml}</div>
               </div>
             `;
           }).join("")}
@@ -76,19 +92,39 @@ export class SkinShopScene {
       this.sceneManager.switchTo("hideout");
     });
 
-    // Wire select buttons
+    // Wire select buttons (owned skins)
     this.container.querySelectorAll(".skin-card__select-btn").forEach(btn => {
       btn.addEventListener("click", async (e: Event) => {
         e.stopPropagation();
         const skinId = (btn as HTMLElement).dataset.skin!;
         try {
           await this.state.setSkin(skinId);
-          // Re-mount to refresh UI
           this._cleanup();
           this.container.innerHTML = "";
           this.mount();
         } catch (err) {
           console.error("[SkinShop] Failed to change skin:", err);
+        }
+      });
+    });
+
+    // Wire buy buttons (locked skins — purchase + equip)
+    this.container.querySelectorAll(".skin-card__buy-btn").forEach(btn => {
+      btn.addEventListener("click", async (e: Event) => {
+        e.stopPropagation();
+        const skinId = (btn as HTMLElement).dataset.skin!;
+        try {
+          // setSkin handles purchase + equip on server side
+          await this.state.setSkin(skinId);
+          // Refresh to get updated shards & purchasedSkins from server
+          await this.state.refreshState();
+          this._cleanup();
+          this.container.innerHTML = "";
+          this.mount();
+        } catch (err: any) {
+          const msg = err?.message || "Purchase failed";
+          console.error("[SkinShop] Failed to buy skin:", msg);
+          alert(msg);
         }
       });
     });

@@ -656,8 +656,9 @@ export class SkillTreeScene {
 
     try {
       await api.skillTree.accept(char.id, allocArr);
-      // Update local state to stay in sync
-      char.allocatedNodes = allocArr;
+
+      // Refresh full state from server so unlockedActiveSkills + equippedSkills stay in sync
+      await this.state.refreshState();
 
       if (this._acceptBtn) {
         this._acceptBtn.textContent = "\u2714 Saved!";

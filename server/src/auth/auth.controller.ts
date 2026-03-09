@@ -19,7 +19,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid or expired initData' })
   @ApiResponse({ status: 429, description: 'Rate limit exceeded' })
   async authenticateTelegram(@Body() dto: TelegramAuthDto) {
-    return this.authService.authenticateTelegram(dto.initData);
+    return this.authService.authenticateTelegram(dto.initData, dto.startParam);
   }
 
   @Post('refresh')

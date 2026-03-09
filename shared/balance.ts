@@ -126,6 +126,14 @@ export const B = {
   DOJO_COUNTDOWN_MS: 3_000,              // 3-second countdown before fight
   DOJO_ROUND_MS: 10_000,                 // 10-second fight
   DOJO_SESSION_TTL: 60,                  // Redis TTL (1 min)
+
+  /* ── Premium shop ─────────────────────── */
+  BASE_TRADE_SLOTS: 5,                   // base max active trade listings
+  TRADE_SLOTS_PER_PURCHASE: 10,          // +10 per purchase
+  MAX_EXTRA_TRADE_SLOTS: 95,             // 5 base + 95 = 100 max
+  SKIN_PRICE_SHARDS: 350,               // cost per non-default skin
+  REFERRAL_REWARD_SHARDS: 50,            // shards for both referrer & referee
+  REFERRAL_INCOME_PERCENT: 10,           // % of referral's Stars purchases → referrer
 };
 
 /* ── Rarity display data ─────────────────── */

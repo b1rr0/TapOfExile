@@ -15,6 +15,7 @@ import { CreateListingDto } from './dto/create-listing.dto';
 import { BuyListingDto } from './dto/buy-listing.dto';
 import { CancelListingDto } from './dto/cancel-listing.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
+import { B } from '@shared/balance';
 
 @ApiTags('trade')
 @Controller('trade')
@@ -72,11 +73,14 @@ export class TradeController {
     @Body() dto: CreateListingDto,
   ) {
     const pl = await this.playerService.getActivePlayerLeague(telegramId);
+    const player = await this.playerService.getPlayer(telegramId);
+    const maxSlots = B.BASE_TRADE_SLOTS + (player.extraTradeSlots || 0);
     const listing = await this.tradeService.createListing(
       telegramId,
       pl,
       dto.itemId,
       dto.price,
+      maxSlots,
     );
     return { success: true, listing };
   }

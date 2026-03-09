@@ -92,6 +92,9 @@ export class HideoutScene {
     // Check if endgame should be unlocked (async, fire-and-forget)
     this.state.checkEndgameUnlock().catch(() => {});
 
+    // Refresh stats in background so stats overlay always shows fresh values
+    this.state.refreshState().catch(() => {});
+
     const player = this.state.data.player;
     const char = this.state.getActiveCharacter();
     const cls = char ? getCharacterClass(char.classId) : null;
@@ -112,6 +115,12 @@ export class HideoutScene {
               </button>
               <button class="hideout-dropdown__item" data-action="hideouts">
                 <span class="hideout-dropdown__icon">&#x1F3E0;</span> Hideouts
+              </button>
+              <button class="hideout-dropdown__item" data-action="shards">
+                <span class="hideout-dropdown__icon">&#x1F48E;</span> Shards
+              </button>
+              <button class="hideout-dropdown__item" data-action="market">
+                <span class="hideout-dropdown__icon">&#x1F4B0;</span> Market
               </button>
             </div>
           </div>
@@ -273,6 +282,8 @@ export class HideoutScene {
     this._wireDropdown("shop-toggle", "shop-menu", {
       skins: () => this.sceneManager.switchTo("skinShop"),
       hideouts: () => console.log("[Hideout] Hideouts clicked — not implemented yet"),
+      shards: () => this.sceneManager.switchTo("shop"),
+      market: () => this.sceneManager.switchTo("market"),
     });
 
     this._wireDropdown("settings-toggle", "settings-menu", {

@@ -8,7 +8,7 @@ interface ActData {
   theme: string;
   bossDesc: string;
   locations: { name: string; description: string; order: number }[];
-  modifiers: { icon: string; name: string; description: string; type: string }[];
+  modifiers: { icon: string; name: string; description: string; type: string; value?: string }[];
 }
 
 const ACTS: ActData[] = [
@@ -28,9 +28,9 @@ const ACTS: ActData[] = [
       { name: 'Castle Dungeon', description: 'The deepest cells. Something ancient stirs in the darkness.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83D\uDEE1\uFE0F', name: 'Castle Walls', description: 'Stone walls reduce incoming ranged damage', type: 'buff' },
-      { icon: '\u2694\uFE0F', name: 'Armory Access', description: 'Tap damage slightly increased', type: 'buff' },
-      { icon: '\uD83D\uDD76\uFE0F', name: 'Dim Corridors', description: 'Enemy crit chance increased in dark rooms', type: 'debuff' },
+      { icon: '\uD83D\uDEE1\uFE0F', name: 'Castle Walls', description: '+10 armor from stone fortifications', type: 'buff', value: '+10 armor' },
+      { icon: '\u2694\uFE0F', name: 'Armory Access', description: '+5% tap damage from nearby weapons', type: 'buff', value: '+5% dmg' },
+      { icon: '\uD83D\uDD76\uFE0F', name: 'Dim Corridors', description: '+3% incoming damage in dark rooms', type: 'debuff', value: '+3% taken' },
     ],
   },
   {
@@ -49,9 +49,9 @@ const ACTS: ActData[] = [
       { name: "Shepherd's Watch", description: 'An old watchtower overlooking the plains. Now a raider outpost.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83C\uDF3F', name: "Nature's Blessing", description: 'HP regeneration from fresh air', type: 'buff' },
-      { icon: '\u2600\uFE0F', name: 'Open Sky', description: 'No ambush penalties -- enemies visible early', type: 'buff' },
-      { icon: '\uD83D\uDC1B', name: 'Insect Swarm', description: 'Periodic minor poison damage over time', type: 'debuff' },
+      { icon: '\uD83C\uDF3F', name: "Nature's Blessing", description: '+3% dodge from fresh meadow air', type: 'buff', value: '+3% dodge' },
+      { icon: '\u2600\uFE0F', name: 'Open Sky', description: '+3% crit chance in clear weather', type: 'buff', value: '+3% crit' },
+      { icon: '\uD83D\uDC1B', name: 'Insect Swarm', description: '+5% incoming damage from bites', type: 'debuff', value: '+5% taken' },
     ],
   },
   {
@@ -70,10 +70,10 @@ const ACTS: ActData[] = [
       { name: 'Mercenary Outpost', description: 'Sell-swords for hire. Cross them and pay with your life.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83D\uDCA8', name: 'Tailwind', description: 'Movement speed buff -- faster attack rate', type: 'buff' },
-      { icon: '\u2600\uFE0F', name: 'Scorching Heat', description: 'Passive DPS ticks deal bonus fire damage', type: 'buff' },
-      { icon: '\uD83C\uDF2A\uFE0F', name: 'Dust Storm', description: 'Reduced visibility -- miss chance increased', type: 'debuff' },
-      { icon: '\uD83E\uDEA8', name: 'Rocky Terrain', description: 'Dodge chance reduced on uneven ground', type: 'debuff' },
+      { icon: '\uD83D\uDCA8', name: 'Tailwind', description: '+5% tap damage from favorable winds', type: 'buff', value: '+5% dmg' },
+      { icon: '\u2600\uFE0F', name: 'Scorching Heat', description: 'Enemies take +5% more elemental damage', type: 'buff', value: '+5% vuln' },
+      { icon: '\uD83C\uDF2A\uFE0F', name: 'Dust Storm', description: '-5% crit chance from poor visibility', type: 'debuff', value: '-5% crit' },
+      { icon: '\uD83E\uDEA8', name: 'Rocky Terrain', description: '-3% dodge on uneven ground', type: 'debuff', value: '-3% dodge' },
     ],
   },
   {
@@ -92,10 +92,10 @@ const ACTS: ActData[] = [
       { name: 'Frozen Shrine', description: 'A sacred place encased in eternal ice. Spirits guard it still.', order: 10 },
     ],
     modifiers: [
-      { icon: '\u2744\uFE0F', name: 'Frost Armor', description: 'Cold hardens your resolve -- defense up', type: 'buff' },
-      { icon: '\u2744\uFE0F', name: 'Frostbite', description: 'Extreme cold slows attack speed', type: 'debuff' },
-      { icon: '\uD83C\uDF28\uFE0F', name: 'Blizzard', description: 'Periodic freeze chance on both sides', type: 'debuff' },
-      { icon: '\u26F0\uFE0F', name: 'Thin Air', description: 'Stamina drains faster at high altitude', type: 'debuff' },
+      { icon: '\u2744\uFE0F', name: 'Frost Armor', description: '+15 armor from cold-hardened resolve', type: 'buff', value: '+15 armor' },
+      { icon: '\u2744\uFE0F', name: 'Frostbite', description: '-8% tap damage from extreme cold', type: 'debuff', value: '-8% dmg' },
+      { icon: '\uD83C\uDF28\uFE0F', name: 'Blizzard', description: '-5% dodge in heavy snowfall', type: 'debuff', value: '-5% dodge' },
+      { icon: '\u26F0\uFE0F', name: 'Thin Air', description: '+5% incoming damage at high altitude', type: 'debuff', value: '+5% taken' },
     ],
   },
   {
@@ -114,10 +114,10 @@ const ACTS: ActData[] = [
       { name: 'Poison Depths', description: 'Green mist seeps from the walls. Every breath is agony.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83D\uDD2E', name: 'Crystal Glow', description: 'Cave crystals boost crit multiplier', type: 'buff' },
-      { icon: '\uD83D\uDD25', name: 'Lava Veins', description: 'Fire damage over time from magma fissures', type: 'debuff' },
-      { icon: '\uD83E\uDDA7', name: 'Cave Darkness', description: 'Total darkness -- high miss chance', type: 'debuff' },
-      { icon: '\u2620\uFE0F', name: 'Toxic Fumes', description: 'Poison stacks slowly drain HP', type: 'debuff' },
+      { icon: '\uD83D\uDD2E', name: 'Crystal Glow', description: '+8% crit chance from crystal refraction', type: 'buff', value: '+8% crit' },
+      { icon: '\uD83D\uDD25', name: 'Lava Veins', description: '+8% incoming damage from magma heat', type: 'debuff', value: '+8% taken' },
+      { icon: '\uD83E\uDD87', name: 'Cave Darkness', description: '-3% dodge in total darkness', type: 'debuff', value: '-3% dodge' },
+      { icon: '\u2620\uFE0F', name: 'Toxic Fumes', description: '-5% tap damage from noxious gas', type: 'debuff', value: '-5% dmg' },
     ],
   },
 ];
@@ -171,6 +171,7 @@ export default function PlotPage() {
               <span style={{ fontSize: '1.3rem' }}>{m.icon}</span>
               <strong style={{ color: 'var(--text-heading)' }}>{m.name}</strong>
               <span className={`badge ${m.type === 'buff' ? 'badge-rare' : 'badge-boss'}`}>{tc(`ui.${m.type}`)}</span>
+              {m.value && <span style={{ marginLeft: 'auto', fontFamily: 'monospace', fontSize: '0.8rem', color: m.type === 'buff' ? '#22c55e' : '#ef4444' }}>{m.value}</span>}
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem' }}>{m.description}</p>
           </div>
