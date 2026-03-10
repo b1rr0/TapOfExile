@@ -50,7 +50,7 @@ const THEME_STATS: Record<Theme, string[]> = {
 };
 
 const STAT_LABEL: Record<string, string> = {
-  damage: "Damage", dps: "DPS", critChance: "Crit", critMulti: "Crit Dmg",
+  damage: "Bugei Damage", dps: "DPS", critChance: "Bugei Crit Chance", critMulti: "Bugei Crit Damage",
   hp: "HP", fireDmg: "Fire", lightningDmg: "Lightning", coldDmg: "Cold",
   goldFind: "Gold", xpGain: "XP",
 };

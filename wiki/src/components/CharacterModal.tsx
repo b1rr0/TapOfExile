@@ -38,6 +38,11 @@ interface CharacterProfile {
   critChance: number;
   critMultiplier: number;
   dodgeChance: number;
+  armor?: number;
+  blockChance?: number;
+  cooldownReduction?: number;
+  arcaneCritChance?: number;
+  arcaneCritMultiplier?: number;
   specialValue: number;
   elementalDamage: Record<string, number>;
   resistance: Record<string, number>;
@@ -148,21 +153,51 @@ export default function CharacterModal({ characterId, onClose }: Props) {
                   <div className="char-modal__stat-value">{data.hp} / {data.maxHp}</div>
                 </div>
                 <div className="char-modal__stat">
-                  <div className="char-modal__stat-label">{'\u2694\uFE0F'} Damage</div>
+                  <div className="char-modal__stat-label">{'\u2694\uFE0F'} <span className="stat-bugei">Bugei</span> Damage</div>
                   <div className="char-modal__stat-value">{data.tapDamage}</div>
                 </div>
                 <div className="char-modal__stat">
-                  <div className="char-modal__stat-label">{'\uD83D\uDCA5'} Crit</div>
+                  <div className="char-modal__stat-label">{'\uD83D\uDCA5'} <span className="stat-bugei">Bugei</span> Crit Chance</div>
                   <div className="char-modal__stat-value">{pct(data.critChance)}</div>
                 </div>
                 <div className="char-modal__stat">
-                  <div className="char-modal__stat-label">{'\u2716\uFE0F'} Crit Multi</div>
-                  <div className="char-modal__stat-value">{data.critMultiplier.toFixed(2)}x</div>
+                  <div className="char-modal__stat-label">{'\u2716\uFE0F'} <span className="stat-bugei">Bugei</span> Crit Damage</div>
+                  <div className="char-modal__stat-value">{(data.critMultiplier * 100).toFixed(0)}%</div>
                 </div>
                 <div className="char-modal__stat">
                   <div className="char-modal__stat-label">{'\uD83D\uDCA8'} Dodge</div>
                   <div className="char-modal__stat-value">{pct(data.dodgeChance)}</div>
                 </div>
+                {(data.armor ?? 0) > 0 && (
+                  <div className="char-modal__stat">
+                    <div className="char-modal__stat-label">{'\uD83D\uDEE1\uFE0F'} Armor</div>
+                    <div className="char-modal__stat-value">{Math.floor(data.armor!)}</div>
+                  </div>
+                )}
+                {(data.blockChance ?? 0) > 0 && (
+                  <div className="char-modal__stat">
+                    <div className="char-modal__stat-label">{'\uD83D\uDD30'} Block</div>
+                    <div className="char-modal__stat-value">{pct(data.blockChance!)}</div>
+                  </div>
+                )}
+                {(data.cooldownReduction ?? 0) > 0 && (
+                  <div className="char-modal__stat">
+                    <div className="char-modal__stat-label">{'\u23F1\uFE0F'} CDR</div>
+                    <div className="char-modal__stat-value">{Math.round(data.cooldownReduction!)}%</div>
+                  </div>
+                )}
+                {(data.arcaneCritChance ?? 0) > 0 && (
+                  <>
+                    <div className="char-modal__stat">
+                      <div className="char-modal__stat-label">{'\uD83D\uDD2E'} <span className="stat-arcane">Arcane</span> Crit Chance</div>
+                      <div className="char-modal__stat-value">{pct(data.arcaneCritChance!)}</div>
+                    </div>
+                    <div className="char-modal__stat">
+                      <div className="char-modal__stat-label">{'\uD83D\uDD2E'} <span className="stat-arcane">Arcane</span> Crit Damage</div>
+                      <div className="char-modal__stat-value">{(data.arcaneCritMultiplier! * 100).toFixed(0)}%</div>
+                    </div>
+                  </>
+                )}
                 <div className="char-modal__stat">
                   <div className="char-modal__stat-label">{'\uD83C\uDFC6'} Dojo Best</div>
                   <div className="char-modal__stat-value">{data.dojoBestDamage.toLocaleString()}</div>

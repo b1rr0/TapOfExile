@@ -22,7 +22,7 @@
   "slotsTitle": "Equipment Slots", "subtypesCount": "Subtypes: {{count}} | Stat pool: {{pool}}",
   "allSubtypes": "All Subtypes ({{count}})", "thSubtype": "Subtype", "thImplicitStat": "Implicit Stat",
   "statRefTitle": "Stat Reference ({{count}})", "thStat": "Stat", "thUnit": "Unit", "thAvailableIn": "Available In",
-  "baseWeaponDmg": "Base Weapon Damage", "baseDefenses": "Base Defenses",
+  "baseWeaponDmg": "Base Bugei Damage", "baseDefenses": "Base Defenses",
   "statRangesBySlot": "Stat Ranges by Slot", "statRangesDesc": "Click a slot to expand and see the full stat ranges for each tier.",
   "howStatsWork": "How Stats Work",
   "offenseTitle": "Offense", "offense1": "Flat damage bonuses add to your base, then percentage bonuses multiply the total", "offense2": "Crit chance and crit multiplier stack from all sources",

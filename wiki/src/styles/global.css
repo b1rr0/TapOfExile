@@ -2466,3 +2466,7 @@ a:hover {
 .trade-table tbody tr:hover td {
   background: rgba(164, 2, 57, 0.04);
 }
+
+/* ── Bugei / Arcane stat label colors ─────────────────── */
+.stat-bugei { color: #F9CF87; font-weight: 600; }
+.stat-arcane { color: #B9508D; font-weight: 600; }

@@ -5,5 +5,5 @@
   "highHpGrowth": "High HP growth", "modHpGrowth": "Moderate HP growth", "lowHpGrowth": "Low HP growth",
   "highDmgGrowth": "High damage growth", "modDmgGrowth": "Moderate damage growth", "steadyDmgGrowth": "Steady damage growth",
   "comparisonTitle": "Class Comparison (Level 60)",
-  "thClass": "Class", "thHP": "HP", "thDamage": "Damage", "thCritPct": "Crit %", "thCritDmg": "Crit Dmg", "thDodgePct": "Dodge %", "thSpecial": "Special"
+  "thClass": "Class", "thHP": "HP", "thDamage": "Bugei Dmg", "thCritPct": "Bugei Crit %", "thCritDmg": "Bugei Crit Dmg", "thDodgePct": "Dodge %", "thArcaneCrit": "Arcane Crit %", "thArcaneCritDmg": "Arcane Crit Dmg", "thSpecial": "Special"
 }

@@ -22,7 +22,7 @@
   "slotsTitle": "Слоти Екіпірування", "subtypesCount": "Підтипів: {{count}} | Пул статів: {{pool}}",
   "allSubtypes": "Всі Підтипи ({{count}})", "thSubtype": "Підтип", "thImplicitStat": "Імпліцитний Стат",
   "statRefTitle": "Довідник Статів ({{count}})", "thStat": "Стат", "thUnit": "Одиниця", "thAvailableIn": "Доступний у",
-  "baseWeaponDmg": "Базовий Урон Зброї", "baseDefenses": "Базовий Захист",
+  "baseWeaponDmg": "Базовий Bugei Урон", "baseDefenses": "Базовий Захист",
   "statRangesBySlot": "Діапазони Статів за Слотами", "statRangesDesc": "Натисни на слот для перегляду повних діапазонів статів для кожного тіру.",
   "howStatsWork": "Як Працюють Стати",
   "offenseTitle": "Атака", "offense1": "Плоскі бонуси до урону додаються до бази, потім відсоткові бонуси множать загальну суму", "offense2": "Шанс криту та множник криту складаються з усіх джерел",

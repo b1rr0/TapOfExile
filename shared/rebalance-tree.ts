@@ -28,7 +28,7 @@ interface RawNode {
 // ── Helpers ─────────────────────────────────────────────────
 
 const STAT_LABEL: Record<string, string> = {
-  damage: "Damage", dps: "DPS", critChance: "Crit Chance", critMulti: "Crit Dmg",
+  damage: "Bugei Damage", dps: "DPS", critChance: "Bugei Crit Chance", critMulti: "Bugei Crit Damage",
   hp: "HP", fireDmg: "Fire", lightningDmg: "Lightning", coldDmg: "Cold",
   goldFind: "Gold", xpGain: "XP", dodge: "Dodge",
   // Unique mechanics

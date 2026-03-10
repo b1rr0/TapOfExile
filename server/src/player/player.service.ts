@@ -7,7 +7,7 @@ import { ShardTransaction } from '../shared/entities/shard-transaction.entity';
 import { aggregateEquipmentStats, applyBonuses } from '@shared/equipment-bonus';
 import { buildSkillTree } from '@shared/skill-tree';
 import { computeAllocatedBonuses } from '@shared/skill-node-defs';
-import { statsAtLevel } from '@shared/class-stats';
+import { statsAtLevel, specialAtLevel } from '@shared/class-stats';
 import { B } from '@shared/balance';
 
 const DAILY_BONUS_WINS_MAX = 3;
@@ -182,18 +182,23 @@ export class PlayerService {
           }
         }
 
+        // Always recompute base stats from class formula (not DB cache)
+        // This ensures balance changes take effect immediately
+        const freshBase = statsAtLevel(c.classId, c.level);
+        const freshSpecial = specialAtLevel(c.classId, c.level);
+
         // Compute equipment-adjusted effective stats
         const bonuses = aggregateEquipmentStats(gearItems);
         const eff = applyBonuses(
           {
-            tapDamage: c.tapDamage,
-            maxHp: c.maxHp,
-            hp: c.hp,
-            critChance: c.critChance,
-            critMultiplier: c.critMultiplier,
-            dodgeChance: c.dodgeChance,
-            specialValue: c.specialValue,
-            resistance: c.resistance || {},
+            tapDamage: freshBase.tapDamage,
+            maxHp: freshBase.hp,
+            hp: Math.min(c.hp, freshBase.hp),
+            critChance: freshBase.critChance,
+            critMultiplier: freshBase.critMultiplier,
+            dodgeChance: freshBase.dodgeChance,
+            specialValue: freshSpecial,
+            resistance: freshBase.resistance || {},
             elementalDamage: c.elementalDamage || { physical: 1.0 },
           },
           bonuses,
@@ -213,6 +218,8 @@ export class PlayerService {
           eff.critChance += (pct.critChance || 0);
           eff.critMultiplier += (pct.critMultiplier || 0);
           eff.dodgeChance += (pct.dodgeChance || 0);
+          if (pct.blockChance) eff.blockChance += pct.blockChance;
+          if (pct.armor) eff.armor += Math.floor((eff.armor || 0) * pct.armor);
           eff.gearFireDmg += Math.floor(base.tapDamage * (pct.fireDmg || 0));
           eff.gearColdDmg += Math.floor(base.tapDamage * (pct.coldDmg || 0));
           eff.gearLightningDmg += Math.floor(base.tapDamage * (pct.lightningDmg || 0));
@@ -228,7 +235,23 @@ export class PlayerService {
           }
           if (flat.armorDouble) eff.armor = Math.floor(eff.armor * 2);
           if (flat.regenBoost) eff.lifeRegen = Math.floor(eff.lifeRegen * (flat.regenBoost as number));
+
+          // CDR from tree: multiplicative with equipment CDR
+          if (pct.cooldownReduction) {
+            const equipMul = 1 - eff.cooldownReduction / 100;
+            const treeMul = 1 - pct.cooldownReduction;
+            eff.cooldownReduction = (1 - equipMul * treeMul) * 100;
+          }
+
+          // Arcane crit from tree (additive)
+          eff.arcaneCritChance += (pct.arcaneCritChance || 0) * 100;  // convert 0..1 → percentage points for eff
+          eff.arcaneCritMultiplier += (pct.arcaneCritMultiplier || 0) * 100;
         }
+
+        // Class-based arcane crit (only mage gets meaningful level growth)
+        const classStatsForChar = statsAtLevel(c.classId, c.level);
+        const effectiveArcaneCritChance = classStatsForChar.arcaneCritChance + eff.arcaneCritChance / 100;
+        const effectiveArcaneCritMultiplier = classStatsForChar.arcaneCritMultiplier + eff.arcaneCritMultiplier / 100;
 
         allCharacters.push({
           id: c.id,
@@ -262,10 +285,13 @@ export class PlayerService {
           lifeRegen: eff.lifeRegen,
           armor: eff.armor,
           blockChance: eff.blockChance,
+          cooldownReduction: eff.cooldownReduction,
           weaponSpellLevel: eff.weaponSpellLevel,
           arcaneSpellLevel: eff.arcaneSpellLevel,
           versatileSpellLevel: eff.versatileSpellLevel,
           passiveDpsBonus: eff.passiveDpsBonus,
+          arcaneCritChance: effectiveArcaneCritChance,
+          arcaneCritMultiplier: effectiveArcaneCritMultiplier,
           combat: {
             currentStage: c.combatCurrentStage,
             currentWave: c.combatCurrentWave,

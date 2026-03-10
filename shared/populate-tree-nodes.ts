@@ -33,23 +33,28 @@ interface RawNode {
 // ── Power-1 base values per stat ──────────────────────────
 
 const BASE: Record<string, number> = {
-  damage: 0.04, tapHit: 10, critChance: 0.05, critMulti: 0.08,
+  damage: 0.04, tapHit: 10, critChance: 0.03, critMulti: 0.08,
   hp: 0.10, armor: 0.08, lifeOnHit: 0.08, fireDmg: 0.05, lightningDmg: 0.05, coldDmg: 0.05,
   goldFind: 0.05, xpGain: 0.06,
   // Weapon-type multipliers (base 0.06 = +6% per power-1 node)
   swordDmg: 0.06, axeDmg: 0.06, daggerDmg: 0.06, wandDmg: 0.06,
   maceDmg: 0.06, bowDmg: 0.06, staffDmg: 0.06,
+  // Warrior fortress (block + armor + thorns)
+  blockChance: 0.03, thorns: 0.05,
+  // Arcane crit (mage-only arcane crit chance/multiplier)
+  arcaneCritChance: 0.03, arcaneCritMulti: 0.08,
+  cooldownReduction: 0.02,
 };
 
-// figureEntry = power 1.5 (gateway), Keystone = power 3, Notable = power 8
-const POWER_MULT: Record<string, number> = { figureEntry: 1.5, keystone: 3, notable: 8 };
+// figureEntry = power 1.5 (gateway), Notable = power 3, Keystone = power 5
+const POWER_MULT: Record<string, number> = { figureEntry: 1.5, notable: 3, keystone: 5 };
 // Class shape (figures containing nodes 419-422 gateways) = 1.6× boost
 const CLASS_SHAPE_MULT = 1.6;
 
 // ── Stat themes ───────────────────────────────────────────
 
 type Theme = "damage" | "crit" | "tank" | "fire" | "lightning" | "cold" | "utility"
-  | "allElemental" | "armor" | "mixed"
+  | "allElemental" | "armor" | "mixed" | "arcane" | "fortress"
   | "wpn_sword" | "wpn_axe" | "wpn_dagger" | "wpn_wand" | "wpn_mace"
   | "wpn_bow" | "wpn_staff";
 
@@ -72,6 +77,8 @@ const THEME_STATS: Record<Theme, string[]> = {
   wpn_mace:     ["maceDmg"],
   wpn_bow:      ["bowDmg"],
   wpn_staff:    ["staffDmg"],
+  arcane:       ["arcaneCritChance", "arcaneCritMulti", "cooldownReduction"],
+  fortress:     ["armor", "blockChance", "thorns"],
 };
 
 // ── allElemental hard cap: 0.20 per element regardless of power level ──
@@ -94,7 +101,9 @@ const NOTABLE_NAMES: Partial<Record<Theme, string[]>> = {
   wpn_wand:     ["Wand Mastery", "Spell Channel", "Arcane Focus", "Conduit"],
   wpn_mace:     ["Mace Mastery", "Crushing Blow", "Stagger", "Concussion"],
   wpn_bow:      ["Bow Mastery", "Dead Eye", "Long Shot", "Volley"],
-  wpn_staff:    ["Staff Mastery", "Spell Amplifier", "Arcane Reach", "Focus Strike"],
+  wpn_staff:    ["Staff Mastery", "Spell Amplifier", "Long Reach", "Focus Strike"],
+  arcane:       ["Spell Precision", "Arcane Clarity", "Time Weave", "Mana Flux"],
+  fortress:     ["Iron Guard", "Shield Wall", "Retribution", "Thorn Skin"],
 };
 
 const KEYSTONE_NAMES: Partial<Record<Theme, string[]>> = {
@@ -115,6 +124,8 @@ const KEYSTONE_NAMES: Partial<Record<Theme, string[]>> = {
   wpn_mace:     ["War Hammer", "Mace Lord", "Skull Crusher", "Thunder Maul"],
   wpn_bow:      ["Grand Archer", "Bow Lord", "Eagle Shot", "Storm Bow"],
   wpn_staff:    ["Grand Magus", "Staff Lord", "Arcane Conduit", "Sage Staff"],
+  arcane:       ["Archmage's Domain", "Temporal Mastery", "Spell Lord", "Arcane Supremacy"],
+  fortress:     ["Unbreakable Will", "Bastion Lord", "Thorned Fortress", "Iron Sentinel"],
 };
 
 // ── Class theme rotation ──────────────────────────────────
@@ -129,8 +140,8 @@ const KEYSTONE_NAMES: Partial<Record<Theme, string[]>> = {
 //   Archer   → lightning + crit + bow
 const CLASS_THEME: Record<string, Theme[]> = {
   samurai: ["damage",    "crit",      "wpn_sword",  "wpn_dagger", "allElemental", "crit",      "damage",   "mixed"],
-  warrior: ["cold",      "tank",      "wpn_axe",    "wpn_mace",   "armor",        "armor",     "cold",     "tank"],
-  mage:    ["fire",      "fire",      "wpn_staff",  "wpn_wand",   "allElemental", "cold",      "lightning","mixed"],
+  warrior: ["cold",      "fortress",  "wpn_axe",    "wpn_mace",   "armor",        "armor",     "cold",     "tank"],
+  mage:    ["fire",      "fire",      "arcane",     "wpn_wand",   "allElemental", "cold",      "lightning","wpn_staff"],
   archer:  ["lightning", "crit",      "wpn_bow",    "lightning",  "allElemental",  "damage",    "crit",     "mixed"],
 };
 
@@ -166,6 +177,7 @@ function buildMods(
   isClassShape: boolean,
   rng: () => number,
   wpnAmpValue?: number,
+  nodeId?: number,
 ): { mods: Mod[]; label: string; name: string | null } {
   const power = POWER_MULT[type] * (isClassShape ? CLASS_SHAPE_MULT : 1);
   const stats = THEME_STATS[theme];
@@ -188,11 +200,19 @@ function buildMods(
     : type === "keystone" ? (rng() < 0.4 ? 2 : 1)
     : (rng() < 0.5 ? 2 : 1);
 
+  // For themes with 3+ stats, rotate the array based on node ID for even coverage
+  // (otherwise the 3rd stat is never picked since statCount caps at 2)
+  let orderedStats = stats;
+  if (stats.length > 2 && theme !== "allElemental") {
+    const offset = (nodeId ?? 0) % stats.length;
+    orderedStats = stats.map((_, i) => stats[(i + offset) % stats.length]);
+  }
+
   const mods: Mod[] = [];
   const usedStats = new Set<string>();
 
-  for (let i = 0; i < statCount && i < stats.length; i++) {
-    const stat = stats[i];
+  for (let i = 0; i < statCount && i < orderedStats.length; i++) {
+    const stat = orderedStats[i];
     if (usedStats.has(stat)) continue;
     usedStats.add(stat);
     const base = BASE[stat] ?? 0.05;
@@ -233,12 +253,15 @@ function buildMods(
 
 function statLabel(stat: string): string {
   const LABELS: Record<string, string> = {
-    damage: "Damage", tapHit: "Hit (tap)", critChance: "Crit", critMulti: "Crit Dmg",
+    damage: "Bugei Damage", tapHit: "Hit (tap)", critChance: "Bugei Crit Chance", critMulti: "Bugei Crit Damage",
     hp: "HP", armor: "Armor", lifeOnHit: "Life on Hit",
     fireDmg: "Fire", lightningDmg: "Lightning", coldDmg: "Cold",
     goldFind: "Gold", xpGain: "XP",
     swordDmg: "Sword Dmg", axeDmg: "Axe Dmg", daggerDmg: "Dagger Dmg",
     wandDmg: "Wand Dmg", maceDmg: "Mace Dmg", bowDmg: "Bow Dmg", staffDmg: "Staff Dmg",
+    arcaneCritChance: "Arcane Crit Chance", arcaneCritMulti: "Arcane Crit Damage",
+    cooldownReduction: "CDR",
+    blockChance: "Block", thorns: "Thorns",
   };
   return LABELS[stat] ?? stat;
 }
@@ -335,6 +358,7 @@ function main(): void {
       isClassShape,
       rng,
       wpnAmpPerNode.get(node.id),
+      node.id,
     );
 
     node.mods = mods;

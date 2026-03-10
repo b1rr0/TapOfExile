@@ -256,7 +256,7 @@ export async function initAbilitySlots(opts: AbilitySlotOptions): Promise<() => 
     );
     const sGrowth = computeSkillLevelGrowth(sEffLv);
     const typeIcon = sType === 'arcane' ? '🔮' : '⚔️';
-    const typeName = sType === 'arcane' ? 'Arcane' : 'Weapon';
+    const typeName = sType === 'arcane' ? 'Arcane' : 'Bugei';
     const cdSec = (def.cooldownMs / 1000).toFixed(1);
 
     let dmgLine = '';

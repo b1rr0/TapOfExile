@@ -124,7 +124,7 @@ export interface ActiveSkillDef {
   /**
    * Spell base damage (level 1). When set, skill uses Arcane Spell formula:
    * damage = spellBase × 1.07^(effectiveLevel - 1)
-   * instead of tapDamage × damageMultiplier (Weapon Spell formula).
+   * instead of tapDamage × damageMultiplier (Bugei Spell formula).
    */
   spellBase?: number;
   /** Animation speed multiplier: 0.7 = slow/powerful, 1.0 = normal, 1.5 = fast */
@@ -135,7 +135,7 @@ export interface ActiveSkillDef {
 
 /* ── 3-Type Skill Scaling ──────────────────────────────────── */
 
-/** ⚔️ Weapon Spell — scales from tapDamage × multiplier (no spellBase)
+/** ⚔️ Bugei Spell — scales from tapDamage × multiplier (no spellBase)
  *  🔮 Arcane Spell — scales from own spellBase */
 export type SkillScalingType = 'weapon' | 'arcane';
 

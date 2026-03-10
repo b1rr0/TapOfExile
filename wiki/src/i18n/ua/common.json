@@ -10,9 +10,10 @@
     "plot": "Сюжет", "maps": "Карти"
   },
   "stats": {
-    "hp": "HP", "damage": "Урон", "critChance": "Шанс Крит.",
-    "critDmg": "Крит. Урон", "dodge": "Ухилення", "resistance": "Опір",
-    "resistances": "Опори", "level": "Рівень"
+    "hp": "HP", "damage": "Bugei Урон", "critChance": "Bugei Шанс Крит.",
+    "critDmg": "Bugei Крит. Урон", "dodge": "Ухилення", "resistance": "Опір",
+    "resistances": "Опори", "level": "Рівень",
+    "arcaneCrit": "Arcane Шанс Крит.", "arcaneCritDmg": "Arcane Крит. Урон"
   },
   "quality": { "common": "Звичайна", "rare": "Рідкісна", "epic": "Епічна", "legendary": "Легендарна" },
   "rarity": { "common": "Звичайний", "rare": "Рідкісний", "epic": "Епічний", "boss": "Бос" },

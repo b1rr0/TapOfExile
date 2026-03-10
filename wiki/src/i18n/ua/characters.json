@@ -5,5 +5,5 @@
   "highHpGrowth": "Високе зростання HP", "modHpGrowth": "Помірне зростання HP", "lowHpGrowth": "Низьке зростання HP",
   "highDmgGrowth": "Високе зростання урону", "modDmgGrowth": "Помірне зростання урону", "steadyDmgGrowth": "Стабільне зростання урону",
   "comparisonTitle": "Порівняння Класів (Рівень 60)",
-  "thClass": "Клас", "thHP": "HP", "thDamage": "Урон", "thCritPct": "Крит %", "thCritDmg": "Крит. Урон", "thDodgePct": "Ухил %", "thSpecial": "Спеціальна"
+  "thClass": "Клас", "thHP": "HP", "thDamage": "Bugei Урон", "thCritPct": "Bugei Крит %", "thCritDmg": "Bugei Крит. Урон", "thDodgePct": "Ухил %", "thArcaneCrit": "Arcane Крит %", "thArcaneCritDmg": "Arcane Крит. Урон", "thSpecial": "Спеціальна"
 }

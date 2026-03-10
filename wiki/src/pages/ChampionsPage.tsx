@@ -38,6 +38,10 @@ interface XpEntry {
   skinId: string;
   level: number;
   xp: string;
+  tapDamage: number;
+  critChance: number;
+  critMultiplier: number;
+  dojoBestDamage: number;
   telegramUsername: string | null;
 }
 
@@ -368,6 +372,9 @@ export default function ChampionsPage() {
                     <th>{t('thClass')}</th>
                     <th>{t('thLevel')}</th>
                     <th>{t('thTotalXP')}</th>
+                    <th>⚔️ {t('thDamage')}</th>
+                    <th>🎯 {t('thCrit')}</th>
+                    <th>🏆 {t('thDojoBest')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -378,6 +385,9 @@ export default function ChampionsPage() {
                       <ClassCell classId={e.classId} />
                       <td style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{e.level}</td>
                       <td style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>{formatXp(e.xp)}</td>
+                      <td>{formatNumber(e.tapDamage)}</td>
+                      <td style={{ color: 'var(--accent-gold)' }}>{Math.round(e.critChance * 100)}%/{(e.critMultiplier * 100).toFixed(0)}%</td>
+                      <td style={{ color: 'var(--accent-gold)' }}>{e.dojoBestDamage > 0 ? formatNumber(e.dojoBestDamage) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>

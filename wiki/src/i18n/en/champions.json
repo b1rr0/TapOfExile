@@ -7,5 +7,5 @@
   "roundDuration": "Round Duration", "roundValue": "{{seconds}} seconds", "roundDesc": "Time to deal maximum damage",
   "scoring": "Scoring", "scoringValue": "Best damage", "scoringDesc": "Only your personal best is stored on the leaderboard",
   "xpTitle": "Most Experienced Fighters", "xpSub": "Top players ranked by character level and total experience gained.",
-  "thTotalXP": "Total XP", "failedToLoad": "Failed to load: {{error}}"
+  "thTotalXP": "Total XP", "thDamage": "Bugei Dmg", "thCrit": "Bugei Crit", "thDojoBest": "Dojo Best", "failedToLoad": "Failed to load: {{error}}"
 }

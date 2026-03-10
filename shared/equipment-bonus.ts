@@ -39,9 +39,12 @@ export interface EquipmentBonuses {
   lifeRegen: number;         // HP per second
   lifeOnHit: number;         // flat HP per hit
   passiveDpsBonus: number;   // percentage
+  cooldownReduction: number; // percentage (e.g. 15 = 15% CDR), multiplicative stacking
   weaponSpellLevel: number;  // bonus levels for Weapon spells (scale from tap damage)
   arcaneSpellLevel: number;  // bonus levels for Arcane spells (own spell base)
   versatileSpellLevel: number; // bonus levels for ALL spells, but 1.5× weaker
+  arcaneCritChance: number;    // arcane crit chance percentage points (e.g. 5 = +5%)
+  arcaneCritMultiplier: number; // arcane crit multiplier percentage points (e.g. 20 = +20%)
 }
 
 /** Mapping from StatId → EquipmentBonuses key */
@@ -71,9 +74,12 @@ const STAT_TO_BONUS: Record<StatId, keyof EquipmentBonuses> = {
   life_regen: 'lifeRegen',
   life_on_hit: 'lifeOnHit',
   passive_dps_bonus: 'passiveDpsBonus',
+  cooldown_reduction: 'cooldownReduction',
   weapon_spell_level: 'weaponSpellLevel',
   arcane_spell_level: 'arcaneSpellLevel',
   versatile_spell_level: 'versatileSpellLevel',
+  arcane_crit_chance: 'arcaneCritChance',
+  arcane_crit_multiplier: 'arcaneCritMultiplier',
   skill_level: 'versatileSpellLevel',  // deprecated → versatile
 };
 
@@ -105,9 +111,12 @@ export function emptyBonuses(): EquipmentBonuses {
     lifeRegen: 0,
     lifeOnHit: 0,
     passiveDpsBonus: 0,
+    cooldownReduction: 0,
     weaponSpellLevel: 0,
     arcaneSpellLevel: 0,
     versatileSpellLevel: 0,
+    arcaneCritChance: 0,
+    arcaneCritMultiplier: 0,
   };
 }
 
@@ -196,9 +205,12 @@ export interface EffectiveStats extends BaseCharStats {
   armor: number;
   blockChance: number;
   passiveDpsBonus: number;
+  cooldownReduction: number; // percentage, multiplicative stacking
   weaponSpellLevel: number;
   arcaneSpellLevel: number;
   versatileSpellLevel: number;
+  arcaneCritChance: number;
+  arcaneCritMultiplier: number;
 }
 
 const RES_CAP = 75;
@@ -272,8 +284,11 @@ export function applyBonuses(
     armor: effectiveArmor,
     blockChance: gearBlock,
     passiveDpsBonus: bonuses.passiveDpsBonus,
+    cooldownReduction: bonuses.cooldownReduction,
     weaponSpellLevel: bonuses.weaponSpellLevel,
     arcaneSpellLevel: bonuses.arcaneSpellLevel,
     versatileSpellLevel: bonuses.versatileSpellLevel,
+    arcaneCritChance: bonuses.arcaneCritChance,
+    arcaneCritMultiplier: bonuses.arcaneCritMultiplier,
   };
 }

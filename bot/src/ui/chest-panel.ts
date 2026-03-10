@@ -50,7 +50,7 @@ const QUALITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2, leg
 const TAB_CONFIG: Record<string, { label: string; icon: string }> = {
   all:          { label: "All",       icon: "&#x2B1A;" },
   // Equipment slot tabs
-  weapon:       { label: "Weapon",    icon: "&#x2694;" },
+  weapon:       { label: "Bugei",     icon: "&#x2694;" },
   helmet:       { label: "Helmet",    icon: "&#x1FA96;" },
   armor:        { label: "Armor",     icon: "&#x1F6E1;" },
   gloves:       { label: "Gloves",    icon: "&#x1F9E4;" },

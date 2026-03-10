@@ -138,6 +138,10 @@ export interface Character {
   lifeRegen?: number;
   armor?: number;
   blockChance?: number;
+  cooldownReduction?: number;      // percentage (e.g. 25 = 25% CDR)
+  passiveDpsBonus?: number;        // percentage (e.g. 10 = +10% passive DPS)
+  arcaneCritChance?: number;       // 0..1 - arcane crit chance
+  arcaneCritMultiplier?: number;   // e.g. 1.5
   combat: CombatState;
   locations: LocationState;
   inventory: InventoryState;

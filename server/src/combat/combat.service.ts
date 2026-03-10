@@ -85,10 +85,15 @@ export interface CachedCharStats {
   armor: number;
   blockChance: number;
   passiveDpsBonus: number;
+  /** Cooldown reduction (combined equipment + tree), multiplicative stacking */
+  cooldownReduction: number;
   /** Bonus skill levels from equipment — 3 types */
   weaponSpellLevel: number;
   arcaneSpellLevel: number;
   versatileSpellLevel: number;
+  /** Arcane crit - only for arcane skills (separate from regular crits) */
+  arcaneCritChance: number;      // 0..1
+  arcaneCritMultiplier: number;  // e.g. 1.5
   /** Equipped weapon subtypes (e.g. ['oh_sword', 'oh_dagger'] for dual-wield) */
   weaponSubtypes: string[];
   /** Weapon-only equipment bonuses — stored for amp multiplier application */
@@ -414,6 +419,9 @@ export class CombatService {
 
     const eff = applyBonuses(base, bonuses);
 
+    // Class-based arcane crit (only mage gets meaningful growth)
+    const classStats = statsAtLevel(char.classId, char.level);
+
     // Compute skill tree bonuses from allocated nodes
     const tree = buildSkillTree();
     const allocSet = new Set(char.allocatedNodes || []);
@@ -448,9 +456,12 @@ export class CombatService {
       armor: eff.armor,
       blockChance: eff.blockChance,
       passiveDpsBonus: eff.passiveDpsBonus,
+      cooldownReduction: eff.cooldownReduction,
       weaponSpellLevel: eff.weaponSpellLevel,
       arcaneSpellLevel: eff.arcaneSpellLevel,
       versatileSpellLevel: eff.versatileSpellLevel,
+      arcaneCritChance: classStats.arcaneCritChance + eff.arcaneCritChance / 100,  // class base + equipment %
+      arcaneCritMultiplier: classStats.arcaneCritMultiplier + eff.arcaneCritMultiplier / 100, // class base + equipment %
       weaponSubtypes,
       weaponBonuses: weaponBonuses || emptyBonuses(),
       tapHitBonus: 0,
@@ -492,9 +503,34 @@ export class CombatService {
     stats.critMultiplier += (pct.critMultiplier || 0);
     stats.dodgeChance += (pct.dodgeChance || 0);
 
+    // Arcane crit from tree (additive, same as regular crit)
+    stats.arcaneCritChance += (pct.arcaneCritChance || 0);
+    stats.arcaneCritMultiplier += (pct.arcaneCritMultiplier || 0);
+
+    // Block chance from tree (additive, 0..1)
+    if (pct.blockChance) {
+      stats.blockChance += pct.blockChance;
+    }
+
+    // Thorns from tree: fortress theme provides thorns as percent mode,
+    // but combat reads from treeBonuses.flat — transfer it
+    if (pct.thorns) {
+      if (!stats.treeBonuses!.flat) stats.treeBonuses!.flat = {};
+      stats.treeBonuses!.flat.thorns = (stats.treeBonuses!.flat.thorns || 0) + pct.thorns;
+    }
+
     // Armor % bonus: scales base armor
     if (pct.armor) {
       stats.armor += Math.floor((stats.armor || 0) * pct.armor);
+    }
+
+    // CDR: multiplicative stacking between equipment and tree (no hard cap)
+    // Each source reduces the REMAINING cooldown, not the original
+    // e.g. 25% equip + 30% tree → (1-0.25)×(1-0.30) = 0.525 → 47.5% total
+    if (pct.cooldownReduction) {
+      const equipMul = 1 - stats.cooldownReduction / 100;
+      const treeMul = 1 - pct.cooldownReduction;
+      stats.cooldownReduction = (1 - equipMul * treeMul) * 100;
     }
 
     // Elemental % bonuses: add as flat elemental damage based on BASE damage
@@ -550,6 +586,18 @@ export class CombatService {
     // Life on Hit % from skill tree: multiplies gear lifeOnHit, floored
     if (pct.lifeOnHit && stats.lifeOnHit > 0) {
       stats.lifeOnHit = Math.floor(stats.lifeOnHit * (1 + pct.lifeOnHit));
+    }
+
+    // Gold Find % bonus from tree (tree stores 0..1; stats.goldFind uses percentage points)
+    // e.g. not_fortune pct("goldFind", 0.15) → +15 to stats.goldFind
+    if (pct.goldFind) {
+      stats.goldFind += Math.round(pct.goldFind * 100);
+    }
+
+    // XP Gain % bonus from tree (same scale conversion as goldFind)
+    // e.g. ks_student pct("xpGain", 2.00) → +200 to stats.xpBonus
+    if (pct.xpGain) {
+      stats.xpBonus += Math.round(pct.xpGain * 100);
     }
 
     // ── Weapon-type bonuses ──────────────────────────────────
@@ -655,6 +703,10 @@ export class CombatService {
     stats.weaponSpellLevel = eff.weaponSpellLevel;
     stats.arcaneSpellLevel = eff.arcaneSpellLevel;
     stats.versatileSpellLevel = eff.versatileSpellLevel;
+    // Class-based arcane crit (only mage gets meaningful growth)
+    const classStatsForArcane = statsAtLevel(stats.classId, stats.level);
+    stats.arcaneCritChance = classStatsForArcane.arcaneCritChance + eff.arcaneCritChance / 100;
+    stats.arcaneCritMultiplier = classStatsForArcane.arcaneCritMultiplier + eff.arcaneCritMultiplier / 100;
 
     // Re-apply skill tree bonuses on top
     this.applyTreeBonuses(stats);
@@ -2177,9 +2229,11 @@ export class CombatService {
 
     // Cooldown check (server-authoritative anti-cheat)
     const now = Date.now();
+    const cdr = session.cachedStats.cooldownReduction || 0;
+    const effectiveCooldownMs = Math.round(skillDef.cooldownMs * (1 - cdr / 100));
     if (!session.skillCooldowns) session.skillCooldowns = {};
     const lastCast = session.skillCooldowns[skillId] || 0;
-    if (now - lastCast < skillDef.cooldownMs) {
+    if (now - lastCast < effectiveCooldownMs) {
       throw new BadRequestException('Skill on cooldown');
     }
 
@@ -2220,7 +2274,7 @@ export class CombatService {
         level: stats.level,
         xp: Number(stats.xp),
         xpToNext: Number(stats.xpToNext),
-        cooldownUntil: now + skillDef.cooldownMs,
+        cooldownUntil: now + effectiveCooldownMs,
         activeEffects: session.activeEffects,
       };
     }
@@ -2273,7 +2327,7 @@ export class CombatService {
         level: stats.level,
         xp: Number(stats.xp),
         xpToNext: Number(stats.xpToNext),
-        cooldownUntil: now + skillDef.cooldownMs,
+        cooldownUntil: now + effectiveCooldownMs,
         activeEffects: session.activeEffects,
       };
     }
@@ -2294,12 +2348,21 @@ export class CombatService {
     const magicVuln = eff['enemy:magicVulnerability'] || 0;
     const armorToDmg = eff['self:armorToDamage'] || 0;
 
-    // Crit roll with buff bonus
-    const effectiveCritChance = Math.min(1, stats.critChance + critBuff + critVuln);
-    const isCrit = Math.random() < effectiveCritChance;
-
     // Per-skill scaling: Weapon vs Arcane type
     const scalingType = getSkillScalingType(skillDef);
+
+    // Crit roll: Arcane skills use arcane crits, Weapon skills use regular crits
+    let effectiveCritChance: number;
+    let critMultiplier: number;
+    if (scalingType === 'arcane') {
+      effectiveCritChance = Math.min(1, (stats.arcaneCritChance ?? 0) + critBuff + critVuln);
+      critMultiplier = stats.arcaneCritMultiplier ?? 1.5;
+    } else {
+      effectiveCritChance = Math.min(1, stats.critChance + critBuff + critVuln);
+      critMultiplier = stats.critMultiplier;
+    }
+    const isCrit = Math.random() < effectiveCritChance;
+
     const effLv = computeEffectiveSkillLevel(
       stats.level, scalingType,
       stats.weaponSpellLevel ?? 0, stats.arcaneSpellLevel ?? 0, stats.versatileSpellLevel ?? 0,
@@ -2318,7 +2381,7 @@ export class CombatService {
       rawDamage += (stats.armor || 0) * armorToDmg;
     }
     if (isCrit) {
-      rawDamage *= stats.critMultiplier;
+      rawDamage *= critMultiplier;
     }
 
     // Apply vulnerability multiplier
@@ -2466,7 +2529,7 @@ export class CombatService {
       level: charLevel,
       xp: charXp,
       xpToNext: charXpToNext,
-      cooldownUntil: now + skillDef.cooldownMs,
+      cooldownUntil: now + effectiveCooldownMs,
       activeEffects: session.activeEffects,
     };
   }

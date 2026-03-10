@@ -519,9 +519,13 @@ export class HideoutScene {
           <div class="stats-overlay__tab-content" id="stats-tab-general">
             <div class="stats-overlay__section-title">Combat Stats</div>
             ${this._statRow(STAT_LABELS.hp.icon, "HP", String(char.maxHp ?? curStats.hp), String(maxStats.hp))}
-            ${this._statRow(STAT_LABELS.tapDamage.icon, "Damage", String(char.tapDamage), String(maxStats.tapDamage))}
-            ${this._statRow(STAT_LABELS.critChance.icon, "Crit Chance", fmtPct(char.critChance), fmtPct(maxStats.critChance))}
-            ${this._statRow(STAT_LABELS.critMultiplier.icon, "Crit Dmg", fmtPct(char.critMultiplier), fmtPct(maxStats.critMultiplier))}
+            ${this._statRow(STAT_LABELS.tapDamage.icon, '<span class="stat-bugei">Bugei</span> Damage', String(char.tapDamage), String(maxStats.tapDamage))}
+            ${this._statRow(STAT_LABELS.critChance.icon, '<span class="stat-bugei">Bugei</span> Crit Chance', fmtPct(char.critChance), fmtPct(maxStats.critChance))}
+            ${this._statRow(STAT_LABELS.critMultiplier.icon, '<span class="stat-bugei">Bugei</span> Crit Damage', fmtPct(char.critMultiplier), fmtPct(maxStats.critMultiplier))}
+            ${(char.arcaneCritChance ?? 0) > 0 || char.classId === 'mage' ? `
+            ${this._statRow("🔮", '<span class="stat-arcane">Arcane</span> Crit Chance', fmtPct(char.arcaneCritChance ?? 0), fmtPct(maxStats.arcaneCritChance))}
+            ${this._statRow("🔮", '<span class="stat-arcane">Arcane</span> Crit Damage', fmtPct(char.arcaneCritMultiplier ?? 1.5), fmtPct(maxStats.arcaneCritMultiplier))}
+            ` : ""}
             ${this._statRow(STAT_LABELS.dodgeChance.icon, "Dodge", fmtPct(char.dodgeChance ?? 0), fmtPct(maxStats.dodgeChance))}
 
             ${special ? `
@@ -536,10 +540,11 @@ export class HideoutScene {
             </div>
             ` : ""}
 
-            ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0 || (char as any).passiveDpsBonus > 0) ? `
+            ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).cooldownReduction > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0 || (char as any).passiveDpsBonus > 0) ? `
             <div class="stats-overlay__section-title">Equipment Bonuses</div>
             ${(char as any).armor > 0 ? this._statRowSimple("🛡️", "Armor", String(Math.floor((char as any).armor))) : ""}
             ${(char as any).blockChance > 0 ? this._statRowSimple("🔰", "Block", Math.round((char as any).blockChance * 100) + "%") : ""}
+            ${(char as any).cooldownReduction > 0 ? this._statRowSimple("⏱️", "CDR", Math.round((char as any).cooldownReduction) + "%") : ""}
             ${(char as any).passiveDpsBonus > 0 ? this._statRowSimple("⚡", "Passive DPS", "+" + Math.round((char as any).passiveDpsBonus) + "%") : ""}
             ${(char as any).lifeOnHit > 0 ? this._statRowSimple("💚", "Life on Hit", "+" + Math.floor((char as any).lifeOnHit)) : ""}
             ${(char as any).lifeRegen > 0 ? this._statRowSimple("💗", "Life Regen", "+" + ((char as any).lifeRegen as number).toFixed(1) + "/s") : ""}
@@ -564,10 +569,12 @@ export class HideoutScene {
             <div class="stats-overlay__section-title">Per-Level Growth</div>
             <div class="stats-overlay__growth-grid">
               <span>HP</span><span>+${def.growth.hp}/lv</span>
-              <span>Damage</span><span>+${def.growth.tapDamage}/lv</span>
-              <span>Crit%</span><span>+${(def.growth.critChance * 100).toFixed(1)}%/lv</span>
-              <span>Crit Dmg</span><span>+${Math.round(def.growth.critMultiplier * 100)}%/lv</span>
+              <span><span class="stat-bugei">Bugei</span> Dmg</span><span>+${def.growth.tapDamage}/lv</span>
+              <span><span class="stat-bugei">Bugei</span> Crit%</span><span>+${(def.growth.critChance * 100).toFixed(1)}%/lv</span>
+              <span><span class="stat-bugei">Bugei</span> Crit Dmg</span><span>+${Math.round(def.growth.critMultiplier * 100)}%/lv</span>
               <span>Dodge</span><span>+${(def.growth.dodgeChance * 100).toFixed(1)}%/lv</span>
+              ${def.growth.arcaneCritChance > 0 ? `<span><span class="stat-arcane">Arcane</span> Crit%</span><span>+${(def.growth.arcaneCritChance * 100).toFixed(1)}%/lv</span>` : ""}
+              ${def.growth.arcaneCritMultiplier > 0 ? `<span><span class="stat-arcane">Arcane</span> Crit Dmg</span><span>+${Math.round(def.growth.arcaneCritMultiplier * 100)}%/lv</span>` : ""}
               ${special ? `<span>${special.name}</span><span>+${(def.special.growth * 100).toFixed(1)}%/lv</span>` : ""}
             </div>
             ` : ""}
@@ -655,6 +662,12 @@ export class HideoutScene {
     const critChance = char.critChance || 0;
     const critMult = char.critMultiplier || 1.5;
     const expectedMult = (1 - critChance) + critChance * critMult;
+    // Arcane crit (mage-specific, used for arcane skills DPS)
+    const arcaneCritChance = char.arcaneCritChance || 0;
+    const arcaneCritMult = char.arcaneCritMultiplier || 1.5;
+    const arcaneExpectedMult = (1 - arcaneCritChance) + arcaneCritChance * arcaneCritMult;
+    // CDR factor: reduce all cooldowns
+    const cdrFactor = 1 - (char.cooldownReduction || 0) / 100;
 
     // Per-skill level bonuses from equipment + tree
     const wpnLv = (char as any).weaponSpellLevel || 0;
@@ -676,7 +689,7 @@ export class HideoutScene {
       <div class="stats-overlay__skill-card-head">
         <div class="stats-overlay__skill-icon-slot" style="font-size:22px;background:rgba(164,2,57,0.15);border-color:rgba(164,2,57,0.3)">&#x1F44A;</div>
         <div class="stats-overlay__skill-card-title">
-          <span class="stats-overlay__skill-card-name">Hit <span style="color:#F9CF87;font-size:0.8em">⚔️ Weapon Lv.${hitEffLv}</span></span>
+          <span class="stats-overlay__skill-card-name">Hit <span style="color:#F9CF87;font-size:0.8em">⚔️ Bugei Lv.${hitEffLv}</span></span>
           <span class="stats-overlay__skill-card-desc">A focused strike channeled through your weapon</span>
         </div>
       </div>
@@ -707,12 +720,12 @@ export class HideoutScene {
     }
 
     for (const skill of unlockedSkills) {
-      const cdSec = skill.cooldownMs / 1000;
+      const cdSec = (skill.cooldownMs / 1000) * cdrFactor;
       const sType = getSkillScalingType(skill);
       const sEffLv = computeEffectiveSkillLevel(char.level, sType, wpnLv, arcLv, verLv);
       const sGrowth = computeSkillLevelGrowth(sEffLv);
       const typeIcon = sType === 'arcane' ? '🔮' : '⚔️';
-      const typeName = sType === 'arcane' ? 'Arcane' : 'Weapon';
+      const typeName = sType === 'arcane' ? 'Arcane' : 'Bugei';
 
       // Use skill description from definition
       const desc = skill.description || "";
@@ -735,7 +748,9 @@ export class HideoutScene {
         } else {
           rawDmg = Math.floor(baseDmg * skill.damageMultiplier * sGrowth);
         }
-        const expDmg = Math.floor(rawDmg * expectedMult);
+        // Arcane skills use arcane crits, weapon skills use regular crits
+        const skillExpMult = sType === 'arcane' ? arcaneExpectedMult : expectedMult;
+        const expDmg = Math.floor(rawDmg * skillExpMult);
         const dps = (expDmg / cdSec).toFixed(0);
         statsHtml = `
           <div class="stats-overlay__skill-card-stats">

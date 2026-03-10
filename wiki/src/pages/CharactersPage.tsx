@@ -84,6 +84,18 @@ export default function CharactersPage() {
                   <span className="stat-label">{'\uD83D\uDCA8'} {tc('stats.dodge')}</span>
                   <span className="stat-value">{(stats.dodgeChance * 100).toFixed(1)}%</span>
                 </div>
+                {stats.arcaneCritChance > 0 && (
+                  <>
+                    <div className="stat-row">
+                      <span className="stat-label">{'\uD83D\uDD2E'} {tc('stats.arcaneCrit')}</span>
+                      <span className="stat-value">{(stats.arcaneCritChance * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">{'\uD83D\uDD2E'} {tc('stats.arcaneCritDmg')}</span>
+                      <span className="stat-value">{(stats.arcaneCritMultiplier * 100).toFixed(0)}%</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{tc('stats.resistances')}</div>
@@ -127,6 +139,8 @@ export default function CharactersPage() {
               <th>{t('thCritPct')}</th>
               <th>{t('thCritDmg')}</th>
               <th>{t('thDodgePct')}</th>
+              <th>{t('thArcaneCrit')}</th>
+              <th>{t('thArcaneCritDmg')}</th>
               <th>{t('thSpecial')}</th>
             </tr>
           </thead>
@@ -142,6 +156,8 @@ export default function CharactersPage() {
                   <td>{(s60.critChance * 100).toFixed(1)}%</td>
                   <td>{(s60.critMultiplier * 100).toFixed(0)}%</td>
                   <td>{(s60.dodgeChance * 100).toFixed(1)}%</td>
+                  <td>{s60.arcaneCritChance > 0 ? `${(s60.arcaneCritChance * 100).toFixed(1)}%` : '—'}</td>
+                  <td>{s60.arcaneCritChance > 0 ? `${(s60.arcaneCritMultiplier * 100).toFixed(0)}%` : '—'}</td>
                   <td>{c.special.name}: {(sv60 * 100).toFixed(1)}%</td>
                 </tr>
               );

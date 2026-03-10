@@ -29,6 +29,8 @@ export type StatId =
   | 'life_regen' | 'life_on_hit'
   | 'passive_dps_bonus'
   | 'weapon_spell_level' | 'arcane_spell_level' | 'versatile_spell_level'
+  | 'cooldown_reduction'
+  | 'arcane_crit_chance' | 'arcane_crit_multiplier'
   | 'skill_level';  // deprecated → versatile_spell_level (backward compat)
 
 // ── Stat Definitions (with descriptions) ─────────────────
@@ -225,9 +227,9 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
   },
   weapon_spell_level: {
     id: 'weapon_spell_level',
-    name: 'Weapon Spell Level',
+    name: 'Bugei Spell Level',
     unit: '+N',
-    description: 'Добавляет уровни к Weapon скилам (скейлятся от урона оружия). Каждый уровень ×1.07 к урону. Также усиливает базовую атаку Hit.',
+    description: 'Добавляет уровни к Bugei скилам (скейлятся от урона оружия). Каждый уровень ×1.07 к урону. Также усиливает базовую атаку Hit.',
     category: 'offensive',
   },
   arcane_spell_level: {
@@ -241,7 +243,28 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'versatile_spell_level',
     name: 'Versatile Spell Level',
     unit: '+N',
-    description: 'Добавляет уровни ко ВСЕМ скилам (Weapon + Arcane), но в 1.5× слабее: 3 очка = 2 эффективных уровня.',
+    description: 'Добавляет уровни ко ВСЕМ скилам (Bugei + Arcane), но в 1.5× слабее: 3 очка = 2 эффективных уровня.',
+    category: 'offensive',
+  },
+  cooldown_reduction: {
+    id: 'cooldown_reduction',
+    name: 'Cooldown Reduction',
+    unit: '+N%',
+    description: 'Снижает время перезарядки всех активных скилов. Стакается мультипликативно (каждый источник снижает остаток).',
+    category: 'utility',
+  },
+  arcane_crit_chance: {
+    id: 'arcane_crit_chance',
+    name: 'Arcane Crit Chance',
+    unit: '+N%',
+    description: 'Шанс аркейн-критического удара для Arcane скилов. Аркейн скилы НЕ используют обычные криты, только аркейн криты.',
+    category: 'offensive',
+  },
+  arcane_crit_multiplier: {
+    id: 'arcane_crit_multiplier',
+    name: 'Arcane Crit Damage',
+    unit: '+N%',
+    description: 'Множитель аркейн-критического урона. Базовый множитель - 150%. Применяется только к Arcane скилам.',
     category: 'offensive',
   },
   skill_level: {
@@ -415,14 +438,14 @@ export const BASE_DEFENSES: Record<string, { armor: [number,number][]; evasion: 
 // ── Stat pools per slot ──────────────────────────────────
 
 export const SLOT_STAT_POOLS: Record<EquipmentSlotId, StatId[]> = {
-  one_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level'],
-  two_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level'],
-  helmet:   ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'xp_bonus', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
-  amulet:   ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'passive_dps_bonus', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
+  one_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'],
+  two_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'],
+  helmet:   ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'xp_bonus', 'cooldown_reduction', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
+  amulet:   ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'passive_dps_bonus', 'cooldown_reduction', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   armor:    ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'life_regen', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
-  ring:     ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'life_on_hit', 'passive_dps_bonus', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
+  ring:     ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'life_on_hit', 'passive_dps_bonus', 'arcane_crit_chance', 'arcane_crit_multiplier', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   gloves:   ['pct_phys_dmg', 'crit_chance', 'flat_armor', 'flat_evasion', 'flat_energy_shield', 'life_on_hit'],
-  belt:     ['flat_hp', 'pct_hp', 'flat_armor', 'gold_find', 'life_regen', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
+  belt:     ['flat_hp', 'pct_hp', 'flat_armor', 'gold_find', 'life_regen', 'cooldown_reduction', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   boots:    ['flat_hp', 'flat_armor', 'flat_evasion', 'flat_energy_shield', 'fire_res', 'cold_res', 'lightning_res'],
 };
 
@@ -450,6 +473,8 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     weapon_spell_level:    [[1,1],   [1,2],   [1,3],   [2,5],   [3,7]],
     arcane_spell_level:    [[1,1],   [1,2],   [1,3],   [2,5],   [3,7]],
     versatile_spell_level: [[1,2],   [1,3],   [2,5],   [3,7],   [4,10]],
+    arcane_crit_chance:    [[0.5,2], [0.5,4], [0.5,6], [0.5,9], [0.5,12]],
+    arcane_crit_multiplier:[[5,15],  [5,25],  [5,40],  [5,60],  [5,85]],
   },
 
   // ═══════ TWO-HAND ═══════
@@ -465,6 +490,8 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     weapon_spell_level:    [[1,2],   [1,3],   [2,5],   [3,8],   [4,10]],
     arcane_spell_level:    [[1,2],   [1,3],   [2,5],   [3,8],   [4,10]],
     versatile_spell_level: [[1,3],   [2,5],   [3,7],   [4,10],  [5,14]],
+    arcane_crit_chance:    [[0.5,2], [0.5,4], [0.5,6], [0.5,9], [0.5,12]],
+    arcane_crit_multiplier:[[8,22],  [8,38],  [8,60],  [8,90],  [8,128]],
   },
 
   // ═══════ HELMET ═══════
@@ -478,6 +505,7 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     flat_energy_shield:[[2,8],   [2,18],  [2,32],  [2,50],  [2,75]],
     pct_energy_shield: [[3,10],  [3,22],  [3,40],  [3,60],  [3,85]],
     xp_bonus:          [[1,3],   [1,5],   [1,8],   [1,12],  [1,16]],
+    cooldown_reduction:[[2,4],   [3,7],   [5,12],  [8,18],  [12,25]],
     fire_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     cold_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     lightning_res:     [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
@@ -498,9 +526,12 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     xp_bonus:          [[1,3],   [1,5],   [1,8],   [1,12],  [1,16]],
     life_regen:        [[0.5,2], [0.5,5], [0.5,10],[0.5,18],[0.5,28]],
     passive_dps_bonus: [[2,8],   [2,15],  [2,28],  [2,45],  [2,65]],
+    cooldown_reduction:[[2,3],   [2,5],   [3,8],   [5,14],  [8,20]],
     weapon_spell_level:    [[1,1],   [1,1],   [1,2],   [1,3],   [2,5]],
     arcane_spell_level:    [[1,1],   [1,1],   [1,2],   [1,3],   [2,5]],
     versatile_spell_level: [[1,1],   [1,2],   [1,3],   [2,5],   [3,7]],
+    arcane_crit_chance:    [[0.5,1.5],[0.5,3],[0.5,5], [0.5,7], [0.5,10]],
+    arcane_crit_multiplier:[[5,12],  [5,22],  [5,35],  [5,52],  [5,72]],
     fire_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     cold_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     lightning_res:     [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
@@ -539,6 +570,8 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     life_regen:        [[0.3,1.5],[0.3,4],[0.3,8], [0.3,14],[0.3,22]],
     life_on_hit:       [[1,2],   [1,5],   [1,10],  [1,16],  [1,25]],
     passive_dps_bonus: [[1,5],   [1,10],  [1,18],  [1,30],  [1,45]],
+    arcane_crit_chance:    [[0.3,1], [0.3,2], [0.3,3.5],[0.3,5],[0.3,7]],
+    arcane_crit_multiplier:[[3,10],  [3,18],  [3,30],  [3,45],  [3,62]],
     fire_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     cold_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     lightning_res:     [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
@@ -562,6 +595,7 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     flat_armor:        [[2,10],  [2,22],  [2,38],  [2,58],  [2,82]],
     gold_find:         [[3,10],  [3,18],  [3,30],  [3,48],  [3,70]],
     life_regen:        [[0.5,2], [0.5,5], [0.5,10],[0.5,18],[0.5,28]],
+    cooldown_reduction:[[2,3],   [2,5],   [3,8],   [5,12],  [8,18]],
     fire_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     cold_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     lightning_res:     [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],

@@ -3343,6 +3343,20 @@ body {
   margin-top: 2px;
 }
 
+.char-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 4px;
+}
+
+.char-card__stat {
+  font-size: 11px;
+  color: var(--game-text);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
 .char-select__new-btn {
   margin: 0 16px 24px;
   padding: 14px 24px;
@@ -8261,3 +8275,7 @@ body {
   padding: 4px 0;
   border-bottom: 1px solid var(--ds-border-dim);
 }
+
+/* ── Bugei / Arcane stat label colors ─────────────────── */
+.stat-bugei { color: #F9CF87; font-weight: 600; }
+.stat-arcane { color: #B9508D; font-weight: 600; }

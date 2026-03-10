@@ -467,9 +467,9 @@ export class FriendsPanel {
         <div class="friends-profile__section-title">Stats</div>
         <div class="friends-profile__stats">
           <div class="friends-profile__stat">HP: ${c.maxHp}</div>
-          <div class="friends-profile__stat">Damage: ${c.tapDamage}</div>
-          <div class="friends-profile__stat">Crit: ${Math.round((c.critChance || 0) * 100)}%</div>
-          <div class="friends-profile__stat">Crit Dmg: ${Math.round((c.critMultiplier || 1) * 100)}%</div>
+          <div class="friends-profile__stat"><span class="stat-bugei">Bugei</span> Damage: ${c.tapDamage}</div>
+          <div class="friends-profile__stat"><span class="stat-bugei">Bugei</span> Crit Chance: ${Math.round((c.critChance || 0) * 100)}%</div>
+          <div class="friends-profile__stat"><span class="stat-bugei">Bugei</span> Crit Damage: ${Math.round((c.critMultiplier || 1) * 100)}%</div>
           <div class="friends-profile__stat">Dodge: ${Math.round((c.dodgeChance || 0) * 100)}%</div>
           <div class="friends-profile__stat">Dojo Best: ${c.dojoBestDamage > 0 ? this._formatDmg(c.dojoBestDamage) : "---"}</div>
         </div>

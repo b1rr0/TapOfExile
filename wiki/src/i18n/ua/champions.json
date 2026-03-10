@@ -7,5 +7,5 @@
   "roundDuration": "Тривалість Раунду", "roundValue": "{{seconds}} секунд", "roundDesc": "Час для нанесення максимального урону",
   "scoring": "Оцінка", "scoringValue": "Найкращий урон", "scoringDesc": "Тільки ваш особистий рекорд зберігається в таблиці лідерів",
   "xpTitle": "Найдосвідченіші Бійці", "xpSub": "Топ гравців за рівнем персонажа та загальним набраним досвідом.",
-  "thTotalXP": "Загальний XP", "failedToLoad": "Помилка завантаження: {{error}}"
+  "thTotalXP": "Загальний XP", "thDamage": "Bugei Урон", "thCrit": "Bugei Крит", "thDojoBest": "Рекорд Додзьо", "failedToLoad": "Помилка завантаження: {{error}}"
 }

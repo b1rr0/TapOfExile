@@ -13,6 +13,8 @@ const DPS_RELEVANT_STATS = new Set([
   "damage", "tapHit", "critChance", "critMulti",
   "fireDmg", "coldDmg", "lightningDmg", "pureDmg",
   "weaponSpellLevel", "arcaneSpellLevel", "versatileSpellLevel",
+  "cooldownReduction",
+  "arcaneCritChance", "arcaneCritMulti",
 ]);
 
 /* ── Weapon stat → equipped subtypes (mirrors server WPN_STAT_TO_SUBTYPES) ── */
@@ -511,7 +513,7 @@ export class SkillTreeScene {
         // Scaling type + level
         const sType = getSkillScalingType(skill);
         const typeIcon = sType === 'arcane' ? '🔮' : '⚔️';
-        const typeName = sType === 'arcane' ? 'Arcane' : 'Weapon';
+        const typeName = sType === 'arcane' ? 'Arcane' : 'Bugei';
         const activeChar = this.state.getActiveCharacter?.() || this.state.data?.player;
         const wpnLv = (activeChar as any)?.weaponSpellLevel || 0;
         const arcLv = (activeChar as any)?.arcaneSpellLevel || 0;
@@ -537,7 +539,8 @@ export class SkillTreeScene {
           } else {
             rawDmg = Math.floor(baseDmg * skill.damageMultiplier * sGrowth);
           }
-          html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Damage</span><span class="st-tip__stat-value">${rawDmg.toLocaleString()}</span></div>`;
+          const dmgLabel = sType === 'arcane' ? 'Arcane Damage' : 'Bugei Damage';
+          html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">${dmgLabel}</span><span class="st-tip__stat-value">${rawDmg.toLocaleString()}</span></div>`;
         } else if (skill.skillType === "heal") {
           html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Heal</span><span class="st-tip__stat-value">${Math.round((skill.healPercent || 0) * 100)}% HP</span></div>`;
         }
@@ -600,6 +603,9 @@ export class SkillTreeScene {
 
     // DPS impact preview for damage-relevant nodes
     html += this._buildDpsImpact(node);
+
+    // Defense impact preview for defensive nodes (block, thorns, armor, hp)
+    html += this._buildDefenseImpact(node);
 
     // Status hint
     if (this._allocated.has(node.id)) {
@@ -688,10 +694,13 @@ export class SkillTreeScene {
     const tapDamage = char.tapDamage || 1;
     const critChance = char.critChance || 0.05;
     const critMultiplier = char.critMultiplier || 1.5;
+    const arcaneCritChance = char.arcaneCritChance || 0;
+    const arcaneCritMult = char.arcaneCritMultiplier || 1.5;
     const charLevel = char.level || 1;
     const wpnLv = (char as any)?.weaponSpellLevel || 0;
     const arcLv = (char as any)?.arcaneSpellLevel || 0;
     const verLv = (char as any)?.versatileSpellLevel || 0;
+    const currentCdr = (char.cooldownReduction || 0) / 100; // 0..1
 
     const classDef = CLASS_DEFS[char.classId];
     const baseTapDmg = classDef
@@ -700,8 +709,10 @@ export class SkillTreeScene {
 
     // Accumulate deltas from all relevant mods
     let dTap = 0, dTapFlat = 0, dCrit = 0, dCritMul = 0;
+    let dArcaneCrit = 0, dArcaneCritMul = 0;
     let dFirePct = 0, dColdPct = 0, dLightPct = 0, dPurePct = 0;
     let dWpn = 0, dArc = 0, dVer = 0;
+    let nodeCdr = 0; // CDR from this node (fraction, e.g. 0.15 = 15%)
     // Weapon-type damage multiplier (swordDmg etc. = % damage bonus when weapon matches)
     let weaponDmgMult = 0;
     // Weapon amp (swordAmp etc. = multiply weapon equipment stats)
@@ -712,6 +723,9 @@ export class SkillTreeScene {
         case "tapHit":                dTapFlat += m.value; break;
         case "critChance":            dCrit += m.value; break;
         case "critMulti":             dCritMul += m.value; break;
+        case "arcaneCritChance":      dArcaneCrit += m.value; break;
+        case "arcaneCritMulti":       dArcaneCritMul += m.value; break;
+        case "cooldownReduction":     nodeCdr += m.value; break;
         case "fireDmg":               dFirePct += m.value; break;
         case "coldDmg":               dColdPct += m.value; break;
         case "lightningDmg":          dLightPct += m.value; break;
@@ -764,11 +778,23 @@ export class SkillTreeScene {
       const ep = skill.elementalProfile;
       newRaw += newRaw * ((ep.fire || 0) * dFirePct + (ep.cold || 0) * dColdPct + (ep.lightning || 0) * dLightPct + (ep.pure || 0) * dPurePct);
 
-      const curExp = curRaw * (1 + critChance * (critMultiplier - 1));
-      const newExp = newRaw * (1 + (critChance + dCrit) * ((critMultiplier + dCritMul) - 1));
-      const cdSec = skill.cooldownMs / 1000;
-      const curDps = curExp / cdSec;
-      const newDps = newExp / cdSec;
+      // Arcane skills use arcane crits, weapon skills use regular crits
+      let curExp: number, newExp: number;
+      if (sType === "arcane") {
+        curExp = curRaw * (1 + arcaneCritChance * (arcaneCritMult - 1));
+        newExp = newRaw * (1 + (arcaneCritChance + dArcaneCrit) * ((arcaneCritMult + dArcaneCritMul) - 1));
+      } else {
+        curExp = curRaw * (1 + critChance * (critMultiplier - 1));
+        newExp = newRaw * (1 + (critChance + dCrit) * ((critMultiplier + dCritMul) - 1));
+      }
+      // CDR: current effective cooldown uses char CDR; new cooldown adds this node multiplicatively
+      const baseCdSec = skill.cooldownMs / 1000;
+      const curCdSec = baseCdSec * (1 - currentCdr);
+      const newCdSec = nodeCdr > 0
+        ? baseCdSec * (1 - currentCdr) * (1 - nodeCdr)
+        : curCdSec;
+      const curDps = curExp / curCdSec;
+      const newDps = newExp / newCdSec;
       const pct = curDps > 0 ? (newDps - curDps) / curDps * 100 : 0;
 
       if (Math.abs(pct) < 0.1) continue;
@@ -857,6 +883,66 @@ export class SkillTreeScene {
       + `<span class="st-tip__loh-label">Life on Hit</span>`
       + `<span class="st-tip__loh-val">${curHit} → ${newHit}</span>`
       + `</div>`;
+  }
+
+  /** Defense impact preview for nodes with defensive stats (block, thorns, armor, HP). */
+  _buildDefenseImpact(node: SkillNode): string {
+    if (this._allocated.has(node.id)) return "";
+
+    const mods = node.mods || [];
+    const char = this.state.getActiveCharacter();
+    if (!char) return "";
+
+    // Base HP from class stats (tree % scales base, not total)
+    const classDef = CLASS_DEFS[char.classId];
+    const baseHp = classDef
+      ? classDef.base.hp + classDef.growth.hp * ((char.level || 1) - 1)
+      : char.maxHp || 0;
+
+    const rows: string[] = [];
+    for (const m of mods) {
+      let label = "", icon = "", color = "", formatted = "";
+
+      switch (m.stat) {
+        case "blockChance": {
+          const cur = char.blockChance || 0;
+          icon = "🛡"; label = "Block"; color = "#F9CF87";
+          formatted = `${Math.round(cur * 100)}% → ${Math.round((cur + m.value) * 100)}%`;
+          break;
+        }
+        case "thorns": {
+          icon = "⚡"; label = "Thorns"; color = "#B9508D";
+          formatted = `+${Math.round(m.value * 100)}% reflect`;
+          break;
+        }
+        case "armor": {
+          const cur = char.armor || 0;
+          const delta = Math.floor(cur * m.value);
+          icon = "🔰"; label = "Armor"; color = "#F9CF87";
+          formatted = `${cur} → ${cur + delta}`;
+          break;
+        }
+        case "hp": {
+          const cur = char.maxHp || 0;
+          const delta = Math.floor(baseHp * m.value);
+          icon = "❤"; label = "HP"; color = "#7fef7f";
+          formatted = `${cur.toLocaleString()} → ${(cur + delta).toLocaleString()}`;
+          break;
+        }
+        default:
+          continue;
+      }
+
+      rows.push(`<div class="st-tip__dps-row">`
+        + `<span class="st-tip__dps-name">${icon} ${label}</span>`
+        + `<span class="st-tip__dps-vals" style="color:${color}">${formatted}</span>`
+        + `</div>`);
+    }
+
+    if (rows.length === 0) return "";
+
+    return `<div class="st-tip__dps-impact">`
+      + `<div class="st-tip__dps-header">Defense</div>${rows.join("")}</div>`;
   }
 
   _hideTooltip(): void { if (this._tooltip) this._tooltip.classList.add("hidden"); }
