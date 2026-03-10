@@ -405,15 +405,19 @@ export class CombatService {
    * Build CachedCharStats from a Character entity + equipment bonuses + skill tree bonuses.
    */
   private buildCachedStats(char: Character, bonuses: EquipmentBonuses, weaponSubtypes: string[] = [], weaponBonuses?: EquipmentBonuses): CachedCharStats {
+    // Always recompute base stats from class formula (not DB cache)
+    // This ensures balance changes take effect immediately
+    const freshBase = statsAtLevel(char.classId, char.level);
+    const freshSpecial = specialAtLevel(char.classId, char.level);
     const base = {
-      tapDamage: char.tapDamage,
-      maxHp: char.maxHp,
-      hp: char.hp,
-      critChance: char.critChance,
-      critMultiplier: char.critMultiplier,
-      dodgeChance: char.dodgeChance,
-      specialValue: char.specialValue,
-      resistance: char.resistance || {},
+      tapDamage: freshBase.tapDamage,
+      maxHp: freshBase.hp,
+      hp: Math.min(char.hp, freshBase.hp),
+      critChance: freshBase.critChance,
+      critMultiplier: freshBase.critMultiplier,
+      dodgeChance: freshBase.dodgeChance,
+      specialValue: freshSpecial,
+      resistance: freshBase.resistance || {},
       elementalDamage: char.elementalDamage || { physical: 1.0 },
     };
 
