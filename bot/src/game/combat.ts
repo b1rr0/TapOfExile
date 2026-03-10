@@ -130,6 +130,8 @@ export class CombatManager {
         damageBreakdown: result.damageBreakdown,
         isCrit: result.isCrit,
         monster: this.monster,
+        critExplosionDmg: result.critExplosionDmg || 0,
+        multiStrikeDmg: result.multiStrikeDmg || 0,
       });
 
       if (result.playerHp !== undefined) {

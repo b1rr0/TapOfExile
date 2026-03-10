@@ -186,7 +186,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   heal: {
     id: "heal",
     name: "Mending Light",
-    cooldownMs: 20000,
+    cooldownMs: 10000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "heal",
@@ -200,7 +200,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   firebolt: {
     id: "firebolt",
     name: "Firebolt",
-    cooldownMs: 10000,
+    cooldownMs: 5000,
     damageMultiplier: 4,
     elementalProfile: { fire: 1.0 },
     skillType: "damage",
@@ -214,7 +214,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   fire_breath: {
     id: "fire_breath",
     name: "Fire Breath",
-    cooldownMs: 18000,
+    cooldownMs: 9000,
     damageMultiplier: 8,
     elementalProfile: { fire: 1.0 },
     skillType: "damage",
@@ -228,7 +228,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_ball: {
     id: "water_ball",
     name: "Frost Orb",
-    cooldownMs: 12000,
+    cooldownMs: 6000,
     damageMultiplier: 5,
     elementalProfile: { cold: 1.0 },
     skillType: "damage",
@@ -242,7 +242,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   explosion: {
     id: "explosion",
     name: "Firecracker",
-    cooldownMs: 24000,
+    cooldownMs: 12000,
     damageMultiplier: 9,
     elementalProfile: { fire: 0.8, physical: 0.2 },
     skillType: "damage",
@@ -256,7 +256,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_blast_full: {
     id: "water_blast_full",
     name: "Glacial Cascade",
-    cooldownMs: 20000,
+    cooldownMs: 10000,
     damageMultiplier: 9,
     elementalProfile: { cold: 0.85, physical: 0.15 },
     skillType: "damage",
@@ -270,7 +270,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   explosion_2: {
     id: "explosion_2",
     name: "Grand Explosion",
-    cooldownMs: 60000,
+    cooldownMs: 30000,
     damageMultiplier: 28,
     elementalProfile: { fire: 0.8, physical: 0.2 },
     skillType: "damage",
@@ -284,7 +284,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   water_startup: {
     id: "water_startup",
     name: "Arcane Vulnerability",
-    cooldownMs: 32000,
+    cooldownMs: 16000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "debuff",

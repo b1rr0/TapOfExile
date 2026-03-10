@@ -189,6 +189,10 @@ export interface EnemyAttackResult {
   breakdown: DamageBreakdown | null;
   /** Name of the attack used (for combat log) */
   attackName?: string;
+  /** Passive proc damage for battle log */
+  dodgeCounterDmg?: number;
+  shieldBashDmg?: number;
+  thornsDmg?: number;
 }
 
 const SESSION_TTL = 1800; // 30 minutes
@@ -1083,11 +1087,12 @@ export class CombatService {
       // Dodge check (pre-computed dodgeBuff)
       if (Math.random() < stats.dodgeChance + dodgeBuff) {
         // Unique passive: dodgeCounter - on dodge, deal X% damage back
+        let dodgeCounterDmg = 0;
         if (tFlat.dodgeCounter) {
-          const counterDmg = Math.floor(stats.tapDamage * tFlat.dodgeCounter);
-          if (counterDmg > 0) monster.currentHp -= counterDmg;
+          dodgeCounterDmg = Math.floor(stats.tapDamage * tFlat.dodgeCounter);
+          if (dodgeCounterDmg > 0) monster.currentHp -= dodgeCounterDmg;
         }
-        attacks.push({ dodged: true, damage: 0, breakdown: null, attackName });
+        attacks.push({ dodged: true, damage: 0, breakdown: null, attackName, dodgeCounterDmg });
         session.nextAttackIn = chosenAttack
           ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
           : B.ENEMY_ATTACK_INTERVAL_MS;
@@ -1097,9 +1102,10 @@ export class CombatService {
       // Block check (pre-computed baseBlockChance and hasGlancing)
       if (baseBlockChance > 0 && Math.random() < baseBlockChance) {
         // Unique passive: shieldBash - block deals X% tap damage back
+        let shieldBashDmg = 0;
         if (tFlat.shieldBash) {
-          const bashDmg = Math.floor(stats.tapDamage * tFlat.shieldBash);
-          if (bashDmg > 0) monster.currentHp -= bashDmg;
+          shieldBashDmg = Math.floor(stats.tapDamage * tFlat.shieldBash);
+          if (shieldBashDmg > 0) monster.currentHp -= shieldBashDmg;
         }
 
         if (hasGlancing) {
@@ -1108,9 +1114,9 @@ export class CombatService {
           const halfDmg = Math.floor(rawDmg * 0.5);
           session.playerCurrentHp -= halfDmg;
           if (session.playerCurrentHp < 0) session.playerCurrentHp = 0;
-          attacks.push({ dodged: false, blocked: true, damage: halfDmg, breakdown: null, attackName });
+          attacks.push({ dodged: false, blocked: true, damage: halfDmg, breakdown: null, attackName, shieldBashDmg });
         } else {
-          attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null, attackName });
+          attacks.push({ dodged: false, blocked: true, damage: 0, breakdown: null, attackName, shieldBashDmg });
         }
         session.nextAttackIn = chosenAttack
           ? Math.round((chosenAttack.pauseAfter + 0.3) * 1000)
@@ -1143,8 +1149,9 @@ export class CombatService {
       session.playerCurrentHp -= breakdown.total;
 
       // Unique passive: thorns - reflect X% damage taken back to enemy
+      let thornsDmg = 0;
       if (tFlat.thorns && breakdown.total > 0) {
-        const thornsDmg = Math.floor(breakdown.total * tFlat.thorns);
+        thornsDmg = Math.floor(breakdown.total * tFlat.thorns);
         if (thornsDmg > 0) monster.currentHp -= thornsDmg;
       }
 
@@ -1160,6 +1167,7 @@ export class CombatService {
         damage: breakdown.total,
         breakdown,
         attackName,
+        thornsDmg,
       });
 
       // Set next attack delay: pauseAfter + next attack's speed
@@ -1401,17 +1409,20 @@ export class CombatService {
     }
 
     // Unique passive: critExplosion - crits deal X% as passive DPS burst
+    let critExplosionDmg = 0;
     if (treeFlat.critExplosion && isCrit) {
-      const burstDmg = Math.floor(breakdown.total * treeFlat.critExplosion);
-      if (burstDmg > 0) {
-        monster.currentHp -= burstDmg;
+      critExplosionDmg = Math.floor(breakdown.total * treeFlat.critExplosion);
+      if (critExplosionDmg > 0) {
+        monster.currentHp -= critExplosionDmg;
       }
     }
 
     // Unique passive: multiStrike - X% chance to hit twice
+    let multiStrikeDmg = 0;
     if (treeFlat.multiStrike && Math.random() < treeFlat.multiStrike) {
       // Second strike at same damage (no crit reroll)
-      monster.currentHp -= breakdown.total;
+      multiStrikeDmg = breakdown.total;
+      monster.currentHp -= multiStrikeDmg;
       session.totalTaps++;
     }
 
@@ -1554,6 +1565,9 @@ export class CombatService {
       xp: charXp,
       xpToNext: charXpToNext,
       activeEffects: session.activeEffects,
+      // Passive proc damage for battle log
+      critExplosionDmg,
+      multiStrikeDmg,
     };
   }
 

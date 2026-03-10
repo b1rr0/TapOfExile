@@ -151,7 +151,7 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
     },
     growth: {
       hp: 8,
-      tapDamage: 2.2,
+      tapDamage: 0.2,
       critChance: 0,             // no crit chance growth from levels
       critMultiplier: 0,         // no crit damage growth from levels
       dodgeChance: 0.001,

@@ -6067,6 +6067,42 @@ body {
   text-shadow: 0 0 6px rgba(179,136,255,0.3);
 }
 
+/* Skill log entries */
+.combat-log-entry--skill {
+  color: #ffbb44;
+}
+.combat-log-entry--skill-heal {
+  color: #66ff88;
+}
+.combat-log-entry--skill-buff {
+  color: #88ddff;
+}
+.log-skill-name {
+  color: #ffcc66;
+  font-weight: 700;
+  font-size: 10px;
+}
+.log-heal {
+  color: #66ff88;
+  font-weight: 700;
+}
+.log-buff {
+  color: #88ddff;
+  font-style: italic;
+}
+
+/* Passive proc log entries */
+.combat-log-entry--passive {
+  color: #cc99ff;
+  opacity: 0.85;
+  font-size: 10px;
+}
+.log-passive {
+  color: #cc99ff;
+  font-weight: 600;
+  font-style: italic;
+}
+
 /* ═══════════════════════════════════════════════
    Death Scene
    ═══════════════════════════════════════════════ */
