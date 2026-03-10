@@ -1,4 +1,4 @@
-import { CombatManager } from "../game/combat.js";
+﻿import { CombatManager } from "../game/combat.js";
 import { BattleScene } from "../ui/battle-scene.js";
 import { Effects } from "../ui/effects.js";
 import { CombatLog } from "../ui/combat-log.js";
@@ -42,7 +42,7 @@ const LOADING_TIP_INTERVAL = 5000;
 const LOADING_MAX_DURATION = 30000;
 
 /**
- * CombatScene — wraps the current battle flow into a single scene.
+ * CombatScene - wraps the current battle flow into a single scene.
  *
  * Lifecycle: mount(params) / unmount() with full cleanup.
  */
@@ -177,7 +177,13 @@ export class CombatScene {
           xpToNext: playerData ? playerData.xpToNext : 100,
           maxHp: activeChar?.maxHp || activeChar?.hp || 100,
           hp: activeChar?.hp || 100,
+          tapDamage: activeChar?.tapDamage || 1,
+          critChance: activeChar?.critChance || 0.05,
+          critMultiplier: activeChar?.critMultiplier || 1.5,
           dodgeChance: activeChar?.dodgeChance || 0,
+          weaponSpellLevel: (activeChar as any)?.weaponSpellLevel || 0,
+          arcaneSpellLevel: (activeChar as any)?.arcaneSpellLevel || 0,
+          versatileSpellLevel: (activeChar as any)?.versatileSpellLevel || 0,
           resistance: activeChar?.resistance,
         })}
 
@@ -368,11 +374,26 @@ export class CombatScene {
       projectileLayer: this.battleScene!.projectileLayer,
       onCastSkill: (skillId) => { if (this.combat) this.combat.castSkill(skillId); },
       events: this.events,
+      charData: activeChar ? {
+        level: activeChar.level,
+        xp: activeChar.xp || 0,
+        xpToNext: activeChar.xpToNext || 1,
+        maxHp: activeChar.maxHp,
+        hp: activeChar.hp || activeChar.maxHp,
+        tapDamage: activeChar.tapDamage || 1,
+        critChance: activeChar.critChance || 0.05,
+        critMultiplier: activeChar.critMultiplier || 1.5,
+        dodgeChance: activeChar.dodgeChance || 0,
+        weaponSpellLevel: (activeChar as any).weaponSpellLevel || 0,
+        arcaneSpellLevel: (activeChar as any).arcaneSpellLevel || 0,
+        versatileSpellLevel: (activeChar as any).versatileSpellLevel || 0,
+        resistance: (activeChar as any).resistance,
+      } : undefined,
     }).then((cleanup) => {
       this._cleanupAbilities = cleanup;
     });
 
-    // Listen for player death — switch to death screen after brief delay.
+    // Listen for player death - switch to death screen after brief delay.
     // We capture combat log data IMMEDIATELY to avoid it being null if
     // unmount() runs before the delayed scene switch (e.g. race with locationComplete).
     // A second snapshot is taken 300ms later to include staggered enemyAttack events.
@@ -381,13 +402,13 @@ export class CombatScene {
       if (_deathCaptured) return;          // guard against double-fire
       _deathCaptured = true;
 
-      // Snapshot #1 — immediate (guaranteed non-null combatLog)
+      // Snapshot #1 - immediate (guaranteed non-null combatLog)
       const combatLog = this.combatLog;
       let killerName = combatLog ? combatLog.currentMonsterName : "Unknown";
       let logEntries = combatLog ? [...combatLog.entries] : [];
       let combatStartTime = combatLog ? combatLog.combatStartTime : Date.now();
 
-      // Snapshot #2 — after 300ms, picks up staggered enemyAttack events
+      // Snapshot #2 - after 300ms, picks up staggered enemyAttack events
       setTimeout(() => {
         const cl = this.combatLog;
         if (cl) {
@@ -419,7 +440,7 @@ export class CombatScene {
     const completedBefore: string[] = [...(this.state.data.locations?.completed || [])];
     const wasActComplete = isActComplete(locActNumber, completedBefore);
 
-    // Listen for location complete — server already persisted everything
+    // Listen for location complete - server already persisted everything
     this._onLocationComplete = (data: any) => {
       const completedAfter: string[] = this.state.data.locations?.completed || [];
       const isNowComplete = isActComplete(locActNumber, completedAfter);
@@ -444,7 +465,7 @@ export class CombatScene {
     };
     this.events.on("locationComplete", this._onLocationComplete);
 
-    // Listen for map complete — server already persisted drops + endgame stats
+    // Listen for map complete - server already persisted drops + endgame stats
     this._onMapComplete = (data: any) => {
       const mc = data.mapConfig;
       const tier: number = mc.tier || 10;

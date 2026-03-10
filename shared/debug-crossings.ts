@@ -1,4 +1,4 @@
-import { buildSkillTree } from './skill-tree';
+﻿import { buildSkillTree } from './skill-tree';
 
 const tree = buildSkillTree();
 const { nodes, edges, figureMembership } = tree;
@@ -32,8 +32,8 @@ for (let i = 0; i < oEdges.length; i++) {
     const edgeJInFig = sameFig(ci, di);
     if (edgeIInFig || edgeJInFig) {
       count++;
-      const figA = figureMembership.get(ai) ?? figureMembership.get(bi) ?? '–';
-      const figB = figureMembership.get(ci) ?? figureMembership.get(di) ?? '–';
+      const figA = figureMembership.get(ai) ?? figureMembership.get(bi) ?? '-';
+      const figB = figureMembership.get(ci) ?? figureMembership.get(di) ?? '-';
       const typeA = `${nodes[ai].type}↔${nodes[bi].type}`;
       const typeB = `${nodes[ci].type}↔${nodes[di].type}`;
       const figFig = (edgeIInFig && edgeJInFig) ? 'FIG↔FIG' : 'FIG↔TREE';

@@ -1,5 +1,5 @@
-/**
- * ProjectileLayer — renders animated skill effects on the battle canvas.
+﻿/**
+ * ProjectileLayer - renders animated skill effects on the battle canvas.
  *
  * Supports multiple sprite types (e.g. fireball, sword_throw) and 4 render modes:
  *   - projectile:     flies from hero to enemy
@@ -47,7 +47,7 @@ interface ActiveProjectile {
   impactFired: boolean;
   /** Alpha opacity (0-1). Looping effects render semi-transparent. */
   alpha: number;
-  /** Unique tag for looping effects — used to remove by ID. */
+  /** Unique tag for looping effects - used to remove by ID. */
   loopTag?: string;
 }
 
@@ -59,7 +59,7 @@ export class ProjectileLayer {
 
   /**
    * Load a sprite atlas JSON + PNG image and register it under a key.
-   * `drawW`/`drawH` are optional — if omitted, they are read from `meta.skill` in the JSON.
+   * `drawW`/`drawH` are optional - if omitted, they are read from `meta.skill` in the JSON.
    */
   async load(key: string, jsonPath: string, drawW?: number, drawH?: number): Promise<void> {
     try {
@@ -158,13 +158,13 @@ export class ProjectileLayer {
   /**
    * Launch a new skill effect.
    * Render type and duration are read from the sprite's metadata.
-   * @param spriteKey — which loaded sprite to use
-   * @param startX — hero X in canvas pixels (DPR-scaled)
-   * @param startY — hero Y in canvas pixels
-   * @param endX — enemy X in canvas pixels
-   * @param endY — enemy Y in canvas pixels
-   * @param onImpact — called when the effect finishes
-   * @param durationOverride — explicit duration in seconds (overrides metadata)
+   * @param spriteKey - which loaded sprite to use
+   * @param startX - hero X in canvas pixels (DPR-scaled)
+   * @param startY - hero Y in canvas pixels
+   * @param endX - enemy X in canvas pixels
+   * @param endY - enemy Y in canvas pixels
+   * @param onImpact - called when the effect finishes
+   * @param durationOverride - explicit duration in seconds (overrides metadata)
    */
   launch(
     spriteKey: string,
@@ -270,7 +270,7 @@ export class ProjectileLayer {
 
   /**
    * Advance all active effects.
-   * @param dt — delta time in seconds
+   * @param dt - delta time in seconds
    */
   update(dt: number): void {
     if (this._projectiles.length === 0) return;
@@ -302,13 +302,13 @@ export class ProjectileLayer {
         const flightDuration = (p.impactFrame / totalFrames) * p.duration;
 
         if (p.elapsed < flightDuration) {
-          // Phase 1 — flight: loop frames 0..impactFrame-1
+          // Phase 1 - flight: loop frames 0..impactFrame-1
           if (p.frameElapsed >= frameInterval) {
             p.frameElapsed -= frameInterval;
             p.frameIndex = (p.frameIndex + 1) % p.impactFrame;
           }
         } else {
-          // Phase 2 — impact at target
+          // Phase 2 - impact at target
           if (!p.impactFired) {
             p.impactFired = true;
             if (p.onImpact) p.onImpact();
@@ -358,10 +358,10 @@ export class ProjectileLayer {
 
   /**
    * Draw all active effects on the canvas.
-   * @param ctx — canvas 2D context
-   * @param dpr — device pixel ratio
-   * @param canvasW — full canvas width (DPR-scaled), needed for fullscreen type
-   * @param canvasH — full canvas height (DPR-scaled), needed for fullscreen type
+   * @param ctx - canvas 2D context
+   * @param dpr - device pixel ratio
+   * @param canvasW - full canvas width (DPR-scaled), needed for fullscreen type
+   * @param canvasH - full canvas height (DPR-scaled), needed for fullscreen type
    */
   draw(ctx: CanvasRenderingContext2D, dpr: number = 1, canvasW?: number, canvasH?: number): void {
     if (this._projectiles.length === 0) return;

@@ -1,5 +1,5 @@
-/**
- * Endgame Map System — shared data and logic for both FE and BE.
+﻿/**
+ * Endgame Map System - shared data and logic for both FE and BE.
  *
  * Contains: tier definitions, boss maps, wave templates, drop settings,
  * and generic drop logic (accepts factory callbacks for FE/BE differences).
@@ -30,7 +30,7 @@ export const DROP_SETTINGS: DropSettings = {
 };
 
 /* ══════════════════════════════════════════════════════════════
- *  BOSS KEY TIERS — 3 difficulty levels
+ *  BOSS KEY TIERS - 3 difficulty levels
  * ══════════════════════════════════════════════════════════════ */
 
 export const BOSS_KEY_TIERS: BossKeyTierDef[] = [
@@ -56,7 +56,7 @@ export function pickBossKeyTier(sourceTier: number, isBossMap: boolean): number 
 }
 
 /* ══════════════════════════════════════════════════════════════
- *  TIER DEFINITIONS — 10 difficulty levels
+ *  TIER DEFINITIONS - 10 difficulty levels
  * ══════════════════════════════════════════════════════════════ */
 
 export const MAX_TIER: number = 10;
@@ -313,11 +313,11 @@ export function createBossKeyData(bossId: string, bossKeyTier: number): BagItemD
  * Generic: accepts factory callbacks so FE and BE can inject
  * different location-enrichment logic.
  *
- * @param tier         — map tier that was completed
- * @param isBossMap    — was it a boss map?
- * @param direction    — chosen boss direction (if any)
- * @param createMapKey — factory to create a map key item (FE adds location, BE adds its own)
- * @param createBossKey — factory to create a boss key item
+ * @param tier         - map tier that was completed
+ * @param isBossMap    - was it a boss map?
+ * @param direction    - chosen boss direction (if any)
+ * @param createMapKey - factory to create a map key item (FE adds location, BE adds its own)
+ * @param createBossKey - factory to create a boss key item
  */
 export function rollMapDrops(
   tier: number,
@@ -350,10 +350,10 @@ export function rollMapDrops(
     return drops;
   }
 
-  // Regular map drops — mutually exclusive: same-tier OR tier+1 (not both)
+  // Regular map drops - mutually exclusive: same-tier OR tier+1 (not both)
   const keyRoll = Math.random();
   if (keyRoll < S.regular.tierUpChance && tier < MAX_TIER) {
-    // Tier+1 wins (checked first — rarer outcome, 20%)
+    // Tier+1 wins (checked first - rarer outcome, 20%)
     drops.push(createMapKey(Math.min(MAX_TIER, tier + 1)));
   } else if (keyRoll < S.regular.tierUpChance + S.regular.sameTierChance) {
     // Same tier (60% band)

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryColumn,
   Column,
@@ -109,7 +109,7 @@ export class Character {
   @Column({ type: 'int', default: 1 })
   currentAct: number;
 
-  // Equipment slots (relational — replaces old JSONB equipment column)
+  // Equipment slots (relational - replaces old JSONB equipment column)
   @OneToMany(() => EquipmentSlot, (es) => es.character, { cascade: true })
   equipmentSlots: EquipmentSlot[];
 
@@ -126,7 +126,7 @@ export class Character {
   @Column({ type: 'int', default: 0 })
   totalMapsRun: number;
 
-  // Skill tree — allocated node IDs (JSONB array of numbers)
+  // Skill tree - allocated node IDs (JSONB array of numbers)
   @Column({ type: 'jsonb', default: '[]' })
   allocatedNodes: number[];
 
@@ -134,7 +134,7 @@ export class Character {
   @Column({ type: 'jsonb', default: '[]' })
   unlockedActiveSkills: string[];
 
-  // Equipped action bar (4 slots — null = empty)
+  // Equipped action bar (4 slots - null = empty)
   @Column({ type: 'jsonb', default: '[null, null, null, null]' })
   equippedSkills: (string | null)[];
 
@@ -142,11 +142,11 @@ export class Character {
   @Column({ type: 'int', default: 0 })
   dojoBestDamage: number;
 
-  // Daily bonus wins — first 3 wins per day give x3 XP
+  // Daily bonus wins - first 3 wins per day give x3 XP
   @Column({ type: 'int', default: 0 })
   dailyBonusWinsUsed: number;
 
-  // UTC date string (YYYY-MM-DD) when bonus was last used — resets at 00:00 UTC
+  // UTC date string (YYYY-MM-DD) when bonus was last used - resets at 00:00 UTC
   @Column({ type: 'varchar', length: 10, nullable: true })
   dailyBonusResetDate: string | null;
 }

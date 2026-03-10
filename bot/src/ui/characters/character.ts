@@ -1,8 +1,8 @@
-import { SpriteEngine } from "../sprite-engine.js";
+﻿import { SpriteEngine } from "../sprite-engine.js";
 import type { AnimationConfig } from "../../types.js";
 
 /**
- * Character — base class for any sprite-based entity on the battle scene.
+ * Character - base class for any sprite-based entity on the battle scene.
  *
  * Encapsulates:
  *  - SpriteEngine instance (animation playback)
@@ -80,7 +80,7 @@ export class Character {
   _animDirty: boolean;
 
   /**
-   * @param opts — character configuration
+   * @param opts - character configuration
    */
   constructor({
     spriteConfig,
@@ -173,8 +173,8 @@ export class Character {
 
   /**
    * Begin entrance slide from an offset.
-   * @param offset — starting offset in CSS px (positive = right of target)
-   * @param speed  — slide speed in CSS px/s
+   * @param offset - starting offset in CSS px (positive = right of target)
+   * @param speed  - slide speed in CSS px/s
    */
   startEntrance(offset: number, speed: number): void {
     this._entering = true;
@@ -193,7 +193,7 @@ export class Character {
     this._animDirty = true;
   }
 
-  /** Reset all animation state — used before spawning a new instance. */
+  /** Reset all animation state - used before spawning a new instance. */
   resetState(): void {
     this._entering = false;
     this._enterOffset = 0;
@@ -208,7 +208,7 @@ export class Character {
 
   /**
    * Advance all animation state.
-   * @param dt — delta time in seconds
+   * @param dt - delta time in seconds
    */
   update(dt: number): void {
     // Sprite engine frame advance

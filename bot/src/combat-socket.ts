@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Socket.IO client for combat WebSocket connection.
  *
- * Singleton — one connection per session, shared across CombatManager lifecycle.
+ * Singleton - one connection per session, shared across CombatManager lifecycle.
  */
 import { io, Socket } from "socket.io-client";
 import { getAccessToken, auth } from "./api.js";
@@ -34,7 +34,7 @@ async function ensureFreshToken(): Promise<string | null> {
 
 /**
  * Get (or create) the shared combat socket.
- * ASYNC — may refresh the JWT before creating a new socket.
+ * ASYNC - may refresh the JWT before creating a new socket.
  */
 export async function getSocket(): Promise<Socket> {
   if (socket && (socket.connected || socket.active)) return socket;
@@ -48,7 +48,7 @@ export async function getSocket(): Promise<Socket> {
 
   socket = io(`${WS_URL}/combat`, {
     auth: { token },
-    // Start with WebSocket directly — skips HTTP polling handshake (saves 1-2 RTTs).
+    // Start with WebSocket directly - skips HTTP polling handshake (saves 1-2 RTTs).
     // Falls back to polling only if WebSocket is unavailable (rare in Telegram webview).
     transports: ["websocket", "polling"],
     reconnection: true,

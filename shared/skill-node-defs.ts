@@ -1,5 +1,5 @@
-/**
- * Skill Node Definitions — OOP data model for skill tree stat bonuses.
+﻿/**
+ * Skill Node Definitions - OOP data model for skill tree stat bonuses.
  *
  * Each node in the passive tree carries a NodeDef that describes its stat effects.
  * NodeDef holds one or more StatModifiers, enabling proper multi-stat support.
@@ -52,7 +52,7 @@ export class NodeDef {
   readonly mods: StatModifier[];
   readonly stat: string | null;
   readonly value: number;
-  /** For activeSkill nodes — references the ActiveSkillId this node unlocks */
+  /** For activeSkill nodes - references the ActiveSkillId this node unlocks */
   activeSkillId: ActiveSkillId | null;
 
   constructor(id: string, label: string, name: string | null, type: string, ...mods: StatModifier[]) {
@@ -62,7 +62,7 @@ export class NodeDef {
     this.type = type;
     this.mods = mods;
 
-    // Backward compat — first modifier as .stat / .value
+    // Backward compat - first modifier as .stat / .value
     this.stat = mods.length > 0 ? mods[0].stat : null;
     this.value = mods.length > 0 ? mods[0].value : 0;
 
@@ -110,17 +110,35 @@ export function activeSkillNode(id: string, label: string, name: string, skillId
 
 export const STAT_TO_PLAYER: Record<string, string> = {
   damage:      "tapDamage",
-  dps:         "tapDamage",   // legacy — DPS nodes now boost tap damage
+  dps:         "tapDamage",   // legacy - DPS nodes now boost tap damage
   critChance:  "critChance",
   critMulti:   "critMultiplier",
   hp:          "hp",
   goldFind:    "goldFind",
   xpGain:      "xpGain",
   dodge:       "dodgeChance",
+  armor:       "armor",
+  lifeOnHit:   "lifeOnHit",
   fireDmg:     "fireDmg",
   lightningDmg:"lightningDmg",
   coldDmg:     "coldDmg",
   pureDmg:     "pureDmg",
+  // Weapon-type multiplier bonuses (percent mode → stacks → applied as multiplier)
+  swordDmg:    "swordDmg",
+  axeDmg:      "axeDmg",
+  daggerDmg:   "daggerDmg",
+  wandDmg:     "wandDmg",
+  maceDmg:     "maceDmg",
+  bowDmg:      "bowDmg",
+  staffDmg:    "staffDmg",
+  // Weapon-type amplifiers (notable bonus: multiplies all weapon-type bonuses)
+  swordAmp:    "swordAmp",
+  axeAmp:      "axeAmp",
+  daggerAmp:   "daggerAmp",
+  wandAmp:     "wandAmp",
+  maceAmp:     "maceAmp",
+  bowAmp:      "bowAmp",
+  staffAmp:    "staffAmp",
   // Unique passive mechanics (flat mode, value = magnitude)
   thorns:            "thorns",            // reflect X% damage taken
   lifeSteal:         "lifeSteal",         // heal X% of damage dealt
@@ -147,6 +165,10 @@ export const STAT_TO_PLAYER: Record<string, string> = {
   cullingStrike:     "cullingStrike",     // enemies below 10% HP die instantly
   berserkerFury:     "berserkerFury",     // +1% dmg per 2% missing HP
   dualWield2H:       "dualWield2H",       // can equip 2H in off-hand
+  // Spell level bonuses (flat mode)
+  weaponSpellLevel:     "weaponSpellLevel",     // +N Weapon Spell Level
+  arcaneSpellLevel:     "arcaneSpellLevel",     // +N Arcane Spell Level
+  versatileSpellLevel:  "versatileSpellLevel",  // +N Versatile Spell Level
 };
 
 // ── Minor pool (16) ──────────────────────────────────────
@@ -199,6 +221,10 @@ export const NOTABLE_POOL: NodeDef[] = [
   notable("not_titan",      "+18% Damage",               "Titan Grip",      pct("damage", 0.18)),
   notable("not_sixth",      "+20% Crit Chance",          "Sixth Sense",     pct("critChance", 0.20)),
   notable("not_thick",      "+35% HP",                   "Thick Skin",      pct("hp", 0.35)),
+  // Spell level notables
+  notable("not_balanced",   "+2 Versatile Spell Lv.",     "Balanced Power",  flat("versatileSpellLevel", 2)),
+  notable("not_martial",    "+2 Weapon Spell Lv.",        "Martial Mastery", flat("weaponSpellLevel", 2)),
+  notable("not_arcane_pw",  "+2 Arcane Spell Lv.",        "Spell Mastery",   flat("arcaneSpellLevel", 2)),
 ];
 
 // ── Keystone pool (48) ───────────────────────────────────
@@ -265,7 +291,7 @@ export const KEYSTONE_POOL: NodeDef[] = [
   keystone("ks_zenith",     "+35% Dmg, +20% Crit, +15% HP", "Zenith",       pct("damage", 0.35), pct("critChance", 0.20), pct("hp", 0.15)),
 ];
 
-// ── Figure entry pool (15) — gateways with no stat bonuses ──
+// ── Figure entry pool (15) - gateways with no stat bonuses ──
 
 export const FIGURE_ENTRY_POOL: NodeDef[] = [
   figureEntry("fe_shield",     "Shield Gate"),
@@ -289,7 +315,7 @@ export const FIGURE_ENTRY_POOL: NodeDef[] = [
 
 export const CLASS_SKILLS: Record<string, NodeDef[]> = {
 
-  /** Samurai — lightning + physical, crit-focused swift blade */
+  /** Samurai - lightning + physical, crit-focused swift blade */
   samurai: [
     classSkill("sam_iaido",     "First strike +40% Dmg",         "Iaido",           pct("damage", 0.40)),
     classSkill("sam_bushido",   "+15% Crit when full HP",        "Bushido",         pct("critChance", 0.15)),
@@ -307,9 +333,10 @@ export const CLASS_SKILLS: Record<string, NodeDef[]> = {
     classSkill("sam_thunder",   "+25% Lightning Dmg",            "Thunder Strike",  pct("lightningDmg", 0.25)),
     classSkill("sam_rising",    "+12% Dmg, +12% Crit, +12% HP", "Rising Sun",      pct("damage", 0.12), pct("critChance", 0.12), pct("hp", 0.12)),
     classSkill("sam_death",     "Crits +35% Dmg",                "Death Blossom",   pct("critMulti", 0.35)),
+    classSkill("sam_versatile", "+3 Versatile Spell Lv.",        "Balanced Blade",  flat("versatileSpellLevel", 3)),
   ],
 
-  /** Warrior — fire + physical, tanky HP fortress */
+  /** Warrior - fire + physical, tanky HP fortress */
   warrior: [
     classSkill("war_shield",    "+35% HP",                        "Shield Wall",     pct("hp", 0.35)),
     classSkill("war_warcry",    "+12% Dmg, +12% HP",              "Warcry",          pct("damage", 0.12), pct("hp", 0.12)),
@@ -327,9 +354,10 @@ export const CLASS_SKILLS: Record<string, NodeDef[]> = {
     classSkill("war_rally",     "+15% DPS, +10% HP",               "Rallying Cry",    pct("dps", 0.15), pct("hp", 0.10)),
     classSkill("war_quake",     "+25% Damage",                     "Earthquake",      pct("damage", 0.25)),
     classSkill("war_unstop",    "+25% Fire Dmg, +20% HP",          "Unstoppable",     pct("fireDmg", 0.25), pct("hp", 0.20)),
+    classSkill("war_martial",   "+3 Weapon Spell Lv.",             "Weapon Mastery",  flat("weaponSpellLevel", 3)),
   ],
 
-  /** Mage — fire/lightning/cold master, pure elemental diversity */
+  /** Mage - fire/lightning/cold master, pure elemental diversity */
   mage: [
     classSkill("mag_fireball",  "+30% Fire Damage",                "Fireball",        pct("fireDmg", 0.30)),
     classSkill("mag_mshield",   "+25% HP",                         "Mana Shield",     pct("hp", 0.25)),
@@ -347,9 +375,10 @@ export const CLASS_SKILLS: Record<string, NodeDef[]> = {
     classSkill("mag_meteor",    "+35% Fire Damage",                  "Meteor",          pct("fireDmg", 0.35)),
     classSkill("mag_wisdom",    "+20% XP, +10% Gold",               "Arcane Wisdom",   pct("xpGain", 0.20), pct("goldFind", 0.10)),
     classSkill("mag_void",      "+20% Pure Dmg, +10% DPS",          "Void Rift",       pct("pureDmg", 0.20), pct("dps", 0.10)),
+    classSkill("mag_arcpow",    "+3 Arcane Spell Lv.",              "Arcane Power",    flat("arcaneSpellLevel", 3)),
   ],
 
-  /** Archer — cold + physical, crit/dodge ranged precision */
+  /** Archer - cold + physical, crit/dodge ranged precision */
   archer: [
     classSkill("arc_power",     "+25% Damage",                      "Power Shot",      pct("damage", 0.25)),
     classSkill("arc_frost",     "+20% Cold Damage",                 "Frost Arrow",     pct("coldDmg", 0.20)),
@@ -367,12 +396,13 @@ export const CLASS_SKILLS: Record<string, NodeDef[]> = {
     classSkill("arc_headshot",  "+40% Crit Damage",                 "Headshot",        pct("critMulti", 0.40)),
     classSkill("arc_nature",    "+25% HP, +10% XP",                 "Nature Bond",     pct("hp", 0.25), pct("xpGain", 0.10)),
     classSkill("arc_volley",    "+20% Dmg, +15% DPS",               "Volley",          pct("damage", 0.20), pct("dps", 0.15)),
+    classSkill("arc_versatile", "+3 Versatile Spell Lv.",           "Nature's Gift",   flat("versatileSpellLevel", 3)),
   ],
 };
 
 // ── Active skill node defs (8 per class = 32) ──────────────
 //
-// Each activeSkill node unlocks an active combat skill. No stat bonuses —
+// Each activeSkill node unlocks an active combat skill. No stat bonuses -
 // the node's purpose is gating the skill behind tree allocation.
 // Generated from CLASS_ACTIVE_SKILLS mapping.
 
@@ -392,7 +422,7 @@ export const ACTIVE_SKILL_NODES: Record<string, NodeDef[]> = buildActiveSkillNod
 // ── Skill connector stat defs (8 per class = 32) ───────────
 //
 // Stat bonuses on the path connectors between active skill nodes.
-// Index matches connector index (c0–c7) in the class skill mini-tree:
+// Index matches connector index (c0-c7) in the class skill mini-tree:
 //
 //   Start → c0(bridge) → c1 → s0 → c6 → s6
 //                       → c2 → s1
@@ -401,7 +431,7 @@ export const ACTIVE_SKILL_NODES: Record<string, NodeDef[]> = buildActiveSkillNod
 
 export const SKILL_CONNECTOR_DEFS: Record<string, NodeDef[]> = {
 
-  /** Mage connectors — fire path (left) + cold path (right) */
+  /** Mage connectors - fire path (left) + cold path (right) */
   mage: [
     classSkill("sc_mag_0", "+3% DPS",               "Arcane Flow",    pct("dps", 0.03)),
     classSkill("sc_mag_1", "+8% HP",                 "Mana Well",      pct("hp", 0.08)),
@@ -413,7 +443,7 @@ export const SKILL_CONNECTOR_DEFS: Record<string, NodeDef[]> = {
     classSkill("sc_mag_7", "+4% DPS",               "Ether Link",     pct("dps", 0.04)),
   ],
 
-  /** Samurai connectors — physical/crit (left) + lightning (right) */
+  /** Samurai connectors - physical/crit (left) + lightning (right) */
   samurai: [
     classSkill("sc_sam_0", "+3% Damage",              "Blade Focus",    pct("damage", 0.03)),
     classSkill("sc_sam_1", "+5% Damage",              "Sharp Edge",     pct("damage", 0.05)),
@@ -425,7 +455,7 @@ export const SKILL_CONNECTOR_DEFS: Record<string, NodeDef[]> = {
     classSkill("sc_sam_7", "+6% Lightning Dmg",       "Thunder Step",   pct("lightningDmg", 0.06)),
   ],
 
-  /** Warrior connectors — HP/physical tank path */
+  /** Warrior connectors - HP/physical tank path */
   warrior: [
     classSkill("sc_war_0", "+5% HP",                  "Iron Resolve",   pct("hp", 0.05)),
     classSkill("sc_war_1", "+5% Damage",              "Heavy Arm",      pct("damage", 0.05)),
@@ -437,7 +467,7 @@ export const SKILL_CONNECTOR_DEFS: Record<string, NodeDef[]> = {
     classSkill("sc_war_7", "+10% HP",                 "Endure",         pct("hp", 0.10)),
   ],
 
-  /** Archer connectors — lightning (left) + cold (right) + crit */
+  /** Archer connectors - lightning (left) + cold (right) + crit */
   archer: [
     classSkill("sc_arc_0", "+3% Crit Chance",         "Steady Aim",     pct("critChance", 0.03)),
     classSkill("sc_arc_1", "+5% Lightning Dmg",       "Spark Touch",    pct("lightningDmg", 0.05)),
@@ -455,8 +485,8 @@ export const SKILL_CONNECTOR_DEFS: Record<string, NodeDef[]> = {
 /**
  * Sum all stat bonuses from allocated skill tree nodes.
  *
- * @param   nodes      — full node array from buildSkillTree().nodes
- * @param   allocated  — set of allocated numeric node IDs
+ * @param   nodes      - full node array from buildSkillTree().nodes
+ * @param   allocated  - set of allocated numeric node IDs
  * @returns bonuses with percent and flat records
  */
 export function computeAllocatedBonuses(

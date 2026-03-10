@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { DojoRecord } from '../shared/entities/dojo-record.entity';
@@ -75,7 +75,7 @@ export class LeaderboardService {
 
   /**
    * Global dojo leaderboard: top N by best damage.
-   * Uses denormalized leagueId on dojo_records — no JOIN with characters needed.
+   * Uses denormalized leagueId on dojo_records - no JOIN with characters needed.
    */
   async getDojoLeaderboard(limit = 50, leagueId?: string) {
     const where: any = {};

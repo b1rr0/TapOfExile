@@ -1,7 +1,7 @@
-/**
- * FriendsPanel — fullscreen overlay with 2 master tabs:
- *  1. Friends — sub-tabs: list, requests, search
- *  2. Referrals — referral ID, stats, enter code, share, info
+﻿/**
+ * FriendsPanel - fullscreen overlay with 2 master tabs:
+ *  1. Friends - sub-tabs: list, requests, search
+ *  2. Referrals - referral ID, stats, enter code, share, info
  */
 
 import { friends, player } from "../api.js";

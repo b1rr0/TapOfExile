@@ -1,5 +1,5 @@
-/**
- * Endgame Map System — re-exported from shared module + FE-only extras.
+﻿/**
+ * Endgame Map System - re-exported from shared module + FE-only extras.
  *
  * Shared data (tiers, bosses, waves, drop settings) comes from @shared/endgame-maps.
  * FE-only: pickRandomLocation, createMapKeyItem (with location), isEndgameUnlocked.
@@ -39,7 +39,7 @@ function pickRandomLocation() {
 }
 
 /**
- * Create a regular map key item for the bag — with location info (FE).
+ * Create a regular map key item for the bag - with location info (FE).
  */
 export function createMapKeyItem(tier: number): BagItem {
   const base = createMapKeyData(tier);
@@ -53,14 +53,14 @@ export function createMapKeyItem(tier: number): BagItem {
 }
 
 /**
- * Create a boss map key item for the bag — delegates to shared.
+ * Create a boss map key item for the bag - delegates to shared.
  */
 export function createBossMapKeyItem(bossId: string, bossKeyTier: number = 1): BagItem | null {
   return createBossKeyData(bossId, bossKeyTier) as BagItem | null;
 }
 
 /**
- * Roll map drops — FE version uses location-enriched createMapKeyItem.
+ * Roll map drops - FE version uses location-enriched createMapKeyItem.
  */
 export function rollMapDrops(tier: number, isBossMap: boolean = false, direction: string | null = null): BagItem[] {
   return _rollMapDrops(

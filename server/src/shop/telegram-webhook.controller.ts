@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Body,
@@ -47,7 +47,7 @@ export class TelegramWebhookController {
       }
     }
 
-    // Handle pre_checkout_query — MUST answer within 10 seconds
+    // Handle pre_checkout_query - MUST answer within 10 seconds
     if (update.pre_checkout_query) {
       await this.handlePreCheckout(update.pre_checkout_query);
       return { ok: true };
@@ -62,7 +62,7 @@ export class TelegramWebhookController {
       return { ok: true };
     }
 
-    // Other update types — ignore
+    // Other update types - ignore
     return { ok: true };
   }
 

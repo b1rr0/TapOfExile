@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -10,10 +10,10 @@ import {
 import { Player } from './player.entity';
 
 /**
- * ShardTransaction — full log of every shard credit/debit.
+ * ShardTransaction - full log of every shard credit/debit.
  *
- * type='purchase' — shards received from Stars payment
- * type='spend'    — shards spent on shop items
+ * type='purchase' - shards received from Stars payment
+ * type='spend'    - shards spent on shop items
  */
 @Entity('shard_transactions')
 @Index('idx_shard_tx_player', ['playerTelegramId'])

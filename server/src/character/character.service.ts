@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -239,13 +239,13 @@ export class CharacterService {
     const owned = (player.purchasedSkins || []).includes(skinId);
 
     if (owned) {
-      // Already purchased — just equip
+      // Already purchased - just equip
       char.skinId = skinId;
       await this.charRepo.save(char);
       return { character: char };
     }
 
-    // Need to purchase — charge shards in a transaction
+    // Need to purchase - charge shards in a transaction
     const cost = BigInt(B.SKIN_PRICE_SHARDS);
 
     return this.dataSource.transaction(async (em) => {

@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Background renderer with camera/viewport system.
  *
  * The background image is scaled using "cover" logic:
  *   scale = max(canvasH / imgH, canvasW / imgW)
- * This guarantees the image always covers the entire canvas —
+ * This guarantees the image always covers the entire canvas -
  * no black bars on any side, regardless of device aspect ratio.
  *
  * A horizontal camera (`_cameraX`) pans left→right as the player
@@ -126,7 +126,7 @@ export class BackgroundRenderer {
 
   /**
    * Draw the background directly onto the provided context.
-   * No caching — simple, reliable, always fills the canvas.
+   * No caching - simple, reliable, always fills the canvas.
    */
   draw(ctx: CanvasRenderingContext2D, w: number, h: number): void {
     if (!this._loaded || !this._bgImage) return;

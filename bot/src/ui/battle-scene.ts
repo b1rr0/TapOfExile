@@ -1,4 +1,4 @@
-import { BackgroundRenderer } from "./background-renderer.js";
+﻿import { BackgroundRenderer } from "./background-renderer.js";
 import { HeroCharacter } from "./characters/hero-character.js";
 import { EnemyCharacter } from "./characters/enemy-character.js";
 import { ProjectileLayer } from "./projectile-layer.js";
@@ -7,7 +7,7 @@ import { ACTIVE_SKILLS, type ActiveSkillId } from "@shared/active-skills.js";
 import type { Monster, Rarity, SkinConfig } from "../types.js";
 
 /**
- * BattleScene — renders the battle area.
+ * BattleScene - renders the battle area.
  *
  * Orchestrates:
  *  - BackgroundRenderer (static image)
@@ -108,7 +108,7 @@ export class BattleScene {
 
   /**
    * @param container
-   * @param events — EventBus instance
+   * @param events - EventBus instance
    * @param opts
    */
   constructor(container: HTMLElement, events: EventBus, opts: BattleSceneOpts = {}) {
@@ -188,7 +188,7 @@ export class BattleScene {
 
   async _tryLoadSprites(): Promise<void> {
     try {
-      // Capture the skin ID at call time — _enemySkinId may change while we await
+      // Capture the skin ID at call time - _enemySkinId may change while we await
       const initialEnemySkinId = this._enemySkinId;
 
       const heroSkin = getHeroSkin(this._heroSkinId) as SkinConfig | undefined;
@@ -314,7 +314,7 @@ export class BattleScene {
           if (this.hero) this.hero.stopRunning();
 
           // Signal server to start/resume enemy attacks
-          console.log("[BattleScene] Entrance complete — emitting entranceDone");
+          console.log("[BattleScene] Entrance complete - emitting entranceDone");
           this.events.emit("entranceDone", {});
         }
 
@@ -336,7 +336,7 @@ export class BattleScene {
 
   /**
    * Full redraw: background → hero → enemy.
-   * No partial clears — no artifacts.
+   * No partial clears - no artifacts.
    */
   _drawFrame(): void {
     if (!this._ctx) return;
@@ -361,7 +361,7 @@ export class BattleScene {
       this.enemy.draw(ctx, w, h, dpr);
     }
 
-    // 4. Skill animations (topmost layer — above hero and enemy)
+    // 4. Skill animations (topmost layer - above hero and enemy)
     this.projectileLayer.draw(ctx, dpr, w, h);
   }
 
@@ -407,7 +407,7 @@ export class BattleScene {
       this._onSkillCast(data?.skillId || "fireball");
     });
 
-    // Skill hit from server — update monster HP bar + launch looping effects for buff/debuff
+    // Skill hit from server - update monster HP bar + launch looping effects for buff/debuff
     this._on("skillHit", (data: any) => {
       if (data.monster) {
         this._updateHp(data.monster);
@@ -438,7 +438,7 @@ export class BattleScene {
     const enemyY = h * 0.78;
 
     this.projectileLayer.launch(skillId, heroX, heroY, enemyX, enemyY, () => {
-      // On impact — shake enemy
+      // On impact - shake enemy
       if (this.enemy) this.enemy.hit();
     });
   }
@@ -534,7 +534,7 @@ export class BattleScene {
     // Resolve the correct skin + variant for this monster
     const targetSkinId = resolveEnemySkin(monster.skinId || "", monster.skinVariant || "", monster.name);
 
-    // Always track desired skin — _tryLoadSprites picks it up if still loading
+    // Always track desired skin - _tryLoadSprites picks it up if still loading
     this._enemySkinId = targetSkinId;
 
     // Swap enemy sprite if skin changed (non-blocking: load in background)
@@ -562,9 +562,9 @@ export class BattleScene {
       this.enemy.spawn();
       this._startEntrance();
     } else {
-      // No sprites yet — skip entrance, signal server immediately.
+      // No sprites yet - skip entrance, signal server immediately.
       // _tryLoadSprites will pick up the correct _enemySkinId when it finishes.
-      console.log("[BattleScene] No sprites — skipping entrance, emitting entranceDone");
+      console.log("[BattleScene] No sprites - skipping entrance, emitting entranceDone");
       this.events.emit("entranceDone", {});
     }
   }
@@ -616,7 +616,7 @@ export class BattleScene {
         const pick = attacks[Math.floor(Math.random() * attacks.length)];
         enemyRef.play(pick, {
           onComplete: () => {
-            // Use captured ref — this.enemy may have changed (skin swap / new monster)
+            // Use captured ref - this.enemy may have changed (skin swap / new monster)
             enemyRef.play("idle");
             applyHit();
           },
@@ -625,7 +625,7 @@ export class BattleScene {
       }
     }
 
-    // No attack animation — apply hit immediately
+    // No attack animation - apply hit immediately
     applyHit();
   }
 

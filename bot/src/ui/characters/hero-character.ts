@@ -1,8 +1,8 @@
-import { Character } from "./character.js";
+﻿import { Character } from "./character.js";
 import type { SkinConfig } from "../../types.js";
 
 /**
- * HeroCharacter — player-controlled character on the left side.
+ * HeroCharacter - player-controlled character on the left side.
  *
  * Defaults:
  *  - Positioned at left edge (x = 0)
@@ -35,8 +35,8 @@ export class HeroCharacter extends Character {
   skinName: string;
 
   /**
-   * @param skin — entry from HERO_SKINS registry
-   * @param overrides — optional position/size overrides
+   * @param skin - entry from HERO_SKINS registry
+   * @param overrides - optional position/size overrides
    */
   constructor(skin: SkinConfig, overrides: HeroOverrides = {}) {
     super({

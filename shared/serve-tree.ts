@@ -1,13 +1,13 @@
-/**
- * Test server for the skill tree — serves tree data as JSON and an interactive HTML viewer.
+﻿/**
+ * Test server for the skill tree - serves tree data as JSON and an interactive HTML viewer.
  *
  * Usage:  npx tsx shared/serve-tree.ts          (from project root)
  *         npx tsx shared/serve-tree.ts 3001      (custom port)
  *
  * Endpoints:
- *   GET /           — interactive canvas viewer
- *   GET /api/tree   — full tree JSON (nodes, edges, emblems, figures)
- *   GET /api/stats  — tree statistics summary
+ *   GET /           - interactive canvas viewer
+ *   GET /api/tree   - full tree JSON (nodes, edges, emblems, figures)
+ *   GET /api/stats  - tree statistics summary
  */
 
 /* eslint-disable no-console */

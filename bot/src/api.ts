@@ -1,5 +1,5 @@
-/**
- * API Client — communicates with the NestJS backend.
+﻿/**
+ * API Client - communicates with the NestJS backend.
  *
  * All game state mutations go through this client.
  * Auth uses Telegram initData → JWT.

@@ -1,4 +1,4 @@
-import { getCharacterClass } from "../data/character-classes.js";
+﻿import { getCharacterClass } from "../data/character-classes.js";
 import { getHeroSkin, getSkinsForClass } from "../data/sprite-registry.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
 import { CLASS_DEFS } from "@shared/class-stats";
@@ -11,7 +11,7 @@ const DEFAULT_SKINS = new Set(
 );
 
 /**
- * SkinShopScene — skin selection screen with paid skins.
+ * SkinShopScene - skin selection screen with paid skins.
  *
  * Default class skins are free. All others cost SKIN_PRICE_SHARDS.
  * Purchased skins are stored on player.purchasedSkins.
@@ -51,9 +51,9 @@ export class SkinShopScene {
     this.container.innerHTML = `
       <div class="skin-shop">
         <div class="skin-shop__header">
-          <button class="skin-shop__back" id="ss-back">&larr;</button>
-          <h2 class="skin-shop__title">Skins</h2>
           <span class="skin-shop__shards">&#x1F48E; <span id="ss-shards">${shards}</span></span>
+          <h2 class="skin-shop__title">Skins</h2>
+          <button class="scene-close-btn" id="ss-back">&times;</button>
         </div>
 
         <div class="skin-shop__info">
@@ -108,7 +108,7 @@ export class SkinShopScene {
       });
     });
 
-    // Wire buy buttons (locked skins — purchase + equip)
+    // Wire buy buttons (locked skins - purchase + equip)
     this.container.querySelectorAll(".skin-card__buy-btn").forEach(btn => {
       btn.addEventListener("click", async (e: Event) => {
         e.stopPropagation();

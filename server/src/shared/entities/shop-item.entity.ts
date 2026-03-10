@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryColumn,
   Column,
@@ -6,7 +6,7 @@ import {
 } from 'typeorm';
 
 /**
- * ShopItem — catalog of items purchasable with Shards.
+ * ShopItem - catalog of items purchasable with Shards.
  *
  * Stored in DB so items can be enabled/disabled without redeploying.
  */

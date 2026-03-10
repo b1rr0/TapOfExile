@@ -1,4 +1,4 @@
-{
+﻿{
   "type": "tall_bottle",
   "spriteSize": {
     "w": 16,
@@ -6,8 +6,8 @@
   },
   "maxCharges": 5,
   "tiers": {
-    "tier_1": "Tier 1 — basic tall bottle",
-    "tier_2": "Tier 2 — improved tall bottle"
+    "tier_1": "Tier 1 - basic tall bottle",
+    "tier_2": "Tier 2 - improved tall bottle"
   },
   "colors": {
     "blue": {

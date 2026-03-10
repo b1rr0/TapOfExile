@@ -1,4 +1,4 @@
-import {
+﻿import {
   getLocationsForAct,
   getHighestUnlockedAct,
   getScaledRewards,
@@ -12,7 +12,7 @@ import { preconnectSocket } from "../combat-socket.js";
 import type { SharedDeps, Location, ActModifier } from "../types.js";
 
 /**
- * MapScene — scroll-list of location cards with act tabs.
+ * MapScene - scroll-list of location cards with act tabs.
  *
  * Tab bar at the top lets the player switch between acts.
  * Only completed acts and the current (highest unlocked) act are accessible.
@@ -67,8 +67,8 @@ export class MapScene {
     this.container.innerHTML = `
       <div class="map">
         <div class="map-header">
-          <button class="map-back-btn" id="map-back-btn">&#x2190;</button>
           <h2 class="map-title">Map</h2>
+          <button class="scene-close-btn" id="map-back-btn">&times;</button>
         </div>
         <div class="map-tabs" id="map-tabs">${tabs}</div>
         <div class="map-list" id="map-list"></div>
@@ -78,7 +78,7 @@ export class MapScene {
     // Cache list element
     this._listEl = this.container.querySelector("#map-list");
 
-    // Delegated click on #map-list — handles both cards and mods toggle
+    // Delegated click on #map-list - handles both cards and mods toggle
     this._listEl!.addEventListener("click", async (e: MouseEvent) => {
       // Modifiers toggle
       const toggle = (e.target as HTMLElement).closest("#map-mod-toggle");
@@ -198,7 +198,7 @@ export class MapScene {
     let startY = 0;
     let tracking = false;
 
-    // Use pointer events — work on both touch and mouse (desktop testing)
+    // Use pointer events - work on both touch and mouse (desktop testing)
     mapEl.addEventListener("pointerdown", (e: PointerEvent) => {
       startX = e.clientX;
       startY = e.clientY;

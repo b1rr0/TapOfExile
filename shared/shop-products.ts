@@ -1,5 +1,5 @@
-/**
- * Shop product catalog — Telegram Stars → Shards packages.
+﻿/**
+ * Shop product catalog - Telegram Stars → Shards packages.
  * Shared between server and client.
  */
 

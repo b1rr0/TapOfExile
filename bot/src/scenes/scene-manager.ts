@@ -1,7 +1,7 @@
-import type { SharedDeps } from "../types.js";
+﻿import type { SharedDeps } from "../types.js";
 
 /**
- * SceneManager — scene router.
+ * SceneManager - scene router.
  *
  * Manages mount/unmount lifecycle of scenes.
  * Only one scene is active at a time.
@@ -26,8 +26,8 @@ export class SceneManager {
   _active: { name: string; instance: SceneInstance } | null;
 
   /**
-   * @param container — #scene-container element
-   * @param deps — shared dependencies passed to every scene constructor
+   * @param container - #scene-container element
+   * @param deps - shared dependencies passed to every scene constructor
    */
   constructor(container: HTMLElement, deps: SharedDeps) {
     this.container = container;

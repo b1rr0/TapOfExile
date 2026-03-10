@@ -1,4 +1,4 @@
-import { EventBus } from "./game/events.js";
+﻿import { EventBus } from "./game/events.js";
 import { GameState, BannedError } from "./game/state.js";
 import { SceneManager } from "./scenes/scene-manager.js";
 import { CombatScene } from "./scenes/combat-scene.js";
@@ -17,7 +17,7 @@ import { ShopScene } from "./scenes/shop-scene.js";
 import { MarketScene } from "./scenes/market-scene.js";
 import { api } from "./api.js";
 
-// Feature flags — re-exported from config to avoid circular imports
+// Feature flags - re-exported from config to avoid circular imports
 export { IS_TESTING } from "./config.js";
 import { IS_TESTING } from "./config.js";
 
@@ -28,7 +28,7 @@ if (tg) {
   tg.expand();
   if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 
-  // Match Telegram chrome to game background — eliminates grey strips
+  // Match Telegram chrome to game background - eliminates grey strips
   const BG = "#080b15";
   try { tg.setBackgroundColor(BG); } catch (_) {}
   try { tg.setHeaderColor(BG); } catch (_) {}
@@ -214,7 +214,7 @@ function startGame(): void {
       showSubscriptionGate(() => startGame());
     }
   } catch (err) {
-    // Ban check — show full-screen ban instead of game
+    // Ban check - show full-screen ban instead of game
     if (err instanceof BannedError) {
       console.warn("[Main] Player is banned until", new Date(err.bannedUntil));
       showBanScreen(err.bannedUntil, err.banReason);

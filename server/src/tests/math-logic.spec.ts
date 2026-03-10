@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Comprehensive Math Logic Unit Tests.
  *
  * Covers ALL deterministic and probabilistic math formulas:
@@ -58,6 +58,13 @@ import {
 } from '@shared/class-stats';
 
 import { B } from '@shared/balance';
+
+import {
+  ACTIVE_SKILLS as ACTIVE_SKILLS_TYPED,
+  getSkillScalingType,
+  computeEffectiveSkillLevel,
+  computeSkillLevelGrowth,
+} from '@shared/active-skills';
 
 import type { BagItemData } from '@shared/types';
 
@@ -132,7 +139,7 @@ describe('computeElementalDamage', () => {
     });
   });
 
-  describe('pure physical — no resistance', () => {
+  describe('pure physical - no resistance', () => {
     it('passes full damage through with 0% resistance', () => {
       const r = computeElementalDamage(100, { physical: 1.0 }, {});
       expect(r.physical).toBe(100);
@@ -140,7 +147,7 @@ describe('computeElementalDamage', () => {
     });
 
     it('floors fractional physical damage', () => {
-      // 33 * 1.0 = 33 (integer — no change)
+      // 33 * 1.0 = 33 (integer - no change)
       const r = computeElementalDamage(33, { physical: 1.0 }, {});
       expect(r.physical).toBe(33);
     });
@@ -179,33 +186,33 @@ describe('computeElementalDamage', () => {
   });
 
   describe('resistance cap at 95% (monster cap)', () => {
-    it('caps monster resistance at 95% — floor(100 * (1-95*0.01)) = 4 (float precision)', () => {
+    it('caps monster resistance at 95% - floor(100 * (1-95*0.01)) = 4 (float precision)', () => {
       const r = computeElementalDamage(100, { physical: 1.0 }, { physical: 95 });
       // 95 * 0.01 = 0.9500000000000001 (float), so 1 - that = 0.0499999...
       // 100 * 0.04999... = 4.999... → Math.floor = 4
       expect(r.physical).toBe(4);
     });
 
-    it('capped at 95 even when resistance is 100 — same result as 95', () => {
+    it('capped at 95 even when resistance is 100 - same result as 95', () => {
       const r100 = computeElementalDamage(100, { physical: 1.0 }, { physical: 100 });
       const r95  = computeElementalDamage(100, { physical: 1.0 }, { physical: 95 });
       expect(r100.physical).toBe(r95.physical);
     });
 
-    it('capped at 95 even when resistance is 200 — same result as 95', () => {
+    it('capped at 95 even when resistance is 200 - same result as 95', () => {
       const r200 = computeElementalDamage(100, { physical: 1.0 }, { physical: 200 });
       const r95  = computeElementalDamage(100, { physical: 1.0 }, { physical: 95 });
       expect(r200.physical).toBe(r95.physical);
     });
 
-    it('resistance 94 is NOT capped — more damage passes than at 95', () => {
+    it('resistance 94 is NOT capped - more damage passes than at 95', () => {
       const r94 = computeElementalDamage(100, { physical: 1.0 }, { physical: 94 });
       const r95 = computeElementalDamage(100, { physical: 1.0 }, { physical: 95 });
       expect(r94.physical).toBeGreaterThanOrEqual(r95.physical);
     });
   });
 
-  describe('pure element — bypasses all resistance', () => {
+  describe('pure element - bypasses all resistance', () => {
     it('pure damage ignores physical resistance', () => {
       const r = computeElementalDamage(100, { pure: 1.0 }, { physical: 95 });
       expect(r.pure).toBe(100);
@@ -296,10 +303,10 @@ describe('computeElementalDamage', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 2. rollPool — deterministic with mocked Math.random
+// 2. rollPool - deterministic with mocked Math.random
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('rollPool — deterministic', () => {
+describe('rollPool - deterministic', () => {
   let randomSpy: jest.SpyInstance;
   afterEach(() => randomSpy?.mockRestore());
 
@@ -329,7 +336,7 @@ describe('rollPool — deterministic', () => {
     expect(rollPool(singlePool)?.id).toBe('test_item');
   });
 
-  it('returns item at exactly 0.5 (boundary — falls in item zone)', () => {
+  it('returns item at exactly 0.5 (boundary - falls in item zone)', () => {
     // wheelTotal=2000, roll=0.5*2000=1000 → 1000-1000=0 ≤ 0 → item
     randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(rollPool(singlePool)?.id).toBe('test_item');
@@ -473,7 +480,7 @@ describe('getPoolStats', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 5. weightedPick — deterministic
+// 5. weightedPick - deterministic
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('weightedPick', () => {
@@ -542,7 +549,7 @@ describe('getLootPool', () => {
   });
 });
 
-describe('getMapLootPool — tier brackets', () => {
+describe('getMapLootPool - tier brackets', () => {
   it('tiers 1-2: includes round_flask entries', () => {
     [1, 2].forEach(t => {
       const pool = getMapLootPool(t);
@@ -597,16 +604,16 @@ describe('getMapLootPool — tier brackets', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 7. rollMapDrops — regular maps
+// 7. rollMapDrops - regular maps
 //    Uses testMkFactory / testBkFactory which do NOT call Math.random(),
 //    so mock sequences map exactly to rollMapDrops logic calls only.
 //
 //    Regular map Math.random() call order:
-//      1. keyRoll    — determines regular key type
-//      2. bossRoll   — boss key check (only if tier >= bossKeyMinTier=5)
+//      1. keyRoll    - determines regular key type
+//      2. bossRoll   - boss key check (only if tier >= bossKeyMinTier=5)
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('rollMapDrops — regular maps', () => {
+describe('rollMapDrops - regular maps', () => {
   let randomSpy: jest.SpyInstance;
   afterEach(() => randomSpy?.mockRestore());
 
@@ -656,7 +663,7 @@ describe('rollMapDrops — regular maps', () => {
   it('does NOT drop boss key at tier < bossKeyMinTier (tier 4)', () => {
     randomSpy = jest.spyOn(Math, 'random')
       .mockReturnValueOnce(0.85) // keyRoll → no key; no boss check for tier 4
-      .mockReturnValue(0.99);    // fallback — should never be called
+      .mockReturnValue(0.99);    // fallback - should never be called
     const drops = rollMapDrops(4, false, KNOWN_BOSS_ID, testMkFactory, testBkFactory);
     expect(drops.filter(d => d.type === 'boss_map_key')).toHaveLength(0);
   });
@@ -700,14 +707,14 @@ describe('rollMapDrops — regular maps', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 8. rollMapDrops — boss maps
+// 8. rollMapDrops - boss maps
 //    Boss map Math.random() call order:
-//      1. tierRoll   — picks guaranteed key tier in [5, 8]
-//      2. bonusRoll  — 30% chance for bonus key
-//      3. bossRoll   — 5% chance for boss key
+//      1. tierRoll   - picks guaranteed key tier in [5, 8]
+//      2. bonusRoll  - 30% chance for bonus key
+//      3. bossRoll   - 5% chance for boss key
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('rollMapDrops — boss maps', () => {
+describe('rollMapDrops - boss maps', () => {
   let randomSpy: jest.SpyInstance;
   afterEach(() => randomSpy?.mockRestore());
 
@@ -902,7 +909,7 @@ describe('getBossKeyTierDef', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 12. applyBonuses — equipment stat formulas
+// 12. applyBonuses - equipment stat formulas
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('applyBonuses', () => {
@@ -1003,6 +1010,30 @@ describe('applyBonuses', () => {
     const result = applyBonuses(base, { ...emptyBonuses(), flatEvasion: 500 });
     expect(result.dodgeChance).toBe(0.10);
   });
+
+  it('weaponSpellLevel is passed through from bonuses', () => {
+    const base = makeBaseStats();
+    const bonuses = { ...emptyBonuses(), weaponSpellLevel: 5 };
+    expect(applyBonuses(base, bonuses).weaponSpellLevel).toBe(5);
+  });
+
+  it('arcaneSpellLevel is passed through from bonuses', () => {
+    const base = makeBaseStats();
+    const bonuses = { ...emptyBonuses(), arcaneSpellLevel: 3 };
+    expect(applyBonuses(base, bonuses).arcaneSpellLevel).toBe(3);
+  });
+
+  it('versatileSpellLevel is passed through from bonuses', () => {
+    const base = makeBaseStats();
+    const bonuses = { ...emptyBonuses(), versatileSpellLevel: 7 };
+    expect(applyBonuses(base, bonuses).versatileSpellLevel).toBe(7);
+  });
+
+  it('passiveDpsBonus is passed through from bonuses', () => {
+    const base = makeBaseStats();
+    const bonuses = { ...emptyBonuses(), passiveDpsBonus: 12 };
+    expect(applyBonuses(base, bonuses).passiveDpsBonus).toBe(12);
+  });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1016,6 +1047,9 @@ describe('aggregateEquipmentStats', () => {
     expect(result.pctPhysDmg).toBe(0);
     expect(result.flatHp).toBe(0);
     expect(result.critChance).toBe(0);
+    expect(result.weaponSpellLevel).toBe(0);
+    expect(result.arcaneSpellLevel).toBe(0);
+    expect(result.versatileSpellLevel).toBe(0);
   });
 
   it('adds baseDamage as flatPhysDmg', () => {
@@ -1049,6 +1083,41 @@ describe('aggregateEquipmentStats', () => {
     expect(result.flatHp).toBe(80);
   });
 
+  it('adds weapon_spell_level stat correctly', () => {
+    const items = [{ properties: { stats: [{ id: 'weapon_spell_level', value: 3 }] } }];
+    const result = aggregateEquipmentStats(items);
+    expect(result.weaponSpellLevel).toBe(3);
+  });
+
+  it('adds arcane_spell_level stat correctly', () => {
+    const items = [{ properties: { stats: [{ id: 'arcane_spell_level', value: 4 }] } }];
+    const result = aggregateEquipmentStats(items);
+    expect(result.arcaneSpellLevel).toBe(4);
+  });
+
+  it('adds versatile_spell_level stat correctly', () => {
+    const items = [{ properties: { stats: [{ id: 'versatile_spell_level', value: 6 }] } }];
+    const result = aggregateEquipmentStats(items);
+    expect(result.versatileSpellLevel).toBe(6);
+  });
+
+  it('legacy skill_level maps to versatileSpellLevel', () => {
+    const items = [{ properties: { stats: [{ id: 'skill_level', value: 5 }] } }];
+    const result = aggregateEquipmentStats(items);
+    expect(result.versatileSpellLevel).toBe(5);
+  });
+
+  it('stacks spell levels from multiple items', () => {
+    const items = [
+      { properties: { stats: [{ id: 'weapon_spell_level', value: 3 }] } },
+      { properties: { stats: [{ id: 'weapon_spell_level', value: 2 }] } },
+      { properties: { stats: [{ id: 'arcane_spell_level', value: 4 }] } },
+    ];
+    const result = aggregateEquipmentStats(items);
+    expect(result.weaponSpellLevel).toBe(5);
+    expect(result.arcaneSpellLevel).toBe(4);
+  });
+
   it('skips items without properties', () => {
     const items = [{ properties: null as any }, { properties: { stats: [{ id: 'flat_hp', value: 10 }] } }];
     const result = aggregateEquipmentStats(items);
@@ -1062,7 +1131,7 @@ describe('aggregateEquipmentStats', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 14. statsAtLevel — class stat scaling
+// 14. statsAtLevel - class stat scaling
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('statsAtLevel', () => {
@@ -1167,7 +1236,7 @@ describe('statsAtLevel', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 15. specialAtLevel — class special abilities
+// 15. specialAtLevel - class special abilities
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('specialAtLevel', () => {
@@ -1281,7 +1350,7 @@ describe('XP level-scaling formula', () => {
     return Math.max(1, Math.floor(baseXp / (1 + A * D * D)));
   }
 
-  it('A = 0.3 (scaling coefficient — softer penalty)', () => {
+  it('A = 0.3 (scaling coefficient - softer penalty)', () => {
     expect(A).toBe(0.3);
   });
 
@@ -1490,5 +1559,150 @@ describe('Balance constants integrity', () => {
   it('MAP_TIERS has 10 tiers', () => {
     const { MAP_TIERS: tiers } = require('@shared/endgame-maps');
     expect(tiers).toHaveLength(10);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 18. Skill level scaling - 7% compound per level
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Skill level scaling (7% compound)', () => {
+  // Formula: levelGrowth = 1.07 ^ (effectiveLevel - 1)
+
+  it('level 1 → growth = 1.0 (1.07^0)', () => {
+    expect(Math.pow(1.07, 0)).toBe(1);
+  });
+
+  it('level 2 → growth = 1.07', () => {
+    expect(Math.pow(1.07, 1)).toBeCloseTo(1.07, 5);
+  });
+
+  it('level 10 → growth ≈ 1.838', () => {
+    expect(Math.pow(1.07, 9)).toBeCloseTo(1.8385, 3);
+  });
+
+  it('level 30 → growth ≈ 7.114', () => {
+    expect(Math.pow(1.07, 29)).toBeCloseTo(7.1143, 3);
+  });
+
+  it('level 60 → growth ≈ 54.16', () => {
+    expect(Math.pow(1.07, 59)).toBeCloseTo(54.1555, 1);
+  });
+
+  it('bonus skill levels add to effective level', () => {
+    const charLevel = 10;
+    const bonusLevels = 5;
+    const effective = charLevel + bonusLevels;
+    // 1.07^14 vs 1.07^9
+    const withBonus = Math.pow(1.07, effective - 1);
+    const withoutBonus = Math.pow(1.07, charLevel - 1);
+    expect(withBonus).toBeGreaterThan(withoutBonus);
+    expect(withBonus / withoutBonus).toBeCloseTo(Math.pow(1.07, bonusLevels), 5);
+  });
+
+  it('computeEffectiveSkillLevel: weapon type uses weaponSpellLevel', () => {
+    const eff = computeEffectiveSkillLevel(10, 'weapon', 5, 3, 0);
+    expect(eff).toBe(15); // 10 + 5 + floor(0/1.5)
+  });
+
+  it('computeEffectiveSkillLevel: arcane type uses arcaneSpellLevel', () => {
+    const eff = computeEffectiveSkillLevel(10, 'arcane', 5, 3, 0);
+    expect(eff).toBe(13); // 10 + 3 + floor(0/1.5)
+  });
+
+  it('computeEffectiveSkillLevel: versatile adds floor(v/1.5)', () => {
+    // floor(6/1.5) = 4
+    const effW = computeEffectiveSkillLevel(10, 'weapon', 0, 0, 6);
+    expect(effW).toBe(14); // 10 + 0 + 4
+    const effA = computeEffectiveSkillLevel(10, 'arcane', 0, 0, 6);
+    expect(effA).toBe(14); // 10 + 0 + 4
+  });
+
+  it('computeEffectiveSkillLevel: versatile floor(5/1.5) = 3', () => {
+    const eff = computeEffectiveSkillLevel(10, 'weapon', 0, 0, 5);
+    expect(eff).toBe(13); // 10 + 0 + floor(3.33) = 13
+  });
+
+  it('computeSkillLevelGrowth: level 1 → 1.0', () => {
+    expect(computeSkillLevelGrowth(1)).toBe(1);
+  });
+
+  it('computeSkillLevelGrowth: level 10 → 1.07^9', () => {
+    expect(computeSkillLevelGrowth(10)).toBeCloseTo(Math.pow(1.07, 9), 5);
+  });
+
+  it('getSkillScalingType: firebolt is arcane', () => {
+    expect(getSkillScalingType(ACTIVE_SKILLS_TYPED.firebolt)).toBe('arcane');
+  });
+
+  it('getSkillScalingType: slash is weapon', () => {
+    expect(getSkillScalingType(ACTIVE_SKILLS_TYPED.slash)).toBe('weapon');
+  });
+
+  it('spell skill damage: spellBase × levelGrowth', () => {
+    const spellBase = 28; // firebolt
+    const level = 10;
+    const growth = Math.pow(1.07, level - 1);
+    const damage = Math.floor(spellBase * growth);
+    // 28 × 1.8385 ≈ 51.48 → 51
+    expect(damage).toBe(51);
+  });
+
+  it('weapon skill damage: tapDmg × multiplier × levelGrowth', () => {
+    const tapDmg = 100;
+    const multiplier = 2.5; // slash
+    const level = 10;
+    const growth = Math.pow(1.07, level - 1);
+    const damage = Math.floor(tapDmg * multiplier * growth);
+    // 100 × 2.5 × 1.8385 ≈ 459.6 → 459
+    expect(damage).toBe(459);
+  });
+
+  it('spell skill at level 60: firebolt(28) deals meaningful damage', () => {
+    const spellBase = 28;
+    const growth = Math.pow(1.07, 59);
+    const damage = Math.floor(spellBase * growth);
+    // 28 × 54.16 ≈ 1516
+    expect(damage).toBeGreaterThan(1500);
+    expect(damage).toBeLessThan(1550);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 19. Active skill definitions - spellBase vs weapon skills
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Active skill definitions', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { ACTIVE_SKILLS } = require('@shared/active-skills');
+
+  it('spell skills have spellBase defined', () => {
+    const spellSkills = ['firebolt', 'fire_breath', 'water_ball', 'explosion',
+      'thunder_projectile', 'thunder_ball', 'thunder_splash', 'thunder_strike',
+      'lightning_bolt', 'ice_burst', 'lightning_strike_2', 'ice_shatter'];
+    for (const id of spellSkills) {
+      const skill = ACTIVE_SKILLS[id];
+      expect(skill).toBeDefined();
+      expect(skill.spellBase).toBeGreaterThan(0);
+    }
+  });
+
+  it('weapon skills do NOT have spellBase', () => {
+    const weaponSkills = ['slash', 'sword_throw', 'slash_arc', 'slash_cross',
+      'slash_sweep', 'wood_projectile', 'earth_bump', 'earth_wall',
+      'wood_thorns', 'lightning_arc', 'ice_shard'];
+    for (const id of weaponSkills) {
+      const skill = ACTIVE_SKILLS[id];
+      expect(skill).toBeDefined();
+      expect(skill.spellBase).toBeUndefined();
+    }
+  });
+
+  it('firebolt spellBase = 28', () => {
+    expect(ACTIVE_SKILLS.firebolt.spellBase).toBe(28);
+  });
+
+  it('explosion_2 spellBase = 200 (ultimate spell)', () => {
+    expect(ACTIVE_SKILLS.explosion_2.spellBase).toBe(200);
   });
 });

@@ -1,5 +1,5 @@
-/**
- * ChestPanel — bag overlay with tabs, sorting, long-press tooltip,
+﻿/**
+ * ChestPanel - bag overlay with tabs, sorting, long-press tooltip,
  * item detail modal with equip/discard actions.
  *
  * Tabs: "All" + dynamic tabs per item type in bag.
@@ -16,12 +16,12 @@ import type { StatId, EquipmentSlotId } from "@shared/equipment-defs";
 import { getLore } from "@shared/equipment-lore";
 
 const POTION_LORE: Record<string, string> = {
-  small_vial: 'Concentrated to the point where a single drop can mend a sword-wound, these vials are the assassin\'s friend — small enough to hide in a sleeve, potent enough to cheat death.',
+  small_vial: 'Concentrated to the point where a single drop can mend a sword-wound, these vials are the assassin\'s friend - small enough to hide in a sleeve, potent enough to cheat death.',
   round_flask: 'Brewed in the cellars of wandering alchemists, this flask holds a crimson draught that knits torn flesh and mends shattered bone. The warmth it brings is fleeting, but in battle, a heartbeat is all one needs.',
-  corked_flask: 'Sealed with wax etched in forgotten sigils, the cork holds back more than liquid — it restrains a living remedy that yearns to mend. Those who drink speak of fire rushing through their veins, burning away pain and weakness alike.',
+  corked_flask: 'Sealed with wax etched in forgotten sigils, the cork holds back more than liquid - it restrains a living remedy that yearns to mend. Those who drink speak of fire rushing through their veins, burning away pain and weakness alike.',
   tall_bottle: 'Forged in the crucibles of the Order of the Crimson Eye, this slender vessel carries a distillation of life itself. Each sip restores what the battlefield takes, though the alchemists warn: the body remembers every debt.',
   wide_bottle: 'A vessel of war, broad-shouldered and built to endure the chaos of battle. The draught within pulses with a deep scarlet glow, as if the blood of the earth itself has been captured and made to serve mortal need.',
-  jug: 'An ancient vessel passed down through generations of warriors. Its contents swirl with a depth that defies its humble appearance — a single draught can pull a dying soul back from the brink, though the price is whispered to be paid in years, not coin.',
+  jug: 'An ancient vessel passed down through generations of warriors. Its contents swirl with a depth that defies its humble appearance - a single draught can pull a dying soul back from the brink, though the price is whispered to be paid in years, not coin.',
 };
 
 interface EventBus {
@@ -46,7 +46,7 @@ type TabType = "all" | string;
 /** Quality tier order for sorting (higher = better). */
 const QUALITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
 
-/** Tab display config — equipment broken into individual slot types. */
+/** Tab display config - equipment broken into individual slot types. */
 const TAB_CONFIG: Record<string, { label: string; icon: string }> = {
   all:          { label: "All",       icon: "&#x2B1A;" },
   // Equipment slot tabs
@@ -277,7 +277,7 @@ export class ChestPanel {
       tabKeys.add(getItemTabKey(item));
     }
 
-    // Build options — "All" always first
+    // Build options - "All" always first
     let html = `<option value="all" ${this._activeTab === "all" ? "selected" : ""}>
       ${TAB_CONFIG.all.icon} ${TAB_CONFIG.all.label} (${items.length})
     </option>`;
@@ -481,7 +481,7 @@ export class ChestPanel {
       await this._sellItem(item.id);
     });
 
-    // Discard button removed — sell is sufficient
+    // Discard button removed - sell is sufficient
 
     // Wire equip buttons (potions)
     contentEl.querySelectorAll(".bag-modal__equip-btn").forEach((btn) => {
@@ -550,7 +550,8 @@ export class ChestPanel {
   ): string {
     const props = item.properties || {};
     const sub = SUBTYPES.find(s => s.code === props.subtype);
-    const subtypeName = sub?.name || props.subtype || '';
+    const handTag = sub?.slot === 'one_hand' ? ' (1H)' : sub?.slot === 'two_hand' ? ' (2H)' : '';
+    const subtypeName = (sub?.name || props.subtype || '') + handTag;
     const reqLevel = props.reqLevel || 0;
     const charLevel = char?.level || 0;
     const canEquip = charLevel >= reqLevel;

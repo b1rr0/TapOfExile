@@ -1,14 +1,15 @@
-/**
- * TradePanel — fullscreen overlay with 4 tabs:
- *  1. Market  — browse/filter/buy listings
- *  2. Sell    — pick bag item → set price → list
- *  3. My Listings — active listings with cancel
- *  4. History — past trades
+﻿/**
+ * TradePanel - fullscreen overlay with 4 tabs:
+ *  1. Market  - browse/filter/buy listings
+ *  2. Sell    - pick bag item → set price → list
+ *  3. My Listings - active listings with cancel
+ *  4. History - past trades
  *
  * Follows FriendsPanel pattern (overlay lifecycle, tabs, toasts).
  */
 
 import { trade, loot } from "../api.js";
+import { SUBTYPES } from "@shared/equipment-defs";
 
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
@@ -281,6 +282,7 @@ export class TradePanel {
               <div class="trade-listing-card__name" style="color:${QUALITY_COLORS[l.itemQuality] || "var(--game-text)"}">${this._escapeHtml(l.itemName)}</div>
               <div class="trade-listing-card__meta">
                 <span class="trade-listing-card__quality trade-quality--${l.itemQuality}">${l.itemQuality}</span>
+                ${(() => { const sub = l.itemSubtype ? SUBTYPES.find((s: any) => s.code === l.itemSubtype) : null; const hand = sub?.slot === 'one_hand' ? '1H' : sub?.slot === 'two_hand' ? '2H' : ''; return sub ? `<span class="trade-listing-card__subtype">${sub.name}${hand ? ` (${hand})` : ''}</span>` : ''; })()}
                 ${l.itemTier ? `<span class="trade-listing-card__tier">T${l.itemTier}</span>` : ""}
                 ${l.itemLevel ? `<span class="trade-listing-card__level">Lv.${l.itemLevel}</span>` : ""}
                 <span class="trade-listing-card__seller">${this._escapeHtml(l.sellerName || "???")}</span>
@@ -334,7 +336,7 @@ export class TradePanel {
         <span class="trade-modal__item-icon">${TYPE_ICONS[listing.itemType] || "?"}</span>
         <div class="trade-modal__item-info">
           <div class="trade-modal__item-name" style="color:${QUALITY_COLORS[listing.itemQuality] || "var(--game-text)"}">${this._escapeHtml(listing.itemName)}</div>
-          <div class="trade-modal__item-meta">${listing.itemQuality}${listing.itemTier ? " &middot; T" + listing.itemTier : ""}${listing.itemLevel ? " &middot; Lv." + listing.itemLevel : ""}</div>
+          <div class="trade-modal__item-meta">${listing.itemQuality}${(() => { const sub = listing.itemSubtype ? SUBTYPES.find((s: any) => s.code === listing.itemSubtype) : null; const hand = sub?.slot === 'one_hand' ? '1H' : sub?.slot === 'two_hand' ? '2H' : ''; return sub ? ` &middot; ${sub.name}${hand ? ` (${hand})` : ''}` : ''; })()}${listing.itemTier ? " &middot; T" + listing.itemTier : ""}${listing.itemLevel ? " &middot; Lv." + listing.itemLevel : ""}</div>
           ${statsHtml}
         </div>
       </div>
@@ -455,7 +457,7 @@ export class TradePanel {
         <input class="trade-price-input" type="number" min="1" step="1" placeholder="Enter price..." id="trade-price-input">
       </div>
       <div class="trade-commission-preview" id="trade-commission-preview">
-        You will receive: <span class="trade-modal__gold">—</span>
+        You will receive: <span class="trade-modal__gold">-</span>
       </div>
       <div class="trade-modal__actions">
         <button class="trade-modal__confirm-btn" id="trade-confirm-sell" disabled>List for Sale</button>

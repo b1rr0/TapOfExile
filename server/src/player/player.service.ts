@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+﻿import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Player } from '../shared/entities/player.entity';
@@ -94,19 +94,19 @@ export class PlayerService {
 
   /**
    * Get full player state with ALL characters from ALL leagues.
-   * Includes ban status — client must check and block game if banned.
+   * Includes ban status - client must check and block game if banned.
    *
    * Optimized: single player query + single allPlayerLeagues query
    * (no duplicate getPlayer/getActivePlayerLeague calls).
    */
   async getPlayerState(telegramId: string) {
-    // Single player query (no relations — lightweight)
+    // Single player query (no relations - lightweight)
     const player = await this.playerRepo.findOne({
       where: { telegramId },
     });
     if (!player) throw new NotFoundException('Player not found');
 
-    // Ban check — return ban info before loading heavy data
+    // Ban check - return ban info before loading heavy data
     const isBanned = player.bannedUntil && player.bannedUntil.getTime() > Date.now();
     if (isBanned) {
       return {
@@ -156,7 +156,7 @@ export class PlayerService {
         for (const slot of c.equipmentSlots || []) {
           if (slot.item) {
             if (slot.item.type === 'equipment') {
-              // Gear item — include all properties
+              // Gear item - include all properties
               equipmentMap[slot.slotId] = {
                 bagItemId: slot.item.id,
                 name: slot.item.name,
@@ -168,7 +168,7 @@ export class PlayerService {
               };
               gearItems.push({ properties: slot.item.properties || {} });
             } else {
-              // Potion / other — legacy format
+              // Potion / other - legacy format
               equipmentMap[slot.slotId] = {
                 bagItemId: slot.item.id,
                 flaskType: slot.item.flaskType,
@@ -262,6 +262,10 @@ export class PlayerService {
           lifeRegen: eff.lifeRegen,
           armor: eff.armor,
           blockChance: eff.blockChance,
+          weaponSpellLevel: eff.weaponSpellLevel,
+          arcaneSpellLevel: eff.arcaneSpellLevel,
+          versatileSpellLevel: eff.versatileSpellLevel,
+          passiveDpsBonus: eff.passiveDpsBonus,
           combat: {
             currentStage: c.combatCurrentStage,
             currentWave: c.combatCurrentWave,

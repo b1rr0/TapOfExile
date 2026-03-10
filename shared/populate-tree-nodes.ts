@@ -33,57 +33,105 @@ interface RawNode {
 // ── Power-1 base values per stat ──────────────────────────
 
 const BASE: Record<string, number> = {
-  damage: 0.03, dps: 0.03, critChance: 0.05, critMulti: 0.08,
-  hp: 0.10, fireDmg: 0.05, lightningDmg: 0.05, coldDmg: 0.05,
+  damage: 0.04, dps: 0.04, critChance: 0.05, critMulti: 0.08,
+  hp: 0.10, armor: 0.08, lifeOnHit: 0.08, fireDmg: 0.05, lightningDmg: 0.05, coldDmg: 0.05,
   goldFind: 0.05, xpGain: 0.06,
+  // Weapon-type multipliers (base 0.06 = +6% per power-1 node)
+  swordDmg: 0.06, axeDmg: 0.06, daggerDmg: 0.06, wandDmg: 0.06,
+  maceDmg: 0.06, bowDmg: 0.06, staffDmg: 0.06,
 };
 
-// Notable = power 2, Keystone = power 5
-const POWER_MULT: Record<string, number> = { notable: 2, keystone: 5 };
-// Class shape (figures containing nodes 419-422 gateways) = doubled
-const CLASS_SHAPE_MULT = 2;
+// figureEntry = power 1.5 (gateway), Keystone = power 3, Notable = power 8
+const POWER_MULT: Record<string, number> = { figureEntry: 1.5, keystone: 3, notable: 8 };
+// Class shape (figures containing nodes 419-422 gateways) = 1.6× boost
+const CLASS_SHAPE_MULT = 1.6;
 
 // ── Stat themes ───────────────────────────────────────────
 
-type Theme = "damage" | "crit" | "tank" | "fire" | "lightning" | "cold" | "utility";
+type Theme = "damage" | "crit" | "tank" | "fire" | "lightning" | "cold" | "utility"
+  | "allElemental" | "armor" | "mixed"
+  | "wpn_sword" | "wpn_axe" | "wpn_dagger" | "wpn_wand" | "wpn_mace"
+  | "wpn_bow" | "wpn_staff";
 
 const THEME_STATS: Record<Theme, string[]> = {
-  damage:    ["damage", "dps"],
-  crit:      ["critChance", "critMulti"],
-  tank:      ["hp", "damage"],                    // hp + some damage for variety
-  fire:      ["fireDmg", "damage"],
-  lightning: ["lightningDmg", "critChance"],       // lightning + crit (samurai)
-  cold:      ["coldDmg", "critMulti"],             // cold + crit damage (archer)
-  utility:   ["goldFind", "xpGain"],
+  damage:       ["damage", "dps"],
+  crit:         ["critChance", "critMulti"],
+  tank:         ["hp", "lifeOnHit"],
+  armor:        ["armor", "hp"],
+  fire:         ["fireDmg", "damage"],
+  lightning:    ["lightningDmg", "critChance"],
+  cold:         ["coldDmg", "hp"],
+  utility:      ["goldFind", "xpGain"],
+  allElemental: ["fireDmg", "coldDmg", "lightningDmg"],    // capped at 0.20 each
+  mixed:        ["damage", "hp", "critChance"],             // balanced mix
+  // Weapon-type multipliers (1 stat each — pure weapon bonus)
+  wpn_sword:    ["swordDmg"],
+  wpn_axe:      ["axeDmg"],
+  wpn_dagger:   ["daggerDmg"],
+  wpn_wand:     ["wandDmg"],
+  wpn_mace:     ["maceDmg"],
+  wpn_bow:      ["bowDmg"],
+  wpn_staff:    ["staffDmg"],
 };
 
+// ── allElemental hard cap: 0.20 per element regardless of power level ──
+const ALL_ELEMENTAL_CAP = 0.20;
+
 const NOTABLE_NAMES: Partial<Record<Theme, string[]>> = {
-  damage:    ["Razor Edge", "Blade Force", "Fury", "War Path"],
-  crit:      ["Eagle Eye", "Sixth Sense", "Precision", "Sharp Wit"],
-  tank:      ["Iron Skin", "Battle Hardened", "Fortify", "Endurance"],
-  fire:      ["Pyre", "Inner Fire", "Ember Walk", "Flame Mastery"],
-  lightning: ["Storm Conduit", "Thunder Step", "Spark", "Voltage"],
-  cold:      ["Frostbite", "Chill Touch", "Ice Vein", "Permafrost"],
-  utility:   ["Fortune Seeker", "Quick Learner", "Greed", "Scholar"],
+  damage:       ["Razor Edge", "Blade Force", "Fury", "War Path"],
+  crit:         ["Eagle Eye", "Sixth Sense", "Precision", "Sharp Wit"],
+  tank:         ["Iron Skin", "Battle Hardened", "Fortify", "Endurance"],
+  armor:        ["Bulwark", "Iron Bastion", "Steel Wall", "Aegis"],
+  fire:         ["Pyre", "Inner Fire", "Ember Walk", "Flame Mastery"],
+  lightning:    ["Storm Conduit", "Thunder Step", "Spark", "Voltage"],
+  cold:         ["Frostbite", "Chill Touch", "Ice Vein", "Permafrost"],
+  utility:      ["Fortune Seeker", "Quick Learner", "Greed", "Scholar"],
+  allElemental: ["Elemental Mastery", "Prismatic Force", "Tri-Force", "Convergence"],
+  mixed:        ["Balanced Strike", "Harmony", "Equilibrium", "Versatility"],
+  wpn_sword:    ["Sword Mastery", "Blade Dancer", "Keen Edge", "Riposte"],
+  wpn_axe:      ["Axe Mastery", "Cleave Master", "Rend", "Brutal Chop"],
+  wpn_dagger:   ["Dagger Mastery", "Assassin's Edge", "Backstab", "Lethal Pierce"],
+  wpn_wand:     ["Wand Mastery", "Spell Channel", "Arcane Focus", "Conduit"],
+  wpn_mace:     ["Mace Mastery", "Crushing Blow", "Stagger", "Concussion"],
+  wpn_bow:      ["Bow Mastery", "Dead Eye", "Long Shot", "Volley"],
+  wpn_staff:    ["Staff Mastery", "Spell Amplifier", "Arcane Reach", "Focus Strike"],
 };
 
 const KEYSTONE_NAMES: Partial<Record<Theme, string[]>> = {
-  damage:    ["World Destroyer", "Chaos Lord", "Berserker Rage", "Void Walker"],
-  crit:      ["Perfect Aim", "Ghost Step", "Executioner", "Nightblade"],
-  tank:      ["Iron Will", "Undying Will", "Oathkeeper", "Titan Grip"],
-  fire:      ["Pyromancer", "Infernal Crown", "Sunfire", "Dragon Breath"],
-  lightning: ["Thunder God", "Tempest Lord", "Voltage Surge", "Mjolnir"],
-  cold:      ["Frost Emperor", "Blizzard Heart", "Avalanche", "Glacial Core"],
-  utility:   ["Golden Age", "Eternal Student", "Midas Touch", "Grand Scholar"],
+  damage:       ["World Destroyer", "Chaos Lord", "Berserker Rage", "Void Walker"],
+  crit:         ["Perfect Aim", "Ghost Step", "Executioner", "Nightblade"],
+  tank:         ["Iron Will", "Undying Will", "Oathkeeper", "Titan Grip"],
+  armor:        ["Living Fortress", "Adamantine", "Unbreakable", "Stone Sentinel"],
+  fire:         ["Pyromancer", "Infernal Crown", "Sunfire", "Dragon Breath"],
+  lightning:    ["Thunder God", "Tempest Lord", "Voltage Surge", "Mjolnir"],
+  cold:         ["Frost Emperor", "Blizzard Heart", "Avalanche", "Glacial Core"],
+  utility:      ["Golden Age", "Eternal Student", "Midas Touch", "Grand Scholar"],
+  allElemental: ["Elemental Nova", "Prism Lord", "Arcane Harmony", "Chaos Prism"],
+  mixed:        ["Jack of All", "Omni Force", "Apex Balance", "Total War"],
+  wpn_sword:    ["Sword Saint", "Blade Lord", "Master Fencer", "Excalibur"],
+  wpn_axe:      ["Axe Lord", "Berserker King", "Executioner's Axe", "Reaver"],
+  wpn_dagger:   ["Shadow Blade", "Assassin Lord", "Phantom Strike", "Viper Fang"],
+  wpn_wand:     ["Archmage", "Wand Lord", "Spell Weaver", "Hex Master"],
+  wpn_mace:     ["War Hammer", "Mace Lord", "Skull Crusher", "Thunder Maul"],
+  wpn_bow:      ["Grand Archer", "Bow Lord", "Eagle Shot", "Storm Bow"],
+  wpn_staff:    ["Grand Magus", "Staff Lord", "Arcane Conduit", "Sage Staff"],
 };
 
-// ── Class primary themes ──────────────────────────────────
-
+// ── Class theme rotation ──────────────────────────────────
+//
+// 8 themes per class → with 13 figures each, ~1.6 figures per theme slot
+// Each class gets: element(s) + weapon types + generic + allElemental
+//
+// Class identity:
+//   Samurai  → physical + crits + sword/dagger
+//   Warrior  → cold + tank + armor + axe/mace/shield
+//   Mage     → fire + all elements + staff/wand
+//   Archer   → lightning + crit + bow
 const CLASS_THEME: Record<string, Theme[]> = {
-  samurai: ["damage", "crit", "lightning"],
-  warrior: ["tank", "damage", "fire"],
-  mage:    ["fire", "cold", "lightning"],
-  archer:  ["crit", "cold", "damage"],
+  samurai: ["damage",    "crit",      "wpn_sword",  "wpn_dagger", "allElemental", "crit",      "damage",   "mixed"],
+  warrior: ["cold",      "tank",      "wpn_axe",    "wpn_mace",   "armor",        "armor",     "cold",     "tank"],
+  mage:    ["fire",      "fire",      "wpn_staff",  "wpn_wand",   "allElemental", "cold",      "lightning","mixed"],
+  archer:  ["lightning", "crit",      "wpn_bow",    "lightning",  "allElemental",  "damage",    "crit",     "mixed"],
 };
 
 // ── Seeded RNG ────────────────────────────────────────────
@@ -98,18 +146,47 @@ function makeRng(seed: number): () => number {
 
 // ── Build mods for a node ─────────────────────────────────
 
+// Progressive amp tiers for weapon notables (sum = 65% each)
+// Farther from figure entry → stronger bonus
+const WPN_AMP_TIERS: Record<number, number[]> = {
+  1: [0.65],
+  2: [0.25, 0.40],
+  3: [0.15, 0.20, 0.30],
+  4: [0.10, 0.15, 0.20, 0.20],
+};
+
+const WPN_LABEL: Record<string, string> = {
+  sword: "Sword", axe: "Axe", dagger: "Dagger",
+  wand: "Wand", mace: "Mace", bow: "Bow", staff: "Staff",
+};
+
 function buildMods(
-  type: "notable" | "keystone",
+  type: "notable" | "keystone" | "figureEntry",
   theme: Theme,
   isClassShape: boolean,
   rng: () => number,
+  wpnAmpValue?: number,
 ): { mods: Mod[]; label: string; name: string | null } {
   const power = POWER_MULT[type] * (isClassShape ? CLASS_SHAPE_MULT : 1);
   const stats = THEME_STATS[theme];
   const names = (type === "keystone" ? KEYSTONE_NAMES[theme] : NOTABLE_NAMES[theme]) ?? ["Node"];
 
-  // Pick stat(s): notable gets 1-2 stats, keystone gets 1-2 stats
-  const statCount = type === "keystone" ? (rng() < 0.4 ? 2 : 1) : (rng() < 0.5 ? 2 : 1);
+  // ── Weapon notables: progressive amp (enhance equipped weapon stats) ──
+  if (type === "notable" && theme.startsWith("wpn_") && wpnAmpValue) {
+    const wpnKey = theme.replace("wpn_", "");
+    const ampStat = `${wpnKey}Amp`;
+    const name = names[Math.floor(rng() * names.length)];
+    const pctLabel = Math.round(wpnAmpValue * 100);
+    const mods: Mod[] = [{ stat: ampStat, value: wpnAmpValue, mode: "percent" }];
+    const label = `+${pctLabel}% ${WPN_LABEL[wpnKey] || wpnKey} Stats`;
+    return { mods, label, name };
+  }
+
+  // allElemental always uses all 3 stats; figureEntry 1 stat; notable/keystone 1-2
+  const statCount = theme === "allElemental" ? stats.length
+    : type === "figureEntry" ? 1
+    : type === "keystone" ? (rng() < 0.4 ? 2 : 1)
+    : (rng() < 0.5 ? 2 : 1);
 
   const mods: Mod[] = [];
   const usedStats = new Set<string>();
@@ -121,22 +198,42 @@ function buildMods(
     const base = BASE[stat] ?? 0.05;
     // Slight variance ±10%
     const variance = 1 + (rng() - 0.5) * 0.2;
-    const value = Math.round(base * power * variance * 1000) / 1000;
+    let value = Math.round(base * power * variance * 1000) / 1000;
+    // allElemental: clamp each element to 20% max
+    if (theme === "allElemental") {
+      value = Math.min(value, ALL_ELEMENTAL_CAP);
+    }
     mods.push({ stat, value, mode: "percent" });
   }
 
   const name = names[Math.floor(rng() * names.length)];
-  const labelParts = mods.map(m => `+${Math.round(m.value * 100)}% ${statLabel(m.stat)}`);
-  const label = labelParts.join(", ");
+  // Special labels per theme type
+  let label: string;
+  if (theme === "allElemental") {
+    label = `+${Math.round(mods[0]?.value * 100 || 20)}% All Elements`;
+  } else if (theme.startsWith("wpn_")) {
+    // Conditional weapon label: "+18% Dmg w/ Sword"
+    const wpnKey = theme.replace("wpn_", "");
+    const wpnName = WPN_LABEL[wpnKey] || wpnKey;
+    label = mods.map(m => `+${Math.round(m.value * 100)}% Dmg w/ ${wpnName}`).join(", ");
+  } else {
+    label = mods.map(m => m.mode === "flat"
+      ? `+${Math.round(m.value)} ${statLabel(m.stat)}`
+      : `+${Math.round(m.value * 100)}% ${statLabel(m.stat)}`
+    ).join(", ");
+  }
 
-  return { mods, label, name: type === "keystone" ? name : name };
+  return { mods, label, name };
 }
 
 function statLabel(stat: string): string {
   const LABELS: Record<string, string> = {
     damage: "Damage", dps: "DPS", critChance: "Crit", critMulti: "Crit Dmg",
-    hp: "HP", fireDmg: "Fire", lightningDmg: "Lightning", coldDmg: "Cold",
+    hp: "HP", armor: "Armor", lifeOnHit: "Life on Hit",
+    fireDmg: "Fire", lightningDmg: "Lightning", coldDmg: "Cold",
     goldFind: "Gold", xpGain: "XP",
+    swordDmg: "Sword Dmg", axeDmg: "Axe Dmg", daggerDmg: "Dagger Dmg",
+    wandDmg: "Wand Dmg", maceDmg: "Mace Dmg", bowDmg: "Bow Dmg", staffDmg: "Staff Dmg",
   };
   return LABELS[stat] ?? stat;
 }
@@ -173,47 +270,66 @@ function main(): void {
     if (fig !== undefined) gatewayMap.set(fig, n);
   });
 
-  // Determine theme per figure based on gateway mods + classAffinity
+  // Determine theme per figure purely from class affinity + deterministic rotation
+  // (no gateway-mod bias — gateway mods are generated FROM this theme, not vice versa)
   function figureTheme(figId: number, nodeClassAffinity?: string): Theme {
     const gw = gatewayMap.get(figId);
-    if (gw && gw.mods && gw.mods.length > 0) {
-      // Derive from gateway mods
-      const gwStats = gw.mods.map((m) => m.stat);
-      if (gwStats.some((s) => s === "goldFind" || s === "xpGain")) return "utility";
-      if (gwStats.some((s) => s === "fireDmg")) return "fire";
-      if (gwStats.some((s) => s === "lightningDmg")) return "lightning";
-      if (gwStats.some((s) => s === "coldDmg")) return "cold";
-      if (gwStats.some((s) => s === "critChance" || s === "critMulti")) return "crit";
-      if (gwStats.some((s) => s === "hp")) return "tank";
-      return "damage";
-    }
-    // Fallback: use class affinity
     const cls = nodeClassAffinity ?? gw?.classAffinity ?? "samurai";
     const themes = CLASS_THEME[cls] ?? ["damage"];
-    // Pick rotating theme by figId
     return themes[figId % themes.length];
+  }
+
+  // Pre-compute progressive weapon amp values per notable node.
+  // Notables in weapon figures get ascending amp (farther from entry → stronger).
+  // Sorted by node ID within figure as proxy for distance from entry.
+  const wpnAmpPerNode = new Map<number, number>();
+  {
+    // Group notables by figure
+    const figNotables = new Map<number, number[]>();
+    nodes.forEach((n) => {
+      if (n.type !== "notable") return;
+      const fig = figMap.get(n.id);
+      if (fig === undefined) return;
+      const theme = figureTheme(fig, n.classAffinity);
+      if (!theme.startsWith("wpn_")) return;
+      if (!figNotables.has(fig)) figNotables.set(fig, []);
+      figNotables.get(fig)!.push(n.id);
+    });
+    // Assign progressive amp values
+    for (const [, nodeIds] of figNotables) {
+      nodeIds.sort((a, b) => a - b); // lower ID = closer to entry
+      const tiers = WPN_AMP_TIERS[nodeIds.length] ?? WPN_AMP_TIERS[3]!;
+      nodeIds.forEach((nid, i) => {
+        wpnAmpPerNode.set(nid, tiers[Math.min(i, tiers.length - 1)]);
+      });
+    }
   }
 
   let populated = 0;
   let skipped = 0;
 
   nodes.forEach((node) => {
-    // Only populate empty keystone/notable nodes
-    if (!node.mods || node.mods.length > 0) { skipped++; return; }
-    if (node.type !== "keystone" && node.type !== "notable") return;
+    // Only populate keystone/notable/figureEntry nodes
+    if (node.type !== "keystone" && node.type !== "notable" && node.type !== "figureEntry") return;
 
+    // Nodes in figures: always regenerate for proper balance hierarchy
+    // Nodes outside figures: only populate if empty
     const figId = figMap.get(node.id);
-    const isClassShape = figId !== undefined && classArcFigIds.has(figId);
+    const inFigure = figId !== undefined;
+    if (!inFigure && node.mods && node.mods.length > 0) { skipped++; return; }
+
+    const isClassShape = inFigure && classArcFigIds.has(figId);
     const theme = figId !== undefined
       ? figureTheme(figId, node.classAffinity)
       : (CLASS_THEME[node.classAffinity ?? "samurai"] ?? ["damage"])[0];
 
     const rng = makeRng(node.id * 31337 + (figId ?? 0) * 137);
     const { mods, label, name } = buildMods(
-      node.type as "notable" | "keystone",
+      node.type as "notable" | "keystone" | "figureEntry",
       theme,
       isClassShape,
       rng,
+      wpnAmpPerNode.get(node.id),
     );
 
     node.mods = mods;
@@ -249,7 +365,7 @@ function main(): void {
   // Summary
   const allNodes: RawNode[] = JSON.parse(serialized);
   const stillEmpty = allNodes.filter(
-    (n) => n.mods && n.mods.length === 0 && n.type !== "start" && n.type !== "figureEntry" && n.type !== "activeSkill",
+    (n) => n.mods && n.mods.length === 0 && n.type !== "start" && n.type !== "activeSkill",
   );
   console.log(`Still empty (non-activeSkill): ${stillEmpty.length}`);
 }

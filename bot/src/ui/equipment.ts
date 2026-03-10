@@ -1,5 +1,5 @@
-/**
- * Equipment — fullscreen overlay panel with equipment slots.
+﻿/**
+ * Equipment - fullscreen overlay panel with equipment slots.
  *
  * Pure CSS layout (no background image). Optimised for mobile (portrait).
  * Opens/closes with a toggle button visible on the battle scene.
@@ -25,12 +25,12 @@ import { getLore } from "@shared/equipment-lore";
 import type { BagItem } from "../types.js";
 
 const POTION_LORE: Record<string, string> = {
-  small_vial: 'Concentrated to the point where a single drop can mend a sword-wound, these vials are the assassin\'s friend — small enough to hide in a sleeve, potent enough to cheat death.',
+  small_vial: 'Concentrated to the point where a single drop can mend a sword-wound, these vials are the assassin\'s friend - small enough to hide in a sleeve, potent enough to cheat death.',
   round_flask: 'Brewed in the cellars of wandering alchemists, this flask holds a crimson draught that knits torn flesh and mends shattered bone. The warmth it brings is fleeting, but in battle, a heartbeat is all one needs.',
-  corked_flask: 'Sealed with wax etched in forgotten sigils, the cork holds back more than liquid — it restrains a living remedy that yearns to mend. Those who drink speak of fire rushing through their veins, burning away pain and weakness alike.',
+  corked_flask: 'Sealed with wax etched in forgotten sigils, the cork holds back more than liquid - it restrains a living remedy that yearns to mend. Those who drink speak of fire rushing through their veins, burning away pain and weakness alike.',
   tall_bottle: 'Forged in the crucibles of the Order of the Crimson Eye, this slender vessel carries a distillation of life itself. Each sip restores what the battlefield takes, though the alchemists warn: the body remembers every debt.',
   wide_bottle: 'A vessel of war, broad-shouldered and built to endure the chaos of battle. The draught within pulses with a deep scarlet glow, as if the blood of the earth itself has been captured and made to serve mortal need.',
-  jug: 'An ancient vessel passed down through generations of warriors. Its contents swirl with a depth that defies its humble appearance — a single draught can pull a dying soul back from the brink, though the price is whispered to be paid in years, not coin.',
+  jug: 'An ancient vessel passed down through generations of warriors. Its contents swirl with a depth that defies its humble appearance - a single draught can pull a dying soul back from the brink, though the price is whispered to be paid in years, not coin.',
 };
 
 interface EventBus {
@@ -64,9 +64,9 @@ export class Equipment {
   _equipment: Record<string, any>;
 
   /**
-   * @param container — #app or game screen element
-   * @param events — EventBus
-   * @param state — GameState for initial render
+   * @param container - #app or game screen element
+   * @param events - EventBus
+   * @param state - GameState for initial render
    */
   constructor(container: HTMLElement, events: EventBus, state: GameState) {
     this.container = container;
@@ -191,7 +191,7 @@ export class Equipment {
           </div>
         </div>
 
-        <!-- Consumables row (separate, bottom — 2 slots) -->
+        <!-- Consumables row (separate, bottom - 2 slots) -->
         <div class="inv-consumables">
           <div class="inv-slot inv-slot--potion" data-slot="consumable-1">
             <div class="inv-slot__icon">&#x1F9EA;</div>
@@ -274,12 +274,12 @@ export class Equipment {
   _onPotionSlotClick(slotId: string): void {
     const potionData = this._equipment[slotId];
     if (!potionData || !potionData.flaskType) {
-      // Empty slot — show equippable potions from bag
+      // Empty slot - show equippable potions from bag
       this._showPotionPicker(slotId);
       return;
     }
 
-    // Filled slot — show potion info + unequip/change buttons
+    // Filled slot - show potion info + unequip/change buttons
     const q = QUALITY_COLORS[potionData.quality] || QUALITY_COLORS.common;
     const healPct = Math.round((potionData.healPercent || 0) * 100);
     const charges = potionData.currentCharges || 0;
@@ -482,16 +482,17 @@ export class Equipment {
   _onGearSlotClick(slotId: string): void {
     const gearData = this._equipment[slotId];
     if (!gearData || gearData.type !== 'equipment') {
-      // Empty slot — show equippable items from bag
+      // Empty slot - show equippable items from bag
       this._showEquipPicker(slotId);
       return;
     }
 
-    // Filled slot — show gear info + unequip/change buttons
+    // Filled slot - show gear info + unequip/change buttons
     const q = QUALITY_COLORS[gearData.quality] || QUALITY_COLORS.common;
     const props = gearData.properties || {};
     const sub = SUBTYPES.find(s => s.code === props.subtype);
-    const subtypeName = sub?.name || props.subtype || '';
+    const handTag = sub?.slot === 'one_hand' ? ' (1H)' : sub?.slot === 'two_hand' ? ' (2H)' : '';
+    const subtypeName = (sub?.name || props.subtype || '') + handTag;
 
     let statsHtml = '';
 
@@ -760,7 +761,7 @@ export class Equipment {
           const imgSize = slotId === 'chest' ? 109 : 72;
           iconEl.innerHTML = `<img src="${gearData.icon}" style="width:${imgSize}px;height:${imgSize}px;image-rendering:pixelated">`;
         }
-        // Hide label when item is equipped — let the image fill the slot
+        // Hide label when item is equipped - let the image fill the slot
         if (labelEl) {
           labelEl.style.display = 'none';
         }

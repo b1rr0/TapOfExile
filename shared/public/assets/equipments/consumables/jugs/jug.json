@@ -1,4 +1,4 @@
-{
+﻿{
   "type": "jug",
   "spriteSize": {
     "w": 16,
@@ -6,8 +6,8 @@
   },
   "maxCharges": 5,
   "tiers": {
-    "tier_1": "Tier 1 — basic jug",
-    "tier_2": "Tier 2 — improved jug"
+    "tier_1": "Tier 1 - basic jug",
+    "tier_2": "Tier 2 - improved jug"
   },
   "colors": {
     "blue": {

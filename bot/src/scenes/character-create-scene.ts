@@ -1,4 +1,4 @@
-import { listCharacterClasses } from "../data/character-classes.js";
+﻿import { listCharacterClasses } from "../data/character-classes.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
 import { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
@@ -6,7 +6,7 @@ import { IS_TESTING } from "../config.js";
 import type { SharedDeps, SkinConfig } from "../types.js";
 
 /**
- * CharacterCreateScene — league + nickname + class selection.
+ * CharacterCreateScene - league + nickname + class selection.
  *
  * Lifecycle: mount(params) / unmount()
  */
@@ -43,8 +43,8 @@ export class CharacterCreateScene {
     this.container.innerHTML = `
       <div class="char-create">
         <div class="char-create__header">
-          ${hasChars ? `<button class="char-create__back" id="cc-back">&larr;</button>` : ""}
           <h2 class="char-create__title">Create Hero</h2>
+          ${hasChars ? `<button class="scene-close-btn" id="cc-back">&times;</button>` : ""}
         </div>
 
         <div class="char-create__section">

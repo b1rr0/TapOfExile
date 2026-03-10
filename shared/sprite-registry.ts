@@ -1,5 +1,5 @@
-/**
- * Asset paths & skin metadata — shared registry.
+﻿/**
+ * Asset paths & skin metadata - shared registry.
  *
  * Contains paths to static game assets (character sprites, enemy sprites,
  * potions, skill tree emblems, backgrounds) so they can be referenced

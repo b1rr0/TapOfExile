@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NestInterceptor,
   ExecutionContext,
@@ -9,7 +9,7 @@ import { Repository } from 'typeorm';
 import { Observable } from 'rxjs';
 import { Player } from '../../shared/entities/player.entity';
 
-/** Debounce interval — update DB at most once per player per 60s */
+/** Debounce interval - update DB at most once per player per 60s */
 const DEBOUNCE_MS = 60_000;
 
 /**

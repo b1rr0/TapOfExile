@@ -1,5 +1,5 @@
-/**
- * Equipment Bonus Aggregation — single source of truth.
+﻿/**
+ * Equipment Bonus Aggregation - single source of truth.
  *
  * Sums all stat bonuses from equipped gear items.
  * Used by both server (combat + player state) and shared logic.
@@ -39,6 +39,9 @@ export interface EquipmentBonuses {
   lifeRegen: number;         // HP per second
   lifeOnHit: number;         // flat HP per hit
   passiveDpsBonus: number;   // percentage
+  weaponSpellLevel: number;  // bonus levels for Weapon spells (scale from tap damage)
+  arcaneSpellLevel: number;  // bonus levels for Arcane spells (own spell base)
+  versatileSpellLevel: number; // bonus levels for ALL spells, but 1.5× weaker
 }
 
 /** Mapping from StatId → EquipmentBonuses key */
@@ -68,6 +71,10 @@ const STAT_TO_BONUS: Record<StatId, keyof EquipmentBonuses> = {
   life_regen: 'lifeRegen',
   life_on_hit: 'lifeOnHit',
   passive_dps_bonus: 'passiveDpsBonus',
+  weapon_spell_level: 'weaponSpellLevel',
+  arcane_spell_level: 'arcaneSpellLevel',
+  versatile_spell_level: 'versatileSpellLevel',
+  skill_level: 'versatileSpellLevel',  // deprecated → versatile
 };
 
 /** Create zeroed-out bonuses object */
@@ -98,6 +105,9 @@ export function emptyBonuses(): EquipmentBonuses {
     lifeRegen: 0,
     lifeOnHit: 0,
     passiveDpsBonus: 0,
+    weaponSpellLevel: 0,
+    arcaneSpellLevel: 0,
+    versatileSpellLevel: 0,
   };
 }
 
@@ -186,6 +196,9 @@ export interface EffectiveStats extends BaseCharStats {
   armor: number;
   blockChance: number;
   passiveDpsBonus: number;
+  weaponSpellLevel: number;
+  arcaneSpellLevel: number;
+  versatileSpellLevel: number;
 }
 
 const RES_CAP = 75;
@@ -216,7 +229,7 @@ export function applyBonuses(
   // Block chance from equipment (stacks with warrior special)
   const gearBlock = bonuses.blockChance / 100;
 
-  // Armor: (flat) * (1 + pct/100) — used for physical damage reduction
+  // Armor: (flat) * (1 + pct/100) - used for physical damage reduction
   const effectiveArmor = Math.floor(
     bonuses.flatArmor * (1 + bonuses.pctArmor / 100),
   );
@@ -259,5 +272,8 @@ export function applyBonuses(
     armor: effectiveArmor,
     blockChance: gearBlock,
     passiveDpsBonus: bonuses.passiveDpsBonus,
+    weaponSpellLevel: bonuses.weaponSpellLevel,
+    arcaneSpellLevel: bonuses.arcaneSpellLevel,
+    versatileSpellLevel: bonuses.versatileSpellLevel,
   };
 }

@@ -1,5 +1,5 @@
-/**
- * Equipment System — definitions, stat pools, tier ranges, rolling logic.
+﻿/**
+ * Equipment System - definitions, stat pools, tier ranges, rolling logic.
  *
  * Single source of truth for FE and BE.
  * All numeric ranges come from bot/docs/equipment/*.md.
@@ -27,7 +27,9 @@ export type StatId =
   | 'fire_res' | 'cold_res' | 'lightning_res' | 'phys_res'
   | 'gold_find' | 'xp_bonus'
   | 'life_regen' | 'life_on_hit'
-  | 'passive_dps_bonus';
+  | 'passive_dps_bonus'
+  | 'weapon_spell_level' | 'arcane_spell_level' | 'versatile_spell_level'
+  | 'skill_level';  // deprecated → versatile_spell_level (backward compat)
 
 // ── Stat Definitions (with descriptions) ─────────────────
 
@@ -83,14 +85,14 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'crit_chance',
     name: 'Critical Strike Chance',
     unit: '+N%',
-    description: 'Увеличивает шанс нанести критический удар. Базовый крит шанс — 5%. Критический удар наносит урон × crit_multiplier.',
+    description: 'Увеличивает шанс нанести критический удар. Базовый крит шанс - 5%. Критический удар наносит урон × crit_multiplier.',
     category: 'offensive',
   },
   crit_multiplier: {
     id: 'crit_multiplier',
     name: 'Critical Strike Multiplier',
     unit: '+N%',
-    description: 'Увеличивает множитель критического урона. Базовый множитель — 150%. Чем выше — тем разрушительнее критические удары.',
+    description: 'Увеличивает множитель критического урона. Базовый множитель - 150%. Чем выше - тем разрушительнее критические удары.',
     category: 'offensive',
   },
   // ── Defensive ──
@@ -98,7 +100,7 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'flat_hp',
     name: 'Flat Life',
     unit: '+N',
-    description: 'Добавляет плоское количество очков здоровья к максимуму HP. Основной оборонительный стат — увеличивает запас прочности.',
+    description: 'Добавляет плоское количество очков здоровья к максимуму HP. Основной оборонительный стат - увеличивает запас прочности.',
     category: 'defensive',
   },
   pct_hp: {
@@ -161,28 +163,28 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'fire_res',
     name: 'Fire Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый урон от огня на указанный процент. Максимальный капитан — 75%. Критически важен против Oni и Dragon.',
+    description: 'Снижает получаемый урон от огня на указанный процент. Максимальный капитан - 75%. Критически важен против Oni и Dragon.',
     category: 'defensive',
   },
   cold_res: {
     id: 'cold_res',
     name: 'Cold Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый урон от холода на указанный процент. Максимальный капитан — 75%. Важен против Forest Spirit.',
+    description: 'Снижает получаемый урон от холода на указанный процент. Максимальный капитан - 75%. Важен против Forest Spirit.',
     category: 'defensive',
   },
   lightning_res: {
     id: 'lightning_res',
     name: 'Lightning Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый урон от молнии на указанный процент. Максимальный капитан — 75%. Критичен против Ronin и Tengu.',
+    description: 'Снижает получаемый урон от молнии на указанный процент. Максимальный капитан - 75%. Критичен против Ronin и Tengu.',
     category: 'defensive',
   },
   phys_res: {
     id: 'phys_res',
     name: 'Physical Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый физический урон на процент (поверх брони). Максимальный капитан — 75%. Работает независимо от Armour.',
+    description: 'Снижает получаемый физический урон на процент (поверх брони). Максимальный капитан - 75%. Работает независимо от Armour.',
     category: 'defensive',
   },
   // ── Utility ──
@@ -211,7 +213,7 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'life_on_hit',
     name: 'Life on Hit',
     unit: '+N',
-    description: 'Восстанавливает указанное количество HP за каждый нанесённый удар (тап). Мгновенное лечение — идеально для активного геймплея.',
+    description: 'Восстанавливает указанное количество HP за каждый нанесённый удар (тап). Мгновенное лечение - идеально для активного геймплея.',
     category: 'utility',
   },
   passive_dps_bonus: {
@@ -221,17 +223,45 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     description: 'Увеличивает пассивный урон (автоатаку). Бонус применяется к тикам урона, которые наносятся автоматически без тапов.',
     category: 'utility',
   },
+  weapon_spell_level: {
+    id: 'weapon_spell_level',
+    name: 'Weapon Spell Level',
+    unit: '+N',
+    description: 'Добавляет уровни к Weapon скилам (скейлятся от урона оружия). Каждый уровень ×1.07 к урону. Также усиливает базовую атаку Hit.',
+    category: 'offensive',
+  },
+  arcane_spell_level: {
+    id: 'arcane_spell_level',
+    name: 'Arcane Spell Level',
+    unit: '+N',
+    description: 'Добавляет уровни к Arcane скилам (имеют свой базовый урон). Каждый уровень ×1.07 к урону.',
+    category: 'offensive',
+  },
+  versatile_spell_level: {
+    id: 'versatile_spell_level',
+    name: 'Versatile Spell Level',
+    unit: '+N',
+    description: 'Добавляет уровни ко ВСЕМ скилам (Weapon + Arcane), но в 1.5× слабее: 3 очка = 2 эффективных уровня.',
+    category: 'offensive',
+  },
+  skill_level: {
+    id: 'skill_level',
+    name: 'Skill Level',
+    unit: '+N',
+    description: '[Deprecated → Versatile Spell Level] Добавляет уровни ко всем скилам.',
+    category: 'offensive',
+  },
 };
 
 // ── Tier system ──────────────────────────────────────────
 
 /** Tier index: 0=T5, 1=T4, 2=T3, 3=T2, 4=T1 */
 export const TIER_ILVL_RANGES: [number, number][] = [
-  [1, 19],   // T5 — idx 0
-  [20, 39],  // T4 — idx 1
-  [40, 59],  // T3 — idx 2
-  [60, 79],  // T2 — idx 3
-  [80, 100], // T1 — idx 4
+  [1, 19],   // T5 - idx 0
+  [20, 39],  // T4 - idx 1
+  [40, 59],  // T3 - idx 2
+  [60, 79],  // T2 - idx 3
+  [80, 100], // T1 - idx 4
 ];
 
 export const TIER_NAMES = ['T5', 'T4', 'T3', 'T2', 'T1'] as const;
@@ -254,7 +284,7 @@ export interface EquipmentRarityDef {
   id: EquipmentRarity;
   label: string;
   color: string;
-  /** [minStats, maxStats] — items get 2–4 stats */
+  /** [minStats, maxStats] - items get 2-4 stats */
   statCount: [number, number];
   /** Drop weight (out of 100) */
   dropWeight: number;
@@ -276,10 +306,10 @@ export interface SlotDef {
 }
 
 export const SLOT_DEFS: Record<EquipmentSlotId, SlotDef> = {
-  one_hand: { id: 'one_hand', name: 'One-Hand Weapon', description: 'Одноручное оружие — мечи, топоры, кинжалы, жезлы, булавы. Позволяет использовать щит во второй руке.' },
-  two_hand: { id: 'two_hand', name: 'Two-Hand Weapon', description: 'Двуручное оружие — луки, посохи, двуручные мечи. Статы ~1.5× выше одноручного, но нельзя носить щит.' },
+  one_hand: { id: 'one_hand', name: 'One-Hand Weapon', description: 'Одноручное оружие - мечи, топоры, кинжалы, жезлы, булавы. Позволяет использовать щит во второй руке.' },
+  two_hand: { id: 'two_hand', name: 'Two-Hand Weapon', description: 'Двуручное оружие - луки, посохи, двуручные мечи. Статы ~1.5× выше одноручного, но нельзя носить щит.' },
   helmet:   { id: 'helmet',   name: 'Helmet',          description: 'Защитная экипировка для головы. Даёт HP, броню, уклонение, энергощит и бонус к опыту.' },
-  amulet:   { id: 'amulet',   name: 'Amulet',          description: 'Универсальный слот — даёт как атакующие, так и защитные статы. Единственный слот с passive_dps_bonus.' },
+  amulet:   { id: 'amulet',   name: 'Amulet',          description: 'Универсальный слот - даёт как атакующие, так и защитные статы. Единственный слот с passive_dps_bonus.' },
   armor:    { id: 'armor',    name: 'Body Armour',     description: 'Основной защитный слот. Максимальные значения HP, брони, уклонения и энергощита в игре.' },
   ring:     { id: 'ring',     name: 'Ring',            description: 'Универсальные аксессуары (2 слота). Крит, элементальный урон, резисты и gold find.' },
   gloves:   { id: 'gloves',   name: 'Gloves',          description: 'Гибридный слот. Даёт оборонительные статы + крит и life on hit. Микс атаки и защиты.' },
@@ -352,7 +382,7 @@ export function getSubtypesForSlot(slot: EquipmentSlotId): SubtypeDef[] {
 
 // ── Base damage / defense per tier (implicit) ────────────
 
-/** [T5, T4, T3, T2, T1] — each [min, max] */
+/** [T5, T4, T3, T2, T1] - each [min, max] */
 export const BASE_WEAPON_DAMAGE: Record<'one_hand' | 'two_hand', [number, number][]> = {
   one_hand: [[3,8], [7,18], [15,35], [28,55], [45,90]],
   two_hand: [[5,12], [10,27], [22,52], [42,82], [68,135]],
@@ -385,10 +415,10 @@ export const BASE_DEFENSES: Record<string, { armor: [number,number][]; evasion: 
 // ── Stat pools per slot ──────────────────────────────────
 
 export const SLOT_STAT_POOLS: Record<EquipmentSlotId, StatId[]> = {
-  one_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'life_on_hit'],
-  two_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit'],
+  one_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level'],
+  two_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level'],
   helmet:   ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'xp_bonus', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
-  amulet:   ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'passive_dps_bonus', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
+  amulet:   ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'passive_dps_bonus', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   armor:    ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'life_regen', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   ring:     ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'life_on_hit', 'passive_dps_bonus', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   gloves:   ['pct_phys_dmg', 'crit_chance', 'flat_armor', 'flat_evasion', 'flat_energy_shield', 'life_on_hit'],
@@ -396,7 +426,7 @@ export const SLOT_STAT_POOLS: Record<EquipmentSlotId, StatId[]> = {
   boots:    ['flat_hp', 'flat_armor', 'flat_evasion', 'flat_energy_shield', 'fire_res', 'cold_res', 'lightning_res'],
 };
 
-// ── Stat ranges: [T5, T4, T3, T2, T1] — each [min, max] ─
+// ── Stat ranges: [T5, T4, T3, T2, T1] - each [min, max] ─
 
 type TierRanges = [[number,number],[number,number],[number,number],[number,number],[number,number]];
 
@@ -417,6 +447,9 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     crit_multiplier:   [[5,15],  [5,25],  [5,40],  [5,60],  [5,85]],
     block_chance:      [[1,3],   [1,5],   [1,8],   [1,12],  [1,15]],
     life_on_hit:       [[1,3],   [1,7],   [1,14],  [1,22],  [1,35]],
+    weapon_spell_level:    [[1,1],   [1,2],   [1,3],   [2,5],   [3,7]],
+    arcane_spell_level:    [[1,1],   [1,2],   [1,3],   [2,5],   [3,7]],
+    versatile_spell_level: [[1,2],   [1,3],   [2,5],   [3,7],   [4,10]],
   },
 
   // ═══════ TWO-HAND ═══════
@@ -429,6 +462,9 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     crit_chance:       [[0.5,2], [0.5,4], [0.5,6], [0.5,9], [0.5,12]],
     crit_multiplier:   [[8,22],  [8,38],  [8,60],  [8,90],  [8,128]],
     life_on_hit:       [[1,5],   [1,10],  [1,21],  [1,33],  [1,52]],
+    weapon_spell_level:    [[1,2],   [1,3],   [2,5],   [3,8],   [4,10]],
+    arcane_spell_level:    [[1,2],   [1,3],   [2,5],   [3,8],   [4,10]],
+    versatile_spell_level: [[1,3],   [2,5],   [3,7],   [4,10],  [5,14]],
   },
 
   // ═══════ HELMET ═══════
@@ -462,6 +498,9 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     xp_bonus:          [[1,3],   [1,5],   [1,8],   [1,12],  [1,16]],
     life_regen:        [[0.5,2], [0.5,5], [0.5,10],[0.5,18],[0.5,28]],
     passive_dps_bonus: [[2,8],   [2,15],  [2,28],  [2,45],  [2,65]],
+    weapon_spell_level:    [[1,1],   [1,1],   [1,2],   [1,3],   [2,5]],
+    arcane_spell_level:    [[1,1],   [1,1],   [1,2],   [1,3],   [2,5]],
+    versatile_spell_level: [[1,1],   [1,2],   [1,3],   [2,5],   [3,7]],
     fire_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     cold_res:          [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
     lightning_res:     [[3,8],   [3,14],  [3,22],  [3,32],  [3,45]],
@@ -611,7 +650,7 @@ export function rollRarity(): EquipmentRarity {
  * Generate a fully rolled equipment item.
  *
  * @param slot      - target equipment slot
- * @param itemLevel - iLvl (1–100), determines tier and stat ceiling
+ * @param itemLevel - iLvl (1-100), determines tier and stat ceiling
  * @param rarity    - rarity (or omit to roll randomly)
  * @param subtype   - specific subtype code (or omit to pick random)
  */

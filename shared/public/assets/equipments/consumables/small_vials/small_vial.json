@@ -1,4 +1,4 @@
-{
+﻿{
   "type": "small_vial",
   "spriteSize": {
     "w": 16,
@@ -6,8 +6,8 @@
   },
   "maxCharges": 5,
   "tiers": {
-    "tier_1": "Tier 1 — basic small vial",
-    "tier_2": "Tier 2 — improved small vial"
+    "tier_1": "Tier 1 - basic small vial",
+    "tier_2": "Tier 2 - improved small vial"
   },
   "colors": {
     "blue": {

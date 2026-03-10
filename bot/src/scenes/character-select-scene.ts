@@ -1,10 +1,10 @@
-import { getCharacterClass } from "../data/character-classes.js";
+﻿import { getCharacterClass } from "../data/character-classes.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
 import type { SharedDeps, SkinConfig } from "../types.js";
 
 /**
- * CharacterSelectScene — pick an existing character or create a new one.
+ * CharacterSelectScene - pick an existing character or create a new one.
  *
  * Lifecycle: mount(params) / unmount()
  */

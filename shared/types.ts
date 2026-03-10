@@ -1,5 +1,5 @@
-/**
- * Shared types — used by both bot (FE) and server (BE).
+﻿/**
+ * Shared types - used by both bot (FE) and server (BE).
  *
  * FE-only types (Scene, Sprite, Monster rendering) stay in bot/src/types.ts.
  * BE-only types (entities, DTOs) stay in server.
@@ -25,7 +25,7 @@ export interface ElementalDamage {
 
 /**
  * Resistance per element: 0 = no resist, 0.75 = 75% resist.
- * Can go negative (vulnerability). No pure — pure is unresistable.
+ * Can go negative (vulnerability). No pure - pure is unresistable.
  */
 export interface ElementalResistance {
   physical?: number;
@@ -64,7 +64,7 @@ export interface MonsterSpawn {
   type: string;
   count: number;
   rarity: string;
-  /** Color variant subfolder (e.g. "v1_crimson") — omit for base skin */
+  /** Color variant subfolder (e.g. "v1_crimson") - omit for base skin */
   skinVariant?: string;
 }
 
@@ -141,7 +141,7 @@ export interface BagItemData {
 
   /** Potion-specific fields (type = 'potion') */
   flaskType?: string;
-  /** Max sips — determined by quality (common=2, rare=3, epic=4, legendary=5). */
+  /** Max sips - determined by quality (common=2, rare=3, epic=4, legendary=5). */
   maxCharges?: number;
   /** Remaining sips (starts at maxCharges, decrements on use). */
   currentCharges?: number;

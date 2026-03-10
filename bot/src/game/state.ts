@@ -1,4 +1,4 @@
-import { B } from "../data/balance.js";
+﻿import { B } from "../data/balance.js";
 import { api } from "../api.js";
 import type { GameData, Character, PlayerProxy, BagItem, LeagueInfo } from "../types.js";
 import type { EventBus } from "./events.js";
@@ -22,7 +22,7 @@ function createDefault(): GameData {
   };
 }
 
-/** Custom error thrown when player is banned — caught by main.ts to show ban screen. */
+/** Custom error thrown when player is banned - caught by main.ts to show ban screen. */
 export class BannedError extends Error {
   bannedUntil: number;
   banReason: string;
@@ -65,14 +65,14 @@ export class GameState {
 
   /**
    * Authenticate via Telegram, join league if needed, load full state.
-   * Throws BannedError if player is banned — caller must catch and show ban screen.
+   * Throws BannedError if player is banned - caller must catch and show ban screen.
    */
   async load(): Promise<void> {
     const tg = (window as any).Telegram?.WebApp;
     const initData: string | null = tg?.initData || null;
 
     if (!initData) {
-      console.warn("[GameState] No Telegram initData — cannot authenticate");
+      console.warn("[GameState] No Telegram initData - cannot authenticate");
       throw new Error("Telegram initData required");
     }
 
@@ -202,7 +202,7 @@ export class GameState {
     this.events.emit("stateLoaded", this.data);
   }
 
-  /* ── Save (no-op — server handles persistence) ──────── */
+  /* ── Save (no-op - server handles persistence) ──────── */
 
   save(): void {
     // No-op: server is authoritative, no localStorage writes

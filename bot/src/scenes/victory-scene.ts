@@ -1,11 +1,11 @@
-import { formatNumber } from "../utils/format.js";
+﻿import { formatNumber } from "../utils/format.js";
 import { TOTAL_ACTS } from "../data/locations.js";
 import { formatCombatTime, renderLogEntries, createLogPanelHTML } from "../ui/combat-log-renderer.js";
 import type { LogEntry } from "../ui/combat-log-renderer.js";
 import type { SharedDeps, BagItem } from "../types.js";
 
 /**
- * VictoryScene — shown after completing a location or endgame map.
+ * VictoryScene - shown after completing a location or endgame map.
  *
  * Displays:
  *  - "Victory!" title + location name
@@ -30,12 +30,12 @@ export class VictoryScene {
 
   /**
    * @param params.locationName
-   * @param params.rewards — { gold, xp }
-   * @param params.actComplete — act number if the act was just completed
-   * @param params.isMapVictory — true if this was an endgame map
-   * @param params.mapDrops — array of dropped map key items
-   * @param params.logEntries — LogEntry[] from CombatLog
-   * @param params.combatStartTime — absolute ms timestamp
+   * @param params.rewards - { gold, xp }
+   * @param params.actComplete - act number if the act was just completed
+   * @param params.isMapVictory - true if this was an endgame map
+   * @param params.mapDrops - array of dropped map key items
+   * @param params.logEntries - LogEntry[] from CombatLog
+   * @param params.combatStartTime - absolute ms timestamp
    */
   mount(params: Record<string, any> = {}): void {
     const {

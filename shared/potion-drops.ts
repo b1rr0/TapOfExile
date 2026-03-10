@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Universal loot pool system.
  *
  * After each combat, 3 independent rolls are made against the loot pool.
@@ -20,7 +20,7 @@ export type FlaskType =
   | 'wide_bottle'
   | 'jug';
 
-/** Potion color — only red (healing) for now, future-proof. */
+/** Potion color - only red (healing) for now, future-proof. */
 export type PotionColor = 'red';
 
 export interface FlaskDef {
@@ -246,7 +246,7 @@ export function getMapLootPool(tier: number): LootPool {
   };
 }
 
-/** Boss map loot pool — best drops. */
+/** Boss map loot pool - best drops. */
 export const BOSS_MAP_LOOT_POOL: LootPool = {
   entries: [
     { id: 'tall_bottle_rare',     weight: 100,  result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'rare' } },
@@ -368,7 +368,7 @@ export function getPoolStats(pool: LootPool): {
 }
 
 // ── Legacy exports (backward compat) ─────────────────────
-// Old code imports these — they still work but are wrappers.
+// Old code imports these - they still work but are wrappers.
 
 export interface PotionDropConfig {
   baseChance: number;

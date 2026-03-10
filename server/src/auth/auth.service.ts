@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   Logger,
   UnauthorizedException,
@@ -85,7 +85,7 @@ export class AuthService {
 
   /**
    * Find or create a Player record by Telegram user ID.
-   * Uses PostgreSQL UPSERT — single query instead of SELECT + conditional INSERT/UPDATE.
+   * Uses PostgreSQL UPSERT - single query instead of SELECT + conditional INSERT/UPDATE.
    * If startParam contains a referral code (ref_<id>), awards shards to both players.
    */
   async findOrCreatePlayer(tgUser: TelegramUser, startParam?: string): Promise<Player> {
@@ -248,7 +248,7 @@ export class AuthService {
    * Uses Telegram Bot API getChatMember.
    */
   async checkChannelMembership(telegramId: string): Promise<{ subscribed: boolean }> {
-    // Dev test bypass — test user is always considered subscribed
+    // Dev test bypass - test user is always considered subscribed
     if (process.env.NODE_ENV !== 'production' && telegramId === '999999999') {
       return { subscribed: true };
     }

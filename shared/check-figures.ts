@@ -1,4 +1,4 @@
-/**
+﻿/**
  * check-figures.ts
  * Checks all ConstellationShape definitions for:
  *  1. Self-crossing edges (edges within the same figure that cross each other)
@@ -140,7 +140,7 @@ function checkShape(s: ConstellationShape, tier: string): ShapeError[] {
     }
   }
 
-  // 6. Check collinear endpoint — a vertex of one edge lies ON another edge
+  // 6. Check collinear endpoint - a vertex of one edge lies ON another edge
   // (weaker than crossing but still visually bad: T-junction or degenerate overlap)
   const collinearHits = new Set<string>();
   for (let i = 0; i < s.edges.length; i++) {

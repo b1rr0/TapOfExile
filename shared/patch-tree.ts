@@ -1,5 +1,5 @@
-/**
- * Post-generation patch script — applies manual structural modifications to the skill tree.
+﻿/**
+ * Post-generation patch script - applies manual structural modifications to the skill tree.
  *
  * Usage:  npx tsx shared/patch-tree.ts
  *
@@ -362,15 +362,15 @@ console.log("\n=== PHASE 1e: Delete bridges + add figures in inter-class triangl
     const S = 30; // spacing scale (ensures min 30px between keystone pairs)
 
     const ksPositions = [
-      // Row 1 — initial spread
+      // Row 1 - initial spread
       { dx: inX * S * 1.0 - perpX * S * 0.6, dy: inY * S * 1.0 - perpY * S * 0.6 }, // ks0
       { dx: inX * S * 1.0 + perpX * S * 0.6, dy: inY * S * 1.0 + perpY * S * 0.6 }, // ks1
-      // Row 2 — widen
+      // Row 2 - widen
       { dx: inX * S * 2.0 - perpX * S * 1.1, dy: inY * S * 2.0 - perpY * S * 1.1 }, // ks2
       { dx: inX * S * 2.0 + perpX * S * 1.1, dy: inY * S * 2.0 + perpY * S * 1.1 }, // ks3
-      // Pinch — converge
+      // Pinch - converge
       { dx: inX * S * 3.0, dy: inY * S * 3.0 },                                       // ks4
-      // Tips — fan out again
+      // Tips - fan out again
       { dx: inX * S * 4.0 - perpX * S * 0.7, dy: inY * S * 4.0 - perpY * S * 0.7 }, // ks5
       { dx: inX * S * 4.0 + perpX * S * 0.7, dy: inY * S * 4.0 + perpY * S * 0.7 }, // ks6
     ];
@@ -451,7 +451,7 @@ console.log("\n=== PHASE 2: Simplify bfig hub figures ===");
   addFigureEdge(502, 507);
 }
 
-// Figure 39 (archer-bfig-1) — 523 already deleted in phase 1c
+// Figure 39 (archer-bfig-1) - 523 already deleted in phase 1c
 
 // ═══════════════════════════════════════════════════════════════
 // PHASE 3: Simplify figure 191 (figure 6) to 5 nodes
@@ -501,7 +501,7 @@ console.log("\n=== PHASE 3: Simplify figure 191 (figure 6) ===");
     }
   }
 
-  // "Rotate upward" — user wants the figure to point up
+  // "Rotate upward" - user wants the figure to point up
   // Override direction to point upward (negative Y)
   dirX = 0;
   dirY = -1;
@@ -603,7 +603,7 @@ const bridges: [number, number][] = [
   [413, 424],   // archer m1R ↔ m2L
   [436, 122],   // archer m2R ↔ samurai m0L (outer ring closure)
   [131, 143],   // samurai m0R ↔ m1L
-  // NOTE: bridge 170↔212 removed — too long (530px), crosses inner figure
+  // NOTE: bridge 170↔212 removed - too long (530px), crosses inner figure
   // Ring path goes: ...168→167→180→(bridge)→214→212→211→...→222→...
 ];
 
@@ -620,7 +620,7 @@ for (const [a, b] of bridges) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 4b: Shorten tendrils — delete pass-through parent of each figureEntry
+// PHASE 4b: Shorten tendrils - delete pass-through parent of each figureEntry
 // For each figureEntry with exactly 1 tree-parent:
 //   if parent has ≥ 2 other edges (junction) → skip
 //   if parent has exactly 1 other edge → delete parent, shift figure back
@@ -748,8 +748,8 @@ console.log("\n=== PHASE 4b: Shorten tendrils at figure entries ===");
 
 // ═══════════════════════════════════════════════════════════════
 // PHASE 4c: Restructure all class start areas
-//   — reduce start exits from 4 → 3
-//   — add cross-connections for web-like structure
+//   - reduce start exits from 4 → 3
+//   - add cross-connections for web-like structure
 // ═══════════════════════════════════════════════════════════════
 
 console.log("\n=== PHASE 4c: Restructure class start areas (4→3 exits, add web) ===");
@@ -774,7 +774,7 @@ console.log("\n=== PHASE 4c: Restructure class start areas (4→3 exits, add web
       const nea = nodeById(ea), neb = nodeById(eb);
       if (!nea || !neb) continue;
       if (segsCrossCheck(na.x, na.y, nb.x, nb.y, nea.x, nea.y, neb.x, neb.y)) {
-        console.log(`    [SKIP] ${label} — would cross [${ea},${eb}]`);
+        console.log(`    [SKIP] ${label} - would cross [${ea},${eb}]`);
         return false;
       }
     }
@@ -831,7 +831,7 @@ console.log("\n=== PHASE 4e-A: Snap non-figure nodes to 20×20 grid ===");
   let snapped = 0, skippedFig = 0, nudged = 0;
 
   for (const n of nodes) {
-    // Skip figure nodes — they keep original positions
+    // Skip figure nodes - they keep original positions
     if (figNodeSet.has(n.id)) {
       skippedFig++;
       continue;
@@ -1115,7 +1115,7 @@ console.log("\n=== PHASE 4e-B: Break short cycles by inserting intermediate node
       // Find crossing-safe position
       const safePos = findSafeMidPos(nA.id, nB.id, baseMx, baseMy);
       if (!safePos) {
-        console.log(`    [SKIP] ${cls}: [${sA}, ${sB}] — no safe mid position found`);
+        console.log(`    [SKIP] ${cls}: [${sA}, ${sB}] - no safe mid position found`);
         continue;
       }
 
@@ -1191,7 +1191,7 @@ console.log("\n=== PHASE 4e-C: 4-node figure between inner-1 and trunk-2 (all cl
     const spanY = len * 0.3; // vertical spread along direction
     const spanX = 25;        // horizontal spread perpendicular
 
-    // Positions (not grid-snapped — this is a figure)
+    // Positions (not grid-snapped - this is a figure)
     const pos1 = { x: Math.round(mx + dirX * spanY), y: Math.round(my + dirY * spanY) };
     const pos4 = { x: Math.round(mx - dirX * spanY), y: Math.round(my - dirY * spanY) };
     const pos2 = { x: Math.round(mx - perpX * spanX), y: Math.round(my - perpY * spanX) };
@@ -1231,7 +1231,7 @@ console.log("\n=== PHASE 4e-C: 4-node figure between inner-1 and trunk-2 (all cl
 // PHASE 4e-D: Delete pass-through nodes + remove inner-1↔trunk-3 edge (all classes)
 // ═══════════════════════════════════════════════════════════════
 
-console.log("\n=== PHASE 4e-D: Cleanup — delete nodes & remove edges (all classes) ===");
+console.log("\n=== PHASE 4e-D: Cleanup - delete nodes & remove edges (all classes) ===");
 {
   const classes = ["samurai", "warrior", "mage", "archer"];
 
@@ -1280,7 +1280,7 @@ console.log("\n=== PHASE 4e-D: Cleanup — delete nodes & remove edges (all clas
         }
       }
       if (wouldCross) {
-        // Don't reconnect — just delete the node, losing both edges
+        // Don't reconnect - just delete the node, losing both edges
         deleteNode(tendrilM0.id);
         console.log(`  ${cls}: deleted tendril-m0-d2-s0 (${tendrilM0.id}), NO reconnect (would cross)`);
       } else {
@@ -1359,7 +1359,7 @@ console.log("\n=== PHASE 4e-D: Cleanup — delete nodes & remove edges (all clas
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 4e-E: Final adjustments — delete intermediates, align, mirror bfig, add figure
+// PHASE 4e-E: Final adjustments - delete intermediates, align, mirror bfig, add figure
 // ═══════════════════════════════════════════════════════════════
 
 console.log("\n=== PHASE 4e-E: Final adjustments (all classes) ===");
@@ -1627,7 +1627,7 @@ console.log("\n=== PHASE 5: Position adjustments ===");
   }
 }
 
-// (Removed: bfig-1 rotation — replaced by mirror in Phase 4e-E)
+// (Removed: bfig-1 rotation - replaced by mirror in Phase 4e-E)
 
 // Add edge samurai-start ↔ samurai-trunk-0
 {
@@ -1640,7 +1640,7 @@ console.log("\n=== PHASE 5: Position adjustments ===");
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 5b: Adjust outer-circle figures — shorten + rotate tangential
+// PHASE 5b: Adjust outer-circle figures - shorten + rotate tangential
 // ═══════════════════════════════════════════════════════════════
 
 console.log("\n=== PHASE 5b: Adjust outer-circle figures ===");
@@ -2585,7 +2585,7 @@ console.log("\n=== PHASE 5j: Scale figures + add new nodes ===");
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 5k: User adjustments — move, rotate, reconnect, reshape
+// PHASE 5k: User adjustments - move, rotate, reconnect, reshape
 // ═══════════════════════════════════════════════════════════════
 
 console.log("\n=== PHASE 5k: User adjustments ===");
@@ -2737,7 +2737,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
     }
   }
 
-  // ─── 5k-6: Rotate m1R-d1 figures by 90° + shorten gate↔parent by 2× (skip samurai — reverted) ───
+  // ─── 5k-6: Rotate m1R-d1 figures by 90° + shorten gate↔parent by 2× (skip samurai - reverted) ───
   console.log("  5k-6: Rotate tendril-m1R-d1 by 90° + shorten parent edge (warrior/mage/archer)");
   for (const cls of ["warrior", "mage", "archer"]) {
     const gate = nodeByNodeId(`${cls}-fig-tendril-m1R-d1-gate`);
@@ -2786,7 +2786,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
     console.log(`    ${cls}: moved (${dx.toFixed(0)}*0.3, ${dy.toFixed(0)}*0.3), reconnected to ks5`);
   }
 
-  // ─── 5k-8: Reconnect tendril-m0L-d1-s0 → ks4 instead of gate (skip warrior — keep gate) ───
+  // ─── 5k-8: Reconnect tendril-m0L-d1-s0 → ks4 instead of gate (skip warrior - keep gate) ───
   console.log("  5k-8: Reconnect tendril-m0L-d1-s0 → ks4 instead of gate (samurai/mage/archer)");
   for (const cls of ["samurai", "mage", "archer"]) {
     const tendril = nodeByNodeId(`${cls}-tendril-m0L-d1-s0`);
@@ -3198,11 +3198,11 @@ console.log("\n=== PHASE 5k: User adjustments ===");
 
     let shiftX: number, shiftY: number;
     if (Math.abs(trunk3.x - CX5k) > Math.abs(trunk3.y - CY5k)) {
-      // Horizontal layout (warrior/archer) — align Y, shift X toward center
+      // Horizontal layout (warrior/archer) - align Y, shift X toward center
       shiftY = trunk3.y - n1.y;
       shiftX = Math.sign(CX5k - trunk3.x) * 10;
     } else {
-      // Vertical layout (samurai/mage) — align X, shift Y toward center
+      // Vertical layout (samurai/mage) - align X, shift Y toward center
       shiftX = trunk3.x - n1.x;
       shiftY = Math.sign(CY5k - trunk3.y) * 10;
     }
@@ -3252,13 +3252,13 @@ console.log("\n=== PHASE 5k: User adjustments ===");
       edges: [number, number][];     // keystone-to-keystone (0-indexed)
     }> = {
       shuriken: {
-        // Shuriken (throwing star) — 8 nodes: 4 blade tips + 4 inner notches (no center)
+        // Shuriken (throwing star) - 8 nodes: 4 blade tips + 4 inner notches (no center)
         // Pure pinwheel cycle: inner→tip→next_inner CCW, closed loop
         // Node 0 = back inner (gate entry point)
         // Tips at 45°/135°/225°/315° (r≈2.5), inners at 0°/90°/180°/270° (r≈1.0)
         // 8 edges, zero self-crossings
         positions: [
-          [1.5, 0],     // 0: back inner (180°) — gate connection
+          [1.5, 0],     // 0: back inner (180°) - gate connection
           [4.3, 1.8],   // 1: blade A tip (45°, upper-forward)
           [0.7, 1.8],   // 2: blade B tip (135°, upper-back)
           [0.7, -1.8],  // 3: blade C tip (225°, lower-back)
@@ -3273,27 +3273,27 @@ console.log("\n=== PHASE 5k: User adjustments ===");
         ],
       },
       shield: {
-        // Shield shape — 8 keystones: wide top → narrow bottom point
+        // Shield shape - 8 keystones: wide top → narrow bottom point
         // User layout: 1---2 / 8(boss) / 3---4 / 5--6 / 7(point)
         // Connections: 1-8, 8-2, 2-4, 4-6, 6-7, 7-5, 3-5, 1-3
         positions: [
-          [1, 0],       // 0: boss (8) — center, gate connection
+          [1, 0],       // 0: boss (8) - center, gate connection
           [0.5, 2],     // 1: top-left rim (1)
           [0.5, -2],    // 2: top-right rim (2)
-          [2, 2],       // 3: mid-left (3) — same width as top
+          [2, 2],       // 3: mid-left (3) - same width as top
           [2, -2],      // 4: mid-right (4)
-          [3.5, 1],     // 5: lower-left (5) — narrower
+          [3.5, 1],     // 5: lower-left (5) - narrower
           [3.5, -1],    // 6: lower-right (6)
           [4.5, 0],     // 7: bottom point (7)
         ],
         edges: [[0,1], [0,2], [1,3], [2,4], [3,5], [4,6], [5,7], [6,7]],
       },
       book: {
-        // Open book — 8 keystones: spine 3→5, pages spread out, 8/7 far edges
+        // Open book - 8 keystones: spine 3→5, pages spread out, 8/7 far edges
         // User layout: 1---2 / 3(spine) / 4---6 / 8--5--7
         // Connections: 1-3, 3-2, 2-6, 6-7, 5-6, 5-7, 3-5, 4-8, 8-5, 4-5, 1-4
         positions: [
-          [1.5, 0],    // 0: spine top (3) — gate connection
+          [1.5, 0],    // 0: spine top (3) - gate connection
           [0.5, 2],    // 1: upper-left page (1)
           [0.5, -2],   // 2: upper-right page (2)
           [3, 1.5],    // 3: lower-left page (4)
@@ -3305,18 +3305,18 @@ console.log("\n=== PHASE 5k: User adjustments ===");
         edges: [[0,1], [0,2], [0,4], [1,3], [2,5], [3,4], [3,7], [4,5], [4,6], [4,7], [5,6]],
       },
       bow: {
-        // Bow shape — 8 keystones: circular arc R≈4.62, from +60° to -60° (20° steps)
+        // Bow shape - 8 keystones: circular arc R≈4.62, from +60° to -60° (20° steps)
         // Circle center at origin, right half from x=2.31; tips at ±60°, grip at midpoint
         // Smooth arc path eliminates self-crossings
         positions: [
-          [2.31, 0],     // 0: grip (8) — gate connection, midpoint of tips
-          [2.31, 4.0],   // 1: upper limb tip (1) — +60°
-          [3.54, 2.97],  // 2: upper curve (3) — +40°
-          [4.34, 1.58],  // 3: upper-right (4) — +20°
-          [4.62, 0],     // 4: rightmost (5) — 0° (string midpoint)
-          [4.34, -1.58], // 5: lower-right (6) — -20°
-          [3.54, -2.97], // 6: lower curve (7) — -40°
-          [2.31, -4.0],  // 7: lower limb tip (2) — -60°
+          [2.31, 0],     // 0: grip (8) - gate connection, midpoint of tips
+          [2.31, 4.0],   // 1: upper limb tip (1) - +60°
+          [3.54, 2.97],  // 2: upper curve (3) - +40°
+          [4.34, 1.58],  // 3: upper-right (4) - +20°
+          [4.62, 0],     // 4: rightmost (5) - 0° (string midpoint)
+          [4.34, -1.58], // 5: lower-right (6) - -20°
+          [3.54, -2.97], // 6: lower curve (7) - -40°
+          [2.31, -4.0],  // 7: lower limb tip (2) - -60°
         ],
         edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,0]],
       },
@@ -3526,7 +3526,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
     }
   }
 
-  // ─── 5k-29: Move book centroid to midpoint(73,88) — between mage-inner-2 and archer-trunk-0 ───
+  // ─── 5k-29: Move book centroid to midpoint(73,88) - between mage-inner-2 and archer-trunk-0 ───
   console.log("  5k-29: Move book → midpoint(mage-inner-2, archer-trunk-0)");
   {
     const nA = nodeByNodeId("mage-inner-2");
@@ -3566,7 +3566,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
         removeFigureEdge(ks.id, conns[1]);
         addFigureEdge(conns[0], conns[1]);
       } else {
-        // More than 2 connections — just delete, neighbors stay connected through other paths
+        // More than 2 connections - just delete, neighbors stay connected through other paths
         for (const c of conns) {
           removeEdge(ks.id, c);
           removeFigureEdge(ks.id, c);
@@ -3580,7 +3580,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
   }
 
   // ─── 5k-31: Add intermediate nodes on new edges book-ks3↔ks5 and book-ks0↔ks2 ───
-  // (User: "добавь ноды на ребра 592↔595 и 593↔591" — these are ks3↔ks6 and ks4↔ks2,
+  // (User: "добавь ноды на ребра 592↔595 и 593↔591" - these are ks3↔ks6 and ks4↔ks2,
   //  but ks6 was deleted, so we use ks3↔ks5 and ks0↔ks2 as the nearest structural addition)
   console.log("  5k-31: Add intermediate nodes on book edges ks3↔ks5 and ks0↔ks2");
   {
@@ -3782,9 +3782,9 @@ console.log("\n=== PHASE 5k: User adjustments ===");
   }
 
   // ─── 5k-39: Move mid-ks3-ks5 to old book-ks4 position (restore bend) ───
-  // Old ks4 was at shape position [3.5, 0] — 0.5 units forward of midpoint(ks3,ks5).
+  // Old ks4 was at shape position [3.5, 0] - 0.5 units forward of midpoint(ks3,ks5).
   // Compute the offset from midpoint(ks3,ks5) toward the gate direction and apply.
-  console.log("  5k-39: Restore book bend — move mid-ks3-ks5 to old ks4 position");
+  console.log("  5k-39: Restore book bend - move mid-ks3-ks5 to old ks4 position");
   {
     const ks3_39 = nodeByNodeId("mage-archer-book-ks3");
     const ks5_39 = nodeByNodeId("mage-archer-book-ks5");
@@ -4099,7 +4099,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
       const sg = nodeByNodeId(`${cls}-fig-m0Rfig-s-g`);
       if (!gate53 || !sa || !sc || !sd || !se || !sf || !sg) continue;
 
-      // Delete s-d (junction) and s-e (tip) — deleteNode removes all their edges
+      // Delete s-d (junction) and s-e (tip) - deleteNode removes all their edges
       deleteNode(sd.id);
       deleteNode(se.id);
       console.log(`    ${cls}: deleted s-d (${sd.id}) and s-e (${se.id})`);
@@ -4115,7 +4115,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
       const lat_y = fwd_x;
 
       // Reposition s-f and s-g as arrowhead barbs from s-c (tip)
-      // Barbs go backward and spread laterally — V-shape arrowhead
+      // Barbs go backward and spread laterally - V-shape arrowhead
       const S53 = 14;
       sf.x = sc.x - fwd_x * 1.0 * S53 + lat_x * 1.3 * S53;
       sf.y = sc.y - fwd_y * 1.0 * S53 + lat_y * 1.3 * S53;
@@ -4183,7 +4183,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
   // ─── 5k-55: Promote figure nodes to "notable" (+1 per 3 nodes in figure) ───
   // For each figure: floor(memberCount / 3) keystones → notable (strong tier)
   // Pick keystones farthest from gate (tips of figure = visually prominent)
-  console.log("  5k-55: Promote figure nodes — +1 notable per 3 members");
+  console.log("  5k-55: Promote figure nodes - +1 notable per 3 members");
   {
     // Group figMembership by figureId
     const figGroups = new Map<number, number[]>();
@@ -4225,12 +4225,12 @@ console.log("\n=== PHASE 5k: User adjustments ===");
   }
 
   // ─── 5k-56: Align iweb-0 and fig-vweb-0-handle vertically (all classes) ───
-  // Move both to average X — minimizes displacement, avoids crossings
+  // Move both to average X - minimizes displacement, avoids crossings
   console.log("  5k-56: Align iweb-0 ↔ vweb-0-handle vertically (all classes)");
   for (const cls of ["samurai", "warrior", "mage", "archer"]) {
     const iweb = nodeByNodeId(`${cls}-iweb-0`);
     const handle = nodeByNodeId(`${cls}-fig-vweb-0-handle`);
-    if (!iweb || !handle) { console.log(`    ${cls}: SKIP — node not found`); continue; }
+    if (!iweb || !handle) { console.log(`    ${cls}: SKIP - node not found`); continue; }
 
     const avgX = (iweb.x + handle.x) / 2;
     const dxIweb = avgX - iweb.x;
@@ -4252,7 +4252,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
   }
 
   // ─── 5k-57: Change node types (all classes) ───
-  console.log("  5k-57: Change node types — web/trunk/branch nodes (all classes)");
+  console.log("  5k-57: Change node types - web/trunk/branch nodes (all classes)");
   {
     // Nodes to → keystone (medium tier)
     const toKeystone = [
@@ -4764,7 +4764,7 @@ for (const n of nodes) {
 }
 
 const output = `/**
- * Pre-computed skill tree data — generated by generate-tree.ts
+ * Pre-computed skill tree data - generated by generate-tree.ts
  *
  * DO NOT EDIT MANUALLY. Regenerate: npx tsx shared/generate-tree.ts
  *

@@ -1,8 +1,8 @@
-/**
- * Mini sprite engine — JSON atlas + PNG based.
+﻿/**
+ * Mini sprite engine - JSON atlas + PNG based.
  *
  * Each animation = JSON (Aseprite atlas format) + PNG sprite strip.
- * JSON provides exact frame rects {x, y, w, h} — no guesswork.
+ * JSON provides exact frame rects {x, y, w, h} - no guesswork.
  * Dirty-render: sets needsRedraw only when frame changes.
  */
 
@@ -187,7 +187,7 @@ export class SpriteEngine {
 
   /**
    * Draw current frame from JSON-defined rect.
-   * @param flipX — mirror horizontally
+   * @param flipX - mirror horizontally
    */
   drawFrame(ctx: CanvasRenderingContext2D, dx: number, dy: number, dw: number, dh: number, flipX: boolean = false): void {
     if (!this.loaded || !this.current) return;

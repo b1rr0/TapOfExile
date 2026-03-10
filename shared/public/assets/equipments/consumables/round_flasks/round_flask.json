@@ -1,4 +1,4 @@
-{
+﻿{
   "type": "round_flask",
   "spriteSize": {
     "w": 16,
@@ -6,8 +6,8 @@
   },
   "maxCharges": 5,
   "tiers": {
-    "tier_1": "Tier 1 — basic round flask",
-    "tier_2": "Tier 2 — improved round flask"
+    "tier_1": "Tier 1 - basic round flask",
+    "tier_2": "Tier 2 - improved round flask"
   },
   "colors": {
     "blue": {

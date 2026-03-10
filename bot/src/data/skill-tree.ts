@@ -1,5 +1,5 @@
-/**
- * Skill Tree — re-exported from shared module.
+﻿/**
+ * Skill Tree - re-exported from shared module.
  * Single source of truth: @shared/skill-tree
  */
 export {

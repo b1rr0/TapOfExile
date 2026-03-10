@@ -1,11 +1,11 @@
-import { api } from "../api.js";
+﻿import { api } from "../api.js";
 import { SHOP_PRODUCTS } from "../../../shared/shop-products.js";
 import type { SharedDeps } from "../types.js";
 
 declare const Telegram: any;
 
 /**
- * ShopScene — premium Shards shop.
+ * ShopScene - premium Shards shop.
  *
  * - Buy Shards packages via Telegram Stars
  * - Spend Shards on shop items (trade slots, etc.)
@@ -28,9 +28,9 @@ export class ShopScene {
     this.container.innerHTML = `
       <div class="shop-scene">
         <div class="shop-scene__header">
-          <button class="shop-scene__back" id="shop-back">&larr;</button>
-          <h2 class="shop-scene__title">Shard Shop</h2>
           <span class="shop-scene__shards">&#x1F48E; <span id="shop-shards-hdr">${this.state.data.shards || "0"}</span></span>
+          <h2 class="shop-scene__title">Shard Shop</h2>
+          <button class="scene-close-btn" id="shop-back">&times;</button>
         </div>
         <div class="shop-scene__content" id="shop-content">
           <div class="shop-scene__loading">Loading...</div>
@@ -159,7 +159,7 @@ export class ShopScene {
           ? "<p>No donations yet</p>"
           : `<ul class="shop-scene__history-list">
               ${(payments as any[]).map((p: any) => `
-                <li>+${p.shardsAmount} Shards (${p.starsAmount} Stars) — ${new Date(p.createdAt).toLocaleDateString()}</li>
+                <li>+${p.shardsAmount} Shards (${p.starsAmount} Stars) - ${new Date(p.createdAt).toLocaleDateString()}</li>
               `).join("")}
             </ul>`
         }
@@ -169,7 +169,7 @@ export class ShopScene {
           ? "<p>No transactions yet</p>"
           : `<ul class="shop-scene__history-list">
               ${(transactions as any[]).map((t: any) => `
-                <li>${t.amount > 0 ? "+" : ""}${t.amount} Shards — ${t.reason} — ${new Date(t.createdAt).toLocaleDateString()}</li>
+                <li>${t.amount > 0 ? "+" : ""}${t.amount} Shards - ${t.reason} - ${new Date(t.createdAt).toLocaleDateString()}</li>
               `).join("")}
             </ul>`
         }

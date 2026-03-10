@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared combat-log rendering utilities.
  *
  * Used by:
@@ -58,8 +58,8 @@ export function formatBreakdown(breakdown: DamageBreakdown | null | undefined): 
 
 /**
  * Create a DOM element for a single log entry.
- * @param entry — the log entry
- * @param startTime — absolute ms timestamp of combat start (for time display)
+ * @param entry - the log entry
+ * @param startTime - absolute ms timestamp of combat start (for time display)
  */
 export function renderLogEntry(entry: LogEntry, startTime: number): HTMLDivElement {
   const el = document.createElement("div");
@@ -129,9 +129,9 @@ export function renderLogEntries(container: HTMLElement, entries: LogEntry[], st
 /**
  * Create the fullscreen log panel markup.
  * Uses shared class `.combat-log-panel` for consistent styling everywhere.
- * @param panelId — unique id for the panel element
- * @param listId — unique id for the list element
- * @param closeId — unique id for the close button
+ * @param panelId - unique id for the panel element
+ * @param listId - unique id for the list element
+ * @param closeId - unique id for the close button
  */
 export function createLogPanelHTML(panelId: string, listId: string, closeId: string): string {
   return `

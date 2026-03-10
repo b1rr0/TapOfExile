@@ -1,5 +1,5 @@
-/**
- * Skill Node Definitions — re-exported from shared module.
+﻿/**
+ * Skill Node Definitions - re-exported from shared module.
  * Single source of truth: @shared/skill-node-defs
  */
 export {

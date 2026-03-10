@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -10,7 +10,7 @@ import {
 import { Player } from './player.entity';
 
 /**
- * Payment — log of every Telegram Stars → Shards purchase.
+ * Payment - log of every Telegram Stars → Shards purchase.
  */
 @Entity('payments')
 @Index('idx_payment_player', ['playerTelegramId'])
@@ -37,7 +37,7 @@ export class Payment {
   @Column({ type: 'int' })
   starsAmount: number;
 
-  /** Telegram's unique charge ID — idempotency key */
+  /** Telegram's unique charge ID - idempotency key */
   @Column({ type: 'varchar', length: 255, unique: true })
   telegramPaymentChargeId: string;
 

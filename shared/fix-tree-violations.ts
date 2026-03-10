@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Fix theme violations in skill-tree-data.ts.
  *
  * Violation rule: no figure may contain both critChance AND magic damage
@@ -117,7 +117,7 @@ function rebuildMods(node: RawNode, targetTheme: Theme, rng: () => number): void
 }
 
 function isModifiable(node: RawNode): boolean {
-  // Allow figureEntry — they can cause violations when their mods mismatch the figure
+  // Allow figureEntry - they can cause violations when their mods mismatch the figure
   return node.type !== "start" && node.type !== "activeSkill" && node.type !== "classSkill";
 }
 

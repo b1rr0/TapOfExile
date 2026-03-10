@@ -1,5 +1,5 @@
-/**
- * CLASS STATS & PER-LEVEL GROWTH — single source of truth.
+﻿/**
+ * CLASS STATS & PER-LEVEL GROWTH - single source of truth.
  *
  * Used by both FE (character selection screen) and BE (character creation, level-up).
  * Max level: 60.
@@ -14,7 +14,7 @@ export interface ClassBaseStats {
   tapDamage: number;
   critChance: number;       // 0..1
   critMultiplier: number;
-  dodgeChance: number;      // 0..1  — chance to completely avoid incoming hit
+  dodgeChance: number;      // 0..1  - chance to completely avoid incoming hit
   resistance: ElementalResistance;
 }
 
@@ -27,7 +27,7 @@ export interface ClassGrowth {
   dodgeChance: number;
 }
 
-/** Unique class ability — one per class, shown in a special section. */
+/** Unique class ability - one per class, shown in a special section. */
 export interface ClassSpecial {
   id: string;
   name: string;
@@ -72,8 +72,8 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       resistance: { physical: 30, fire: 0, lightning: 0, cold: 0 },
     },
     growth: {
-      hp: 20,              // was 18 — best survivability
-      tapDamage: 2.0,      // was 1.4 — significant DPS buff to reduce gap with Mage
+      hp: 20,              // was 18 - best survivability
+      tapDamage: 2.0,      // was 1.4 - significant DPS buff to reduce gap with Mage
       critChance: 0.002,   // was 0.001
       critMultiplier: 0.015, // was 0.01
       dodgeChance: 0.001,
@@ -83,7 +83,7 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       name: 'Block',
       icon: '🛡️',
       description: 'Chance to block any incoming attack',
-      baseValue: 0.20,     // was 0.15 — stronger block baseline
+      baseValue: 0.20,     // was 0.15 - stronger block baseline
       growth: 0.003,       // was 0.002
       format: 'percent',
     },

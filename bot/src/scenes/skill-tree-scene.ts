@@ -1,11 +1,37 @@
-import { buildSkillTree, getClassStartNode, hexPath, diamondPath, getNodeShape, EMBLEM_RADIUS, NODE_RADIUS, getMaxClassSkills } from "../data/skill-tree.js";
+﻿import { buildSkillTree, getClassStartNode, hexPath, diamondPath, getNodeShape, EMBLEM_RADIUS, NODE_RADIUS, getMaxClassSkills } from "../data/skill-tree.js";
 import { validateAllocations } from "@shared/skill-tree-validation";
-import { ACTIVE_SKILLS } from "@shared/active-skills";
+import { ACTIVE_SKILLS, getSkillScalingType, computeEffectiveSkillLevel, computeSkillLevelGrowth } from "@shared/active-skills";
 import type { ActiveSkillDef } from "@shared/active-skills";
+import { CLASS_DEFS } from "@shared/class-stats";
 import { api } from "../api.js";
 import { ProjectileLayer } from "../ui/projectile-layer.js";
 import type { SharedDeps, SkillTreeResult, NodeType } from "../types.js";
 import type { SkillNode } from "@shared/skill-tree";
+
+/* ── Stats that affect DPS (used for skill impact preview) ── */
+const DPS_RELEVANT_STATS = new Set([
+  "damage", "dps", "critChance", "critMulti",
+  "fireDmg", "coldDmg", "lightningDmg", "pureDmg",
+  "weaponSpellLevel", "arcaneSpellLevel", "versatileSpellLevel",
+]);
+
+/* ── Weapon stat → equipped subtypes (mirrors server WPN_STAT_TO_SUBTYPES) ── */
+const WPN_STAT_SUBTYPES: Record<string, string[]> = {
+  swordDmg: ['oh_sword','th_sword'], swordAmp: ['oh_sword','th_sword'],
+  axeDmg: ['oh_axe','th_axe'],       axeAmp: ['oh_axe','th_axe'],
+  daggerDmg: ['oh_dagger'],          daggerAmp: ['oh_dagger'],
+  wandDmg: ['oh_wand'],              wandAmp: ['oh_wand'],
+  maceDmg: ['oh_mace','th_mace'],    maceAmp: ['oh_mace','th_mace'],
+  bowDmg: ['th_bow'],                bowAmp: ['th_bow'],
+  staffDmg: ['th_staff'],            staffAmp: ['th_staff'],
+};
+
+const WPN_STAT_NAMES: Record<string, string> = {
+  swordDmg: 'Sword', swordAmp: 'Sword', axeDmg: 'Axe', axeAmp: 'Axe',
+  daggerDmg: 'Dagger', daggerAmp: 'Dagger', wandDmg: 'Wand', wandAmp: 'Wand',
+  maceDmg: 'Mace', maceAmp: 'Mace', bowDmg: 'Bow', bowAmp: 'Bow',
+  staffDmg: 'Staff', staffAmp: 'Staff',
+};
 
 /* ── Module-level tree cache (built once, shared across all mounts) ── */
 
@@ -24,7 +50,7 @@ function touchDist(t: TouchList): number {
 }
 
 /**
- * SkillTreeScene — circular passive skill tree (PoE2-style).
+ * SkillTreeScene - circular passive skill tree (PoE2-style).
  *
  * Renders an SVG graph with pan + pinch-zoom.
  * Each class has an emblem circle with a class image and 16 class-specific
@@ -121,12 +147,12 @@ export class SkillTreeScene {
     this.container.innerHTML = `
       <div class="skill-tree">
         <div class="skill-tree__topbar">
-          <button class="skill-tree__back" id="st-back">&#x2190; Back</button>
-          <span class="skill-tree__title">Passive Tree</span>
           <div class="skill-tree__pts-wrap">
             <span class="skill-tree__points" id="st-points">${totalPoints - usedPoints} pts</span>
             <span class="skill-tree__class-pts" id="st-class-pts">${classUsed}/${this._getMaxClassSkills()} class</span>
           </div>
+          <span class="skill-tree__title">Passive Tree</span>
+          <button class="scene-close-btn" id="st-back">&times;</button>
         </div>
         <div class="skill-tree__actions-row">
           <button class="skill-tree__accept-btn" id="st-accept">&#x2714; Accept</button>
@@ -212,7 +238,7 @@ export class SkillTreeScene {
       bg.classList.add("st-emblem__bg");
       frag.appendChild(bg);
 
-      // Class image (clipped to circle — image is large so circle is inscribed in it)
+      // Class image (clipped to circle - image is large so circle is inscribed in it)
       const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
       const imgSize = em.r * 2.6;
       img.setAttribute("href", `/assets/${em.img}`);
@@ -472,7 +498,7 @@ export class SkillTreeScene {
     if (!this._tooltip) return;
     let html = "";
 
-    // Active skill nodes — rich preview card with icon
+    // Active skill nodes - rich preview card with icon
     const skillId = node.def?.activeSkillId;
     if (node.type === "activeSkill" && skillId) {
       const skill = ACTIVE_SKILLS[skillId as keyof typeof ACTIVE_SKILLS] as ActiveSkillDef | undefined;
@@ -482,13 +508,36 @@ export class SkillTreeScene {
         html += `<div class="st-tip__icon-slot" id="st-tip-icon"></div>`;
         html += `<div class="st-tip__preview-info">`;
         html += `<div class="st-tip__name">${skill.name}</div>`;
-        html += `<div class="st-tip__type" style="color:#DFFFFE">active skill &middot; ${skill.skillType}</div>`;
+        // Scaling type + level
+        const sType = getSkillScalingType(skill);
+        const typeIcon = sType === 'arcane' ? '🔮' : '⚔️';
+        const typeName = sType === 'arcane' ? 'Arcane' : 'Weapon';
+        const activeChar = this.state.getActiveCharacter?.() || this.state.data?.player;
+        const wpnLv = (activeChar as any)?.weaponSpellLevel || 0;
+        const arcLv = (activeChar as any)?.arcaneSpellLevel || 0;
+        const verLv = (activeChar as any)?.versatileSpellLevel || 0;
+        const charLevel = activeChar?.level || 1;
+        const sEffLv = computeEffectiveSkillLevel(charLevel, sType, wpnLv, arcLv, verLv);
+        const sGrowth = computeSkillLevelGrowth(sEffLv);
+
+        html += `<div class="st-tip__type" style="color:#DFFFFE">${typeIcon} ${typeName} Lv.${sEffLv}</div>`;
+        if (skill.description) {
+          html += `<div class="st-tip__desc" style="color:#ccc;font-size:11px;margin-top:2px;font-style:italic">${skill.description}</div>`;
+        }
         html += `</div></div>`;
 
         // Stats grid
         html += `<div class="st-tip__stats-grid">`;
         if (skill.skillType === "damage") {
-          html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Damage</span><span class="st-tip__stat-value">&times;${skill.damageMultiplier}</span></div>`;
+          // Show expected damage
+          const baseDmg = activeChar?.tapDamage || 1;
+          let rawDmg: number;
+          if (sType === 'arcane') {
+            rawDmg = Math.floor(skill.spellBase! * sGrowth);
+          } else {
+            rawDmg = Math.floor(baseDmg * skill.damageMultiplier * sGrowth);
+          }
+          html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Damage</span><span class="st-tip__stat-value">${rawDmg.toLocaleString()}</span></div>`;
         } else if (skill.skillType === "heal") {
           html += `<div class="st-tip__stat-pair"><span class="st-tip__stat-label">Heal</span><span class="st-tip__stat-value">${Math.round((skill.healPercent || 0) * 100)}% HP</span></div>`;
         }
@@ -543,6 +592,15 @@ export class SkillTreeScene {
     if (node.type === "classSkill") html += `<div class="st-tip__type">class skill</div>`;
     else if (node.type !== "start") html += `<div class="st-tip__type">${node.type}</div>`;
 
+    // Weapon match indicator
+    html += this._buildWeaponMatch(node);
+
+    // Life on Hit indicator
+    html += this._buildLifeOnHit(node);
+
+    // DPS impact preview for damage-relevant nodes
+    html += this._buildDpsImpact(node);
+
     // Status hint
     if (this._allocated.has(node.id)) {
       html += `<div class="st-tip__hint">tap to remove</div>`;
@@ -592,6 +650,194 @@ export class SkillTreeScene {
     } catch {
       // Icon load failed silently
     }
+  }
+
+  /** Build DPS impact preview for equipped damage skills when node has damage-relevant mods. */
+  _buildDpsImpact(node: SkillNode): string {
+    if (this._allocated.has(node.id)) return "";
+
+    const mods = node.mods || [];
+
+    // Check if any mod is DPS-relevant (including weapon-type stats when weapon matches)
+    const char = this.state.getActiveCharacter();
+    if (!char) return "";
+
+    // Get equipped weapon subtypes
+    const equipment = (char.inventory?.equipment || {}) as Record<string, any>;
+    const equippedSubs: string[] = [];
+    for (const slotId of ['weapon-left', 'weapon-right']) {
+      const g = equipment[slotId];
+      if (g?.properties?.subtype) equippedSubs.push(g.properties.subtype);
+    }
+
+    const relevant = mods.filter(m => {
+      if (DPS_RELEVANT_STATS.has(m.stat)) return true;
+      // Weapon dmg/amp stats are DPS-relevant only if weapon matches
+      const subs = WPN_STAT_SUBTYPES[m.stat];
+      if (subs && equippedSubs.some(s => subs.includes(s))) return true;
+      return false;
+    });
+    if (relevant.length === 0) return "";
+
+    const equipped = ((char.equippedSkills || []) as (string | null)[])
+      .filter((id: string | null): id is string => id != null)
+      .map((id: string) => ACTIVE_SKILLS[id as keyof typeof ACTIVE_SKILLS])
+      .filter((s: ActiveSkillDef | undefined): s is ActiveSkillDef => s != null && s.skillType === "damage");
+    if (equipped.length === 0) return "";
+
+    const tapDamage = char.tapDamage || 1;
+    const critChance = char.critChance || 0.05;
+    const critMultiplier = char.critMultiplier || 1.5;
+    const charLevel = char.level || 1;
+    const wpnLv = (char as any)?.weaponSpellLevel || 0;
+    const arcLv = (char as any)?.arcaneSpellLevel || 0;
+    const verLv = (char as any)?.versatileSpellLevel || 0;
+
+    const classDef = CLASS_DEFS[char.classId];
+    const baseTapDmg = classDef
+      ? classDef.base.tapDamage + classDef.growth.tapDamage * (charLevel - 1)
+      : tapDamage;
+
+    // Accumulate deltas from all relevant mods
+    let dTap = 0, dCrit = 0, dCritMul = 0;
+    let dFirePct = 0, dColdPct = 0, dLightPct = 0, dPurePct = 0;
+    let dWpn = 0, dArc = 0, dVer = 0;
+    // Weapon-type damage multiplier (swordDmg etc. = % damage bonus when weapon matches)
+    let weaponDmgMult = 0;
+    // Weapon amp (swordAmp etc. = multiply weapon equipment stats)
+    let weaponAmpMult = 0;
+    for (const m of relevant) {
+      switch (m.stat) {
+        case "damage": case "dps":   dTap += baseTapDmg * m.value; break;
+        case "critChance":            dCrit += m.value; break;
+        case "critMulti":             dCritMul += m.value; break;
+        case "fireDmg":               dFirePct += m.value; break;
+        case "coldDmg":               dColdPct += m.value; break;
+        case "lightningDmg":          dLightPct += m.value; break;
+        case "pureDmg":               dPurePct += m.value; break;
+        case "weaponSpellLevel":      dWpn += m.value; break;
+        case "arcaneSpellLevel":      dArc += m.value; break;
+        case "versatileSpellLevel":   dVer += m.value; break;
+        default:
+          // Weapon-type stats
+          if (m.stat.endsWith("Dmg") && WPN_STAT_SUBTYPES[m.stat]) {
+            weaponDmgMult += m.value;
+          } else if (m.stat.endsWith("Amp") && WPN_STAT_SUBTYPES[m.stat]) {
+            weaponAmpMult += m.value;
+          }
+          break;
+      }
+    }
+
+    let rows = "";
+    for (const skill of equipped) {
+      const sType = getSkillScalingType(skill);
+      const curEff = computeEffectiveSkillLevel(charLevel, sType, wpnLv, arcLv, verLv);
+      const newEff = computeEffectiveSkillLevel(charLevel, sType, wpnLv + dWpn, arcLv + dArc, verLv + dVer);
+      const curG = computeSkillLevelGrowth(curEff);
+      const newG = computeSkillLevelGrowth(newEff);
+
+      let curRaw: number, newRaw: number;
+      if (sType === "arcane") {
+        curRaw = skill.spellBase! * curG;
+        newRaw = skill.spellBase! * newG;
+      } else {
+        curRaw = tapDamage * skill.damageMultiplier * curG;
+        newRaw = (tapDamage + dTap) * skill.damageMultiplier * newG;
+      }
+      // Weapon dmg multiplier (e.g. swordDmg +6% → damage * 1.06)
+      if (weaponDmgMult > 0) {
+        newRaw *= (1 + weaponDmgMult);
+      }
+      // Weapon amp: amplifies weapon equipment stats → approximated as flat damage bonus
+      if (weaponAmpMult > 0) {
+        // Sum weapon base damage from equipped weapons
+        let wpnBaseDmg = 0;
+        for (const slotId of ['weapon-left', 'weapon-right']) {
+          const g = equipment[slotId];
+          if (g?.properties?.baseDamage) wpnBaseDmg += g.properties.baseDamage;
+        }
+        newRaw += wpnBaseDmg * weaponAmpMult * skill.damageMultiplier * newG;
+      }
+      // Apply elemental % bonuses only to the matching fire/cold/lightning portion of skill damage
+      const ep = skill.elementalProfile;
+      newRaw += newRaw * ((ep.fire || 0) * dFirePct + (ep.cold || 0) * dColdPct + (ep.lightning || 0) * dLightPct + (ep.pure || 0) * dPurePct);
+
+      const curExp = curRaw * (1 + critChance * (critMultiplier - 1));
+      const newExp = newRaw * (1 + (critChance + dCrit) * ((critMultiplier + dCritMul) - 1));
+      const cdSec = skill.cooldownMs / 1000;
+      const curDps = curExp / cdSec;
+      const newDps = newExp / cdSec;
+      const pct = curDps > 0 ? (newDps - curDps) / curDps * 100 : 0;
+
+      if (Math.abs(pct) < 0.1) continue;
+
+      const sign = pct > 0 ? "+" : "";
+      const col = pct > 0 ? "#DFFFFE" : "#A40239";
+      rows += `<div class="st-tip__dps-row">`
+        + `<span class="st-tip__dps-name">${skill.name}</span>`
+        + `<span class="st-tip__dps-vals">`
+        + `${Math.floor(curDps)} → <span style="color:${col}">${Math.floor(newDps)}</span>`
+        + ` <span style="color:${col};font-size:10px">${sign}${pct.toFixed(1)}%</span>`
+        + `</span></div>`;
+    }
+    if (!rows) return "";
+
+    return `<div class="st-tip__dps-impact">`
+      + `<div class="st-tip__dps-header">Skill DPS</div>${rows}</div>`;
+  }
+
+  /** Weapon match badge: shows whether equipped weapon matches this node's weapon bonus. */
+  _buildWeaponMatch(node: SkillNode): string {
+    const mods = node.mods || [];
+    // Find first weapon-related mod
+    let wpnStat = "";
+    for (const m of mods) {
+      if (WPN_STAT_SUBTYPES[m.stat]) { wpnStat = m.stat; break; }
+    }
+    if (!wpnStat) return "";
+
+    const wpnName = WPN_STAT_NAMES[wpnStat] || wpnStat;
+    const neededSubs = WPN_STAT_SUBTYPES[wpnStat];
+
+    // Get equipped weapon subtypes from character inventory
+    const char = this.state.getActiveCharacter();
+    const equipment = (char?.inventory?.equipment || {}) as Record<string, any>;
+    const equippedSubs: string[] = [];
+    for (const slotId of ['weapon-left', 'weapon-right']) {
+      const g = equipment[slotId];
+      if (g?.properties?.subtype) equippedSubs.push(g.properties.subtype);
+    }
+
+    const matches = equippedSubs.some(sub => neededSubs.includes(sub));
+
+    if (matches) {
+      return `<div class="st-tip__wpn-match st-tip__wpn-match--yes">⚔ ${wpnName} equipped</div>`;
+    } else if (equippedSubs.length > 0) {
+      return `<div class="st-tip__wpn-match st-tip__wpn-match--no">✗ No ${wpnName} equipped</div>`;
+    } else {
+      return `<div class="st-tip__wpn-match st-tip__wpn-match--no">— No weapon equipped</div>`;
+    }
+  }
+
+  /** Life on Hit indicator for nodes that grant lifeOnHit (% multiplier). */
+  _buildLifeOnHit(node: SkillNode): string {
+    const mods = node.mods || [];
+    let totalPct = 0;
+    for (const m of mods) {
+      if (m.stat === "lifeOnHit") totalPct += m.value;
+    }
+    if (totalPct <= 0) return "";
+
+    const char = this.state.getActiveCharacter();
+    const curHit = (char as any)?.lifeOnHit || 0;
+    const newHit = Math.floor(curHit * (1 + totalPct));
+
+    return `<div class="st-tip__loh">`
+      + `<span class="st-tip__loh-icon">❤</span>`
+      + `<span class="st-tip__loh-label">Life on Hit</span>`
+      + `<span class="st-tip__loh-val">${curHit} → ${newHit}</span>`
+      + `</div>`;
   }
 
   _hideTooltip(): void { if (this._tooltip) this._tooltip.classList.add("hidden"); }

@@ -1,5 +1,5 @@
-/**
- * Game balance — re-exported from shared module.
+﻿/**
+ * Game balance - re-exported from shared module.
  * Single source of truth: @shared/balance
  */
 export { B } from "@shared/balance";

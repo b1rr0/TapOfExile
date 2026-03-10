@@ -1,8 +1,8 @@
-import { api } from "../api.js";
+﻿import { api } from "../api.js";
 import type { SharedDeps } from "../types.js";
 
 /**
- * MarketScene — trade slot expansion & market upgrades.
+ * MarketScene - trade slot expansion & market upgrades.
  */
 export class MarketScene {
   container: HTMLElement;
@@ -21,9 +21,9 @@ export class MarketScene {
     this.container.innerHTML = `
       <div class="shop-scene">
         <div class="shop-scene__header">
-          <button class="shop-scene__back" id="market-back">&larr;</button>
-          <h2 class="shop-scene__title">Market</h2>
           <span class="shop-scene__shards">&#x1F48E; <span id="market-shards-hdr">${this.state.data.shards || "0"}</span></span>
+          <h2 class="shop-scene__title">Market</h2>
+          <button class="scene-close-btn" id="market-back">&times;</button>
         </div>
         <div class="shop-scene__content" id="market-content">
           <div class="shop-scene__loading">Loading...</div>

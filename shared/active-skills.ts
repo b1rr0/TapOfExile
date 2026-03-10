@@ -121,8 +121,52 @@ export interface ActiveSkillDef {
   effect?: EffectDef;
   /** Heal: fraction of maxHp restored (0.20 = 20%). Only for skillType=heal */
   healPercent?: number;
+  /**
+   * Spell base damage (level 1). When set, skill uses Arcane Spell formula:
+   * damage = spellBase × 1.07^(effectiveLevel - 1)
+   * instead of tapDamage × damageMultiplier (Weapon Spell formula).
+   */
+  spellBase?: number;
   /** Animation speed multiplier: 0.7 = slow/powerful, 1.0 = normal, 1.5 = fast */
   animSpeedMul: number;
+  /** Short fantasy-flavour description shown in skill cards & tooltips */
+  description: string;
+}
+
+/* ── 3-Type Skill Scaling ──────────────────────────────────── */
+
+/** ⚔️ Weapon Spell — scales from tapDamage × multiplier (no spellBase)
+ *  🔮 Arcane Spell — scales from own spellBase */
+export type SkillScalingType = 'weapon' | 'arcane';
+
+/** Derive scaling type from skill definition */
+export function getSkillScalingType(skill: ActiveSkillDef): SkillScalingType {
+  return (skill.spellBase != null && skill.spellBase > 0) ? 'arcane' : 'weapon';
+}
+
+/**
+ * Compute effective skill level for a specific skill type.
+ *
+ * Weapon:  charLevel + weaponSpellBonus + floor(versatileBonus / 1.5)
+ * Arcane:  charLevel + arcaneSpellBonus + floor(versatileBonus / 1.5)
+ */
+export function computeEffectiveSkillLevel(
+  charLevel: number,
+  scalingType: SkillScalingType,
+  weaponSpellBonus: number,
+  arcaneSpellBonus: number,
+  versatileBonus: number,
+): number {
+  const versatileEffective = Math.floor(versatileBonus / 1.5);
+  if (scalingType === 'weapon') {
+    return charLevel + weaponSpellBonus + versatileEffective;
+  }
+  return charLevel + arcaneSpellBonus + versatileEffective;
+}
+
+/** Compute skill level growth factor: 1.07^(effectiveLevel - 1) */
+export function computeSkillLevelGrowth(effectiveLevel: number): number {
+  return Math.pow(1.07, Math.max(0, effectiveLevel - 1));
 }
 
 /** Active skills that belong to a class tree (8 per class = 32 total) */
@@ -150,6 +194,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     spriteVariant: "v7_shadow",
     healPercent: 0.20,
     animSpeedMul: 1.0,
+    description: "Channels holy light to mend wounds and restore vitality",
     spritePath: "skils_sprites/healing/heal/v7_shadow/heal_sprite.json",
   },
   firebolt: {
@@ -161,7 +206,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "mage",
     spriteVariant: "v0",
+    spellBase: 28,
     animSpeedMul: 1.3,
+    description: "Hurls a searing bolt of arcane flame that ignites on impact",
     spritePath: "skils_sprites/fire/firebolt/v0/firebolt_sprite.json",
   },
   fire_breath: {
@@ -173,7 +220,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "mage",
     spriteVariant: "v0",
+    spellBase: 56,
     animSpeedMul: 0.85,
+    description: "Unleashes a devastating torrent of dragonfire that engulfs the enemy",
     spritePath: "skils_sprites/fire/fire_breath/v0/fire_breath_sprite.json",
   },
   water_ball: {
@@ -185,7 +234,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "mage",
     spriteVariant: "v0",
+    spellBase: 35,
     animSpeedMul: 1.0,
+    description: "Conjures a swirling orb of frozen energy that shatters on contact",
     spritePath: "skils_sprites/cold/water_ball/v0/water_ball_sprite.json",
   },
   explosion: {
@@ -197,7 +248,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "mage",
     spriteVariant: "v0",
+    spellBase: 63,
     animSpeedMul: 1.0,
+    description: "Detonates a volatile sphere of compressed fire and force",
     spritePath: "skils_sprites/fire/explosion/v0/explosion_sprite.json",
   },
   water_blast_full: {
@@ -209,7 +262,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "mage",
     spriteVariant: "v0",
+    spellBase: 63,
     animSpeedMul: 0.9,
+    description: "Summons a towering wave of glacial ice that crashes forward",
     spritePath: "skils_sprites/cold/water_blast_full/v0/water_blast_full_sprite.json",
   },
   explosion_2: {
@@ -221,7 +276,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "mage",
     spriteVariant: "v0",
+    spellBase: 200,
     animSpeedMul: 0.7,
+    description: "Unleashes a cataclysmic blast of pure arcane fury",
     spritePath: "skils_sprites/fire/explosion_2/v0/explosion_2_sprite.json",
   },
   water_startup: {
@@ -234,6 +291,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "mage",
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Marks the enemy with arcane sigils, weakening their magical defenses",
     effect: {
       id: "arcane_vulnerability",
       target: "enemy",
@@ -260,6 +318,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "samurai",
     spriteVariant: "v7_shadow",
     animSpeedMul: 1.4,
+    description: "A swift blade strike that cuts through the air with deadly precision",
     spritePath: "skils_sprites/physical/slash/v7_shadow/slash_sprite.json",
   },
   sword_throw: {
@@ -272,6 +331,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "samurai",
     spriteVariant: "v7_shadow",
     animSpeedMul: 1.2,
+    description: "Hurls a spinning blade that tears through enemies at range",
     iconPath: "skils_sprites/physical/sword_throw/v7_shadow/sword_throw_sprite.png",
     spritePath: "skils_sprites/physical/sword_throw/v7_shadow/sword_throw_sprite.json",
   },
@@ -285,6 +345,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "samurai",
     spriteVariant: "v1",
     animSpeedMul: 1.1,
+    description: "Draws a glowing crescent arc with a charged blade",
     spritePath: "skils_sprites/physical/slash_arc/v1/slash_arc_sprite.json",
   },
   thunder_projectile: {
@@ -296,7 +357,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "samurai",
     spriteVariant: "v0",
+    spellBase: 29,
     animSpeedMul: 1.2,
+    description: "Channels lightning into a crackling bolt hurled at the enemy",
     spritePath: "skils_sprites/lightning/thunder_projectile/v0/thunder_projectile_sprite.json",
   },
   thunder_ball: {
@@ -308,7 +371,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "samurai",
     spriteVariant: "v3_azure",
+    spellBase: 35,
     animSpeedMul: 1.0,
+    description: "Conjures a pulsing sphere of living lightning",
     spritePath: "skils_sprites/lightning/thunder_ball/v3_azure/thunder_ball_sprite.json",
   },
   thunder_splash: {
@@ -320,7 +385,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "samurai",
     spriteVariant: "v3_azure",
+    spellBase: 41,
     animSpeedMul: 1.0,
+    description: "Releases a burst of thunder energy that crackles outward",
     spritePath: "skils_sprites/lightning/thunder_splash/v3_azure/thunder_splash_sprite.json",
   },
   thunder_strike: {
@@ -332,7 +399,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "samurai",
     spriteVariant: "v3_azure",
+    spellBase: 64,
     animSpeedMul: 0.8,
+    description: "Calls down a devastating pillar of lightning from the heavens",
     spritePath: "skils_sprites/lightning/thunder_strike/v3_azure/thunder_strike_sprite.json",
   },
   effect_sparkle: {
@@ -345,6 +414,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "samurai",
     spriteVariant: "v3_azure",
     animSpeedMul: 1.0,
+    description: "Inscribes a glowing mark that reveals the enemy's weak points",
     effect: {
       id: "weakness_mark",
       target: "enemy",
@@ -371,6 +441,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "warrior",
     spriteVariant: "v2_emerald",
     animSpeedMul: 1.1,
+    description: "Carves a brutal cross pattern with twin blade strikes",
     spritePath: "skils_sprites/physical/slash_cross/v2_emerald/slash_cross_sprite.json",
   },
   slash_sweep: {
@@ -383,6 +454,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "warrior",
     spriteVariant: "v2_emerald",
     animSpeedMul: 1.0,
+    description: "Sweeps a heavy blade in a wide arc, cleaving through defenses",
     spritePath: "skils_sprites/physical/slash_sweep/v2_emerald/slash_sweep_sprite.json",
   },
   wood_projectile: {
@@ -395,6 +467,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "warrior",
     spriteVariant: "v0",
     animSpeedMul: 1.2,
+    description: "Hurls a nature-forged javelin wreathed in thorny vines",
     spritePath: "skils_sprites/wood/wood_projectile/v0/wood_projectile_sprite.json",
   },
   earth_bump: {
@@ -407,6 +480,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "warrior",
     spriteVariant: "v1_crimson",
     animSpeedMul: 0.9,
+    description: "Raises the earth beneath the enemy and slams it down with crushing force",
     spritePath: "skils_sprites/earth/earth_bump/v1_crimson/earth_bump_sprite.json",
   },
   earth_wall: {
@@ -419,6 +493,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "warrior",
     spriteVariant: "v1_crimson",
     animSpeedMul: 0.8,
+    description: "Summons a wall of stone that crashes into the enemy",
     spritePath: "skils_sprites/earth/earth_wall/v1_crimson/earth_wall_sprite.json",
   },
   wood_thorns: {
@@ -431,6 +506,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "warrior",
     spriteVariant: "v0",
     animSpeedMul: 0.9,
+    description: "Erupts thorny vines from the ground that impale from below",
     spritePath: "skils_sprites/wood/wood_thorns/v0/wood_thorns_sprite.json",
   },
   earth_impact: {
@@ -443,6 +519,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "warrior",
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Crushes the enemy under immense weight, shattering their armor",
     effect: {
       id: "crushed",
       target: "enemy",
@@ -457,19 +534,20 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
   effect_embers: {
     id: "effect_embers",
     name: "Ember Armor",
-    cooldownMs: 60000,
+    cooldownMs: 45000,
     damageMultiplier: 0,
     elementalProfile: {},
     skillType: "buff",
     classRestriction: "warrior",
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Ignites your armor, converting its bulk into searing destructive force",
     effect: {
       id: "ember_armor",
       target: "self",
-      stat: "armor",
-      value: 50,
-      durationMs: 5000,
+      stat: "armorToDamage",
+      value: 1.0,
+      durationMs: 8000,
       looping: true,
       refreshable: true,
     },
@@ -489,7 +567,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "archer",
     spriteVariant: "v0",
+    spellBase: 15,
     animSpeedMul: 1.5,
+    description: "Fires an arrow charged with crackling electrical energy",
     spritePath: "skils_sprites/lightning/lightning_bolt/v0/lightning_bolt_sprite.json",
   },
   lightning_arc: {
@@ -502,6 +582,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "archer",
     spriteVariant: "v0",
     animSpeedMul: 1.1,
+    description: "Releases a lightning-laced arrow that arcs through the air",
     spritePath: "skils_sprites/lightning/lightning_arc/v0/lightning_arc_sprite.json",
   },
   ice_shard: {
@@ -514,6 +595,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "archer",
     spriteVariant: "v0",
     animSpeedMul: 1.1,
+    description: "Launches a razor-sharp shard of enchanted ice",
     spritePath: "skils_sprites/cold/ice_shard/v0/ice_shard_sprite.json",
   },
   ice_burst: {
@@ -525,7 +607,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "archer",
     spriteVariant: "v0",
+    spellBase: 31,
     animSpeedMul: 1.0,
+    description: "Detonates a burst of freezing energy that flash-freezes on contact",
     spritePath: "skils_sprites/cold/ice_burst/v0/ice_burst_sprite.json",
   },
   lightning_strike_2: {
@@ -537,7 +621,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "archer",
     spriteVariant: "v0",
+    spellBase: 46,
     animSpeedMul: 0.7,
+    description: "Calls down divine lightning to judge the unworthy",
     spritePath: "skils_sprites/lightning/lightning_strike_2/v0/lightning_strike_2_sprite.json",
   },
   ice_shatter: {
@@ -549,7 +635,9 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     skillType: "damage",
     classRestriction: "archer",
     spriteVariant: "v0",
+    spellBase: 46,
     animSpeedMul: 0.8,
+    description: "Shatters a massive ice crystal, sending frozen shrapnel flying",
     spritePath: "skils_sprites/cold/ice_shatter/v0/ice_shatter_sprite.json",
   },
   lightning_sparks: {
@@ -562,6 +650,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "archer",
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Surrounds the enemy in a field of static, weakening all defenses",
     effect: {
       id: "static_charge",
       target: "enemy",
@@ -583,6 +672,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: "archer",
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Summons a swirling ring of lightning that deflects incoming attacks",
     effect: {
       id: "storm_shield",
       target: "self",
@@ -609,6 +699,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Launches a blazing ball of fire that explodes on impact",
     iconPath: "skils_sprites/fire/fireball/fireball_sprite.png",
     spritePath: "skils_sprites/fire/fireball/fireball_sprite.json",
   },
@@ -622,6 +713,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Delivers a precise forward thrust with lethal force",
     spritePath: "skils_sprites/physical/thrust_1/thrust_1_sprite.json",
   },
   thrust_2: {
@@ -634,6 +726,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "An empowered thrust that strikes with greater intensity",
     spritePath: "skils_sprites/physical/thrust_2/thrust_2_sprite.json",
   },
   effect_star: {
@@ -646,6 +739,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Unleashes a burst of stellar energy in all directions",
     spritePath: "skils_sprites/effects/effect_star/effect_star_sprite.json",
   },
   effect_sparks: {
@@ -658,6 +752,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Releases a shower of volatile electrical sparks",
     spritePath: "skils_sprites/effects/effect_sparks/effect_sparks_sprite.json",
   },
   fire_hit: {
@@ -670,6 +765,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Delivers a flame-empowered strike that scorches the enemy",
     spritePath: "skils_sprites/fire/fire_hit/fire_hit_sprite.json",
   },
   earth_projectile: {
@@ -682,6 +778,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Hurls a massive chunk of enchanted stone at the enemy",
     spritePath: "skils_sprites/earth/earth_projectile/earth_projectile_sprite.json",
   },
   earth_rocks: {
@@ -694,6 +791,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Summons a barrage of heavy rocks that pummel the target",
     spritePath: "skils_sprites/earth/earth_rocks/earth_rocks_sprite.json",
   },
   thunder_hit: {
@@ -706,6 +804,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Strikes with a fist charged with crackling thunder energy",
     spritePath: "skils_sprites/lightning/thunder_hit/thunder_hit_sprite.json",
   },
   lightning_wave: {
@@ -718,6 +817,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Sends a rolling wave of electrical energy forward",
     spritePath: "skils_sprites/lightning/lightning_wave/lightning_wave_sprite.json",
   },
   water_spike: {
@@ -730,6 +830,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Conjures a piercing spike of frozen water from below",
     spritePath: "skils_sprites/cold/water_spike/water_spike_sprite.json",
   },
   water_splash: {
@@ -742,6 +843,7 @@ export const ACTIVE_SKILLS: Record<ActiveSkillId, ActiveSkillDef> = {
     classRestriction: null,
     spriteVariant: "v0",
     animSpeedMul: 1.0,
+    description: "Unleashes a torrent of freezing water at the enemy",
     spritePath: "skils_sprites/cold/water_splash/water_splash_sprite.json",
   },
 };

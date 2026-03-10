@@ -1,4 +1,4 @@
-import { renderLogEntry, renderLogEntries, createLogPanelHTML } from "./combat-log-renderer.js";
+﻿import { renderLogEntry, renderLogEntries, createLogPanelHTML } from "./combat-log-renderer.js";
 import type { LogEntry } from "./combat-log-renderer.js";
 
 interface EventBus {
@@ -10,7 +10,7 @@ interface EventBus {
 export class CombatLog {
   private container: HTMLElement;
   private events: EventBus;
-  /** All log entries — public so DeathScene can read them */
+  /** All log entries - public so DeathScene can read them */
   entries: LogEntry[] = [];
   private panelEl: HTMLElement | null = null;
   private listEl: HTMLElement | null = null;
@@ -110,13 +110,13 @@ export class CombatLog {
     };
     this.events.on("enemyAttack", this._onEnemyAttack);
 
-    // Monster spawned — track name
+    // Monster spawned - track name
     this._onMonsterSpawned = (monster: any) => {
       this.currentMonsterName = monster.name || 'Monster';
     };
     this.events.on("monsterSpawned", this._onMonsterSpawned);
 
-    // Monster died — add separator
+    // Monster died - add separator
     this._onMonsterDied = (data: any) => {
       this.addEntry({
         type: 'monster_died',

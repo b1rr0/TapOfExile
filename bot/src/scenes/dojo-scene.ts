@@ -1,4 +1,4 @@
-import { getHeroSkin, getEnemySkin } from "../data/sprite-registry.js";
+﻿import { getHeroSkin, getEnemySkin } from "../data/sprite-registry.js";
 import { getCharacterClass } from "../data/character-classes.js";
 import { HeroCharacter } from "../ui/characters/hero-character.js";
 import { EnemyCharacter } from "../ui/characters/enemy-character.js";
@@ -32,7 +32,7 @@ function saveBestDamage(charId: string, damage: number): void {
 }
 
 /**
- * DojoScene — training dummy DPS test mode with landing menu + friends leaderboard.
+ * DojoScene - training dummy DPS test mode with landing menu + friends leaderboard.
  *
  * Flow (server-authoritative via WebSocket):
  *  1. Landing screen (dojo bg + "Start Challenge" / "Leaderboard" buttons)
@@ -162,9 +162,9 @@ export class DojoScene {
     this.container.innerHTML = `
       <div class="dojo-landing" style="background-image: url('${DOJO_BG}')">
         <div class="dojo-landing__header">
-          <button class="dojo-back-btn" id="dojo-back">&larr;</button>
-          <span class="dojo-landing__title">Dojo</span>
           <span class="dojo-landing__best">${this._bestDamage > 0 ? "Best: " + this._formatDmg(this._bestDamage) : ""}</span>
+          <span class="dojo-landing__title">Dojo</span>
+          <button class="scene-close-btn" id="dojo-back">&times;</button>
         </div>
         <div class="dojo-landing__center">
           <button class="dojo-landing__btn dojo-landing__btn--start" id="dojo-start">Start Challenge</button>
@@ -203,9 +203,9 @@ export class DojoScene {
     this.container.innerHTML = `
       <div class="dojo">
         <div class="dojo-topbar">
-          <button class="dojo-back-btn" id="dojo-back">&larr;</button>
-          <span class="dojo-title">Dojo</span>
           <span class="dojo-best" id="dojo-best">Best: ${this._bestDamage > 0 ? this._formatDmg(this._bestDamage) : "---"}</span>
+          <span class="dojo-title">Dojo</span>
+          <button class="scene-close-btn" id="dojo-back">&times;</button>
         </div>
 
         <div class="dojo-fight-hud" id="dojo-fight-hud">
@@ -223,7 +223,13 @@ export class DojoScene {
           xpToNext: char.xpToNext || 100,
           maxHp: char.maxHp || char.hp || 100,
           hp: char.hp || 100,
+          tapDamage: char.tapDamage || 1,
+          critChance: char.critChance || 0.05,
+          critMultiplier: char.critMultiplier || 1.5,
           dodgeChance: char.dodgeChance || 0,
+          weaponSpellLevel: (char as any)?.weaponSpellLevel || 0,
+          arcaneSpellLevel: (char as any)?.arcaneSpellLevel || 0,
+          versatileSpellLevel: (char as any)?.versatileSpellLevel || 0,
           resistance: char.resistance,
         })}
 
@@ -256,12 +262,16 @@ export class DojoScene {
     };
     arena.addEventListener("click", this._tapHandler);
 
-    // Potions (display-only, no server session in Dojo)
+    // Potions — wire to server via socket (same as combat)
     this._cleanupPotions = initPotionSlots({
       container: this.container,
       equipment: char?.inventory?.equipment || {},
-      onUsePotion: null,
-      events: null,
+      onUsePotion: (slot) => {
+        if (this._socket && this._sessionId && this._phase === "fight") {
+          this._socket.emit("combat:use-potion", { sessionId: this._sessionId, slot });
+        }
+      },
+      events: this.events,
     });
 
     // Keyboard (Space → tap)
@@ -269,7 +279,7 @@ export class DojoScene {
       onTap: () => this._onTap(),
     });
 
-    // Ability slots — show equipped skills from the skill tree
+    // Ability slots - show equipped skills from the skill tree
     {
       let equippedSkills = char.equippedSkills || [null, null, null, null];
       if (equippedSkills.every((s: string | null) => !s) && char.unlockedActiveSkills?.length) {
@@ -282,11 +292,26 @@ export class DojoScene {
         equippedSkills,
         projectileLayer: this._projectileLayer,
         onCastSkill: (skillId) => {
-          if (this._socket && this._sessionId) {
+          if (this._socket && this._sessionId && this._phase === "fight") {
             this._socket.emit("combat:cast-skill", { sessionId: this._sessionId, skillId });
           }
         },
         events: this.events,
+        charData: char ? {
+          level: char.level,
+          xp: char.xp || 0,
+          xpToNext: char.xpToNext || 1,
+          maxHp: char.maxHp,
+          hp: char.hp || char.maxHp,
+          tapDamage: char.tapDamage || 1,
+          critChance: char.critChance || 0.05,
+          critMultiplier: char.critMultiplier || 1.5,
+          dodgeChance: char.dodgeChance || 0,
+          weaponSpellLevel: (char as any).weaponSpellLevel || 0,
+          arcaneSpellLevel: (char as any).arcaneSpellLevel || 0,
+          versatileSpellLevel: (char as any).versatileSpellLevel || 0,
+          resistance: (char as any).resistance,
+        } : undefined,
       }).then((cleanup) => {
         this._cleanupAbilities = cleanup;
       });
@@ -387,6 +412,16 @@ export class DojoScene {
       this._endFight(data);
     });
 
+    this._socket.on("combat:potion-used", (result: any) => {
+      if (this._phase !== "fight") return;
+      this.events.emit("potionUsed", {
+        slot: result.slot,
+        healAmount: result.healAmount,
+        remainingCharges: result.remainingCharges,
+        maxCharges: result.maxCharges,
+      });
+    });
+
     this._socket.on("combat:skill-result", (data: {
       skillId: string;
       cooldownMs: number;
@@ -455,6 +490,7 @@ export class DojoScene {
     if (!this._socket) return;
     this._socket.off("combat:dojo-started");
     this._socket.off("combat:tap-result");
+    this._socket.off("combat:potion-used");
     this._socket.off("combat:skill-result");
     this._socket.off("combat:dojo-completed");
     this._socket.off("combat:error");
@@ -802,9 +838,9 @@ export class DojoScene {
     this.container.innerHTML = `
       <div class="dojo-landing" style="background-image: url('${DOJO_BG}')">
         <div class="dojo-landing__header">
-          <button class="dojo-back-btn" id="dojo-lb-back">&larr;</button>
-          <span class="dojo-landing__title">Leaderboard</span>
           <span class="dojo-landing__best"></span>
+          <span class="dojo-landing__title">Leaderboard</span>
+          <button class="scene-close-btn" id="dojo-lb-back">&times;</button>
         </div>
         <div class="dojo-lb-tabs">
           <button class="dojo-lb-tab dojo-lb-tab--active" id="dojo-tab-friends">Friends</button>

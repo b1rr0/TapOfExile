@@ -1,4 +1,4 @@
-import { Equipment } from "../ui/equipment.js";
+﻿import { Equipment } from "../ui/equipment.js";
 import { ChestPanel } from "../ui/chest-panel.js";
 import { FriendsPanel } from "../ui/friends-panel.js";
 import { TradePanel } from "../ui/trade-panel.js";
@@ -9,7 +9,7 @@ import { SpriteEngine } from "../ui/sprite-engine.js";
 import { ProjectileLayer } from "../ui/projectile-layer.js";
 import { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
 import { ELEMENT_COLORS } from "@shared/types";
-import { ACTIVE_SKILLS, CLASS_ACTIVE_SKILLS } from "@shared/active-skills";
+import { ACTIVE_SKILLS, CLASS_ACTIVE_SKILLS, getSkillScalingType, computeEffectiveSkillLevel, computeSkillLevelGrowth } from "@shared/active-skills";
 import type { ActiveSkillDef, ClassId } from "@shared/active-skills";
 import { buildSkillTree } from "../data/skill-tree.js";
 import type { SharedDeps, SkinConfig, Character } from "../types.js";
@@ -21,7 +21,7 @@ function fmtN(n: number): string {
 }
 
 /**
- * HideoutScene — home hub screen.
+ * HideoutScene - home hub screen.
  *
  * Top bar: title + Shop dropdown (Skins, Hideouts) + Settings dropdown (Heroes, Storybook).
  * Center: hero canvas sprite + character info.
@@ -107,7 +107,7 @@ export class HideoutScene {
 
     this.container.innerHTML = `
       <div class="hideout">
-        <!-- Top bar — title + Shop / Settings -->
+        <!-- Top bar - title + Shop / Settings -->
         <div class="hideout-topbar">
           <!-- Shop dropdown -->
           <div class="hideout-topbar__dropdown" id="shop-dropdown">
@@ -155,20 +155,21 @@ export class HideoutScene {
           </div>
         </div>
 
-        <!-- Hero area -->
+        <!-- Hero area + overlaid character info -->
         <div class="hideout-hero">
           <canvas class="hideout-hero__canvas" id="hideout-hero-canvas"></canvas>
+          ${char ? `
+          <div class="hideout-char-info">
+            <div class="hideout-char-info__top">
+              <span class="hideout-char-info__league">${(char as any).leagueType !== "standard" ? ((char as any).leagueName || "League").replace(/\s*\d{4}$/, "") : "Standard"}</span>
+            </div>
+            <div class="hideout-char-info__bottom">
+              <span class="hideout-char-info__class">${cls ? cls.icon + " " + cls.name : char.classId}</span>
+              <span class="hideout-char-info__name">${char.nickname}</span>
+            </div>
+          </div>
+          ` : ""}
         </div>
-
-        <!-- Character info -->
-        ${char ? `
-        <div class="hideout-char-info">
-          <div class="hideout-char-info__name">${char.nickname}</div>
-          <div class="hideout-char-info__class">${cls ? cls.icon + " " + cls.name : char.classId}</div>
-          <div class="hideout-char-info__league">${(char as any).leagueType !== "standard" ? ((char as any).leagueName || "League").replace(/\s*\d{4}$/, "") : "Standard"}</div>
-          <button class="hideout-char-info__stats-btn" id="hideout-stats-btn">Stats</button>
-        </div>
-        ` : ""}
 
         <!-- Bottom section: nav grid + XP bar -->
         <div class="hideout-bottom">
@@ -200,6 +201,10 @@ export class HideoutScene {
             <button class="hideout-btn hideout-btn--dojo" id="hideout-dojo-btn">
               <span class="hideout-btn__icon">&#x1F94B;</span>
               <span class="hideout-btn__label">Dojo</span>
+            </button>
+            <button class="hideout-btn hideout-btn--stats" id="hideout-stats-btn">
+              <span class="hideout-btn__icon">&#x1F4CA;</span>
+              <span class="hideout-btn__label">Character</span>
             </button>
           </div>
           <div class="bottom-xp-row">
@@ -287,7 +292,7 @@ export class HideoutScene {
     // -- Top bar dropdowns ---------------------------------
     this._wireDropdown("shop-toggle", "shop-menu", {
       skins: () => this.sceneManager.switchTo("skinShop"),
-      hideouts: () => console.log("[Hideout] Hideouts clicked — not implemented yet"),
+      hideouts: () => console.log("[Hideout] Hideouts clicked - not implemented yet"),
       shards: () => this.sceneManager.switchTo("shop"),
       market: () => this.sceneManager.switchTo("market"),
     });
@@ -464,13 +469,12 @@ export class HideoutScene {
 
     const frameW = skin.defaultSize.w;
     const frameH = skin.defaultSize.h;
-    const maxH = h * 0.65;
-    const scale = Math.min(maxH / frameH, (w * 0.5) / frameW);
+    const maxH = h * 0.92;
+    const scale = Math.min(maxH / frameH, (w * 0.85) / frameW);
     const dw = frameW * scale;
     const dh = frameH * scale;
     const dx = (w - dw) / 2;
-    const dpr = window.devicePixelRatio || 1;
-    const dy = h - dh - h * 0.08 + 10 * dpr;
+    const dy = h - dh - h * 0.02;
 
     this._heroEngine!.drawFrame(ctx, dx, dy, dw, dh, false);
   }
@@ -487,10 +491,6 @@ export class HideoutScene {
     const maxStats = statsAtLevel(char.classId, MAX_LEVEL);
 
     const fmtPct = (v: number) => `${Math.round(v * 100)}%`;
-
-    // Build elemental damage display
-    const elemDmg = (char as any).elementalDamage || { physical: 1.0 };
-    const elemEntries = Object.entries(elemDmg as Record<string, number>).filter(([, v]) => v > 0);
 
     // Unique ability
     const special = def?.special;
@@ -510,15 +510,15 @@ export class HideoutScene {
         </div>
 
         <div class="stats-overlay__tabs">
-          <button class="stats-overlay__tab-btn stats-overlay__tab-btn--active" data-stats-tab="general">Stats</button>
-          <button class="stats-overlay__tab-btn" data-stats-tab="skills">Skills</button>
+          <button class="stats-overlay__tab-btn stats-overlay__tab-btn--active" data-stats-tab="general">Character</button>
+          <button class="stats-overlay__tab-btn" data-stats-tab="skills">Attacks</button>
         </div>
 
         <div class="stats-overlay__body">
           <!-- ═══ General Stats tab ═══ -->
           <div class="stats-overlay__tab-content" id="stats-tab-general">
             <div class="stats-overlay__section-title">Combat Stats</div>
-            ${this._statRow(STAT_LABELS.hp.icon, "HP", `${char.hp ?? curStats.hp} / ${char.maxHp ?? curStats.hp}`, String(maxStats.hp))}
+            ${this._statRow(STAT_LABELS.hp.icon, "HP", String(char.maxHp ?? curStats.hp), String(maxStats.hp))}
             ${this._statRow(STAT_LABELS.tapDamage.icon, "Damage", String(char.tapDamage), String(maxStats.tapDamage))}
             ${this._statRow(STAT_LABELS.critChance.icon, "Crit Chance", fmtPct(char.critChance), fmtPct(maxStats.critChance))}
             ${this._statRow(STAT_LABELS.critMultiplier.icon, "Crit Dmg", fmtPct(char.critMultiplier), fmtPct(maxStats.critMultiplier))}
@@ -536,40 +536,27 @@ export class HideoutScene {
             </div>
             ` : ""}
 
-            ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0) ? `
+            ${((char as any).armor > 0 || (char as any).blockChance > 0 || (char as any).lifeOnHit > 0 || (char as any).lifeRegen > 0 || (char as any).goldFind > 0 || (char as any).xpBonus > 0 || (char as any).passiveDpsBonus > 0) ? `
             <div class="stats-overlay__section-title">Equipment Bonuses</div>
             ${(char as any).armor > 0 ? this._statRowSimple("🛡️", "Armor", String(Math.floor((char as any).armor))) : ""}
             ${(char as any).blockChance > 0 ? this._statRowSimple("🔰", "Block", Math.round((char as any).blockChance * 100) + "%") : ""}
+            ${(char as any).passiveDpsBonus > 0 ? this._statRowSimple("⚡", "Passive DPS", "+" + Math.round((char as any).passiveDpsBonus) + "%") : ""}
             ${(char as any).lifeOnHit > 0 ? this._statRowSimple("💚", "Life on Hit", "+" + Math.floor((char as any).lifeOnHit)) : ""}
             ${(char as any).lifeRegen > 0 ? this._statRowSimple("💗", "Life Regen", "+" + ((char as any).lifeRegen as number).toFixed(1) + "/s") : ""}
             ${(char as any).goldFind > 0 ? this._statRowSimple("💰", "Gold Find", "+" + Math.round((char as any).goldFind) + "%") : ""}
             ${(char as any).xpBonus > 0 ? this._statRowSimple("✨", "XP Bonus", "+" + Math.round((char as any).xpBonus) + "%") : ""}
             ` : ""}
 
-            <div class="stats-overlay__section-title">Damage Type</div>
-            <div class="stats-overlay__elem-row">
-              ${elemEntries.map(([elem, frac]) =>
-                `<span class="stats-overlay__elem-tag" style="border-color:${(ELEMENT_COLORS as any)[elem] || '#888'}; color:${(ELEMENT_COLORS as any)[elem] || '#888'}">
-                  ${elem} ${Math.round(frac * 100)}%
-                </span>`
-              ).join("")}
-            </div>
-
-            ${((char as any).gearFireDmg > 0 || (char as any).gearColdDmg > 0 || (char as any).gearLightningDmg > 0) ? `
-            <div class="stats-overlay__elem-row" style="margin-top:4px;">
-              ${(char as any).gearFireDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#ff4500;color:#ff4500">+' + Math.floor((char as any).gearFireDmg) + ' fire</span>' : ""}
-              ${(char as any).gearColdDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#87ceeb;color:#87ceeb">+' + Math.floor((char as any).gearColdDmg) + ' cold</span>' : ""}
-              ${(char as any).gearLightningDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#00bfff;color:#00bfff">+' + Math.floor((char as any).gearLightningDmg) + ' lightning</span>' : ""}
-            </div>
-            ` : ""}
-
             <div class="stats-overlay__section-title">Resistances</div>
             ${Object.entries(RESISTANCE_LABELS).map(([key, r]) => {
               const val = char.resistance ? (char.resistance as any)[key] || 0 : (curStats.resistance as any)[key] || 0;
+              const armorFlat = key === 'physical' ? Math.floor((char as any).armor || 0) : 0;
+              // armor / (armor + 1000) — reduction vs a 100-dmg physical hit
+              const armorPct = armorFlat > 0 ? Math.round(armorFlat / (armorFlat + 1000) * 100) : 0;
               return `<div class="stats-overlay__res-row">
                 <span class="stats-overlay__res-dot" style="background:${r.color}"></span>
                 <span class="stats-overlay__res-label">${r.label}</span>
-                <span class="stats-overlay__res-value" style="color:${val > 0 ? r.color : 'var(--game-text)'}">${val}%</span>
+                <span class="stats-overlay__res-value" style="color:${val > 0 || armorFlat > 0 ? r.color : 'var(--game-text)'}">${armorFlat > 0 ? `🛡️${armorFlat} <span style="opacity:0.7;font-size:0.85em">(${armorPct}%)</span> + ` : ''}${val}%</span>
               </div>`;
             }).join("")}
 
@@ -648,7 +635,7 @@ export class HideoutScene {
     </div>`;
   }
 
-  /** Build Skills tab content — only unlocked skills with full detail */
+  /** Build Skills tab content - only unlocked skills with full detail */
   _buildSkillsTab(char: Character): string {
     const tree = buildSkillTree();
     const allocSet = new Set(char.allocatedNodes || []);
@@ -669,22 +656,43 @@ export class HideoutScene {
     const critMult = char.critMultiplier || 1.5;
     const expectedMult = (1 - critChance) + critChance * critMult;
 
+    // Per-skill level bonuses from equipment + tree
+    const wpnLv = (char as any).weaponSpellLevel || 0;
+    const arcLv = (char as any).arcaneSpellLevel || 0;
+    const verLv = (char as any).versatileSpellLevel || 0;
+
+    // Elemental damage profile for Hit card
+    const elemDmg = (char as any).elementalDamage || { physical: 1.0 };
+    const elemEntries = Object.entries(elemDmg as Record<string, number>).filter(([, v]) => v > 0);
+
     let html = `<div class="stats-overlay__skill-cards">`;
 
-    // ── Tap card (always shown) ──
-    const tapExpected = Math.floor(baseDmg * expectedMult);
+    // ── Hit card (always shown) — Weapon type ──
+    const hitEffLv = computeEffectiveSkillLevel(char.level, 'weapon', wpnLv, arcLv, verLv);
+    const hitGrowth = computeSkillLevelGrowth(hitEffLv);
+    const hitDmg = Math.floor(baseDmg * hitGrowth);
+    const hitExpected = Math.floor(hitDmg * expectedMult);
     html += `<div class="stats-overlay__skill-card stats-overlay__skill-card--tap">
       <div class="stats-overlay__skill-card-head">
         <div class="stats-overlay__skill-icon-slot" style="font-size:22px;background:rgba(164,2,57,0.15);border-color:rgba(164,2,57,0.3)">&#x1F44A;</div>
         <div class="stats-overlay__skill-card-title">
-          <span class="stats-overlay__skill-card-name">Tap</span>
-          <span class="stats-overlay__skill-card-desc">Basic attack &middot; physical</span>
+          <span class="stats-overlay__skill-card-name">Hit <span style="color:#F9CF87;font-size:0.8em">⚔️ Weapon Lv.${hitEffLv}</span></span>
+          <span class="stats-overlay__skill-card-desc">A focused strike channeled through your weapon</span>
         </div>
       </div>
+      <div class="stats-overlay__skill-card-elems">${elemEntries.map(([elem, frac]) =>
+        `<span class="stats-overlay__elem-tag" style="border-color:${(ELEMENT_COLORS as any)[elem] || '#888'};color:${(ELEMENT_COLORS as any)[elem] || '#888'}">${elem} ${Math.round((frac as number) * 100)}%</span>`
+      ).join("")}</div>
+      ${((char as any).gearFireDmg > 0 || (char as any).gearColdDmg > 0 || (char as any).gearLightningDmg > 0) ? `
+      <div class="stats-overlay__skill-card-elems" style="margin-top:2px">
+        ${(char as any).gearFireDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#ff4500;color:#ff4500">+' + Math.floor((char as any).gearFireDmg) + ' fire</span>' : ""}
+        ${(char as any).gearColdDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#87ceeb;color:#87ceeb">+' + Math.floor((char as any).gearColdDmg) + ' cold</span>' : ""}
+        ${(char as any).gearLightningDmg > 0 ? '<span class="stats-overlay__elem-tag" style="border-color:#00bfff;color:#00bfff">+' + Math.floor((char as any).gearLightningDmg) + ' lightning</span>' : ""}
+      </div>` : ""}
       <div class="stats-overlay__skill-card-stats">
         <div class="stats-overlay__skill-card-stat">
           <span class="stats-overlay__skill-card-stat-label">Damage</span>
-          <span class="stats-overlay__skill-card-stat-value">${tapExpected.toLocaleString()}</span>
+          <span class="stats-overlay__skill-card-stat-value">${hitExpected.toLocaleString()}</span>
         </div>
         <div class="stats-overlay__skill-card-stat">
           <span class="stats-overlay__skill-card-stat-label">Base</span>
@@ -700,20 +708,14 @@ export class HideoutScene {
 
     for (const skill of unlockedSkills) {
       const cdSec = skill.cooldownMs / 1000;
+      const sType = getSkillScalingType(skill);
+      const sEffLv = computeEffectiveSkillLevel(char.level, sType, wpnLv, arcLv, verLv);
+      const sGrowth = computeSkillLevelGrowth(sEffLv);
+      const typeIcon = sType === 'arcane' ? '🔮' : '⚔️';
+      const typeName = sType === 'arcane' ? 'Arcane' : 'Weapon';
 
-      // Auto-generate description
-      let desc = "";
-      if (skill.skillType === "damage") {
-        desc = `Deals ${skill.damageMultiplier}&times; tap damage`;
-      } else if (skill.skillType === "heal") {
-        desc = `Heals ${Math.round((skill.healPercent || 0) * 100)}% of max HP`;
-      } else if (skill.skillType === "buff" && skill.effect) {
-        const val = skill.effect.value < 1 ? `${Math.round(skill.effect.value * 100)}%` : String(Math.round(skill.effect.value));
-        desc = `+${val} ${skill.effect.stat} for ${(skill.effect.durationMs / 1000).toFixed(0)}s`;
-      } else if (skill.skillType === "debuff" && skill.effect) {
-        const val = skill.effect.value < 1 ? `${Math.round(skill.effect.value * 100)}%` : String(Math.round(skill.effect.value));
-        desc = `&minus;${val} ${skill.effect.stat} on enemy for ${(skill.effect.durationMs / 1000).toFixed(0)}s`;
-      }
+      // Use skill description from definition
+      const desc = skill.description || "";
 
       // Elemental tags
       const elemEntries = Object.entries(skill.elementalProfile || {}).filter(([, v]) => (v as number) > 0);
@@ -726,7 +728,13 @@ export class HideoutScene {
       // Stats grid (depends on skill type)
       let statsHtml = "";
       if (skill.skillType === "damage") {
-        const rawDmg = Math.floor(baseDmg * skill.damageMultiplier);
+        // Arcane: spellBase × growth; Weapon: tapDmg × mult × growth
+        let rawDmg: number;
+        if (sType === 'arcane') {
+          rawDmg = Math.floor(skill.spellBase! * sGrowth);
+        } else {
+          rawDmg = Math.floor(baseDmg * skill.damageMultiplier * sGrowth);
+        }
         const expDmg = Math.floor(rawDmg * expectedMult);
         const dps = (expDmg / cdSec).toFixed(0);
         statsHtml = `
@@ -759,7 +767,10 @@ export class HideoutScene {
       } else {
         // buff / debuff
         const eff = skill.effect;
-        const effVal = eff && eff.value < 1 ? `${Math.round(eff.value * 100)}%` : String(Math.round(eff?.value || 0));
+        const isArmorToDmg = eff?.stat === 'armorToDamage';
+        const effVal = isArmorToDmg
+          ? `${Math.round((eff?.value || 0) * 100)}% 🛡️→⚔️`
+          : eff && eff.value < 1 ? `${Math.round(eff.value * 100)}%` : String(Math.round(eff?.value || 0));
         statsHtml = `
           <div class="stats-overlay__skill-card-stats" style="grid-template-columns:1fr 1fr 1fr">
             <div class="stats-overlay__skill-card-stat">
@@ -781,7 +792,7 @@ export class HideoutScene {
         <div class="stats-overlay__skill-card-head">
           <div class="stats-overlay__skill-icon-slot" data-skill-id="${skill.id}"></div>
           <div class="stats-overlay__skill-card-title">
-            <span class="stats-overlay__skill-card-name">${skill.name}</span>
+            <span class="stats-overlay__skill-card-name">${skill.name} <span style="color:#F9CF87;font-size:0.8em">${typeIcon} ${typeName} Lv.${sEffLv}</span></span>
             <span class="stats-overlay__skill-card-desc">${desc}</span>
           </div>
         </div>

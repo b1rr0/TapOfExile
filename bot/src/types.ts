@@ -1,4 +1,4 @@
-// ── Re-export shared types ───────────────────────────────
+﻿// ── Re-export shared types ───────────────────────────────
 
 export type {
   ModMode,
@@ -90,7 +90,7 @@ export interface BagItem {
   maxCharges?: number;
   currentCharges?: number;
   healPercent?: number;
-  /** Equipment properties (type='equipment') — stored in Item.properties JSONB */
+  /** Equipment properties (type='equipment') - stored in Item.properties JSONB */
   properties?: {
     slot?: string;
     subtype?: string;

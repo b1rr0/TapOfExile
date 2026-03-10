@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   BadRequestException,
   NotFoundException,
@@ -88,7 +88,7 @@ export class SkillTreeService {
     }
     char.unlockedActiveSkills = newUnlocked;
 
-    // Clean up equipped skills — remove any that are no longer unlocked
+    // Clean up equipped skills - remove any that are no longer unlocked
     const unlockedSet = new Set(newUnlocked);
     const equipped: (string | null)[] = [...(char.equippedSkills || [null, null, null, null])];
     while (equipped.length < 4) equipped.push(null);

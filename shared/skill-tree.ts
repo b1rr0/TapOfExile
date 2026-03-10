@@ -1,14 +1,14 @@
-/**
- * Passive Skill Tree — organic branching circular graph, ~560 nodes.
+﻿/**
+ * Passive Skill Tree - organic branching circular graph, ~560 nodes.
  *
  * The tree is pre-computed at build time (see generate-tree.ts) and loaded
- * from skill-tree-data.ts at runtime — zero computation on import.
+ * from skill-tree-data.ts at runtime - zero computation on import.
  *
  * To regenerate after changing the generation algorithm:
  *   npx tsx shared/generate-tree.ts
  *
- * generateSkillTree() — full computation (used only by the build script).
- * buildSkillTree()    — loads pre-computed data (used at runtime by FE & BE).
+ * generateSkillTree() - full computation (used only by the build script).
+ * buildSkillTree()    - loads pre-computed data (used at runtime by FE & BE).
  *
  * NOTE: This file is shared between FE and BE.
  * BE uses it for validation (topology); FE also uses layout (x, y) for rendering.
@@ -319,7 +319,7 @@ function effectiveRadius(
     const figId = figureMembership.get(node.id);
     const shape = figId !== undefined ? figureShapes.get(figId) : undefined;
     if (shape) {
-      // Use gateway anchor point as origin (not centroid) — keystones are
+      // Use gateway anchor point as origin (not centroid) - keystones are
       // placed relative to the anchor, so gateway-based radius is accurate.
       const anchorIdx = shape.gatewayIdx;
       const ax = anchorIdx !== undefined
@@ -343,7 +343,7 @@ function effectiveRadius(
  *  1. Min distance between outer nodes (4× diameter)
  *  2. No outer-edge crossings
  * classSkill and start nodes are anchored; their edges are excluded from checks.
- * Keystone nodes are NOT independently movable — they follow their gateway shape.
+ * Keystone nodes are NOT independently movable - they follow their gateway shape.
  */
 function relaxLayout(
   nodes: SkillNode[], edges: [number, number][], emblems: Emblem[], maxIter: number,
@@ -484,7 +484,7 @@ function relaxLayout(
   // ── 4. Position figure keystones using constellation shapes ──
   // After main relaxation, place keystones per their shape geometry,
   // anchored on gateway (which may sit at a vertex or at the center).
-  // NOTE: gw.connections only contains directly-adjacent keystones — use
+  // NOTE: gw.connections only contains directly-adjacent keystones - use
   // figureMembership + nodeId suffix ("-ks{k}") to map ALL keystones to shape points.
   for (let i = 0; i < N; i++) {
     const gw = nodes[i];
@@ -533,7 +533,7 @@ function relaxLayout(
   // (both endpoints in same figure) and outer-tree edges (neither endpoint in
   // this figure). Updates keystone positions in place.
   {
-    const ROT_STEPS = 360;  // 1° granularity — fine enough for any geometry
+    const ROT_STEPS = 360;  // 1° granularity - fine enough for any geometry
 
     for (let i = 0; i < N; i++) {
       const gw = nodes[i];
@@ -566,7 +566,7 @@ function relaxLayout(
 
       // Edges to check against:
       // 1. Outer edges where neither endpoint belongs to this figure (tree branches)
-      // 2. The gateway's parent connection (one endpoint = gateway, other = tree) — this
+      // 2. The gateway's parent connection (one endpoint = gateway, other = tree) - this
       //    edge can cross the figure's own keystones if rotation is wrong.
       const checkEdges = oEdges.filter(([a, b]) => {
         const fa = figureMembership.get(a);
@@ -611,7 +611,7 @@ function relaxLayout(
         const fe = shape.edges.map(
           ([ei, ej]) => [ptW[ei][0], ptW[ei][1], ptW[ej][0], ptW[ej][1]] as [number, number, number, number],
         );
-        // Edge crossings (most critical — weight 1000)
+        // Edge crossings (most critical - weight 1000)
         let cross = 0;
         for (const [x1, y1, x2, y2] of fe) {
           for (const [ci, di] of checkEdges) {
@@ -945,7 +945,7 @@ export const INNER_SHAPES: ConstellationShape[] = [
   { name: "hexagon", points: [[0,2],[1,0],[3,0],[4,2],[3,4],[1,4]],
     edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]], gatewayIdx: 0 },
   { name: "cluster6", points: [[2,2],[2,4],[4,2],[2,0],[0,2],[3,3]],
-    edges: [[0,1],[0,2],[0,3],[0,4],[0,5]], gatewayIdx: 0 },  // hub — gateway IS the center
+    edges: [[0,1],[0,2],[0,3],[0,4],[0,5]], gatewayIdx: 0 },  // hub - gateway IS the center
   { name: "twoTri6", points: [[0,0],[2,0],[1,2],[3,0],[5,0],[4,2]],
     edges: [[0,1],[1,2],[2,0],[1,3],[3,4],[4,5],[5,3]], gatewayIdx: 1 },
 ];
@@ -1030,7 +1030,7 @@ function growFigure(
   const ay = anchorIdx !== undefined ? shape.points[anchorIdx][1]
     : shape.points.reduce((s, p) => s + p[1], 0) / shape.points.length;
 
-  // Create keystones at transformed positions (skip anchor vertex — gateway is there)
+  // Create keystones at transformed positions (skip anchor vertex - gateway is there)
   const ksNodes: SkillNode[] = [];
   for (let k = 0; k < shape.points.length; k++) {
     if (k === anchorIdx) continue;  // gateway occupies this vertex
@@ -1080,7 +1080,7 @@ function growFigure(
 
 let _cachedTree: SkillTreeResult | null = null;
 
-// ── Main entry point — loads pre-computed data ────────────
+// ── Main entry point - loads pre-computed data ────────────
 
 export function buildSkillTree(): SkillTreeResult {
   if (_cachedTree) return _cachedTree;
@@ -1212,7 +1212,7 @@ export function generateSkillTree(): SkillTreeResult {
 
   // ── 2. Class skill mini-trees (16 per class = 64) ──────
   //
-  // Stretched layout — tree grows INWARD from start (at emblem edge r=100).
+  // Stretched layout - tree grows INWARD from start (at emblem edge r=100).
   // D1 at r=75 (bridge). Branches fill the emblem interior.
   //
   //   Topology:
@@ -1220,8 +1220,8 @@ export function generateSkillTree(): SkillTreeResult {
   //     Fork branch  (2):    D2(conn)→skill→junction(conn)→ forkL(skill) / forkR(skill)
   //     Middle branch (1):   D2(conn)→D3(skill, leaf)
   //
-  //   ◉ = activeSkill (hex), connector=false — 8 total
-  //   ○ = classSkill (path node), connector=true — 8 total
+  //   ◉ = activeSkill (hex), connector=false - 8 total
+  //   ○ = classSkill (path node), connector=true - 8 total
   //   MAX_CLASS_SKILLS = 16
   //
   //   Node mapping from sketch:
@@ -1289,11 +1289,11 @@ export function generateSkillTree(): SkillTreeResult {
       return n;
     }
 
-    // D1 — bridge connector
+    // D1 - bridge connector
     const d1 = mkConn(D1_POS[0], D1_POS[1]);
     b.link(starts[ci], d1);
 
-    // D2 — 4 path connectors
+    // D2 - 4 path connectors
     // Branches 0,1,3 bypass d1 hub; branch 2 (fork) goes through d1
     const d2 = BRANCH_POS.map((bp, i) => {
       const n = mkConn(bp[0][0], bp[0][1]);
@@ -1313,13 +1313,13 @@ export function generateSkillTree(): SkillTreeResult {
 
     const longIndices = [0, 3];
 
-    // D3 — skill/connector endpoints per branch
+    // D3 - skill/connector endpoints per branch
     const d3 = BRANCH_POS.map((bp, i) => {
       const isLong = longIndices.includes(i);
       const isFork = i === FORK_IDX;
 
       if (!isLong && bp.length > 2) {
-        // Fork: D2→skill(+70°)→junction(conn,+105°) — fork branches from junction
+        // Fork: D2→skill(+70°)→junction(conn,+105°) - fork branches from junction
         let prev = d2[i];
         for (let k = 1; k < bp.length - 1; k++) {
           const mid = mkSkill(bp[k][0], bp[k][1]);
@@ -1354,14 +1354,14 @@ export function generateSkillTree(): SkillTreeResult {
     b.link(d3[FORK_IDX], forkL);
     b.link(d3[FORK_IDX], forkR);
 
-    // D5 — skill endpoints for long branches
+    // D5 - skill endpoints for long branches
     for (const li of longIndices) {
       const n = mkSkill(BRANCH_POS[li][3][0], BRANCH_POS[li][3][1]);
       b.link(d4Conn[li]!, n);
     }
   }
 
-  // ── 3. Inner ring — 3 per class (12) ──────────────────
+  // ── 3. Inner ring - 3 per class (12) ──────────────────
 
   const R0 = START_RADIUS + EMBLEM_RADIUS;
   const innerRing: SkillNode[][] = [];
@@ -1382,7 +1382,7 @@ export function generateSkillTree(): SkillTreeResult {
     innerRing.push(sn);
   }
 
-  // ── 4. Trunk — 5 per class (20) ──────────────────────
+  // ── 4. Trunk - 5 per class (20) ──────────────────────
 
   const trunkRing: SkillNode[][] = [];
   for (let ci = 0; ci < 4; ci++) {
@@ -1402,7 +1402,7 @@ export function generateSkillTree(): SkillTreeResult {
     trunkRing.push(sn);
   }
 
-  // ── 5. Branch ring — 5 per class (20) ────────────────
+  // ── 5. Branch ring - 5 per class (20) ────────────────
 
   const branchRing: SkillNode[][] = [];
   for (let ci = 0; ci < 4; ci++) {
@@ -1422,7 +1422,7 @@ export function generateSkillTree(): SkillTreeResult {
     branchRing.push(sn);
   }
 
-  // ── 6. Fractal tendrils — 5 roots per class ──────────
+  // ── 6. Fractal tendrils - 5 roots per class ──────────
 
   for (let ci = 0; ci < 4; ci++) {
     const cls = CLASS_IDS[ci];
@@ -1443,9 +1443,9 @@ export function generateSkillTree(): SkillTreeResult {
     }
   }
 
-  // ── 7. (Removed — tendril tips now produce figures directly) ──
+  // ── 7. (Removed - tendril tips now produce figures directly) ──
 
-  // ── 8. Mid-ring filler — 3 per class (12) ──────────
+  // ── 8. Mid-ring filler - 3 per class (12) ──────────
   //  Placed between trunk and branch, linking the two layers with extra paths.
   //  Trunk/branch pairings offset to avoid triangles (branch[j]↔trunk[j] already exists).
 
@@ -1473,11 +1473,11 @@ export function generateSkillTree(): SkillTreeResult {
       b.link(n, branchRing[ci][midBranch[j]]);
       sn.push(n);
     }
-    // No mid-mid horizontal links — they cross trunk↔branch radial edges.
+    // No mid-mid horizontal links - they cross trunk↔branch radial edges.
     midRing.push(sn);
   }
 
-  // ── 9. Branch-level figures — 2 per class (8 figureEntries) ──
+  // ── 9. Branch-level figures - 2 per class (8 figureEntries) ──
   //  Inner constellation figures at branch layer, connecting branch[1]/branch[3] notables.
 
   for (let ci = 0; ci < 4; ci++) {
@@ -1491,7 +1491,7 @@ export function generateSkillTree(): SkillTreeResult {
     }
   }
 
-  // ── 10. (Removed — tendril tips now produce figures directly) ──
+  // ── 10. (Removed - tendril tips now produce figures directly) ──
 
   // ── 11. Cross-class bridges (enhanced) ─────────────
   //  Instead of a direct trunk→trunk link, add 2 intermediary nodes per bridge (8 total)
@@ -1530,7 +1530,7 @@ export function generateSkillTree(): SkillTreeResult {
     bridgeNodes.push(bridgePair);
   }
 
-  // ── 12. Outer arc connectors — notable hubs between classes (4) ──
+  // ── 12. Outer arc connectors - notable hubs between classes (4) ──
   //  One notable node per class boundary at the outer ring, connecting
   //  the outermost branch nodes of adjacent classes.
 
@@ -1554,7 +1554,7 @@ export function generateSkillTree(): SkillTreeResult {
     b.link(trunkRing[next][0], n);
   }
 
-  // ── 13. Inner web — 2 per class (8) ──
+  // ── 13. Inner web - 2 per class (8) ──
   //  Extra density between inner ring and trunk.
   //  Trunk targets chosen to avoid triangles: inner[0]↔trunk[0] and
   //  inner[2]↔trunk[4] already exist, so we use trunk[2] and trunk[3].
@@ -1592,7 +1592,7 @@ export function generateSkillTree(): SkillTreeResult {
   assertNoLeafFigureEntries(b.nodes);
 
   // ── Post-validation: scale outer positions by 1.25× from center ──
-  // Class internals (start + classSkill) keep original spacing — only shift with emblem.
+  // Class internals (start + classSkill) keep original spacing - only shift with emblem.
   const LAYOUT_SCALE = 1.25;
   // First compute emblem shifts (emblem centers move outward)
   const emblemShift: { dx: number; dy: number }[] = b.emblems.map(em => ({

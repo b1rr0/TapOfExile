@@ -1,5 +1,5 @@
-/**
- * ItemTooltip — floating tooltip shown on long-press (300ms).
+﻿/**
+ * ItemTooltip - floating tooltip shown on long-press (300ms).
  *
  * Shows item name (colored by quality), type, stats.
  * Used by ChestPanel and Equipment panel.
@@ -107,7 +107,8 @@ export class ItemTooltip {
       const props = item.properties;
       const sub = SUBTYPES.find(s => s.code === props.subtype);
       if (sub) {
-        statsHtml += `<div class="item-tooltip__stat" style="color:#aaa;font-size:11px">${sub.name}</div>`;
+        const handTag = sub.slot === 'one_hand' ? '1H' : sub.slot === 'two_hand' ? '2H' : '';
+        statsHtml += `<div class="item-tooltip__stat" style="color:#aaa;font-size:11px">${sub.name}${handTag ? ` (${handTag})` : ''}</div>`;
       }
       if (props.baseDamage) statsHtml += `<div class="item-tooltip__stat">DMG: <span class="item-tooltip__val">${props.baseDamage}</span></div>`;
       if (props.baseArmor) statsHtml += `<div class="item-tooltip__stat">ARM: <span class="item-tooltip__val">${props.baseArmor}</span></div>`;

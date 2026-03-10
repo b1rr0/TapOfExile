@@ -1,5 +1,5 @@
-/**
- * Monster attack definitions — shared between FE (display) and BE (logic).
+﻿/**
+ * Monster attack definitions - shared between FE (display) and BE (logic).
  *
  * Each monster type has a pool of 5 attacks with:
  *  - name: display name for combat log

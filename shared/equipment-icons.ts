@@ -1,5 +1,5 @@
-/**
- * Equipment Icons — maps subtype codes to random sprite paths.
+﻿/**
+ * Equipment Icons - maps subtype codes to random sprite paths.
  * Auto-generated from shared/public/assets/equipments/
  */
 

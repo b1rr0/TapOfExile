@@ -1,5 +1,5 @@
-/**
- * Sprite Registry — central catalogue of all hero and enemy skins.
+﻿/**
+ * Sprite Registry - central catalogue of all hero and enemy skins.
  *
  * Animation configs (fps, loop, json atlas) live here because they are
  * FE-rendering-only. Shared metadata (paths, names, classId, monster→skin map)
@@ -16,14 +16,14 @@
  *  - Enemy: idle (loop), run (one-shot), death (one-shot)
  *
  * Each skin entry:
- *  @property {string} id          — unique identifier (matches folder name)
- *  @property {string} name        — display name
- *  @property {string} classId     — character class this skin belongs to
- *  @property {string} basePath    — path to sprite folder (relative to project root)
- *  @property {Object} animations  — { name: { json, fps, loop } } for SpriteEngine
- *  @property {Object} defaultSize    — { w, h } default draw size in CSS px
- *  @property {number} anchorOffsetY  — fraction of frame height empty below feet
- *  @property {number} scale          — visual scale multiplier (1 = unchanged)
+ *  @property {string} id          - unique identifier (matches folder name)
+ *  @property {string} name        - display name
+ *  @property {string} classId     - character class this skin belongs to
+ *  @property {string} basePath    - path to sprite folder (relative to project root)
+ *  @property {Object} animations  - { name: { json, fps, loop } } for SpriteEngine
+ *  @property {Object} defaultSize    - { w, h } default draw size in CSS px
+ *  @property {number} anchorOffsetY  - fraction of frame height empty below feet
+ *  @property {number} scale          - visual scale multiplier (1 = unchanged)
  */
 
 import type { SkinConfig, AnimationConfig } from "../types.js";
