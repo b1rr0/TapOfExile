@@ -33,7 +33,7 @@ interface RawNode {
 // ── Power-1 base values per stat ──────────────────────────
 
 const BASE: Record<string, number> = {
-  damage: 0.04, dps: 0.04, critChance: 0.05, critMulti: 0.08,
+  damage: 0.04, tapHit: 10, critChance: 0.05, critMulti: 0.08,
   hp: 0.10, armor: 0.08, lifeOnHit: 0.08, fireDmg: 0.05, lightningDmg: 0.05, coldDmg: 0.05,
   goldFind: 0.05, xpGain: 0.06,
   // Weapon-type multipliers (base 0.06 = +6% per power-1 node)
@@ -54,7 +54,7 @@ type Theme = "damage" | "crit" | "tank" | "fire" | "lightning" | "cold" | "utili
   | "wpn_bow" | "wpn_staff";
 
 const THEME_STATS: Record<Theme, string[]> = {
-  damage:       ["damage", "dps"],
+  damage:       ["damage", "tapHit"],
   crit:         ["critChance", "critMulti"],
   tank:         ["hp", "lifeOnHit"],
   armor:        ["armor", "hp"],
@@ -203,7 +203,12 @@ function buildMods(
     if (theme === "allElemental") {
       value = Math.min(value, ALL_ELEMENTAL_CAP);
     }
-    mods.push({ stat, value, mode: "percent" });
+    const isFlat = stat === "tapHit";
+    if (isFlat) {
+      value = Math.round(value);
+      value = Math.max(20, Math.min(50, value));
+    }
+    mods.push({ stat, value, mode: isFlat ? "flat" : "percent" });
   }
 
   const name = names[Math.floor(rng() * names.length)];
@@ -228,7 +233,7 @@ function buildMods(
 
 function statLabel(stat: string): string {
   const LABELS: Record<string, string> = {
-    damage: "Damage", dps: "DPS", critChance: "Crit", critMulti: "Crit Dmg",
+    damage: "Damage", tapHit: "Hit (tap)", critChance: "Crit", critMulti: "Crit Dmg",
     hp: "HP", armor: "Armor", lifeOnHit: "Life on Hit",
     fireDmg: "Fire", lightningDmg: "Lightning", coldDmg: "Cold",
     goldFind: "Gold", xpGain: "XP",

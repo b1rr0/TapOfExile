@@ -10,7 +10,7 @@ import type { SkillNode } from "@shared/skill-tree";
 
 /* ── Stats that affect DPS (used for skill impact preview) ── */
 const DPS_RELEVANT_STATS = new Set([
-  "damage", "dps", "critChance", "critMulti",
+  "damage", "tapHit", "critChance", "critMulti",
   "fireDmg", "coldDmg", "lightningDmg", "pureDmg",
   "weaponSpellLevel", "arcaneSpellLevel", "versatileSpellLevel",
 ]);
@@ -699,7 +699,7 @@ export class SkillTreeScene {
       : tapDamage;
 
     // Accumulate deltas from all relevant mods
-    let dTap = 0, dCrit = 0, dCritMul = 0;
+    let dTap = 0, dTapFlat = 0, dCrit = 0, dCritMul = 0;
     let dFirePct = 0, dColdPct = 0, dLightPct = 0, dPurePct = 0;
     let dWpn = 0, dArc = 0, dVer = 0;
     // Weapon-type damage multiplier (swordDmg etc. = % damage bonus when weapon matches)
@@ -708,7 +708,8 @@ export class SkillTreeScene {
     let weaponAmpMult = 0;
     for (const m of relevant) {
       switch (m.stat) {
-        case "damage": case "dps":   dTap += baseTapDmg * m.value; break;
+        case "damage":                dTap += baseTapDmg * m.value; break;
+        case "tapHit":                dTapFlat += m.value; break;
         case "critChance":            dCrit += m.value; break;
         case "critMulti":             dCritMul += m.value; break;
         case "fireDmg":               dFirePct += m.value; break;
@@ -781,10 +782,28 @@ export class SkillTreeScene {
         + ` <span style="color:${col};font-size:10px">${sign}${pct.toFixed(1)}%</span>`
         + `</span></div>`;
     }
-    if (!rows) return "";
+    // Tap damage preview (Hit)
+    let tapRow = "";
+    const totalTapDelta = dTap + dTapFlat;
+    if (totalTapDelta !== 0) {
+      const newTap = tapDamage + totalTapDelta;
+      // Apply weapon dmg mult if present
+      const finalNewTap = weaponDmgMult > 0 ? Math.floor(newTap * (1 + weaponDmgMult)) : Math.floor(newTap);
+      const tapPct = tapDamage > 0 ? (finalNewTap - tapDamage) / tapDamage * 100 : 0;
+      const tapSign = tapPct > 0 ? "+" : "";
+      const tapCol = tapPct > 0 ? "#DFFFFE" : "#A40239";
+      tapRow = `<div class="st-tip__dps-row">`
+        + `<span class="st-tip__dps-name">Hit (tap)</span>`
+        + `<span class="st-tip__dps-vals">`
+        + `${Math.floor(tapDamage)} → <span style="color:${tapCol}">${finalNewTap}</span>`
+        + ` <span style="color:${tapCol};font-size:10px">${tapSign}${tapPct.toFixed(1)}%</span>`
+        + `</span></div>`;
+    }
+
+    if (!tapRow && !rows) return "";
 
     return `<div class="st-tip__dps-impact">`
-      + `<div class="st-tip__dps-header">Skill DPS</div>${rows}</div>`;
+      + `<div class="st-tip__dps-header">Impact</div>${tapRow}${rows}</div>`;
   }
 
   /** Weapon match badge: shows whether equipped weapon matches this node's weapon bonus. */

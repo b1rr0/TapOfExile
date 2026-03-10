@@ -93,6 +93,8 @@ export interface CachedCharStats {
   weaponSubtypes: string[];
   /** Weapon-only equipment bonuses — stored for amp multiplier application */
   weaponBonuses: EquipmentBonuses;
+  /** Flat tap-only damage bonus from skill tree (doesn't affect skills) */
+  tapHitBonus: number;
   /** Skill tree allocated bonuses - stored for re-application after level-up */
   treeBonuses: { percent: Record<string, number>; flat: Record<string, number> };
 }
@@ -451,6 +453,7 @@ export class CombatService {
       versatileSpellLevel: eff.versatileSpellLevel,
       weaponSubtypes,
       weaponBonuses: weaponBonuses || emptyBonuses(),
+      tapHitBonus: 0,
     };
 
     // Apply skill tree percent bonuses on top of equipment-modified stats
@@ -501,6 +504,9 @@ export class CombatService {
 
     // ── Unique passive mechanics (from flat bonuses) ──────────
     const flat = stats.treeBonuses.flat || {};
+
+    // Flat tap hit bonus from tree (tap-only, doesn't affect skill damage)
+    stats.tapHitBonus = Math.floor(flat.tapHit || 0);
 
     // Elemental conversions: fire=lightning, cold=fire, lightning=cold
     if (flat.fireFromLightning) {
@@ -1235,7 +1241,7 @@ export class CombatService {
     const hitGrowth = computeSkillLevelGrowth(hitEffLv);
 
     // Accumulate all multipliers then floor once to avoid cascading rounding loss
-    let rawDamage = stats.tapDamage * hitGrowth * (1 + dmgBuff);
+    let rawDamage = (stats.tapDamage + (stats.tapHitBonus || 0)) * hitGrowth * (1 + dmgBuff);
     // Ember Armor: add armor as flat damage bonus
     if (armorToDmg > 0) {
       rawDamage += (stats.armor || 0) * armorToDmg;
@@ -1906,7 +1912,7 @@ export class CombatService {
     const armorToDmg = eff['self:armorToDamage'] || 0;
 
     const isCrit = Math.random() < stats.critChance;
-    let rawDamage = stats.tapDamage * (1 + dmgBuff);
+    let rawDamage = (stats.tapDamage + (stats.tapHitBonus || 0)) * (1 + dmgBuff);
     // Ember Armor: add armor as flat damage bonus
     if (armorToDmg > 0) {
       rawDamage += (stats.armor || 0) * armorToDmg;
