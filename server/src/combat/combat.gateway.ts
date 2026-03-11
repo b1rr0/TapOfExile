@@ -692,6 +692,42 @@ export class CombatGateway
 
     if (await this.rateLimitCheck(client, telegramId)) return;
 
+    // Check session mode to route dojo vs combat
+    const mode = this.sessionModes.get(data.sessionId);
+
+    if (mode === 'dojo') {
+      try {
+        const dojoResult = await this.combatService.processDojoCastSkill(
+          telegramId,
+          data.sessionId,
+          data.skillId,
+        );
+
+        client.emit('combat:skill-result', dojoResult);
+
+        // If dojo ended (timer expired), auto-complete
+        if (dojoResult.dojoEnded) {
+          this.stopDojoTimer(data.sessionId);
+          try {
+            const completionResult = await this.combatService.completeDojo(
+              telegramId,
+              data.sessionId,
+            );
+            this.userSessions.delete(telegramId);
+            this.sessionModes.delete(data.sessionId);
+            client.emit('combat:dojo-completed', completionResult);
+          } catch { /* already completed */ }
+        }
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (!msg?.includes('cooldown')) {
+          client.emit('combat:error', { message: msg || 'Skill cast failed' });
+        }
+      }
+      return;
+    }
+
+    // Regular combat skill cast
     try {
       const result = await this.combatService.castSkill(
         telegramId,

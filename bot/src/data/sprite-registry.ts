@@ -201,7 +201,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
       dead:    { json: "dead.json",      fps: 10, loop: false },
     },
     defaultSize: { w: 256, h: 256 },
-    anchorOffsetY: 0.03,
+    anchorOffsetY: 0.2,
     scale: 1.25,
   },
 
@@ -348,11 +348,11 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
     id: "blue_witch", name: "Blue Witch",
     basePath: "/assets/enemy/blue_witch/v0",
     animations: {
-      idle: a_idle, run: a_run, death: a_death_10, hurt: a_hurt,
+      idle: a_idle, run: a_run, death: a_death_12, hurt: a_hurt,
       attack_1: atk("attack_1.json", 9),                     // 9 frames → 13 fps
       attack_2: atk("attack_2.json", 5),                     // 5 frames → 7 fps
     },
-    defaultSize: { w: 64, h: 64 }, anchorOffsetY: 0, scale: 3,
+    defaultSize: { w: 32, h: 48 }, anchorOffsetY: 0, scale: 3,
   },
 
   king: {
@@ -361,7 +361,7 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
     animations: {
       idle: a_idle, run: a_run, death: a_death_12,
       attack_1: atk("attack_1.json", 30),                    // 30 frames → 43 fps
-      attack_2: atk("attack_2.json", 72),                    // 72 frames → 103 fps
+      attack_2: atk("attack_2.json", 58),                    // 58 frames → 83 fps
     },
     defaultSize: { w: 128, h: 128 }, anchorOffsetY: 0.1, scale: 1.8,
   },
@@ -370,8 +370,8 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
     id: "knight_enemy", name: "Dark Knight",
     basePath: "/assets/enemy/knight_enemy/v0",
     animations: {
-      idle: a_idle, run: a_run, death: a_death_10,
-      attack_1: atk("attack_1.json", 66),                    // 66 frames → 94 fps
+      idle: a_idle, run: a_run, death: { json: "death.json", fps: 15, loop: false },
+      attack_1: atk("attack_1.json", 22),                    // 22 frames → 31 fps
     },
     defaultSize: { w: 64, h: 64 }, anchorOffsetY: 0, scale: 2.8,
   },
@@ -415,18 +415,19 @@ export const ENEMY_SKINS: Record<string, SkinConfig> = {
       attack_1: atk("attack_1.json", 25),                    // 25 frames → 36 fps
       attack_2: atk("attack_2.json", 25),                    // 25 frames → 36 fps
     },
-    defaultSize: { w: 64, h: 64 }, anchorOffsetY: 0.15, scale: 4,
+    defaultSize: { w: 64, h: 64 }, anchorOffsetY: 0.15, scale: 6,
   },
 
   reaper: {
     id: "reaper", name: "Reaper",
     basePath: "/assets/enemy/reaper/v0",
     animations: {
-      idle: a_idle, run: a_run, death: a_death_12,
-      attack_1: atk("attack_1.json", 51),                    // 51 frames → 73 fps
-      attack_2: atk("attack_2.json", 51),                    // 51 frames → 73 fps
+      idle: { json: "idle.json", fps: 8, loop: true },
+      run: a_run, death: a_death_12,
+      attack_1: atk("attack_1.json", 30),                    // 30 frames → 43 fps
+      attack_2: atk("attack_2.json", 30),                    // 30 frames → 43 fps
     },
-    defaultSize: { w: 100, h: 96 }, anchorOffsetY: 0, scale: 2,
+    defaultSize: { w: 170, h: 96 }, anchorOffsetY: 0, scale: 2,
   },
 
   soldier: {

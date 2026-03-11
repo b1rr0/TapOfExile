@@ -51,8 +51,21 @@ export class BackgroundRenderer {
     if (this._currentSrc === target && this._loaded) return;
 
     this._currentSrc = target;
-    this._bgImage = await this._loadImage(target);
-    this._loaded = true;
+    try {
+      this._bgImage = await this._loadImage(target);
+      this._loaded = true;
+      console.log(`[BG] Loaded: ${target} (${this._bgImage.naturalWidth}x${this._bgImage.naturalHeight})`);
+    } catch (err) {
+      console.error(`[BG] FAILED to load: ${target}`, err);
+      // Fallback: try default bg
+      if (target !== DEFAULT_BG) {
+        this._bgImage = await this._loadImage(DEFAULT_BG);
+        this._loaded = true;
+        console.log(`[BG] Fallback loaded: ${DEFAULT_BG}`);
+      } else {
+        throw err;
+      }
+    }
 
     // Reset camera for new image
     this._cameraX = 0;
@@ -128,8 +141,16 @@ export class BackgroundRenderer {
    * Draw the background directly onto the provided context.
    * No caching - simple, reliable, always fills the canvas.
    */
+  private _drawLogged = false;
+
   draw(ctx: CanvasRenderingContext2D, w: number, h: number): void {
-    if (!this._loaded || !this._bgImage) return;
+    if (!this._loaded || !this._bgImage) {
+      if (!this._drawLogged) {
+        console.warn(`[BG] draw skipped: loaded=${this._loaded}, hasImage=${!!this._bgImage}, canvas=${w}x${h}`);
+        this._drawLogged = true;
+      }
+      return;
+    }
 
     const img = this._bgImage;
     const imgW = img.naturalWidth;

@@ -474,7 +474,8 @@ export class HideoutScene {
     const dw = frameW * scale;
     const dh = frameH * scale;
     const dx = (w - dw) / 2;
-    const dy = h - dh - h * 0.02;
+    const offsetY = skin.anchorOffsetY ?? 0;
+    const dy = (h - dh) / 2 - dh * (offsetY - 0.2);
 
     this._heroEngine!.drawFrame(ctx, dx, dy, dw, dh, false);
   }

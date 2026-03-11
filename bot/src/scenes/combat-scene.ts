@@ -260,6 +260,7 @@ export class CombatScene {
       backgroundSrc = getBackgroundForLocation(params.location);
     }
 
+    console.log(`[Combat] bg=${backgroundSrc}, isMap=${isMapMode}, act=${params.location?.act}, order=${params.location?.order}`);
     this.battleScene = new BattleScene(battleEl, this.events, { heroSkin, backgroundSrc });
 
     // Hide loading overlay only when BOTH server responded AND sprites loaded

@@ -2015,6 +2015,202 @@ export class CombatService {
   }
 
   /**
+   * Cast a skill in dojo mode - damage goes to total, no monster HP.
+   */
+  async processDojoCastSkill(telegramId: string, sessionId: string, skillId: string) {
+    const skillDef = ACTIVE_SKILLS[skillId as ActiveSkillId];
+    if (!skillDef) {
+      throw new BadRequestException(`Unknown skill: ${skillId}`);
+    }
+
+    const session = await this.redis.getJson<RedisCombatSession>(
+      this.sessionKey(sessionId),
+    );
+    if (!session || session.playerId !== telegramId || session.mode !== 'dojo') {
+      throw new NotFoundException('Dojo session not found');
+    }
+
+    const now = Date.now();
+
+    // Check if time is up
+    if (now >= session.dojoEndsAt!) {
+      return {
+        skillId,
+        skillType: skillDef.skillType,
+        damage: 0,
+        damageBreakdown: null,
+        isCrit: false,
+        totalDamage: session.dojoTotalDamage!,
+        totalTaps: session.dojoTotalTaps!,
+        dojoEnded: true,
+        timeLeftMs: 0,
+        cooldownUntil: 0,
+        activeEffects: session.activeEffects || [],
+      };
+    }
+
+    // Validate skill is equipped
+    if (session.equippedSkillIds && session.equippedSkillIds.length > 0) {
+      if (!session.equippedSkillIds.includes(skillId)) {
+        throw new BadRequestException('Skill not equipped');
+      }
+    }
+
+    // Cooldown check
+    const cdr = session.cachedStats.cooldownReduction || 0;
+    const effectiveCooldownMs = Math.round(skillDef.cooldownMs * (1 - cdr / 100));
+    if (!session.skillCooldowns) session.skillCooldowns = {};
+    const lastCast = session.skillCooldowns[skillId] || 0;
+    if (now - lastCast < effectiveCooldownMs) {
+      throw new BadRequestException('Skill on cooldown');
+    }
+
+    // Purge expired effects
+    this.cleanupEffects(session);
+    if (!session.activeEffects) session.activeEffects = [];
+
+    const stats = session.cachedStats;
+    session.skillCooldowns[skillId] = now;
+
+    // ── Heal ──
+    if (skillDef.skillType === 'heal') {
+      // In dojo heal has no real effect (player doesn't take damage), just track cooldown
+      await this.redis.setJson(this.sessionKey(sessionId), session, B.DOJO_SESSION_TTL);
+      return {
+        skillId,
+        skillType: 'heal',
+        damage: 0,
+        damageBreakdown: null,
+        isCrit: false,
+        totalDamage: session.dojoTotalDamage!,
+        totalTaps: session.dojoTotalTaps!,
+        dojoEnded: false,
+        timeLeftMs: Math.max(0, session.dojoEndsAt! - now),
+        cooldownUntil: now + effectiveCooldownMs,
+        activeEffects: session.activeEffects,
+      };
+    }
+
+    // ── Buff / Debuff ──
+    if ((skillDef.skillType === 'buff' || skillDef.skillType === 'debuff') && skillDef.effect) {
+      const eff = skillDef.effect;
+      const existing = session.activeEffects.find(
+        e => e.effectId === eff.id && e.target === eff.target,
+      );
+      if (existing && eff.refreshable) {
+        existing.expiresAt = now + eff.durationMs;
+      } else if (!existing) {
+        session.activeEffects.push({
+          instanceId: `${eff.id}_${now}`,
+          effectId: eff.id,
+          sourceSkillId: skillId,
+          target: eff.target === 'self' ? 'self' : 'enemy',
+          stat: eff.stat,
+          value: eff.value,
+          expiresAt: now + eff.durationMs,
+          monsterIndex: undefined,
+          refreshable: eff.refreshable,
+        });
+      }
+
+      await this.redis.setJson(this.sessionKey(sessionId), session, B.DOJO_SESSION_TTL);
+      return {
+        skillId,
+        skillType: skillDef.skillType,
+        effectId: eff.id,
+        effectDuration: eff.durationMs,
+        damage: 0,
+        damageBreakdown: null,
+        isCrit: false,
+        totalDamage: session.dojoTotalDamage!,
+        totalTaps: session.dojoTotalTaps!,
+        dojoEnded: false,
+        timeLeftMs: Math.max(0, session.dojoEndsAt! - now),
+        cooldownUntil: now + effectiveCooldownMs,
+        activeEffects: session.activeEffects,
+      };
+    }
+
+    // ── Damage skill ──
+    const eff = this.gatherAllEffects(session);
+    const dmgBuff = eff['self:damage'] || 0;
+    const armorToDmg = eff['self:armorToDamage'] || 0;
+
+    const scalingType = getSkillScalingType(skillDef);
+
+    let effectiveCritChance: number;
+    let critMultiplier: number;
+    if (scalingType === 'arcane') {
+      effectiveCritChance = Math.min(1, stats.arcaneCritChance ?? 0);
+      critMultiplier = stats.arcaneCritMultiplier ?? 1.5;
+    } else {
+      effectiveCritChance = Math.min(1, stats.critChance);
+      critMultiplier = stats.critMultiplier;
+    }
+    const isCrit = Math.random() < effectiveCritChance;
+
+    const effLv = computeEffectiveSkillLevel(
+      stats.level, scalingType,
+      stats.weaponSpellLevel ?? 0, stats.arcaneSpellLevel ?? 0, stats.versatileSpellLevel ?? 0,
+    );
+    const levelGrowth = computeSkillLevelGrowth(effLv);
+
+    let rawDamage: number;
+    if (scalingType === 'arcane') {
+      rawDamage = skillDef.spellBase! * levelGrowth * (1 + dmgBuff);
+    } else {
+      rawDamage = stats.tapDamage * skillDef.damageMultiplier * levelGrowth * (1 + dmgBuff);
+    }
+    if (armorToDmg > 0) {
+      rawDamage += (stats.armor || 0) * armorToDmg;
+    }
+    if (isCrit) {
+      rawDamage *= critMultiplier;
+    }
+
+    // Training dummy has zero resistance
+    const breakdown = computeElementalDamage(rawDamage, skillDef.elementalProfile, {});
+
+    // Apply tree elemental % bonuses
+    const treePct = stats.treeBonuses?.percent || {};
+    if (treePct.fireDmg && breakdown.fire > 0) {
+      const bonus = Math.floor(breakdown.fire * treePct.fireDmg);
+      breakdown.fire += bonus;
+      breakdown.total += bonus;
+    }
+    if (treePct.coldDmg && breakdown.cold > 0) {
+      const bonus = Math.floor(breakdown.cold * treePct.coldDmg);
+      breakdown.cold += bonus;
+      breakdown.total += bonus;
+    }
+    if (treePct.lightningDmg && breakdown.lightning > 0) {
+      const bonus = Math.floor(breakdown.lightning * treePct.lightningDmg);
+      breakdown.lightning += bonus;
+      breakdown.total += bonus;
+    }
+
+    session.dojoTotalDamage! += breakdown.total;
+    session.dojoTotalTaps! += 1;
+
+    const timeLeftMs = Math.max(0, session.dojoEndsAt! - now);
+    await this.redis.setJson(this.sessionKey(sessionId), session, B.DOJO_SESSION_TTL);
+
+    return {
+      skillId,
+      skillType: 'damage',
+      damage: breakdown.total,
+      damageBreakdown: breakdown,
+      isCrit,
+      totalDamage: session.dojoTotalDamage!,
+      totalTaps: session.dojoTotalTaps!,
+      dojoEnded: false,
+      timeLeftMs,
+      cooldownUntil: now + effectiveCooldownMs,
+      activeEffects: session.activeEffects,
+    };
+  }
+
+  /**
    * Complete a dojo session - persist best score, clean up.
    */
   async completeDojo(telegramId: string, sessionId: string) {

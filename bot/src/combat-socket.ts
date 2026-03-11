@@ -58,6 +58,14 @@ export async function getSocket(): Promise<Socket> {
     timeout: 5000,
   });
 
+  // Refresh token before each reconnection attempt (token may have expired)
+  socket.on("connect_error", async () => {
+    const fresh = await ensureFreshToken();
+    if (fresh && socket) {
+      socket.auth = { token: fresh };
+    }
+  });
+
   return socket;
 }
 

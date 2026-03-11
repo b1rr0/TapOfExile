@@ -18,6 +18,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["../../bot/node_modules/tsx/dist/cli.mjs", "../../shared/serve-tree.ts", "3333"],
       "port": 3333
+    },
+    {
+      "name": "enemy-tester",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8095", "--directory", "../../shared/public/assets/enemy"],
+      "port": 8095
     }
   ]
 }

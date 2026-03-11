@@ -2,200 +2,601 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Enemy Animation Tester</title>
+<title>Enemy Sprite Tester — Tap of Exile</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #101524; color: #F9CF87; font-family: monospace; padding: 16px; }
   h1 { text-align: center; margin-bottom: 12px; font-size: 18px; }
-  #controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: center; }
-  #controls select, #controls button, #controls input { background: #1a2040; color: #F9CF87; border: 1px solid #A40239; padding: 6px 10px; font-family: monospace; font-size: 13px; border-radius: 4px; }
-  #controls button { cursor: pointer; }
-  #controls button:hover { background: #A40239; }
-  #controls button.active { background: #A40239; }
-  #status { text-align: center; margin-bottom: 8px; font-size: 12px; color: #DFFFFE; }
-  .anim-tabs { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
-  .anim-tabs button { background: #1a2040; color: #F9CF87; border: 1px solid #A40239; padding: 4px 10px; font-family: monospace; font-size: 12px; border-radius: 4px; cursor: pointer; }
-  .anim-tabs button:hover { background: #A40239; }
-  .anim-tabs button.active { background: #A40239; }
-  #grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
-  .sprite-card { background: #1a2040; border: 1px solid #333; border-radius: 8px; padding: 12px; width: 200px; text-align: center; }
-  .sprite-card.error { border-color: #ff4444; }
-  .sprite-card h3 { font-size: 12px; margin-bottom: 4px; word-break: break-all; }
-  .sprite-card .info { font-size: 10px; color: #888; margin-bottom: 8px; }
-  .sprite-card canvas { border: 1px solid #333; image-rendering: pixelated; display: block; margin: 0 auto 8px; background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 16px 16px; }
-  .sprite-card .frame-info { font-size: 10px; color: #DFFFFE; }
+
+  #top-controls {
+    display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+    align-items: center; justify-content: center;
+  }
+  #top-controls select, #top-controls button, #top-controls input {
+    background: #1a2040; color: #F9CF87; border: 1px solid #A40239;
+    padding: 6px 10px; font-family: monospace; font-size: 13px; border-radius: 4px;
+  }
+  #top-controls button { cursor: pointer; }
+  #top-controls button:hover { background: #A40239; }
+  #top-controls button.active { background: #A40239; }
+
+  .bar { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+  .bar button {
+    background: #1a2040; color: #F9CF87; border: 1px solid #333;
+    padding: 3px 10px; font-family: monospace; font-size: 11px; border-radius: 4px; cursor: pointer;
+  }
+  .bar button:hover { border-color: #A40239; }
+  .bar button.active { background: #A40239; border-color: #A40239; }
+
+  #status {
+    text-align: center; margin-bottom: 12px; font-size: 12px; color: #DFFFFE;
+  }
+
+  /* ── Enemy group ───────────────────────────────────── */
+  .enemy-group {
+    background: #131930; border: 1px solid #2a3060;
+    border-radius: 8px; margin-bottom: 14px; padding: 10px 12px;
+  }
+  .enemy-group.has-error  { border-color: #ff4444; }
+  .enemy-group.has-warning { border-color: #ffaa00; }
+  .enemy-group.hidden { display: none; }
+
+  .group-header {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+  }
+  .group-header h2   { font-size: 13px; color: #DFFFFE; }
+  .group-header .gid { font-size: 10px; color: #666; }
+  .group-header .gfmt { font-size: 10px; color: #888; margin-left: auto; }
+  .group-header .variant-label { font-size: 10px; color: #F9CF87; }
+
+  /* ── Animation cards ───────────────────────────────── */
+  .anim-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .anim-card {
+    background: #1a2040; border: 1px solid #2a3060; border-radius: 6px;
+    padding: 6px 8px; text-align: center; min-width: 90px;
+  }
+  .anim-card.ok       { border-color: #2a5040; }
+  .anim-card.error    { border-color: #ff4444; }
+  .anim-card.warning  { border-color: #ffaa00; }
+  .anim-card.missing  { border-color: #2a2a2a; opacity: 0.45; }
+
+  .anim-card h4       { font-size: 10px; color: #888; margin-bottom: 3px; }
+  .anim-card .info    { font-size: 9px;  color: #666; margin-bottom: 3px; }
+  .anim-card canvas   {
+    border: 1px solid #333; image-rendering: pixelated;
+    display: block; margin: 0 auto 4px;
+    background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 12px 12px;
+  }
+  .anim-card .frame-info { font-size: 9px; color: #DFFFFE; min-height: 12px; }
+  .anim-card .issues  { list-style: none; font-size: 9px; text-align: left; margin-top: 2px; }
+  .anim-card .issues li { padding-left: 2px; }
+  .anim-card .issues li.err  { color: #ff4444; }
+  .anim-card .issues li.warn { color: #ffaa00; }
+
+  /* ── Report ────────────────────────────────────────── */
+  #report {
+    background: #1a2040; border: 1px solid #333; border-radius: 8px;
+    padding: 16px; margin-top: 16px; font-size: 11px; white-space: pre-wrap;
+    max-height: 500px; overflow-y: auto; display: none;
+  }
 </style>
 </head>
 <body>
-<h1>Enemy Animation Tester - Tap of Exile</h1>
+<h1>Enemy Sprite Tester — Tap of Exile</h1>
 
-<div id="controls">
-  <label>Animation:
-    <select id="animation">
-      <option value="idle">idle</option>
-      <option value="run">run</option>
-      <option value="walk">walk</option>
-      <option value="death">death</option>
-      <option value="hit">hit</option>
-      <option value="hurt">hurt</option>
-      <option value="attack_1">attack_1</option>
-      <option value="attack_2">attack_2</option>
-      <option value="attack_3">attack_3</option>
-      <option value="attack">attack</option>
-      <option value="white_hit">white_hit</option>
-    </select>
-  </label>
-  <label>Speed: <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"> <span id="speedVal">1x</span></label>
+<div id="top-controls">
+  <label>Speed: <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
+    <span id="speedVal">1x</span></label>
   <button id="btnPause">Pause</button>
   <button id="btnStep">Step</button>
+  <button id="btnValidate">Run Validation</button>
+  <button id="btnReload">Reload</button>
 </div>
 
-<div id="status">Loading enemies...</div>
+<div class="bar" id="variantBar">
+  <span style="color:#888;font-size:11px;line-height:26px;padding-right:4px">Variant:</span>
+</div>
+
+<div class="bar" id="filterBar">
+  <button class="active" data-filter="all">All</button>
+  <button data-filter="old">Old Format</button>
+  <button data-filter="new">New Format</button>
+  <button data-filter="other">Dummy</button>
+</div>
+
+<div id="status">Loading enemies…</div>
 <div id="grid"></div>
+<div id="report"></div>
 
 <script>
+// ─── Enemy definitions ────────────────────────────────────────────────────────
+// Each entry: id, name, folder (relative to this HTML), variants array or null,
+//             anims list (files to try), format (old|new|other)
+// Path: folder/variant/anim.json  (or folder/anim.json when variants=null)
+//
+// Required animations per role: idle + (run|walk) + death
+// ─────────────────────────────────────────────────────────────────────────────
 const ENEMIES = [
-  { id: 'dummy', folder: 'dummy', variants: null },
-  { id: 'blue_witch', folder: 'blue_witch', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'goblin', folder: 'goblin', variants: ['goblin_azure','goblin_black','goblin_crimson','goblin_emerald','goblin_frost','goblin_golden','goblin_shadow','goblin_violet'] },
-  { id: 'king', folder: 'king', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'knight_enemy', folder: 'knight_enemy', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'necromancer', folder: 'necromancer', variants: ['necromancer_1','necromancer_azure','necromancer_crimson','necromancer_emerald','necromancer_frost','necromancer_golden','necromancer_shadow','necromancer_violet'] },
-  { id: 'necromancer_2', folder: 'necromancer_2', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'night_born', folder: 'night_born', variants: ['night_born_1','night_born_azure','night_born_crimson','night_born_emerald','night_born_frost','night_born_golden','night_born_shadow','night_born_violet'] },
-  { id: 'ninja', folder: 'ninja', variants: ['yellow_ninja','yellow_azure','yellow_crimson','yellow_emerald','yellow_frost','yellow_golden','yellow_shadow','yellow_violet'] },
-  { id: 'orc', folder: 'orc', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'paladin', folder: 'paladin', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'reaper', folder: 'reaper', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'ronin_enemy', folder: 'ronin_enemy', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'soldier', folder: 'soldier', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
-  { id: 'striker', folder: 'striker', variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'] },
+  {
+    id: 'training_dummy', name: 'Training Dummy',
+    folder: 'dummy', variants: null,
+    anims: ['idle', 'hurt', 'death'],
+    required: ['idle', 'death'],
+    format: 'other',
+  },
+
+  // ── Old format ──────────────────────────────────────────────────────────────
+
+  {
+    id: 'goblin_black', name: 'Goblin',
+    folder: 'goblin',
+    variants: ['goblin_black','goblin_azure','goblin_crimson','goblin_emerald',
+               'goblin_frost','goblin_golden','goblin_shadow','goblin_violet'],
+    anims: ['idle', 'run', 'walk', 'death', 'hit'],
+    required: ['idle', 'death'],
+    format: 'old',
+  },
+
+  {
+    id: 'yellow_ninja', name: 'Ninja',
+    folder: 'ninja',
+    variants: ['yellow_ninja','yellow_azure','yellow_crimson','yellow_emerald',
+               'yellow_frost','yellow_golden','yellow_shadow','yellow_violet'],
+    anims: ['idle', 'walk', 'death', 'hit', 'attack', 'white_hit'],
+    required: ['idle', 'death', 'attack'],
+    format: 'old',
+  },
+
+  {
+    id: 'necromancer_1', name: 'Necromancer I',
+    folder: 'necromancer',
+    variants: ['necromancer_1','necromancer_azure','necromancer_crimson','necromancer_emerald',
+               'necromancer_frost','necromancer_golden','necromancer_shadow','necromancer_violet'],
+    anims: ['idle', 'run', 'death', 'attack', 'cast'],
+    required: ['idle', 'death', 'attack'],
+    format: 'old',
+  },
+
+  {
+    id: 'night_born_1', name: 'Night Born',
+    folder: 'night_born',
+    variants: ['night_born_1','night_born_azure','night_born_crimson','night_born_emerald',
+               'night_born_frost','night_born_golden','night_born_shadow','night_born_violet'],
+    anims: ['idle', 'run', 'death', 'hurt', 'attack'],
+    required: ['idle', 'death', 'attack'],
+    format: 'old',
+  },
+
+  // ── New format ───────────────────────────────────────────────────────────────
+
+  {
+    id: 'blue_witch', name: 'Blue Witch',
+    folder: 'blue_witch',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'hurt', 'attack_1', 'attack_2'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'king', name: 'King',
+    folder: 'king',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'attack_1', 'attack_2'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'knight_enemy', name: 'Dark Knight',
+    folder: 'knight_enemy',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'attack_1'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'necromancer_2', name: 'Necromancer II',
+    folder: 'necromancer_2',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'attack_1'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'orc', name: 'Orc',
+    folder: 'orc',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'hurt', 'attack_1', 'attack_2'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'paladin', name: 'Paladin',
+    folder: 'paladin',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'attack_1'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'reaper', name: 'Reaper',
+    folder: 'reaper',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'attack_1', 'attack_2'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'ronin_enemy', name: 'Ronin',
+    folder: 'ronin_enemy',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'attack_1', 'attack_2'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'soldier', name: 'Soldier',
+    folder: 'soldier',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'hurt', 'attack_1', 'attack_2', 'attack_3'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
+
+  {
+    id: 'striker', name: 'Striker',
+    folder: 'striker',
+    variants: ['v0','v1_crimson','v2_emerald','v3_azure','v4_golden','v5_violet','v6_frost','v7_shadow'],
+    anims: ['idle', 'run', 'death', 'hurt', 'attack_1', 'attack_2'],
+    required: ['idle', 'run', 'death', 'attack_1'],
+    format: 'new',
+  },
 ];
 
-let spriteData = {};
+// ─── State ────────────────────────────────────────────────────────────────────
+
+// spriteData[enemyId][animName] = { json, frames, img, canvas, frameInfo, currentFrame, elapsed, issues }
+const spriteData = {};
+
 let paused = false;
-let animFrame = null;
+let rafHandle = null;
 let currentVariantIdx = 0;
+let currentFilter = 'all';
 
-const animSelect = document.getElementById('animation');
-const speedSlider = document.getElementById('speed');
-const speedVal = document.getElementById('speedVal');
-const statusEl = document.getElementById('status');
-const gridEl = document.getElementById('grid');
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
 
-speedSlider.oninput = () => { speedVal.textContent = speedSlider.value + 'x'; };
-document.getElementById('btnPause').onclick = function() {
+const speedSlider  = document.getElementById('speed');
+const speedValEl   = document.getElementById('speedVal');
+const statusEl     = document.getElementById('status');
+const gridEl       = document.getElementById('grid');
+const reportEl     = document.getElementById('report');
+const variantBar   = document.getElementById('variantBar');
+const filterBar    = document.getElementById('filterBar');
+
+// ─── Controls wiring ─────────────────────────────────────────────────────────
+
+speedSlider.oninput = () => { speedValEl.textContent = speedSlider.value + 'x'; };
+
+document.getElementById('btnPause').onclick = function () {
   paused = !paused;
   this.textContent = paused ? 'Play' : 'Pause';
   this.classList.toggle('active', paused);
 };
-document.getElementById('btnStep').onclick = () => { stepAll(); };
-animSelect.onchange = () => { loadAll(); };
+
+document.getElementById('btnStep').onclick = () => {
+  for (const eid in spriteData) {
+    for (const anim in spriteData[eid]) {
+      const sd = spriteData[eid][anim];
+      if (!sd.frames || !sd.frames.length) continue;
+      sd.currentFrame = (sd.currentFrame + 1) % sd.frames.length;
+      drawFrame(sd);
+    }
+  }
+};
+
+document.getElementById('btnValidate').onclick = runValidation;
+document.getElementById('btnReload').onclick    = loadAll;
+
+// ─── Variant buttons ──────────────────────────────────────────────────────────
+
+const VARIANT_LABELS = ['base', 'v1 crimson', 'v2 emerald', 'v3 azure', 'v4 golden', 'v5 violet', 'v6 frost', 'v7 shadow'];
+
+function buildVariantBar() {
+  // Keep the label span, rebuild buttons
+  const span = variantBar.querySelector('span');
+  variantBar.innerHTML = '';
+  if (span) variantBar.appendChild(span);
+  VARIANT_LABELS.forEach((label, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.classList.toggle('active', i === currentVariantIdx);
+    btn.onclick = () => {
+      currentVariantIdx = i;
+      buildVariantBar();
+      loadAll();
+    };
+    variantBar.appendChild(btn);
+  });
+}
+buildVariantBar();
+
+// ─── Filter buttons ───────────────────────────────────────────────────────────
+
+filterBar.querySelectorAll('button').forEach(btn => {
+  btn.onclick = () => {
+    filterBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    applyFilter();
+  };
+});
+
+function applyFilter() {
+  document.querySelectorAll('.enemy-group').forEach(group => {
+    const fmt = group.dataset.format;
+    group.classList.toggle('hidden', currentFilter !== 'all' && fmt !== currentFilter);
+  });
+}
+
+// ─── Path helpers ─────────────────────────────────────────────────────────────
+
+function getBasePath(enemy) {
+  if (!enemy.variants) return enemy.folder;
+  const variant = enemy.variants[Math.min(currentVariantIdx, enemy.variants.length - 1)];
+  return `${enemy.folder}/${variant}`;
+}
+
+function getVariantLabel(enemy) {
+  if (!enemy.variants) return '';
+  return enemy.variants[Math.min(currentVariantIdx, enemy.variants.length - 1)];
+}
+
+// ─── Frame parsing ────────────────────────────────────────────────────────────
 
 function parseFrames(json) {
   if (Array.isArray(json.frames)) return json.frames;
   return Object.values(json.frames);
 }
 
-function getBasePath(enemy) {
-  if (!enemy.variants) return enemy.folder;
-  return `${enemy.folder}/${enemy.variants[currentVariantIdx]}`;
-}
+// ─── Validation ───────────────────────────────────────────────────────────────
 
-async function loadAll() {
-  const anim = animSelect.value;
-  spriteData = {};
-  gridEl.innerHTML = '';
-  let loaded = 0;
-  let errors = 0;
+function validateAnim(animName, json, img, isRequired) {
+  const issues = [];
+  const frames = parseFrames(json);
+  const meta   = json.meta;
+  const sheetW = meta.size?.w;
+  const sheetH = meta.size?.h;
 
-  for (const enemy of ENEMIES) {
-    const basePath = getBasePath(enemy);
-    const jsonPath = `${basePath}/${anim}.json`;
-    const variantLabel = enemy.variants ? enemy.variants[currentVariantIdx] : '';
-
-    const card = document.createElement('div');
-    card.className = 'sprite-card';
-
-    const title = document.createElement('h3');
-    title.textContent = enemy.id + (variantLabel ? ` [${variantLabel}]` : '');
-    card.appendChild(title);
-
-    const info = document.createElement('div');
-    info.className = 'info';
-    card.appendChild(info);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    card.appendChild(canvas);
-
-    const frameInfo = document.createElement('div');
-    frameInfo.className = 'frame-info';
-    card.appendChild(frameInfo);
-
-    gridEl.appendChild(card);
-
-    try {
-      const resp = await fetch(jsonPath);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = await resp.json();
-      const frames = parseFrames(json);
-
-      const pngPath = `${basePath}/${json.meta.image}`;
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error('PNG load failed'));
-        img.src = pngPath;
-      });
-
-      const fw = frames[0]?.frame?.w || 64;
-      const fh = frames[0]?.frame?.h || 64;
-      const scale = Math.min(128 / fw, 128 / fh, 4);
-      canvas.width = Math.ceil(fw * scale);
-      canvas.height = Math.ceil(fh * scale);
-
-      info.textContent = `${frames.length}f | ${fw}x${fh} | ${anim}`;
-
-      spriteData[enemy.id] = { json, frames, img, canvas, frameInfo, currentFrame: 0, elapsed: 0, scale };
-      loaded++;
-    } catch (e) {
-      card.classList.add('error');
-      info.textContent = `No "${anim}": ${e.message}`;
-      errors++;
-    }
+  if (!sheetW || !sheetH) {
+    issues.push({ sev: 'error', msg: 'meta.size missing' });
+    return issues;
   }
 
-  statusEl.textContent = `Loaded: ${loaded}/${ENEMIES.length} | Skipped: ${errors} | Anim: ${anim} | Variant: ${currentVariantIdx}`;
+  // 1. PNG dimensions vs meta
+  if (img.naturalWidth !== sheetW || img.naturalHeight !== sheetH) {
+    issues.push({ sev: 'error', msg: `PNG ${img.naturalWidth}x${img.naturalHeight} ≠ meta ${sheetW}x${sheetH}` });
+  }
+
+  if (!frames.length) {
+    issues.push({ sev: 'error', msg: 'No frames in atlas' });
+    return issues;
+  }
+
+  // 2. Frame bounds
+  frames.forEach((f, i) => {
+    const r = f.frame;
+    if (!r) { issues.push({ sev: 'error', msg: `Frame ${i}: missing frame rect` }); return; }
+    if (r.x + r.w > sheetW || r.y + r.h > sheetH) {
+      issues.push({ sev: 'error', msg: `Frame ${i}: out of bounds (${r.x},${r.y}) ${r.w}x${r.h}` });
+    }
+  });
+
+  // 3. Frame size consistency
+  const sizes = [...new Set(frames.map(f => `${f.frame?.w}x${f.frame?.h}`))];
+  if (sizes.length > 1) {
+    issues.push({ sev: 'error', msg: `Mixed frame sizes: ${sizes.join(', ')}` });
+  }
+
+  // 4. Duplicate frame positions
+  const posSet = new Set();
+  frames.forEach((f, i) => {
+    const key = `${f.frame?.x},${f.frame?.y}`;
+    if (posSet.has(key)) {
+      issues.push({ sev: 'warning', msg: `Frame ${i}: duplicate pos (${f.frame?.x},${f.frame?.y})` });
+    }
+    posSet.add(key);
+  });
+
+  // 5. Duration consistency
+  const durations = [...new Set(frames.map(f => f.duration))];
+  if (durations.length > 1) {
+    issues.push({ sev: 'warning', msg: `Mixed durations: ${durations.join(', ')}ms` });
+  }
+
+  // 6. Frame sequence (filenames should be numbered sequentially)
+  let seqIssues = 0;
+  frames.forEach((f, i) => {
+    const match = (f.filename || '').match(/(\d+)$/);
+    if (match && parseInt(match[1]) !== i) seqIssues++;
+  });
+  if (seqIssues > 0 && seqIssues < frames.length) {
+    issues.push({ sev: 'warning', msg: `${seqIssues} frames have non-sequential indices` });
+  }
+
+  // 7. Very few frames (suspicious)
+  if (frames.length === 1 && animName !== 'idle') {
+    issues.push({ sev: 'warning', msg: 'Only 1 frame — expected multi-frame animation' });
+  }
+
+  return issues;
+}
+
+// ─── Main loader ──────────────────────────────────────────────────────────────
+
+async function loadAll() {
+  if (rafHandle) cancelAnimationFrame(rafHandle);
+  gridEl.innerHTML = '';
+  reportEl.style.display = 'none';
+
+  // Clear sprite data
+  for (const k in spriteData) delete spriteData[k];
+
+  let totalAnims = 0;
+  let loadedAnims = 0;
+  let errorAnims = 0;
+  let missingRequired = 0;
+
+  for (const enemy of ENEMIES) {
+    spriteData[enemy.id] = {};
+    const basePath     = getBasePath(enemy);
+    const variantLabel = getVariantLabel(enemy);
+
+    // ── Build group DOM ──────────────────────────────────────────────────────
+    const group = document.createElement('div');
+    group.className = 'enemy-group';
+    group.dataset.format = enemy.format;
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    header.innerHTML = `
+      <h2>${enemy.name}</h2>
+      <span class="gid">${enemy.id}</span>
+      ${variantLabel ? `<span class="variant-label">[${variantLabel}]</span>` : ''}
+      <span class="gfmt">${enemy.format}</span>
+    `;
+    group.appendChild(header);
+
+    const animRow = document.createElement('div');
+    animRow.className = 'anim-row';
+    group.appendChild(animRow);
+    gridEl.appendChild(group);
+
+    let groupHasError   = false;
+    let groupHasWarning = false;
+
+    // ── Load each animation ──────────────────────────────────────────────────
+    for (const animName of enemy.anims) {
+      totalAnims++;
+      const jsonPath = `${basePath}/${animName}.json`;
+      const isReq    = enemy.required?.includes(animName) ?? false;
+
+      const card       = document.createElement('div');
+      const titleEl    = document.createElement('h4');
+      const infoEl     = document.createElement('div');
+      const canvas     = document.createElement('canvas');
+      const frameInfoEl = document.createElement('div');
+      const issuesList = document.createElement('ul');
+
+      titleEl.textContent  = animName + (isReq ? ' *' : '');
+      infoEl.className     = 'info';
+      canvas.width         = 96;
+      canvas.height        = 96;
+      frameInfoEl.className = 'frame-info';
+      issuesList.className = 'issues';
+
+      card.className = 'anim-card';
+      card.appendChild(titleEl);
+      card.appendChild(infoEl);
+      card.appendChild(canvas);
+      card.appendChild(frameInfoEl);
+      card.appendChild(issuesList);
+      animRow.appendChild(card);
+
+      try {
+        const resp = await fetch(jsonPath + '?_=' + Date.now());
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json   = await resp.json();
+        const frames = parseFrames(json);
+
+        // PNG path from meta (relative to basePath)
+        const pngName = json.meta?.image || `${animName}.png`;
+        const pngPath = `${basePath}/${pngName}`;
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload  = resolve;
+          img.onerror = () => reject(new Error('PNG load failed'));
+          img.src     = pngPath;
+        });
+
+        const issues = validateAnim(animName, json, img, isReq);
+
+        const fw    = frames[0]?.frame?.w || 64;
+        const fh    = frames[0]?.frame?.h || 64;
+        const scale = Math.min(96 / fw, 96 / fh, 4);
+        canvas.width  = Math.max(1, Math.ceil(fw * scale));
+        canvas.height = Math.max(1, Math.ceil(fh * scale));
+
+        infoEl.textContent = `${frames.length}f | ${fw}×${fh}`;
+
+        if (issues.length > 0) {
+          const hasErr = issues.some(i => i.sev === 'error');
+          card.classList.add(hasErr ? 'error' : 'warning');
+          if (hasErr) groupHasError = true; else groupHasWarning = true;
+          issues.forEach(issue => {
+            const li = document.createElement('li');
+            li.textContent = issue.msg;
+            li.className   = issue.sev === 'error' ? 'err' : 'warn';
+            issuesList.appendChild(li);
+          });
+        } else {
+          card.classList.add('ok');
+        }
+
+        spriteData[enemy.id][animName] = {
+          json, frames, img, canvas, frameInfo: frameInfoEl,
+          currentFrame: 0, elapsed: 0, scale, issues,
+        };
+
+        loadedAnims++;
+      } catch (e) {
+        if (isReq) {
+          // Required animation missing = error
+          card.classList.add('error');
+          infoEl.textContent = e.message;
+          const li = document.createElement('li');
+          li.textContent = `Required animation missing: ${e.message}`;
+          li.className = 'err';
+          issuesList.appendChild(li);
+          groupHasError = true;
+          missingRequired++;
+          errorAnims++;
+        } else {
+          // Optional animation missing = greyed out
+          card.classList.add('missing');
+          infoEl.textContent = 'not present';
+        }
+      }
+    }
+
+    if (groupHasError)   group.classList.add('has-error');
+    else if (groupHasWarning) group.classList.add('has-warning');
+  }
+
+  statusEl.textContent = [
+    `Loaded: ${loadedAnims}/${totalAnims} animations`,
+    `Errors: ${errorAnims}`,
+    `Missing required: ${missingRequired}`,
+    `Variant: ${VARIANT_LABELS[currentVariantIdx]}`,
+  ].join(' | ');
+
+  applyFilter();
   startAnimation();
 }
 
-// Variant navigation buttons
-const variantNav = document.createElement('div');
-variantNav.className = 'anim-tabs';
-variantNav.id = 'variantNav';
-document.getElementById('controls').after(variantNav);
-
-function buildVariantButtons() {
-  variantNav.innerHTML = '<span style="color:#888;font-size:11px;line-height:28px">Variant: </span>';
-  for (let i = 0; i < 8; i++) {
-    const btn = document.createElement('button');
-    btn.textContent = i === 0 ? 'base' : `v${i}`;
-    btn.classList.toggle('active', i === currentVariantIdx);
-    btn.onclick = () => {
-      currentVariantIdx = i;
-      buildVariantButtons();
-      loadAll();
-    };
-    variantNav.appendChild(btn);
-  }
-}
-buildVariantButtons();
+// ─── Animation loop ───────────────────────────────────────────────────────────
 
 function startAnimation() {
-  if (animFrame) cancelAnimationFrame(animFrame);
+  if (rafHandle) cancelAnimationFrame(rafHandle);
   let lastTime = performance.now();
 
   function loop(now) {
@@ -203,41 +604,106 @@ function startAnimation() {
     lastTime = now;
 
     if (!paused) {
-      const speedMul = parseFloat(speedSlider.value);
-      for (const id in spriteData) {
-        const sd = spriteData[id];
-        if (sd.frames.length === 0) continue;
-        sd.elapsed += dt * speedMul;
-        const frameDuration = sd.frames[sd.currentFrame]?.duration || 100;
-        if (sd.elapsed >= frameDuration) {
-          sd.elapsed -= frameDuration;
-          sd.currentFrame = (sd.currentFrame + 1) % sd.frames.length;
+      const speed = parseFloat(speedSlider.value);
+      for (const eid in spriteData) {
+        for (const anim in spriteData[eid]) {
+          const sd = spriteData[eid][anim];
+          if (!sd.frames?.length) continue;
+          sd.elapsed += dt * speed;
+          const dur = sd.frames[sd.currentFrame]?.duration || 100;
+          if (sd.elapsed >= dur) {
+            sd.elapsed -= dur;
+            sd.currentFrame = (sd.currentFrame + 1) % sd.frames.length;
+          }
+          drawFrame(sd);
         }
-        drawFrame(sd);
       }
     }
-    animFrame = requestAnimationFrame(loop);
-  }
-  animFrame = requestAnimationFrame(loop);
-}
 
-function stepAll() {
-  for (const id in spriteData) {
-    const sd = spriteData[id];
-    sd.currentFrame = (sd.currentFrame + 1) % sd.frames.length;
-    drawFrame(sd);
+    rafHandle = requestAnimationFrame(loop);
   }
+
+  rafHandle = requestAnimationFrame(loop);
 }
 
 function drawFrame(sd) {
   const f = sd.frames[sd.currentFrame];
-  if (!f) return;
+  if (!f?.frame) return;
   const ctx = sd.canvas.getContext('2d');
   ctx.clearRect(0, 0, sd.canvas.width, sd.canvas.height);
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sd.img, f.frame.x, f.frame.y, f.frame.w, f.frame.h, 0, 0, sd.canvas.width, sd.canvas.height);
-  sd.frameInfo.textContent = `Frame ${sd.currentFrame + 1}/${sd.frames.length}`;
+  ctx.drawImage(
+    sd.img,
+    f.frame.x, f.frame.y, f.frame.w, f.frame.h,
+    0, 0, sd.canvas.width, sd.canvas.height
+  );
+  sd.frameInfo.textContent = `${sd.currentFrame + 1}/${sd.frames.length}`;
 }
+
+// ─── Validation report ────────────────────────────────────────────────────────
+
+function runValidation() {
+  reportEl.style.display = 'block';
+  let out = '═══════════════════════════════════════\n';
+  out += ' ENEMY SPRITE VALIDATION REPORT\n';
+  out += ` Variant: ${VARIANT_LABELS[currentVariantIdx]}\n`;
+  out += '═══════════════════════════════════════\n\n';
+
+  let totalErrors = 0;
+  let totalWarnings = 0;
+  let totalMissing = 0;
+  let allClean = true;
+
+  for (const enemy of ENEMIES) {
+    const eData  = spriteData[enemy.id] || {};
+    let eSection = '';
+    let eErrors  = 0;
+    let eWarns   = 0;
+
+    for (const animName of enemy.anims) {
+      const sd = eData[animName];
+      const isReq = enemy.required?.includes(animName) ?? false;
+      if (!sd) {
+        if (isReq) {
+          eSection += `  [MISSING ★] ${animName} — required animation not found!\n`;
+          eErrors++;
+          totalMissing++;
+        }
+        continue;
+      }
+      if (sd.issues.length > 0) {
+        eSection += `  ${animName}:\n`;
+        sd.issues.forEach(issue => {
+          const tag = issue.sev === 'error' ? 'ERROR' : 'WARN ';
+          eSection += `    [${tag}] ${issue.msg}\n`;
+          if (issue.sev === 'error') eErrors++;
+          else eWarns++;
+        });
+      }
+    }
+
+    if (eSection || eErrors > 0 || eWarns > 0) {
+      out += `▶ ${enemy.name} (${enemy.id}) [${getVariantLabel(enemy) || 'base'}]\n`;
+      out += eSection || '  (all animations OK)\n';
+      out += `  → ${eErrors} errors, ${eWarns} warnings\n\n`;
+      totalErrors   += eErrors;
+      totalWarnings += eWarns;
+      allClean = false;
+    }
+  }
+
+  out += '───────────────────────────────────────\n';
+  if (allClean) {
+    out += '✔ All loaded animations passed validation!\n';
+  } else {
+    out += `TOTAL: ${totalErrors} errors  |  ${totalWarnings} warnings  |  ${totalMissing} missing required\n`;
+  }
+
+  reportEl.textContent = out;
+  reportEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
 
 loadAll();
 </script>

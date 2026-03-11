@@ -1,5 +1,5 @@
 ﻿import { B } from "../data/balance.js";
-import { api } from "../api.js";
+import { api, auth } from "../api.js";
 import type { GameData, Character, PlayerProxy, BagItem, LeagueInfo } from "../types.js";
 import type { EventBus } from "./events.js";
 
@@ -76,14 +76,25 @@ export class GameState {
       throw new Error("Telegram initData required");
     }
 
-    // 1. Authenticate (pass start_param for referral tracking)
+    // 1. Try restoring session from stored refresh token (avoids full re-login on reload)
+    let authResult: Awaited<ReturnType<typeof api.auth.login>> | null = null;
+
+    if (!auth.isAuthenticated()) {
+      const restored = await auth.refresh();
+      if (restored) {
+        // Token refreshed — still need player data, fetch via a lightweight login
+        // (login is idempotent: returns same player, refreshes tokens)
+      }
+    }
+
+    // Full login with Telegram initData (always, to get player payload)
     // Check both Telegram's start_param and URL query string (bot passes ref via URL)
     let startParam: string | undefined = tg?.initDataUnsafe?.start_param || undefined;
     if (!startParam) {
       const urlRef = new URLSearchParams(window.location.search).get("ref");
       if (urlRef && /^ref_\d+$/.test(urlRef)) startParam = urlRef;
     }
-    const authResult = await api.auth.login(initData, startParam);
+    authResult = await api.auth.login(initData, startParam);
 
     // Ban check at auth level
     if (authResult.player.banned) {

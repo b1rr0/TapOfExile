@@ -10,6 +10,20 @@ const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
 
+// Restore refresh token from sessionStorage (survives page reload)
+try {
+  const stored = sessionStorage.getItem("toe_rt");
+  if (stored) refreshToken = stored;
+} catch { /* SSR / restricted env */ }
+
+function persistRefreshToken(token: string | null) {
+  refreshToken = token;
+  try {
+    if (token) sessionStorage.setItem("toe_rt", token);
+    else sessionStorage.removeItem("toe_rt");
+  } catch { /* ignore */ }
+}
+
 /* ── HTTP helpers ──────────────────────────────────────── */
 
 async function request<T = any>(
@@ -62,7 +76,12 @@ async function tryRefreshToken(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
     });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      // Refresh token expired or revoked — clear it
+      persistRefreshToken(null);
+      accessToken = null;
+      return false;
+    }
     const data = await res.json();
     accessToken = data.accessToken;
     return true;
@@ -114,7 +133,7 @@ export const auth = {
       };
     }>("/auth/telegram", { initData, startParam });
     accessToken = data.accessToken;
-    refreshToken = data.refreshToken;
+    persistRefreshToken(data.refreshToken);
     return data;
   },
 

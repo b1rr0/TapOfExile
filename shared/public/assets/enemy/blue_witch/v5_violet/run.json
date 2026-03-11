@@ -6,7 +6,7 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -14,11 +14,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     },
@@ -26,9 +26,9 @@
       "filename": "blue_witch #run 1",
       "frame": {
         "x": 0,
-        "y": 32,
+        "y": 48,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -36,11 +36,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     },
@@ -48,9 +48,9 @@
       "filename": "blue_witch #run 2",
       "frame": {
         "x": 0,
-        "y": 64,
+        "y": 96,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -58,11 +58,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     },
@@ -70,9 +70,9 @@
       "filename": "blue_witch #run 3",
       "frame": {
         "x": 0,
-        "y": 96,
+        "y": 144,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -80,11 +80,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     },
@@ -92,9 +92,9 @@
       "filename": "blue_witch #run 4",
       "frame": {
         "x": 0,
-        "y": 128,
+        "y": 192,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -102,11 +102,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     },
@@ -114,9 +114,9 @@
       "filename": "blue_witch #run 5",
       "frame": {
         "x": 0,
-        "y": 160,
+        "y": 240,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -124,11 +124,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     },
@@ -136,9 +136,9 @@
       "filename": "blue_witch #run 6",
       "frame": {
         "x": 0,
-        "y": 192,
+        "y": 288,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -146,11 +146,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     },
@@ -158,9 +158,9 @@
       "filename": "blue_witch #run 7",
       "frame": {
         "x": 0,
-        "y": 224,
+        "y": 336,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "rotated": false,
       "trimmed": false,
@@ -168,99 +168,11 @@
         "x": 0,
         "y": 0,
         "w": 32,
-        "h": 32
+        "h": 48
       },
       "sourceSize": {
         "w": 32,
-        "h": 32
-      },
-      "duration": 100
-    },
-    {
-      "filename": "blue_witch #run 8",
-      "frame": {
-        "x": 0,
-        "y": 256,
-        "w": 32,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 32,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 32,
-        "h": 32
-      },
-      "duration": 100
-    },
-    {
-      "filename": "blue_witch #run 9",
-      "frame": {
-        "x": 0,
-        "y": 288,
-        "w": 32,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 32,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 32,
-        "h": 32
-      },
-      "duration": 100
-    },
-    {
-      "filename": "blue_witch #run 10",
-      "frame": {
-        "x": 0,
-        "y": 320,
-        "w": 32,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 32,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 32,
-        "h": 32
-      },
-      "duration": 100
-    },
-    {
-      "filename": "blue_witch #run 11",
-      "frame": {
-        "x": 0,
-        "y": 352,
-        "w": 32,
-        "h": 32
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 32,
-        "h": 32
-      },
-      "sourceSize": {
-        "w": 32,
-        "h": 32
+        "h": 48
       },
       "duration": 100
     }
