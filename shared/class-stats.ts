@@ -174,7 +174,7 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
     name: 'Archer',
     icon: '🏹',
     description: 'Precision ranged attacker',
-    skinId: 'archer_1',
+    skinId: 'archer_4',
     base: {
       hp: 100,
       tapDamage: 2,

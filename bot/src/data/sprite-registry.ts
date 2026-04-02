@@ -246,6 +246,7 @@ export const HERO_SKINS: Record<string, SkinConfig> = {
     id: "archer_2",
     name: "Archer II",
     classId: "archer",
+    hidden: true,
     basePath: "/assets/characters/archer/archer_2",
     animations: {
       idle:    { json: "idle.json",      fps: 8,  loop: true },
@@ -615,5 +616,5 @@ export function listEnemySkins(): string[] {
 }
 
 export function getSkinsForClass(classId: string): SkinConfig[] {
-  return Object.values(HERO_SKINS).filter(s => s.classId === classId);
+  return Object.values(HERO_SKINS).filter(s => s.classId === classId && !s.hidden);
 }

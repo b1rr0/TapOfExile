@@ -8,7 +8,7 @@ const WIKI_SECTIONS = [
   { to: '/wiki/plot', icon: '📜', key: 'plot', tags: ['Acts', 'Locations', 'Lore'] },
   { to: '/wiki/maps', icon: '🗺️', key: 'maps', tags: ['Tiers', 'Bosses', 'Keys'] },
   { to: '/wiki/equipment', icon: '⚗️', key: 'equipment', tags: ['Flasks', 'Quality', 'Loot'] },
-  { to: '/wiki/skill-tree', icon: '🌳', key: 'skillTree', tags: ['Nodes', 'Keystones', 'Builds'] },
+  { to: '/wiki/asterism', icon: '✴', key: 'skillTree', tags: ['Nodes', 'Keystones', 'Builds'] },
 ];
 
 export default function WikiHomePage() {

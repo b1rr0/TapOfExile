@@ -4,21 +4,22 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Item } from '../shared/entities/item.entity';
 import { EquipmentSlot } from '../shared/entities/equipment-slot.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { Character } from '../shared/entities/character.entity';
 import {
-  rollMapDrops as sharedRollMapDrops,
   createMapKeyData,
   createBossKeyData,
+  pickBossKeyTier,
+  BOSS_MAPS,
 } from '@shared/endgame-maps';
 import type { BagItemData } from '@shared/types';
 import { canEquipInSlot, UI_SLOT_ACCEPTS } from '@shared/equipment-defs';
 import type { EquipmentSlotId } from '@shared/equipment-defs';
 
-const MAX_BAG_SIZE = 32;
+const MAX_BAG_SIZE = 52;
 
 @Injectable()
 export class LootService {
@@ -42,41 +43,84 @@ export class LootService {
     });
   }
 
-  /**
-   * Roll map drops after completing a map.
-   * Uses shared rollMapDrops logic with server-side item factories.
-   */
-  rollMapDrops(
-    tier: number,
-    isBossMap: boolean = false,
-    direction: string | null = null,
-  ): Partial<Item>[] {
-    // Server factory: creates map key data (no location enrichment on server)
-    const serverCreateMapKey = (t: number): BagItemData => {
-      const data = createMapKeyData(t);
-      return { ...data, name: `Tier ${t} Map Key` };
-    };
-
-    // Server factory: creates boss key data
-    const serverCreateBossKey = (bossId: string, bkt: number): BagItemData | null => {
-      return createBossKeyData(bossId, bkt);
-    };
-
-    const drops = sharedRollMapDrops(
-      tier,
-      isBossMap,
-      direction,
-      serverCreateMapKey,
-      serverCreateBossKey,
-    );
-
-    // Convert BagItemData to Partial<Item> (acquiredAt as string for DB)
-    return drops.map((d) => ({
+  /** Helper: convert BagItemData to Partial<Item> for DB persistence. */
+  private toItem(d: BagItemData): Partial<Item> {
+    return {
       ...d,
       acquiredAt: String(d.acquiredAt),
       status: 'bag' as const,
       properties: {},
-    }));
+    };
+  }
+
+  /** Helper: create a map key Partial<Item> for a given tier. */
+  private makeMapKey(tier: number): Partial<Item> {
+    const data = createMapKeyData(tier);
+    return this.toItem({ ...data, name: `Tier ${tier} Map Key` });
+  }
+
+  /**
+   * Roll map KEY drops after completing a map (separate from loot).
+   *
+   * Single roll, mutually exclusive:
+   * - 90% → 1 key of current tier
+   * -  5% → 1 key of next tier (capped at max)
+   * -  5% → 2 keys of current tier
+   */
+  rollMapKeyDrops(tier: number): Partial<Item>[] {
+    const roll = Math.random();
+    if (roll < 0.05) {
+      return [this.makeMapKey(tier), this.makeMapKey(tier)];
+    } else if (roll < 0.10) {
+      return [this.makeMapKey(Math.min(tier + 1, 10))];
+    }
+    return [this.makeMapKey(tier)];
+  }
+
+  /**
+   * Roll boss KEY drops (independent from map keys and loot).
+   *
+   * 5% chance. Only from tier 5+ regular maps or any boss map.
+   */
+  rollBossKeyDrops(
+    tier: number,
+    isBossMap: boolean = false,
+    direction: string | null = null,
+  ): Partial<Item>[] {
+    const minTier = isBossMap ? 1 : 5;
+    if (tier < minTier || Math.random() >= 0.05) return [];
+
+    const bkt = pickBossKeyTier(tier, isBossMap);
+    const bossId = direction || BOSS_MAPS[Math.floor(Math.random() * BOSS_MAPS.length)].id;
+    const item = createBossKeyData(bossId, bkt);
+    return item ? [this.toItem(item)] : [];
+  }
+
+  /**
+   * Roll map key drops for Act 5 locations.
+   *
+   * Single roll, mutually exclusive:
+   * - 90% → 1 Tier-1 key
+   * -  5% → 1 Tier-2 key
+   * -  5% → 2 Tier-1 keys
+   */
+  rollActMapKeyDrops(): Partial<Item>[] {
+    const drops: Partial<Item>[] = [];
+
+    const roll = Math.random();
+    if (roll < 0.05) {
+      // 5%: 2× Tier 1
+      drops.push(this.makeMapKey(1));
+      drops.push(this.makeMapKey(1));
+    } else if (roll < 0.10) {
+      // 5%: Tier 2
+      drops.push(this.makeMapKey(2));
+    } else {
+      // 90%: 1× Tier 1
+      drops.push(this.makeMapKey(1));
+    }
+
+    return drops;
   }
 
   /**
@@ -86,11 +130,12 @@ export class LootService {
   async addItemsToBag(
     playerLeagueId: string,
     items: Partial<Item>[],
+    extraBagSlots = 0,
   ): Promise<Item[]> {
     const currentCount = await this.itemRepo.count({
       where: { playerLeagueId, status: 'bag' },
     });
-    const space = MAX_BAG_SIZE - currentCount;
+    const space = (MAX_BAG_SIZE + extraBagSlots) - currentCount;
 
     const toAdd = items.slice(0, space).map((item) =>
       this.itemRepo.create({ ...item, playerLeagueId, status: 'bag', properties: item.properties || {} }),
@@ -137,10 +182,9 @@ export class LootService {
 
   /**
    * Calculate sell price for an item.
-   * Equipment: itemLevel × qualityMul (common=1, rare=3, epic=8, legendary=20)
-   * Potions: 5 × qualityMul
-   * Map keys: tier × 10
-   * Boss keys: bossKeyTier × 50
+   * Equipment: progressive curve based on iLvl + quality.
+   *   basePrice = 5 + 0.008 × iLvl³  →  lvl 1 ≈ 5g, lvl 10 ≈ 13g, lvl 50 ≈ 1005g
+   *   finalPrice = floor(basePrice × qualityMul)
    */
   calculateSellPrice(item: Item): number {
     const qualityMul: Record<string, number> = {
@@ -150,7 +194,8 @@ export class LootService {
 
     if (item.type === 'equipment') {
       const iLvl = (item.properties as any)?.itemLevel || item.level || 1;
-      return Math.max(1, Math.floor(iLvl * mul));
+      const basePrice = 5 + 0.008 * iLvl * iLvl * iLvl;
+      return Math.max(1, Math.floor(basePrice * mul));
     }
     if (item.type === 'potion') {
       return Math.max(1, 5 * mul);
@@ -162,6 +207,36 @@ export class LootService {
       return Math.max(1, (item.bossKeyTier || 1) * 50);
     }
     return 1;
+  }
+
+  /**
+   * Bulk sell multiple items from the bag.
+   * Returns total gold earned.
+   */
+  async bulkSell(playerLeagueId: string, itemIds: string[]): Promise<{ gold: number; sold: number }> {
+    if (!itemIds.length) return { gold: 0, sold: 0 };
+
+    const items = await this.itemRepo.find({
+      where: { id: In(itemIds), playerLeagueId, status: 'bag' },
+    });
+
+    if (!items.length) return { gold: 0, sold: 0 };
+
+    let totalGold = 0;
+    for (const item of items) {
+      totalGold += this.calculateSellPrice(item);
+    }
+
+    // Add gold to player league
+    const pl = await this.playerLeagueRepo.findOneBy({ id: playerLeagueId });
+    if (!pl) throw new NotFoundException('Player league not found');
+    pl.gold = (BigInt(pl.gold) + BigInt(totalGold)).toString();
+    await this.playerLeagueRepo.save(pl);
+
+    // Remove all sold items
+    await this.itemRepo.remove(items);
+
+    return { gold: totalGold, sold: items.length };
   }
 
   // ── Potion equip/unequip ───────────────────────────────

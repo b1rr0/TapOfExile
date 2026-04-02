@@ -267,12 +267,12 @@ export default function CharacterModal({ characterId, onClose }: Props) {
                 </>
               )}
 
-              {/* Skill Tree — opens in new tab */}
+              {/* Asterism — opens in new tab */}
               <button
                 className="char-modal__tree-btn"
-                onClick={() => window.open(`/character/${characterId}/tree`, '_blank')}
+                onClick={() => window.open(`/character/${characterId}/asterism`, '_blank')}
               >
-                {'\uD83C\uDF33'} View Skill Tree
+                {'\u2734\uFE0F'} View Asterism
                 {data.allocatedNodes.length > 0 && ` (${data.allocatedNodes.length} nodes)`}
               </button>
             </div>

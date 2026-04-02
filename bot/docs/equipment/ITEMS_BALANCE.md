@@ -1,46 +1,46 @@
 # ITEMS BALANCE — Tap of Exile
 
-> **Single source of truth** для дизайна предметов.
-> Каждый предмет из `/shared/public/assets/equipments/*/in_use/` получает здесь:
-> iLvl диапазон · 2–4 стата · место дропа.
-> ~20% предметов — **уникальные** с особой механикой.
+> **Single source of truth** for item design.
+> Each item from `/shared/public/assets/equipments/*/in_use/` gets assigned here:
+> iLvl range, 2-4 stats, drop location.
+> ~20% of items are **uniques** with special mechanics.
 >
-> Полные диапазоны статов по тирам → `bot/docs/equipment/*.md`
+> Full stat ranges by tier -> `bot/docs/equipment/*.md`
 
 ---
 
-## 1. Система дропа — Фреймворк
+## 1. Drop System — Framework
 
-### iLvl ↔ Прогрессия
+### iLvl <-> Progression
 
-| Tier | iLvl    | reqLvl | Контент                                      |
+| Tier | iLvl    | reqLvl | Content                                      |
 |------|---------|--------|----------------------------------------------|
-| T5   | 1–19    | 0–14   | Act 1 (все локации)                          |
-| T4   | 20–39   | 15–29  | Act 2 (все локации)                          |
-| T3   | 40–59   | 30–44  | Act 3 (все локации)                          |
-| T2   | 60–79   | 45–59  | Act 4 (все локации)                          |
+| T5   | 1–19    | 0–14   | Act 1 (all locations)                        |
+| T4   | 20–39   | 15–29  | Act 2 (all locations)                        |
+| T3   | 40–59   | 30–44  | Act 3 (all locations)                        |
+| T2   | 60–79   | 45–59  | Act 4 (all locations)                        |
 | T1   | 80–100  | 60–75  | Act 5 + Endgame Maps T1–T10 + Boss Maps      |
 
-### Аффиксы в имени → тематика предмета
+### Name Affixes -> Item Theme
 
-| Аффикс                        | Элемент / статы              | iLvl смещение |
+| Affix                         | Element / Stats                | iLvl Offset    |
 |-------------------------------|------------------------------|----------------|
-| Blood / Crimson / Marrow      | phys_dmg, flat_hp, loh       | любой          |
-| Ember / Cinder / Ash          | fire_dmg, fire_res           | любой          |
-| Frost / Glacial / Ice         | cold_dmg, cold_res           | любой          |
-| Storm / Thunder / Lightning   | lightning_dmg, lightning_res | любой          |
-| Void / Abyssal / Night / Dusk | energy_shield, pct_hp        | +20 к базе     |
-| Shadow / Veil                 | evasion, crit_chance         | +10 к базе     |
-| Gold / Gilded / Solaris       | gold_find, xp_bonus          | любой          |
-| Bone / Hollow / Skull         | flat_hp, life_regen          | любой          |
-| Thorn / Verdant / Wood        | cold_dmg, life_regen         | любой          |
-| Ancient / Voidborn            | top-end иерархия             | T1 (80–100)    |
-| Cursed / Forsaken             | высокий риск                 | T2–T1 (60–100) |
-| Shattered / Hollow            | бюджетные копии              | T5–T4 (1–39)   |
+| Blood / Crimson / Marrow      | phys_dmg, flat_hp, loh       | any            |
+| Ember / Cinder / Ash          | fire_dmg, fire_res           | any            |
+| Frost / Glacial / Ice         | cold_dmg, cold_res           | any            |
+| Storm / Thunder / Lightning   | lightning_dmg, lightning_res | any            |
+| Void / Abyssal / Night / Dusk | energy_shield, pct_hp        | +20 to base    |
+| Shadow / Veil                 | evasion, crit_chance         | +10 to base    |
+| Gold / Gilded / Solaris       | gold_find, xp_bonus          | any            |
+| Bone / Hollow / Skull         | flat_hp, life_regen          | any            |
+| Thorn / Verdant / Wood        | cold_dmg, life_regen         | any            |
+| Ancient / Voidborn            | top-end hierarchy            | T1 (80–100)    |
+| Cursed / Forsaken             | high risk                    | T2–T1 (60–100) |
+| Shattered / Hollow            | budget copies                | T5–T4 (1–39)   |
 
-### Аффинитет монстров
+### Monster Affinity
 
-| Монстр        | Act | Предпочтительные категории                         |
+| Monster       | Act | Preferred Categories                               |
 |---------------|-----|----------------------------------------------------|
 | Bandit        | 1   | Belts, Boots, Helmets (T5)                         |
 | Wild Boar     | 1   | Plates, Gloves, Axes (T5)                          |
@@ -51,9 +51,9 @@
 | Dragon        | 4–5 | All item types, high iLvl (T2–T1)                 |
 | Shogun        | 5   | Legendary quality any slot (T1 only)               |
 
-### Boss Map → эксклюзивный дроп (iLvl 88–100)
+### Boss Map -> Exclusive Drops (iLvl 88–100)
 
-| Boss Map                  | Гарантированные категории                        |
+| Boss Map                  | Guaranteed Categories                            |
 |---------------------------|--------------------------------------------------|
 | Shadow Shogun's Domain    | Legendary Swords, Legendary Plates               |
 | Dragon's Eternal Lair     | Legendary Staffs, Legendary Scrolls              |
@@ -66,14 +66,14 @@
 
 ---
 
-## 2. Оружие — Одноручное
+## 2. Weapons — One-Hand
 
 ### 2.1 Axes (`oh_axe`) — `weapon/axes/in_use/`
 
-**Тема**: Высокий физ. урон, тяжёлые удары, жизнь за удар.
-**Дроп**: Bandit/Wild Boar (T5), Oni (T3), Dragon (T1).
+**Theme**: High phys. damage, heavy strikes, life on hit.
+**Drop**: Bandit/Wild Boar (T5), Oni (T3), Dragon (T1).
 
-| Предмет                        | iLvl  | Tier | Статы (2–4)                                                              | Особое              |
+| Item                           | iLvl  | Tier | Stats (2–4)                                                              | Special             |
 |--------------------------------|-------|------|---------------------------------------------------------------------------|---------------------|
 | Blackpine_Reaper               | 5–15  | T5   | flat_phys_dmg · flat_hp                                                  |                     |
 | Bloodaxe_of_the_Forsaken       | 62–75 | T2   | flat_phys_dmg · pct_phys_dmg · fire_res                                  |                     |
@@ -96,30 +96,30 @@
 | Thornblight_Cleaver            | 30–48 | T4   | flat_phys_dmg · flat_cold_dmg · life_on_hit                              |                     |
 | **Voidborn_Bloodmoon_Cleaver_3** | 85–100| T1 | pct_phys_dmg · flat_phys_dmg · flat_energy_shield · crit_chance          | **UNIQUE** ↓        |
 
-**Уникальные механики — Axes:**
+**Unique Mechanics — Axes:**
 
 > **Bloodreaver's_Cleave** — *Blood Harvest*
-> Убийство любого врага восстанавливает **8% от максимального HP**.
-> Эффект не стакается; работает один раз за врага.
+> Killing any enemy restores **8% of maximum HP**.
+> Effect does not stack; triggers once per enemy.
 
 > **Grimstone_Reaper** — *Soul Rend*
-> `passive_dps_bonus` увеличивается на **+1% за каждого убитого врага** в текущей сессии (макс +30%). Сбрасывается при выходе из локации.
+> `passive_dps_bonus` increases by **+1% per enemy killed** in the current session (max +30%). Resets on leaving the location.
 
 > **Stormbreaker's_Maul** — *Lightning Crash*
-> Каждый **5-й удар** наносит **300% lightning damage** от базового.
-> Счётчик сбрасывается при смене локации.
+> Every **5th hit** deals **300% lightning damage** of base.
+> Counter resets on location change.
 
 > **Voidborn_Bloodmoon_Cleaver_3** — *Void Hunger*
-> Убийство врага редкости Epic+ восстанавливает **10% Energy Shield** мгновенно.
+> Killing an Epic+ rarity enemy instantly restores **10% Energy Shield**.
 
 ---
 
 ### 2.2 Blades (`oh_dagger`) — `weapon/blades/in_use/`
 
-**Тема**: Высокий крит, элементальные надбавки, кинжалы.
-**Дроп**: Ronin (T4), Forest Spirit (T4), Dragon (T1).
+**Theme**: High crit, elemental bonuses, daggers.
+**Drop**: Ronin (T4), Forest Spirit (T4), Dragon (T1).
 
-| Предмет                      | iLvl  | Tier | Статы (2–4)                                                               | Особое       |
+| Item                         | iLvl  | Tier | Stats (2–4)                                                               | Special      |
 |------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | **Amethyst_Fang**            | 52–68 | T3   | crit_chance · crit_multiplier · flat_cold_dmg                             | **UNIQUE** ↓ |
 | Ashblight_Dirk               | 15–30 | T5   | flat_phys_dmg · crit_chance                                              |              |
@@ -142,29 +142,29 @@
 | Verdant_Fang_Cleaver         | 38–55 | T4   | flat_cold_dmg · crit_chance · life_on_hit                                 |              |
 | **Verdant_Scourge**          | 80–95 | T1   | flat_cold_dmg · crit_multiplier · life_on_hit · pct_phys_dmg              | **UNIQUE** ↓ |
 
-**Уникальные механики — Blades:**
+**Unique Mechanics — Blades:**
 
 > **Amethyst_Fang** — *Venom Fang*
-> Критические удары добавляют стак **яда** (pure DoT = 5% от нанесённого крит. урона в секунду, 3с). Стакается до 5 раз.
+> Critical strikes add a **poison** stack (pure DoT = 5% of dealt crit damage per second, 3s). Stacks up to 5 times.
 
 > **Crimson_Marrow_Blade** — *Blood Price*
-> `crit_multiplier` увеличен на **+50%**, но **максимальное HP снижено на 10%**.
-> Статы на предмете фиксированы (уникальный предмет).
+> `crit_multiplier` increased by **+50%**, but **maximum HP reduced by 10%**.
+> Stats on the item are fixed (unique item).
 
 > **Storm_Amethyst_Fang** — *Static Charge*
-> При криты `life_on_hit` конвертируется в **lightning damage** (равный LoH × 3), вместо восстановления HP.
+> On crit, `life_on_hit` converts to **lightning damage** (equal to LoH x 3) instead of restoring HP.
 
 > **Verdant_Scourge** — *Nature's Wrath*
-> `flat_cold_dmg` увеличен на значение **`life_regen`/сек × 5** (суммируется из всей экипировки).
+> `flat_cold_dmg` increased by the value of **`life_regen`/sec x 5** (summed from all equipment).
 
 ---
 
 ### 2.3 Swords (`oh_sword`) — `weapon/swords/in_use/`
 
-**Тема**: Баланс урона и крита, мечи и катаны.
-**Дроп**: Ronin (T4–T3), Shogun (T1), Shadow Shogun Boss Map.
+**Theme**: Balance of damage and crit, swords and katanas.
+**Drop**: Ronin (T4–T3), Shogun (T1), Shadow Shogun Boss Map.
 
-| Предмет                    | iLvl  | Tier | Статы (2–4)                                                              | Особое       |
+| Item                       | iLvl  | Tier | Stats (2–4)                                                              | Special      |
 |----------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | Ancient_Thornspire_Cleaver | 82–100| T1   | flat_phys_dmg · pct_phys_dmg · crit_multiplier · cold_res                 |              |
 | Ashborn_Katana             | 22–38 | T4   | flat_phys_dmg · crit_chance · crit_multiplier                             |              |
@@ -187,30 +187,30 @@
 | **Veilpiercer's_Edge**     | 80–100| T1   | pct_phys_dmg · crit_chance · crit_multiplier · flat_phys_dmg              | **UNIQUE** ↓ |
 | Veilpiercer_Blade          | 72–88 | T2   | flat_phys_dmg · pct_phys_dmg · crit_chance                               |              |
 
-**Уникальные механики — Swords:**
+**Unique Mechanics — Swords:**
 
 > **Duskfall_Cleaver** — *Twilight Edge*
-> Наносит дополнительный физ. урон равный **5% от суммарного Evasion Rating** (по всей экипировке).
+> Deals additional phys. damage equal to **5% of total Evasion Rating** (across all equipment).
 
 > **Glacial_Fang_Blade** — *Frostbite*
-> Холодный урон имеет **15% шанс заморозить** врага. Следующий удар по замороженному врагу наносит **200% урона**.
+> Cold damage has a **15% chance to freeze** the enemy. The next hit against a frozen enemy deals **200% damage**.
 
 > **Goldflare_Cleaver** — *Golden Rush*
-> После убийства врага редкости Rare+ `gold_find` **удваивается** на **30 секунд**.
+> After killing a Rare+ rarity enemy, `gold_find` **doubles** for **30 seconds**.
 
 > **Veilpiercer's_Edge** — *Phase Strike*
-> **25% всего наносимого урона** игнорирует сопротивления противника.
+> **25% of all dealt damage** ignores enemy resistances.
 
 ---
 
-## 3. Оружие — Двуручное
+## 3. Weapons — Two-Hand
 
 ### 3.1 Bows (`tw_bow`) — `weapon/bows/in_use/`
 
-**Тема**: Дальний бой, lightning + cold, высокий крит.
-**Дроп**: Tengu (T2), Forest Spirit (T4), Tengu Mountain Peak Boss Map.
+**Theme**: Ranged combat, lightning + cold, high crit.
+**Drop**: Tengu (T2), Forest Spirit (T4), Tengu Mountain Peak Boss Map.
 
-| Предмет                       | iLvl  | Tier | Статы (2–4)                                                               | Особое       |
+| Item                          | iLvl  | Tier | Stats (2–4)                                                               | Special      |
 |-------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | **Ancient_Emberflight_Longbow**| 85–100| T1  | flat_fire_dmg · pct_phys_dmg · crit_chance · fire_res                     | **UNIQUE** ↓ |
 | Ancient_Thornwood_Whisper      | 82–98 | T1   | flat_cold_dmg · crit_chance · crit_multiplier · cold_res                  |              |
@@ -233,28 +233,28 @@
 | Voidborn_Shadowpine_Recurve    | 85–100| T1   | flat_phys_dmg · flat_evasion · crit_chance · pct_phys_dmg                 |              |
 | **Voidstrike_Recurve**         | 80–100| T1   | flat_phys_dmg · crit_chance · crit_multiplier · pct_phys_dmg              | **UNIQUE** ↓ |
 
-**Уникальные механики — Bows:**
+**Unique Mechanics — Bows:**
 
 > **Ancient_Emberflight_Longbow** — *Ember Arrow*
-> Огненный урон этого оружия **игнорирует 20%** сопротивления врага к огню.
+> Fire damage of this weapon **ignores 20%** of enemy fire resistance.
 
 > **Frostbite_Whisper** — *Shatter*
-> Критические удары холодом против **замороженных** врагов наносят **+150% бонусного урона**.
+> Cold critical strikes against **frozen** enemies deal **+150% bonus damage**.
 
 > **Sorrow's_Crescent** — *Lament*
-> Каждый **не-критический удар** накапливает стак Sorrow (+1% crit_chance, макс 20 стаков). Первый критический сбрасывает стаки, но бьёт с полным накопленным бонусом.
+> Each **non-critical hit** accumulates a Sorrow stack (+1% crit_chance, max 20 stacks). The first critical resets stacks but strikes with the full accumulated bonus.
 
 > **Voidstrike_Recurve** — *Void Piercer*
-> **10% от всего наносимого урона** конвертируется в **pure damage** (обходит все сопротивления).
+> **10% of all dealt damage** converts to **pure damage** (bypasses all resistances).
 
 ---
 
 ### 3.2 Staffs (`tw_staff`) — `weapon/staffs/in_use/`
 
-**Тема**: Элементальный урон, Energy Shield, passive DPS.
-**Дроп**: Tengu (T2), Dragon (T1), Dragon's Eternal Lair Boss Map.
+**Theme**: Elemental damage, Energy Shield, passive DPS.
+**Drop**: Tengu (T2), Dragon (T1), Dragon's Eternal Lair Boss Map.
 
-| Предмет                       | iLvl  | Tier | Статы (2–4)                                                               | Особое       |
+| Item                          | iLvl  | Tier | Stats (2–4)                                                               | Special      |
 |-------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | Azureblight_Scepter           | 52–68 | T3   | flat_lightning_dmg · flat_cold_dmg · crit_chance                          |              |
 | Azurite_Thaumaturge's_Rod     | 62–78 | T2   | flat_lightning_dmg · pct_energy_shield · crit_chance                      |              |
@@ -277,28 +277,28 @@
 | Thornwick_Conduit             | 38–55 | T4   | flat_cold_dmg · life_regen · flat_hp                                     |              |
 | Verdant_Scepter_of_Thorns     | 42–60 | T3   | flat_cold_dmg · flat_hp · life_regen · cold_res                           |              |
 
-**Уникальные механики — Staffs:**
+**Unique Mechanics — Staffs:**
 
 > **Crescent_Voidstaff** — *Void Hunger*
-> Убийство любого врага восстанавливает **5 Energy Shield** (stackable per kill).
+> Killing any enemy restores **5 Energy Shield** (stackable per kill).
 
 > **Embercrown_Staff** — *Inferno Aura*
-> `passive_dps_bonus` на этом оружии применяется **только к fire damage** (эффективность ×1.5 для огня, ×0 для остального).
+> `passive_dps_bonus` on this weapon applies **only to fire damage** (effectiveness x1.5 for fire, x0 for everything else).
 
 > **Serpent's_Coil_Staff** — *Serpent's Blessing*
-> `life_regen` увеличен на **+1 HP/s за каждые 3% cold resistance** на всей экипировке.
+> `life_regen` increased by **+1 HP/s per 3% cold resistance** across all equipment.
 
 > **Starfall_Scepter** — *Falling Stars*
-> Каждый **10-й тап** активирует Starfall: наносит **200% flat_lightning_dmg** этого оружия как area hit всем врагам в волне.
+> Every **10th tap** activates Starfall: deals **200% flat_lightning_dmg** of this weapon as an area hit to all enemies in the wave.
 
 ---
 
 ### 3.3 Scrolls (`tw_scroll`) — `weapon/scrolls/in_use/`
 
-**Тема**: Пассивный DPS, опыт, элементальный урон, магические гримуары.
-**Дроп**: Dragon (T1), Shogun (T1), Dragon's Eternal Lair Boss Map.
+**Theme**: Passive DPS, experience, elemental damage, magical grimoires.
+**Drop**: Dragon (T1), Shogun (T1), Dragon's Eternal Lair Boss Map.
 
-| Предмет                              | iLvl  | Tier | Статы (2–4)                                                               | Особое       |
+| Item                                 | iLvl  | Tier | Stats (2–4)                                                               | Special      |
 |--------------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | **Azurite_Codex_of_Ruin**            | 78–95 | T1   | flat_lightning_dmg · passive_dps_bonus · xp_bonus                         | **UNIQUE** ↓ |
 | Codex_of_Wasting                     | 30–48 | T4   | passive_dps_bonus · flat_cold_dmg · life_regen                            |              |
@@ -321,30 +321,30 @@
 | Voidborn_Crimson_Covenant_Scroll     | 82–100| T1   | flat_phys_dmg · passive_dps_bonus · pct_phys_dmg · flat_hp                |              |
 | **Voidpact_Grimoire**                | 80–100| T1   | passive_dps_bonus · pct_energy_shield · crit_chance · xp_bonus            | **UNIQUE** ↓ |
 
-**Уникальные механики — Scrolls:**
+**Unique Mechanics — Scrolls:**
 
 > **Azurite_Codex_of_Ruin** — *Ruination*
-> Каждый убитый враг добавляет **+1 к flat_lightning_dmg** этого оружия (сбрасывается при смене зоны). Макс +50.
+> Each killed enemy adds **+1 to flat_lightning_dmg** of this weapon (resets on zone change). Max +50.
 
 > **Paw_of_the_Covenant** — *Beast Bond*
-> `flat_phys_dmg` увеличен на **+5% за каждый пройденный Акт** персонажем (макс Act 5 = +25%).
+> `flat_phys_dmg` increased by **+5% per completed Act** by the character (max Act 5 = +25%).
 
 > **Scrolls_of_the_Starfall_Covenant** — *Covenant of Stars*
-> `xp_bonus` также работает как `gold_find` на **50% своей величины** (они суммируются).
+> `xp_bonus` also works as `gold_find` at **50% of its value** (they stack additively).
 
 > **Voidpact_Grimoire** — *Eldritch Pact*
-> `passive_dps_bonus` на предмете **удвоен**, но **максимальное HP снижено на 15%**.
+> `passive_dps_bonus` on the item is **doubled**, but **maximum HP reduced by 15%**.
 
 ---
 
-## 4. Броня
+## 4. Armour
 
 ### 4.1 Helmets (`helmet`) — `armor/helmets/in_use/`
 
-**Тема**: HP, броня/уклонение, резисты, XP-бонус.
-**Дроп**: Bandit/Wild Boar (T5), Oni (T3), любые врачи (T1). Oni Warlord Boss Map.
+**Theme**: HP, armour/evasion, resistances, XP bonus.
+**Drop**: Bandit/Wild Boar (T5), Oni (T3), any enemies (T1). Oni Warlord Boss Map.
 
-| Предмет                    | iLvl  | Tier | Статы (2–4)                                                              | Особое       |
+| Item                       | iLvl  | Tier | Stats (2–4)                                                              | Special      |
 |----------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | **Amethyst_Witch's_Crown** | 72–88 | T2   | flat_energy_shield · pct_energy_shield · xp_bonus                         | **UNIQUE** ↓ |
 | Ancient_Grimscale_Helm_2   | 82–100| T1   | flat_armor · pct_armor · flat_hp · fire_res                               |              |
@@ -367,28 +367,28 @@
 | Storm_Emberveil_Helm_2     | 48–65 | T3   | flat_armor · lightning_res · flat_hp                                     |              |
 | Veilbound_Crown            | 62–80 | T2   | flat_energy_shield · pct_energy_shield · lightning_res                    |              |
 
-**Уникальные механики — Helmets:**
+**Unique Mechanics — Helmets:**
 
 > **Amethyst_Witch's_Crown** — *Arcane Attunement*
-> `flat_energy_shield` поглощает **15% входящего физического урона** раньше чем HP (Energy Shield становится барьером от физ. урона).
+> `flat_energy_shield` absorbs **15% of incoming physical damage** before HP (Energy Shield becomes a barrier against phys. damage).
 
 > **Crimson_Throne_Helm** — *Blood Crown*
-> `flat_hp` на этом шлеме **удваивается** после убийства врага редкости Boss (эффект длится до конца локации).
+> `flat_hp` on this helmet **doubles** after killing a Boss rarity enemy (effect lasts until end of location).
 
 > **Hollowveil_Skull_Helm** — *Death Mask*
-> `xp_bonus` **удваивается**, пока HP игрока ниже **30% от максимума**.
+> `xp_bonus` **doubles** while player HP is below **30% of maximum**.
 
 > **Horned_Tyrant's_Crown** — *Domination*
-> Все числовые статы на **других надетых предметах** увеличены на **+2%** (мультипликативный бонус к роллу).
+> All numeric stats on **other equipped items** are increased by **+2%** (multiplicative bonus to roll).
 
 ---
 
 ### 4.2 Plates / Chest Armor (`armor`) — `armor/plates/in_use/`
 
-**Тема**: Главный защитный слот. Макс HP, броня, резисты.
-**Дроп**: Wild Boar (T5), Oni (T3), Dragon (T1). Beast King's Arena + Shadow Shogun Boss Maps.
+**Theme**: Main defensive slot. Max HP, armour, resistances.
+**Drop**: Wild Boar (T5), Oni (T3), Dragon (T1). Beast King's Arena + Shadow Shogun Boss Maps.
 
-| Предмет                        | iLvl  | Tier | Статы (2–4)                                                              | Особое       |
+| Item                           | iLvl  | Tier | Stats (2–4)                                                              | Special      |
 |--------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | Azuremantle_Cuirass            | 55–72 | T3   | flat_energy_shield · pct_energy_shield · lightning_res                    |              |
 | Bloodplate_Cuirass             | 22–38 | T4   | flat_hp · flat_armor · phys_res                                          |              |
@@ -411,31 +411,31 @@
 | Veilbound_Cuirass              | 62–80 | T2   | flat_energy_shield · pct_energy_shield · flat_hp · lightning_res          |              |
 | **Voidborn_Goldenscale_Cuirass**| 85–100| T1  | flat_armor · pct_armor · flat_energy_shield · pct_energy_shield           | **UNIQUE** ↓ |
 
-**Уникальные механики — Plates:**
+**Unique Mechanics — Plates:**
 
 > **Bonelord's_Cuirass** — *Bone Fortress*
-> `flat_armor` увеличен на **+1 за каждые 10 flat_hp** суммарно по всей экипировке.
+> `flat_armor` increased by **+1 per 10 flat_hp** total across all equipment.
 
 > **Crimson_Harbinger_Plate** — *Harbinger's Will*
-> При падении HP ниже **25%**: +30% phys_res на **5 секунд** (перезарядка 60с).
+> When HP drops below **25%**: +30% phys_res for **5 seconds** (60s cooldown).
 
 > **Goldenscale_Cuirass** — *Dragonscale*
-> Каждые **10% gold_find** на всей экипировке дают **+5 flat_armor** к этому нагруднику.
+> Every **10% gold_find** across all equipment grants **+5 flat_armor** to this chest piece.
 
 > **Voidborn_Goldenscale_Cuirass** — *Void Mantle*
-> `energy_shield` восстанавливается со скоростью **5% в секунду**, пока игрок не получает урон (задержка 2с).
+> `energy_shield` regenerates at **5% per second** while the player takes no damage (2s delay).
 
 ---
 
-### 4.3 Mantles — новый слот `mantle` — `armor/mantles/in_use/`
+### 4.3 Mantles — new slot `mantle` — `armor/mantles/in_use/`
 
-> **Предложение нового слота**: Мантии (плащи) занимают слот **`mantle`** (плечи/плащ).
-> Доступные статы: `flat_evasion · pct_evasion · flat_energy_shield · cold_res · lightning_res · life_regen · gold_find · pct_hp`
-> Кол-во статов: 2–3 (слот вспомогательный, не перегружаем).
+> **New slot proposal**: Mantles (cloaks) occupy the **`mantle`** slot (shoulders/cloak).
+> Available stats: `flat_evasion · pct_evasion · flat_energy_shield · cold_res · lightning_res · life_regen · gold_find · pct_hp`
+> Stat count: 2–3 (auxiliary slot, not overloaded).
 
-**Дроп**: Forest Spirit (T4), Tengu (T2), Tengu Mountain Peak Boss Map.
+**Drop**: Forest Spirit (T4), Tengu (T2), Tengu Mountain Peak Boss Map.
 
-| Предмет                        | iLvl  | Tier | Статы (2–3)                                             | Особое       |
+| Item                           | iLvl  | Tier | Stats (2–3)                                             | Special      |
 |--------------------------------|-------|------|---------------------------------------------------------|--------------|
 | Ancient_Shadowveil_Mantle      | 82–100| T1   | pct_evasion · flat_energy_shield · cold_res             |              |
 | Crimson_Veilcloak              | 42–60 | T3   | flat_evasion · cold_res                                |              |
@@ -458,31 +458,31 @@
 | Voidborn_Shadowveil_Mantle     | 82–100| T1   | pct_evasion · flat_energy_shield · pct_hp              |              |
 | Voidborn_Shadowweave_Mantle_3  | 85–100| T1   | pct_evasion · pct_energy_shield · life_regen            |              |
 
-**Уникальные механики — Mantles:**
+**Unique Mechanics — Mantles:**
 
 > **Frostweaver's_Mantle** — *Permafrost*
-> Cold resistance поглощает холодный урон, а затем **отражает 20% поглощённого** обратно атакующему.
+> Cold resistance absorbs cold damage, then **reflects 20% of absorbed** back to the attacker.
 
 > **Goldweave_Mantle** — *Gold Rush Aura*
-> `gold_find` на этой мантии применяется ко **всей остальной экипировке** на +10% от значения мантии (аура).
+> `gold_find` on this mantle applies to **all other equipment** at +10% of the mantle's value (aura).
 
 > **Ravenwing_Shroud** — *Shadow Flight*
-> `pct_evasion` **×1.5** пока HP игрока **выше 70%** от максимума.
+> `pct_evasion` **x1.5** while player HP is **above 70%** of maximum.
 
 > **Shroudweaver's_Mantle** — *Weave of Fates*
-> `pct_energy_shield` также применяется к пулу **HP** на **50% своей величины** (например: 40% ES → +20% HP бонус).
+> `pct_energy_shield` also applies to the **HP** pool at **50% of its value** (e.g.: 40% ES -> +20% HP bonus).
 
 ---
 
-### 4.4 Shields — новый слот `off_hand` — `armor/shields/in_use/`
+### 4.4 Shields — new slot `off_hand` — `armor/shields/in_use/`
 
-> **Предложение нового слота**: Щит занимает слот **`off_hand`** (левая рука при одноручном оружии).
-> Доступные статы: `block_chance · flat_armor · flat_hp · phys_res · fire_res · cold_res · lightning_res · flat_energy_shield`
-> Кол-во статов: 2–3.
+> **New slot proposal**: Shield occupies the **`off_hand`** slot (left hand with one-hand weapon).
+> Available stats: `block_chance · flat_armor · flat_hp · phys_res · fire_res · cold_res · lightning_res · flat_energy_shield`
+> Stat count: 2–3.
 
-**Дроп**: Bandit (T5), Ronin (T3), Shogun (T1).
+**Drop**: Bandit (T5), Ronin (T3), Shogun (T1).
 
-| Предмет                    | iLvl  | Tier | Статы (2–3)                                              | Особое       |
+| Item                       | iLvl  | Tier | Stats (2–3)                                              | Special      |
 |----------------------------|-------|------|----------------------------------------------------------|--------------|
 | **Ancient_Voidpact_Aegis** | 82–100| T1   | block_chance · flat_energy_shield · phys_res              | **UNIQUE** ↓ |
 | Azurite_Warden's_Aegis     | 58–75 | T3   | block_chance · flat_armor · lightning_res                 |              |
@@ -505,28 +505,28 @@
 | Veilward_Aegis             | 58–75 | T3   | flat_energy_shield · block_chance · lightning_res         |              |
 | Voidborn_Obsidian_Bulwark  | 85–100| T1   | block_chance · flat_energy_shield · phys_res · flat_armor |              |
 
-**Уникальные механики — Shields:**
+**Unique Mechanics — Shields:**
 
 > **Ancient_Voidpact_Aegis** — *Void Contract*
-> `block_chance` применяется также к **элементальному урону** (огонь/холод/молния) — не только физическому.
+> `block_chance` also applies to **elemental damage** (fire/cold/lightning) — not just physical.
 
 > **Goldward_Bulwark** — *Midas Guard*
-> `gold_find` со всей экипировки добавляет **+1% block_chance за каждые 10% gold_find** (макс +15%).
+> `gold_find` from all equipment adds **+1% block_chance per 10% gold_find** (max +15%).
 
 > **Ironbound_Citadel** — *Fortress Wall*
-> Каждый 1% `block_chance` выше 10% конвертируется в **+10 flat_armor** (приоритет armor-билдов).
+> Each 1% `block_chance` above 10% converts to **+10 flat_armor** (armour build priority).
 
 > **Lionheart_Aegis** — *Lionheart*
-> При блокировании удара: восстанавливает **5% от max HP** мгновенно.
+> On blocking a hit: restores **5% of max HP** instantly.
 
 ---
 
 ### 4.5 Gloves (`gloves`) — `armor/gloves/in_use/`
 
-**Тема**: LoH, crit, evasion, броня. Ударный слот.
-**Дроп**: Wild Boar (T5), Oni (T3), Beast King's Arena Boss Map.
+**Theme**: LoH, crit, evasion, armour. Strike slot.
+**Drop**: Wild Boar (T5), Oni (T3), Beast King's Arena Boss Map.
 
-| Предмет                        | iLvl  | Tier | Статы (2–4)                                                              | Особое       |
+| Item                           | iLvl  | Tier | Stats (2–4)                                                              | Special      |
 |--------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | Ancient_Bloodwraith_Grips_2    | 82–100| T1   | life_on_hit · flat_armor · pct_phys_dmg · crit_chance                     |              |
 | **Bloodhound's_Grasp**         | 60–78 | T2   | life_on_hit · flat_evasion · crit_chance                                  | **UNIQUE** ↓ |
@@ -549,28 +549,28 @@
 | Veilwraith_Grips               | 55–72 | T3   | flat_energy_shield · flat_evasion · life_on_hit                           |              |
 | **Wraithbound_Gauntlets**      | 78–95 | T1   | life_on_hit · flat_energy_shield · flat_evasion · crit_chance             | **UNIQUE** ↓ |
 
-**Уникальные механики — Gloves:**
+**Unique Mechanics — Gloves:**
 
 > **Bloodhound's_Grasp** — *Scent of Blood*
-> `life_on_hit` **утроен** против врагов, находящихся под эффектом DoT (яд, горение).
+> `life_on_hit` **tripled** against enemies affected by DoT (poison, burning).
 
 > **Bloodthorn_Gauntlets** — *Thorn Fist*
-> **15% от flat_armor** этих перчаток отражается как урон врагу при каждом ударе.
+> **15% of flat_armor** of these gloves is reflected as damage to the enemy on each hit.
 
 > **Shadowpact_Grips** — *Shadow Pact*
-> `crit_chance` также работает как **шанс удвоить gold_find** от следующего дропа после крита.
+> `crit_chance` also works as a **chance to double gold_find** from the next drop after a crit.
 
 > **Wraithbound_Gauntlets** — *Wraith Touch*
-> **25% от life_on_hit** конвертируется в восстановление **Energy Shield** вместо HP.
+> **25% of life_on_hit** converts to **Energy Shield** restoration instead of HP.
 
 ---
 
 ### 4.6 Belts (`belt`) — `armor/belts/in_use/`
 
-**Тема**: HP, резисты, gold_find, life_regen.
-**Дроп**: Bandit (T5), Ronin (T3), Bandit Lord's Fortress Boss Map.
+**Theme**: HP, resistances, gold_find, life_regen.
+**Drop**: Bandit (T5), Ronin (T3), Bandit Lord's Fortress Boss Map.
 
-| Предмет                        | iLvl  | Tier | Статы (2–4)                                                              | Особое       |
+| Item                           | iLvl  | Tier | Stats (2–4)                                                              | Special      |
 |--------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | **Abyssal_Cinch**              | 68–85 | T2   | flat_hp · life_regen · gold_find                                          | **UNIQUE** ↓ |
 | Ancient_Cinderbound_Girdle_2   | 82–100| T1   | flat_hp · fire_res · life_regen · gold_find                               |              |
@@ -593,28 +593,28 @@
 | Verdant_Siege_Girdle           | 18–35 | T5   | flat_hp · flat_armor                                                    |              |
 | **Voidstitched_Girdle**        | 75–92 | T1   | flat_hp · pct_hp · life_regen · lightning_res                             | **UNIQUE** ↓ |
 
-**Уникальные механики — Belts:**
+**Unique Mechanics — Belts:**
 
 > **Abyssal_Cinch** — *Abyss Pull*
-> `gold_find` имеет **5% шанс** вместо золота дропнуть **Map Key** текущего тира (только в Endgame Maps).
+> `gold_find` has a **5% chance** to drop a **Map Key** of the current tier instead of gold (Endgame Maps only).
 
 > **Bloodwarden's_Cincture** — *Blood Warden*
-> `life_regen` **удваивается**, пока HP ниже **50% от максимума**.
+> `life_regen` **doubles** while HP is below **50% of maximum**.
 
 > **Shadowbind_Cincture** — *Shadow Bind*
-> Уникальный пояс — единственный пояс, дающий `flat_evasion` (не в стандартном пуле). Значение `flat_evasion` **утроено**, но `gold_find` снижен на **-15%**.
+> Unique belt — the only belt that grants `flat_evasion` (not in the standard pool). `flat_evasion` value is **tripled**, but `gold_find` reduced by **-15%**.
 
 > **Voidstitched_Girdle** — *Void Stitching*
-> `flat_hp` на этом поясе (включая implicit) также добавляет **равное количество Energy Shield** пассивно (1 HP = 1 ES). ES от этого эффекта не считается статом предмета.
+> `flat_hp` on this belt (including implicit) also adds an **equal amount of Energy Shield** passively (1 HP = 1 ES). ES from this effect does not count as an item stat.
 
 ---
 
 ### 4.7 Boots (`boots`) — `boots/boots/in_use/`
 
-**Тема**: Evasion, резисты, HP, движение.
-**Дроп**: Bandit (T5), Forest Spirit (T4), Spirit of the Ancient Wood Boss Map.
+**Theme**: Evasion, resistances, HP, movement.
+**Drop**: Bandit (T5), Forest Spirit (T4), Spirit of the Ancient Wood Boss Map.
 
-| Предмет                        | iLvl  | Tier | Статы (2–4)                                                              | Особое       |
+| Item                           | iLvl  | Tier | Stats (2–4)                                                              | Special      |
 |--------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | Amethyst_Marrow_Treads         | 52–68 | T3   | flat_evasion · cold_res · flat_hp                                        |              |
 | Ancient_Abyssal_Treads         | 82–100| T1   | flat_evasion · flat_armor · flat_energy_shield · lightning_res            |              |
@@ -637,31 +637,31 @@
 | **Voidborn_Embercinder_Treads**| 80–100| T1   | flat_evasion · flat_energy_shield · fire_res · flat_hp                    | **UNIQUE** ↓ |
 | Voidborn_Shadowstep_Greaves    | 85–100| T1   | flat_armor · flat_evasion · flat_energy_shield · cold_res                |              |
 
-**Уникальные механики — Boots:**
+**Unique Mechanics — Boots:**
 
 > **Marrowstep_Treads** — *Bone Walk*
-> `flat_hp` на ботинках **считается дважды** при расчёте максимального HP (двойной вклад этого слота).
+> `flat_hp` on boots **counts twice** when calculating maximum HP (double contribution from this slot).
 
 > **Shadowstep_Greaves** — *Shadow Step*
-> Весь `flat_evasion` (от ботинок + остальной экипировки) **удваивается** на **3 секунды** после убийства врага.
+> All `flat_evasion` (from boots + other equipment) **doubles** for **3 seconds** after killing an enemy.
 
 > **Umbralshard_Treads** — *Umbral Phase*
-> **10% шанс** при получении удара: этот конкретный удар **полностью игнорируется** (фаза).
+> **10% chance** on taking a hit: that specific hit is **completely ignored** (phase).
 
 > **Voidborn_Embercinder_Treads** — *Cinder Walk*
-> Пассивно наносит `flat_fire_dmg` (равный значению стата на ботинках) **всем врагам каждые 2 секунды** (fire trail).
+> Passively deals `flat_fire_dmg` (equal to the stat value on the boots) to **all enemies every 2 seconds** (fire trail).
 
 ---
 
-### 4.8 Pants — новый слот `legs` — `armor/pants/in_use/`
+### 4.8 Pants — new slot `legs` — `armor/pants/in_use/`
 
-> **Предложение нового слота**: Штаны занимают слот **`legs`**.
-> Доступные статы: `flat_hp · flat_armor · flat_evasion · flat_energy_shield · fire_res · cold_res · lightning_res · phys_res · crit_chance`
-> Кол-во статов: 2–3.
+> **New slot proposal**: Pants occupy the **`legs`** slot.
+> Available stats: `flat_hp · flat_armor · flat_evasion · flat_energy_shield · fire_res · cold_res · lightning_res · phys_res · crit_chance`
+> Stat count: 2–3.
 
-**Дроп**: Wild Boar (T5), Oni (T3), Dragon (T1).
+**Drop**: Wild Boar (T5), Oni (T3), Dragon (T1).
 
-| Предмет                           | iLvl  | Tier | Статы (2–3)                                         | Особое       |
+| Item                              | iLvl  | Tier | Stats (2–3)                                         | Special      |
 |-----------------------------------|-------|------|-----------------------------------------------------|--------------|
 | **Abyssal_Weave_Chausses**        | 62–80 | T2   | flat_energy_shield · lightning_res                  |              |
 | **Abyssal_Wrath_Greaves**         | 68–85 | T2   | flat_energy_shield · crit_chance · lightning_res     | **UNIQUE** ↓ |
@@ -684,30 +684,30 @@
 | Voidborn_Amethyst_Blight_Leggings | 82–100| T1   | flat_energy_shield · pct_energy_shield · crit_chance|              |
 | **Voidweave_Breeches**            | 78–95 | T1   | flat_energy_shield · pct_energy_shield · flat_hp    | **UNIQUE** ↓ |
 
-**Уникальные механики — Pants:**
+**Unique Mechanics — Pants:**
 
 > **Abyssal_Wrath_Greaves** — *Wrath of Abyss*
-> `crit_chance` с этих штанов **считается в двойном размере** при расчёте итогового крит. шанса.
+> `crit_chance` from these pants **counts at double value** when calculating final crit chance.
 
 > **Infernal_Cinderwraps** — *Infernal Heat*
-> `fire_res` на этих штанах конвертируется в **+1 flat_fire_dmg за каждые 3% fire_res** (например 30% → +10 flat fire dmg).
+> `fire_res` on these pants converts to **+1 flat_fire_dmg per 3% fire_res** (e.g. 30% -> +10 flat fire dmg).
 
 > **Ravenwing_Chausses** — *Raven's Flight*
-> `flat_evasion` применяется ко **всем типам урона** с эффективностью 20% (включая огонь/холод/молнию).
+> `flat_evasion` applies to **all damage types** at 20% effectiveness (including fire/cold/lightning).
 
 > **Voidweave_Breeches** — *Void Weave*
-> Energy Shield восстанавливается со скоростью **2%/сек непрерывно** (независимо от получения урона, без задержки).
+> Energy Shield regenerates at **2%/sec continuously** (regardless of taking damage, no delay).
 
 ---
 
-## 5. Аксессуары
+## 5. Accessories
 
 ### 5.1 Amulets Set A (`amulet`) — `accessory/amulets/in_use/`
 
-**Тема**: Универсальный слот. Уникальные комбо атака+защита, passive DPS, gold/xp.
-**Дроп**: Forest Spirit (T4), Dragon (T1), Spirit of the Ancient Wood Boss Map.
+**Theme**: Universal slot. Unique offence+defence combos, passive DPS, gold/xp.
+**Drop**: Forest Spirit (T4), Dragon (T1), Spirit of the Ancient Wood Boss Map.
 
-| Предмет                   | iLvl  | Tier | Статы (2–4)                                                               | Особое       |
+| Item                      | iLvl  | Tier | Stats (2–4)                                                               | Special      |
 |---------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | **Abyssal_Anchor**        | 80–100| T1   | flat_energy_shield · pct_energy_shield · pct_hp                           | **UNIQUE** ↓ |
 | Abyssal_Sigil             | 62–78 | T2   | flat_energy_shield · lightning_res · passive_dps_bonus                    |              |
@@ -730,27 +730,27 @@
 | Verdant_Sorrow_Pendant    | 25–42 | T4   | flat_cold_dmg · life_regen · cold_res                                    |              |
 | Verdant_Teardrop_Amulet   | 15–30 | T5   | flat_hp · cold_res                                                      |              |
 
-**Уникальные механики — Amulets A:**
+**Unique Mechanics — Amulets A:**
 
 > **Abyssal_Anchor** — *Soul Anchor*
-> При получении смертельного урона: **выживаете с 1 HP** (120-секундный кулдаун). Эффект работает один раз.
+> On receiving lethal damage: **survive with 1 HP** (120-second cooldown). Effect triggers once.
 
 > **Chalice_of_Cinders** — *Burning Chalice*
-> `life_regen` конвертируется: каждые **2 HP/с regen → +1 flat_fire_dmg** к атаке (регенерация при этом сохраняется).
+> `life_regen` converts: every **2 HP/s regen -> +1 flat_fire_dmg** to attacks (regeneration is preserved).
 
 > **Gilded_Redemption_Cross** — *Holy Redemption*
-> `gold_find` и `xp_bonus` оба **×1.5** (мультипликатор, не аддитивный бонус).
+> `gold_find` and `xp_bonus` are both **x1.5** (multiplier, not additive bonus).
 
 > **Raven's_Hollow_Eye** — *All-Seeing Eye*
-> За каждого убитого врага Rare+: `crit_chance` и `crit_multiplier` увеличиваются на **+1%** (макс +20%, сессионный счётчик).
+> For each Rare+ enemy killed: `crit_chance` and `crit_multiplier` increase by **+1%** (max +20%, session counter).
 
 ---
 
 ### 5.2 Amulets Set B (`amulet`) — `accessory/amulets2/in_use/`
 
-**Тема**: Тёмные, проклятые, необычные амулеты. Чаще unique.
+**Theme**: Dark, cursed, unusual amulets. More often unique.
 
-| Предмет                        | iLvl  | Tier | Статы (2–4)                                                               | Особое       |
+| Item                           | iLvl  | Tier | Stats (2–4)                                                               | Special      |
 |--------------------------------|-------|------|---------------------------------------------------------------------------|--------------|
 | **Arachnid's_Vigil**           | 62–80 | T2   | life_on_hit · pct_phys_dmg · crit_chance                                  | **UNIQUE** ↓ |
 | Azurite_Watcher's_Seal         | 55–72 | T3   | flat_hp · pct_hp · xp_bonus · cold_res                                   |              |
@@ -773,28 +773,28 @@
 | Violet_Vigil_Amulet            | 35–52 | T4   | flat_energy_shield · cold_res · pct_hp                                   |              |
 | Withered_Heartwood_Charm       | 15–30 | T5   | flat_hp · life_regen                                                    |              |
 
-**Уникальные механики — Amulets B:**
+**Unique Mechanics — Amulets B:**
 
 > **Arachnid's_Vigil** — *Spider's Web*
-> `life_on_hit` также срабатывает от **тиков passive DPS** (каждый тик пассивного урона лечит как будто это был удар).
+> `life_on_hit` also triggers from **passive DPS ticks** (each passive damage tick heals as if it were a hit).
 
 > **Pentagram_of_the_Void** — *Pentapact*
-> Все 4 сопротивления на этом амулете работают на **×1.5** (например 30% fire_res → effective 45%).
+> All 4 resistances on this amulet function at **x1.5** (e.g. 30% fire_res -> effective 45%).
 
 > **Skull_of_Echoing_Dread** — *Echo of Death*
-> При убийстве врага: наносит **20% от max HP жертвы** как **pure damage** следующему врагу в очереди.
+> On enemy kill: deals **20% of the victim's max HP** as **pure damage** to the next enemy in the queue.
 
 > **Sundered_Chronometer** — *Fractured Time*
-> `xp_bonus` также снижает **cooldown активных скиллов** на 1% за каждые 5% xp_bonus (макс -20%).
+> `xp_bonus` also reduces **active skill cooldowns** by 1% per 5% xp_bonus (max -20%).
 
 ---
 
 ### 5.3 Rings (`ring`) — `accessory/rings/in_use/`
 
-**Тема**: Универсальный аксессуар ×2. Элементальный урон, крит, резисты, gold.
-**Дроп**: Forest Spirit (T4), Ronin (T3), любые враги (вся игра). Ronin's Haunted Dojo Boss Map.
+**Theme**: Universal accessory x2. Elemental damage, crit, resistances, gold.
+**Drop**: Forest Spirit (T4), Ronin (T3), any enemies (whole game). Ronin's Haunted Dojo Boss Map.
 
-| Предмет                         | iLvl  | Tier | Implicit              | Статы (2–3)                                                    | Особое       |
+| Item                            | iLvl  | Tier | Implicit              | Stats (2–3)                                                    | Special      |
 |---------------------------------|-------|------|-----------------------|----------------------------------------------------------------|--------------|
 | Ashborn_Signet                  | 22–38 | T4   | flat_phys_dmg         | pct_phys_dmg · crit_chance                                     |              |
 | Embercrest_Sigil                | 38–55 | T4   | flat_fire_dmg         | flat_fire_dmg · crit_chance                                    |              |
@@ -817,89 +817,89 @@
 | **Voidborn_Serpent's_Coil_Ring_2** | 82–100| T1 | flat_energy_shield    | pct_energy_shield · passive_dps_bonus · flat_energy_shield     | **UNIQUE** ↓ |
 | Voidpulse_Sigil                 | 65–82 | T2   | flat_energy_shield    | pct_energy_shield · passive_dps_bonus · lightning_res          |              |
 
-**Уникальные механики — Rings:**
+**Unique Mechanics — Rings:**
 
 > **Oathkeeper's_Seal** — *Sworn Oath*
-> Все резист-статы этого кольца **действуют на оба слота колец** одновременно (не суммируется второй раз — это общий пул).
+> All resistance stats on this ring **apply to both ring slots** simultaneously (not stacked twice — shared pool).
 
 > **Sovereign's_Seal** — *Sovereign's Decree*
-> `gold_find` на этом кольце также работает как `xp_bonus` на **25% своей величины**.
+> `gold_find` on this ring also works as `xp_bonus` at **25% of its value**.
 
 > **Stormveil_Sigil** — *Storm Veil*
-> Lightning damage имеет **20% шанс** нанести удар **всем врагам** в текущей волне одновременно.
+> Lightning damage has a **20% chance** to hit **all enemies** in the current wave simultaneously.
 
 > **Voidborn_Serpent's_Coil_Ring_2** — *Void Coil*
-> Energy Shield восстанавливается со скоростью **10%/сек** (пассивно, без условий задержки).
+> Energy Shield regenerates at **10%/sec** (passively, with no delay conditions).
 
 ---
 
-## 6. Расходуемые предметы — Фляги
+## 6. Consumable Items — Flasks
 
-### Система цветового кода
+### Colour Code System
 
-| Цвет    | Тип фляги          | Эффект                                          | Совместимость с типами     |
-|---------|--------------------|-------------------------------------------------|----------------------------|
-| 🟢 Green  | Life Flask         | Восстанавливает HP (healPercent от max HP)       | Все типы фляг              |
-| 🔵 Blue   | Mana/ES Flask      | Восстанавливает Energy Shield                   | Все типы фляг              |
-| 🔴 Red    | Attack Flask       | Временный бонус к flat_phys_dmg (+N%)           | Все типы фляг              |
-| 🟡 Yellow | Speed Flask        | Временный passive_dps_bonus (+N%)               | Все типы фляг              |
-| 🩵 Cyan   | Resistance Flask   | Временный бонус к всем резистам                | Все типы фляг              |
-| 🟣 Purple | Utility Flask      | Комбо эффект (HP + бонус к атаке/защите)        | Все типы фляг              |
+| Colour  | Flask Type          | Effect                                          | Compatible Types             |
+|---------|--------------------|-------------------------------------------------|------------------------------|
+| Green   | Life Flask         | Restores HP (healPercent of max HP)              | All flask types              |
+| Blue    | Mana/ES Flask      | Restores Energy Shield                           | All flask types              |
+| Red     | Attack Flask       | Temporary flat_phys_dmg bonus (+N%)              | All flask types              |
+| Yellow  | Speed Flask        | Temporary passive_dps_bonus (+N%)                | All flask types              |
+| Cyan    | Resistance Flask   | Temporary bonus to all resistances               | All flask types              |
+| Purple  | Utility Flask      | Combo effect (HP + offence/defence bonus)        | All flask types              |
 
-### Типы фляг по размеру (healPercent и charges)
+### Flask Types by Size (healPercent and charges)
 
-| Тип фляги (`flaskType`)    | Dir                  | maxCharges | healPercent | Эффект длительность |
+| Flask Type (`flaskType`)   | Dir                  | maxCharges | healPercent | Effect Duration     |
 |----------------------------|----------------------|------------|-------------|---------------------|
-| `small_vial`               | `consumables/small_vials` | 3     | 8%          | 3с                  |
-| `round_flask`              | `consumables/round_flasks`| 4     | 14%         | 5с                  |
-| `corked_flask`             | `consumables/corked_flasks`| 4    | 12%         | 4с                  |
-| `jug`                      | `consumables/jugs`   | 5          | 22%         | 6с                  |
-| `tall_bottle`              | `consumables/tall_bottles`| 5     | 18%         | 8с                  |
-| `wide_bottle`              | `consumables/wide_bottles`| 6     | 25%         | 6с                  |
+| `small_vial`               | `consumables/small_vials` | 3     | 8%          | 3s                  |
+| `round_flask`              | `consumables/round_flasks`| 4     | 14%         | 5s                  |
+| `corked_flask`             | `consumables/corked_flasks`| 4    | 12%         | 4s                  |
+| `jug`                      | `consumables/jugs`   | 5          | 22%         | 6s                  |
+| `tall_bottle`              | `consumables/tall_bottles`| 5     | 18%         | 8s                  |
+| `wide_bottle`              | `consumables/wide_bottles`| 6     | 25%         | 6s                  |
 
-### Качество фляг (item rarity) → charges и heal%
+### Flask Quality (item rarity) -> charges and heal%
 
-| Rarity    | maxCharges бонус | healPercent бонус | Дополнительный эффект           |
-|-----------|------------------|-------------------|---------------------------------|
-| Common    | базовое          | базовое           | только heal                     |
-| Rare      | +1               | +3%               | +бонус атаки/защиты (5с)        |
-| Epic      | +2               | +5%               | +бонус атаки/защиты (8с) × 1.5  |
-| Legendary | +3               | +8%               | +особый эффект по цвету         |
+| Rarity    | maxCharges Bonus | healPercent Bonus | Additional Effect                |
+|-----------|------------------|-------------------|----------------------------------|
+| Common    | base             | base              | heal only                        |
+| Rare      | +1               | +3%               | +offence/defence bonus (5s)      |
+| Epic      | +2               | +5%               | +offence/defence bonus (8s) x1.5 |
+| Legendary | +3               | +8%               | +special effect by colour        |
 
-### Legendary Flask эффекты по цвету
+### Legendary Flask Effects by Colour
 
-| Цвет    | Legendary эффект                                                             |
+| Colour  | Legendary Effect                                                             |
 |---------|------------------------------------------------------------------------------|
-| Green   | Heal over time + восстанавливает 2 заряда при убийстве Rare+ врага          |
-| Blue    | ES восстановление + щит блокирует следующий удар (1 раз)                    |
-| Red     | +40% phys damage + следующий удар Critical Strike гарантированно           |
-| Yellow  | +40% passive_dps_bonus + gold_find удвоен на 10с                            |
-| Cyan    | +50% все резисты + иммунитет к элементальному урону на 3с                  |
-| Purple  | Heal + сбрасывает cooldown одного активного скилла                          |
+| Green   | Heal over time + restores 2 charges on killing a Rare+ enemy               |
+| Blue    | ES restoration + shield blocks the next hit (1 time)                        |
+| Red     | +40% phys damage + next hit is guaranteed Critical Strike                  |
+| Yellow  | +40% passive_dps_bonus + gold_find doubled for 10s                          |
+| Cyan    | +50% all resistances + immunity to elemental damage for 3s                 |
+| Purple  | Heal + resets cooldown of one active skill                                  |
 
 ---
 
-## 7. Сводная таблица — Вес дропа по категориям
+## 7. Summary Table — Drop Weight by Category
 
-### Шанс выпадения экипировки (vs gold/xp/keys)
+### Equipment Drop Chance (vs gold/xp/keys)
 
-| Контент                    | Шанс дропа предмета | Распределение по редкости   |
-|----------------------------|---------------------|-----------------------------|
-| Act 1–2 обычные монстры    | 8%                  | 70% Common / 25% Rare / 5% Epic |
-| Act 3–4 обычные монстры    | 10%                 | 60% Common / 30% Rare / 9% Epic / 1% Legendary |
-| Act 5 обычные монстры      | 12%                 | 50% Rare / 35% Epic / 15% Legendary |
-| Редкие монстры (rare)      | +5% бонус           | сдвиг +10% к Epic/Legendary |
-| Элитные монстры (epic)     | +10% бонус          | сдвиг +20% к Legendary      |
-| Боссы локаций              | 40% (гарантировано 1 предмет) | 30% Epic / 70% Legendary |
+| Content                    | Item Drop Chance    | Rarity Distribution             |
+|----------------------------|---------------------|---------------------------------|
+| Act 1–2 normal monsters    | 8%                  | 70% Common / 25% Rare / 5% Epic |
+| Act 3–4 normal monsters    | 10%                 | 60% Common / 30% Rare / 9% Epic / 1% Legendary |
+| Act 5 normal monsters      | 12%                 | 50% Rare / 35% Epic / 15% Legendary |
+| Rare monsters              | +5% bonus           | shift +10% toward Epic/Legendary |
+| Elite monsters (epic)      | +10% bonus          | shift +20% toward Legendary      |
+| Location bosses            | 40% (1 item guaranteed) | 30% Epic / 70% Legendary |
 | Endgame Map T1–4           | 15%                 | 40% Epic / 60% Legendary    |
 | Endgame Map T5–10          | 20%                 | 20% Epic / 80% Legendary    |
-| Boss Maps (все)            | 100% (2–3 предмета) | 100% Legendary              |
+| Boss Maps (all)            | 100% (2–3 items)    | 100% Legendary              |
 
-### Monster Affinity — детализация
+### Monster Affinity — Detailed
 
-| Монстр        | Дроп-пул категорий                                     | iLvl бонус |
+| Monster       | Drop Pool Categories                                   | iLvl Bonus |
 |---------------|--------------------------------------------------------|------------|
-| Bandit        | Belt, Boots, Helmet (физ. экипировка)                  | 0          |
+| Bandit        | Belt, Boots, Helmet (phys. equipment)                  | 0          |
 | Wild Boar     | Plate, Gloves, Axes                                    | 0          |
 | Forest Spirit | Mantle, Ring, Amulet, Bow, Boots                       | +2         |
 | Ronin         | Sword, Blade, Shield, Belt                             | +5         |
@@ -910,19 +910,19 @@
 
 ---
 
-## 8. Новые слоты — Резюме предложений
+## 8. New Slots — Proposal Summary
 
-| Слот        | Код        | Источник ассетов    | Статы пула                                                         |
+| Slot        | Code       | Asset Source        | Stat Pool                                                          |
 |-------------|------------|---------------------|--------------------------------------------------------------------|
 | Mantle      | `mantle`   | `armor/mantles/`    | evasion · energy_shield · cold_res · lightning_res · life_regen · gold_find · pct_hp |
 | Off-Hand    | `off_hand` | `armor/shields/`    | block_chance · flat_armor · flat_hp · phys_res · elemental_res · flat_energy_shield |
 | Legs        | `legs`     | `armor/pants/`      | flat_hp · flat_armor · flat_evasion · flat_energy_shield · elemental_res · crit_chance |
 
-> **Примечание**: Новые слоты (mantle, off_hand, legs) увеличивают общий потолок мощи персонажа.
-> Рекомендуется ввести их постепенно — начиная с Act 2, 3 и 4 соответственно,
-> чтобы не перегрузить игрока в ранней игре.
+> **Note**: New slots (mantle, off_hand, legs) increase the overall character power ceiling.
+> It is recommended to introduce them gradually — starting from Act 2, 3, and 4 respectively,
+> to avoid overwhelming the player in the early game.
 
 ---
 
-*Последнее обновление: 2026-02-28 | Версия: 1.0*
-*Автор: Game Designer Agent × Tap of Exile Balance Team*
+*Last updated: 2026-02-28 | Version: 1.0*
+*Author: Game Designer Agent x Tap of Exile Balance Team*

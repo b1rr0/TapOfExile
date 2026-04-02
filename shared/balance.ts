@@ -15,13 +15,13 @@ export const B = {
   ACT_SCALING_BASE: 3.5,            // actMul = 3.5^(act-1) - gold/xp
 
   /* ── Monsters - HP (PoE-style: HP >> DMG) ─── */
-  MONSTER_HP_BASE: 300,              // base HP at order=1, act=1, common
-  MONSTER_HP_GROWTH: 1.55,           // 1.55^(order-1) - within-act scaling
+  MONSTER_HP_BASE: 30,               // base HP at order=1, act=1, common (was 300)
+  MONSTER_HP_GROWTH: 1.45,           // 1.45^(order-1) - within-act scaling (was 1.55)
   MONSTER_HP_RANDOM: 0.15,           // +/-15%
   ACT_HP_SCALING: 4.0,              // actHpMul = 4.0^(act-1) - A5O10 boss ≈ 16M
 
   /* ── Monsters - Gold ─────────────────────── */
-  MONSTER_GOLD_BASE: 15,             // was 3 - proportional to higher HP
+  MONSTER_GOLD_BASE: 1.5,            // was 15 - divided by 10 for economy balance
   MONSTER_GOLD_GROWTH: 1.35,
 
   /* ── Monsters - XP ───────────────────────── */
@@ -45,16 +45,16 @@ export const B = {
 
   /* ── Location rewards (base, before scaling) ── */
   LOCATION_REWARDS: [
-    { gold: 60,  xp: 40  },         // order 1
-    { gold: 100, xp: 65  },         // order 2
-    { gold: 140, xp: 95  },         // order 3
-    { gold: 190, xp: 130 },         // order 4
-    { gold: 260, xp: 180 },         // order 5
-    { gold: 350, xp: 240 },         // order 6
-    { gold: 450, xp: 320 },         // order 7
-    { gold: 600, xp: 450 },         // order 8
-    { gold: 300, xp: 220 },         // order 9  (side branch)
-    { gold: 420, xp: 300 },         // order 10 (side branch)
+    { gold: 6,   xp: 40  },         // order 1  (gold /10)
+    { gold: 10,  xp: 65  },         // order 2
+    { gold: 14,  xp: 95  },         // order 3
+    { gold: 19,  xp: 130 },         // order 4
+    { gold: 26,  xp: 180 },         // order 5
+    { gold: 35,  xp: 240 },         // order 6
+    { gold: 45,  xp: 320 },         // order 7
+    { gold: 60,  xp: 450 },         // order 8
+    { gold: 30,  xp: 220 },         // order 9  (side branch)
+    { gold: 42,  xp: 300 },         // order 10 (side branch)
   ],
 
   /* ── Rarity multipliers (HP / Gold / XP) ──── */
@@ -86,8 +86,8 @@ export const B = {
 
   /* ── Enemy attack system ─────────────────── */
   ENEMY_ATTACK_INTERVAL_MS: 1000,     // 1 attack per second
-  MONSTER_DMG_BASE: 15,                // base damage at order=1, common (was 3)
-  MONSTER_DMG_GROWTH: 1.15,            // dmg per order = 1.15^(order-1) (was 1.4)
+  MONSTER_DMG_BASE: 2,                 // base damage at order=1, common (was 15)
+  MONSTER_DMG_GROWTH: 1.12,            // dmg per order = 1.12^(order-1) (was 1.15)
   MONSTER_DMG_RANDOM: 0.10,            // ±10% variance
   ACT_DMG_SCALING: 3.5,               // actDmgMul = 3.5^(act-1) - A5O10 boss ≈ 20K
   RARITY_DMG_MULTIPLIERS: {
@@ -105,7 +105,7 @@ export const B = {
   /* ── Elemental system ───────────────────────── */
 
   /** Default elemental damage profile - 100% physical for everyone.
-   *  Elemental splits come from skill-tree nodes, not from class. */
+   *  Elemental splits come from asterism nodes, not from class. */
   DEFAULT_ELEMENTAL_DAMAGE: { physical: 1.0 } as Record<string, number>,
 
   /** Bonus added to ALL base resistances by monster rarity. */
@@ -139,6 +139,8 @@ export const B = {
   BASE_TRADE_SLOTS: 5,                   // base max active trade listings
   TRADE_SLOTS_PER_PURCHASE: 10,          // +10 per purchase
   MAX_EXTRA_TRADE_SLOTS: 95,             // 5 base + 95 = 100 max
+  BAG_SLOTS_PER_PURCHASE: 20,            // +20 per purchase
+  MAX_EXTRA_BAG_SLOTS: 60,              // 52 base + 60 = 112 max
   SKIN_PRICE_SHARDS: 350,               // cost per non-default skin
   REFERRAL_REWARD_SHARDS: 50,            // shards for both referrer & referee
   REFERRAL_INCOME_PERCENT: 10,           // % of referral's Stars purchases → referrer

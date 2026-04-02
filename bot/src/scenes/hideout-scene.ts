@@ -133,11 +133,6 @@ export class HideoutScene {
 
           <span class="hideout-topbar__title">Hideout</span>
 
-          <!-- Music toggle -->
-          <button class="hideout-music-btn" id="hideout-music-btn" title="Toggle music">
-            ${music.enabled ? "&#x1F50A;" : "&#x1F507;"}
-          </button>
-
           <!-- Settings dropdown -->
           <div class="hideout-topbar__dropdown" id="settings-dropdown">
             <button class="hideout-topbar__btn" id="settings-toggle">
@@ -148,8 +143,8 @@ export class HideoutScene {
               <button class="hideout-dropdown__item" data-action="heroes">
                 <span class="hideout-dropdown__icon">&#x1F464;</span> Heroes
               </button>
-              <button class="hideout-dropdown__item" data-action="storybook">
-                <span class="hideout-dropdown__icon">&#x1F3A8;</span> Storybook
+              <button class="hideout-dropdown__item" data-action="music" id="settings-music-btn">
+                <span class="hideout-dropdown__icon">${music.enabled ? "&#x1F50A;" : "&#x1F507;"}</span> Music
               </button>
             </div>
           </div>
@@ -183,12 +178,12 @@ export class HideoutScene {
               <span class="hideout-btn__label">Equip</span>
             </button>
             <button class="hideout-btn hideout-btn--chest" id="hideout-chest-btn">
-              <span class="hideout-btn__icon">&#x1F4E6;</span>
+              <img class="hideout-btn__icon-img" src="/assets/ui/icons/treasure-chest_3877134.png" alt="Chest">
               <span class="hideout-btn__label">Chest</span>
             </button>
             <button class="hideout-btn hideout-btn--tree" id="hideout-tree-btn">
-              <span class="hideout-btn__icon">&#x1F333;</span>
-              <span class="hideout-btn__label">Tree</span>
+              <span class="hideout-btn__icon">&#x2734;</span>
+              <span class="hideout-btn__label">Asterism</span>
             </button>
             <button class="hideout-btn hideout-btn--trade" id="hideout-trade-btn">
               <span class="hideout-btn__icon">&#x1FA99;</span>
@@ -203,7 +198,7 @@ export class HideoutScene {
               <span class="hideout-btn__label">Dojo</span>
             </button>
             <button class="hideout-btn hideout-btn--stats" id="hideout-stats-btn">
-              <span class="hideout-btn__icon">&#x1F4CA;</span>
+              <span class="hideout-btn__icon">&#x1F464;</span>
               <span class="hideout-btn__label">Character</span>
             </button>
           </div>
@@ -279,27 +274,24 @@ export class HideoutScene {
       statsBtn.addEventListener("click", () => this._openStatsOverlay());
     }
 
-    // -- Music toggle --------------------------------------
-    const musicBtn = this.container.querySelector("#hideout-music-btn") as HTMLButtonElement | null;
-    if (musicBtn) {
-      musicBtn.addEventListener("click", () => {
-        const on = music.toggle();
-        musicBtn.innerHTML = on ? "&#x1F50A;" : "&#x1F507;";
-      });
-    }
+    // -- Music auto-play ------------------------------------
     music.play("/assets/music/ToE main theme.mp3");
 
     // -- Top bar dropdowns ---------------------------------
     this._wireDropdown("shop-toggle", "shop-menu", {
       skins: () => this.sceneManager.switchTo("skinShop"),
-      hideouts: () => console.log("[Hideout] Hideouts clicked - not implemented yet"),
+      hideouts: () => this._showComingSoon(),
       shards: () => this.sceneManager.switchTo("shop"),
       market: () => this.sceneManager.switchTo("market"),
     });
 
     this._wireDropdown("settings-toggle", "settings-menu", {
       heroes: () => this.sceneManager.switchTo("characterSelect"),
-      storybook: () => this.sceneManager.switchTo("storybook"),
+      music: () => {
+        const on = music.toggle();
+        const btn = this.container.querySelector("#settings-music-btn .hideout-dropdown__icon") as HTMLElement | null;
+        if (btn) btn.innerHTML = on ? "&#x1F50A;" : "&#x1F507;";
+      },
     });
 
     // Close dropdowns on any outside click (uses cached refs)
@@ -331,6 +323,24 @@ export class HideoutScene {
 
     // Load hero sprite
     this._loadHeroSprite();
+  }
+
+  /* -- Coming Soon toast ----------------------------------- */
+
+  _showComingSoon(): void {
+    const hideoutEl = this.container.querySelector(".hideout") as HTMLElement;
+    if (!hideoutEl) return;
+    // Remove existing toast if any
+    hideoutEl.querySelector(".coming-soon-toast")?.remove();
+    const toast = document.createElement("div");
+    toast.className = "coming-soon-toast";
+    toast.innerHTML = `<span class="coming-soon-toast__icon">&#x1F6A7;</span> Will be in future`;
+    hideoutEl.appendChild(toast);
+    setTimeout(() => toast.classList.add("coming-soon-toast--visible"), 10);
+    setTimeout(() => {
+      toast.classList.remove("coming-soon-toast--visible");
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
   }
 
   /* -- Dropdown helpers ------------------------------------ */
@@ -717,7 +727,7 @@ export class HideoutScene {
 
     // ── Unlocked skill cards ──
     if (unlockedSkills.length === 0) {
-      html += `<div class="stats-overlay__skills-empty">No skills unlocked yet.<br>Allocate skill tree nodes to unlock active skills.</div>`;
+      html += `<div class="stats-overlay__skills-empty">No skills unlocked yet.<br>Allocate Asterism nodes to unlock active skills.</div>`;
     }
 
     for (const skill of unlockedSkills) {

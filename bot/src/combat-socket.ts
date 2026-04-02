@@ -13,7 +13,7 @@ let socket: Socket | null = null;
 /**
  * Ensure we have a fresh access token before opening the socket.
  * JWT access tokens expire in 1 hour; if the player was in the hideout
- * or skill tree for a while, the token may have expired.
+ * or asterism for a while, the token may have expired.
  */
 async function ensureFreshToken(): Promise<string | null> {
   const token = getAccessToken();

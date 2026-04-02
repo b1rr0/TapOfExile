@@ -268,6 +268,7 @@ export async function initAbilitySlots(opts: AbilitySlotOptions): Promise<() => 
       if (sType === 'arcane') {
         raw = Math.floor(def.spellBase! * sGrowth);
       } else {
+        // tapDamage from char already includes tree bonuses (tapHit + % damage)
         raw = Math.floor((charData.tapDamage || 1) * def.damageMultiplier * sGrowth);
       }
       const expected = Math.floor(raw * expectedMult);
@@ -394,8 +395,48 @@ export async function initAbilitySlots(opts: AbilitySlotOptions): Promise<() => 
 
   events.on("skillHit", onSkillHit);
 
+  // Immediately put skill on cooldown when cast (before server response)
+  // to prevent spamming while waiting for server confirmation
+  const onSkillCast = (data: any) => {
+    if (!data.skillId) return;
+    const btn = skillSlotMap.get(data.skillId);
+    if (!btn) return;
+    // Only set CD if not already on CD
+    if (btn.classList.contains("action-slot--on-cd")) return;
+
+    const def = ACTIVE_SKILLS[data.skillId as ActiveSkillId];
+    if (!def) return;
+
+    const cdOverlay = btn.querySelector(".action-slot__cooldown") as HTMLElement | null;
+    if (!cdOverlay) return;
+
+    btn.classList.add("action-slot--on-cd");
+    cdOverlay.style.height = "100%";
+
+    // Start a preliminary countdown using the skill's base cooldown.
+    // This will be overwritten when the server responds with skillHit.
+    const totalMs = def.cooldownMs;
+    const endsAt = Date.now() + totalMs;
+
+    const tick = setInterval(() => {
+      const remaining = endsAt - Date.now();
+      if (remaining <= 0) {
+        clearInterval(tick);
+        btn.classList.remove("action-slot--on-cd");
+        cdOverlay.style.height = "0%";
+        return;
+      }
+      const pct = (remaining / totalMs) * 100;
+      cdOverlay.style.height = `${pct}%`;
+    }, 50);
+
+    cooldownTimers.push(tick);
+  };
+  events.on("skillCast", onSkillCast);
+
   return () => {
     events.off("skillHit", onSkillHit);
+    events.off("skillCast", onSkillCast);
     for (const t of cooldownTimers) clearInterval(t);
     for (const t of longPressTimers) clearTimeout(t);
     dismissTooltip();

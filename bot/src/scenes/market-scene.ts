@@ -45,7 +45,7 @@ export class MarketScene {
         api.shop.items(),
       ]);
 
-      const balance = balanceRes as { shards: string; extraTradeSlots: number; maxTradeSlots: number };
+      const balance = balanceRes as { shards: string; extraTradeSlots: number; maxTradeSlots: number; extraBagSlots: number; maxBagSlots: number };
       const shopItems = ((itemsRes as any).items || []) as Array<{
         id: string;
         label: string;
@@ -63,12 +63,15 @@ export class MarketScene {
       content.innerHTML = `
         <!-- Market Upgrades -->
         <div class="shop-scene__section">
-          <h3 class="shop-scene__section-title">Trade Upgrades</h3>
+          <h3 class="shop-scene__section-title">Upgrades</h3>
           <div class="shop-scene__items" id="market-items">
             ${shopItems.map(item => {
-              const extra = item.id === "trade_slots_10"
-                ? `<span class="shop-scene__item-info">${balance.maxTradeSlots} slots</span>`
-                : "";
+              let extra = "";
+              if (item.id === "trade_slots_10") {
+                extra = `<span class="shop-scene__item-info" data-info="trade">${balance.maxTradeSlots} slots</span>`;
+              } else if (item.id === "bag_slots_20") {
+                extra = `<span class="shop-scene__item-info" data-info="bag">${balance.maxBagSlots || 52} slots</span>`;
+              }
               return `
                 <div class="shop-scene__item">
                   <div class="shop-scene__item-header">
@@ -111,13 +114,17 @@ export class MarketScene {
         shards: string;
         extraTradeSlots: number;
         maxTradeSlots: number;
+        extraBagSlots: number;
+        maxBagSlots: number;
       };
 
       const shardsEl = this.container.querySelector("#market-shards-hdr");
       if (shardsEl) shardsEl.textContent = res.shards;
 
-      const infoEl = this.container.querySelector(".shop-scene__item-info");
-      if (infoEl) infoEl.textContent = `${res.maxTradeSlots} slots`;
+      const tradeInfo = this.container.querySelector('[data-info="trade"]');
+      if (tradeInfo) tradeInfo.textContent = `${res.maxTradeSlots} slots`;
+      const bagInfo = this.container.querySelector('[data-info="bag"]');
+      if (bagInfo) bagInfo.textContent = `${res.maxBagSlots} slots`;
     } catch (err: any) {
       const msg = err?.message || "Purchase failed";
       console.error("[Market] Buy failed:", msg);

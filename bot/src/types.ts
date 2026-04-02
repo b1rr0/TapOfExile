@@ -24,7 +24,7 @@ export { ELEMENT_COLORS } from "@shared/types";
 export type { ClassDef, ClassBaseStats, ClassGrowth, ClassSpecial } from "@shared/class-stats";
 export { CLASS_DEFS, statsAtLevel, specialAtLevel, STAT_LABELS, RESISTANCE_LABELS, MAX_LEVEL } from "@shared/class-stats";
 
-// ── Re-export skill tree types from shared ───────────────
+// ── Re-export asterism types from shared ─────────────────
 
 export type { Emblem, SkillTreeResult } from "@shared/skill-tree";
 
@@ -148,7 +148,7 @@ export interface Character {
   bag: BagItem[];
   endgame: EndgameState;
   allocatedNodes: number[];
-  /** Active skills unlocked via skill tree */
+  /** Active skills unlocked via asterism */
   unlockedActiveSkills?: string[];
   /** Equipped action bar (4 slots) */
   equippedSkills?: (string | null)[];
@@ -287,6 +287,7 @@ export interface SkinConfig {
   id: string;
   name: string;
   classId?: string;
+  hidden?: boolean;
   basePath: string;
   animations: Record<string, AnimationConfig>;
   defaultSize: { w: number; h: number };

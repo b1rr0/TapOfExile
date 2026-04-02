@@ -157,7 +157,7 @@ export class LeaderboardService {
   }
 
   /**
-   * Public character profile: stats, equipment, skill tree, progression.
+   * Public character profile: stats, equipment, asterism, progression.
    */
   async getCharacterProfile(characterId: string) {
     const char = await this.characterRepo.findOne({
@@ -192,7 +192,7 @@ export class LeaderboardService {
       }
     }
 
-    // Compute effective stats (equipment + tree bonuses) for profile display
+    // Compute effective stats (equipment + asterism bonuses) for profile display
     const gearItems = char.equipmentSlots
       ?.filter(s => s.item && s.item.type === 'equipment')
       .map(s => ({ properties: s.item!.properties || {} })) || [];
@@ -203,7 +203,7 @@ export class LeaderboardService {
       bonuses,
     );
 
-    // Apply tree bonuses
+    // Apply asterism bonuses
     const allocSet = new Set<number>(char.allocatedNodes || []);
     if (allocSet.size > 0) {
       const skillTree = buildSkillTree();

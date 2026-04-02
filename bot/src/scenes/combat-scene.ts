@@ -127,7 +127,10 @@ export class CombatScene {
       }
     } else {
       const locationName = params.location ? params.location.name : "Battle";
-      const monsterLvl = params.location ? params.location.order : null;
+      // Monster level = (act-1)*10 + order  (matches server formula in level-gen)
+      const monsterLvl = params.location
+        ? (params.location.act - 1) * 10 + params.location.order
+        : null;
       const isSideQuest = params.location && params.location.order > 8;
       if (isSideQuest) {
         stageLabel = monsterLvl
@@ -461,6 +464,7 @@ export class CombatScene {
           mapDrops: data.mapDrops || [],
           logEntries,
           combatStartTime,
+          location: params.location,
         });
       }
     };

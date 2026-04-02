@@ -406,8 +406,8 @@ const REQUIREMENT_PATTERN: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 3, 5];
  */
 export const ACT_BACKGROUNDS: Record<number, string[]> = {
   1: [
-    "/assets/background/castle/img.png",
-    "/assets/background/castle/img_1.png",
+    "/assets/background/castle/inventory.png",
+    "/assets/background/castle/stats2.png",
     "/assets/background/castle/img_2.png",
   ],
   2: [

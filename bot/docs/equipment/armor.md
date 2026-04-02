@@ -1,24 +1,24 @@
-# Armor (Нагрудник / Броня)
+# Armor (Body Armour)
 
 **Slot:** `armor`
-**Описание:** Основной защитный слот. Даёт максимальные оборонительные статы среди всей экипировки. Самые высокие значения HP, брони, уклонения и энергощита.
+**Description:** The main defensive slot. Provides the highest defensive stats among all equipment. The highest values of HP, armour, evasion, and energy shield.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип                      | Код              | Особенность                       |
+| Subtype                     | Code             | Feature                           |
 |-----------------------------|------------------|-----------------------------------|
-| Plate (Латы)                | `arm_plate`     | Максимальная броня                |
-| Leather (Кожа)              | `arm_leather`   | Уклонение                         |
-| Robe (Роба)                 | `arm_robe`      | Энергощит                          |
-| Chain (Кольчуга)            | `arm_chain`     | Броня + Уклонение (гибрид)        |
+| Plate                       | `arm_plate`     | Maximum armour                    |
+| Leather                     | `arm_leather`   | Evasion                           |
+| Robe                        | `arm_robe`      | Energy shield                     |
+| Chain                       | `arm_chain`     | Armour + Evasion (hybrid)         |
 
 ---
 
-## Базовая защита (implicit)
+## Base Defence (implicit)
 
-Нагрудник даёт наибольшую базовую защиту из всех слотов:
+Body armour provides the highest base defence among all slots:
 
 | Tier | iLvl      | Base Armour | Base Evasion | Base ES |
 |------|-----------|-------------|--------------|---------|
@@ -28,14 +28,14 @@
 | T2   | 60 - 79   | 85 - 155    | 55 - 105     | 40 - 82 |
 | T1   | 80 - 100  | 135 - 230   | 90 - 165     | 65 - 125|
 
-> Подтип определяет какая базовая защита основная. Chain = 70% от каждой из Armour и Evasion.
+> Subtype determines which base defence is primary. Chain = 70% of each Armour and Evasion.
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### Flat Life (`flat_hp`)
-Нагрудник даёт наибольший бонус к HP среди всех слотов.
+Body armour provides the highest HP bonus among all slots.
 
 | Tier | iLvl      | Min | Max |
 |------|-----------|-----|-----|
@@ -165,11 +165,11 @@
 | T2   | 60 - 79   | 3%  | 32%  |
 | T1   | 80 - 100  | 3%  | 45%  |
 
-> Броня — **ключевой слот для всех резистов**. Особенно важно для Мага (0% физ. резист базово) — Plate и Chain дают Physical Resistance. Не более 2 резист-статов на одном предмете.
+> Body armour is the **key slot for all resistances**. Especially important for the Mage (0% phys. resistance base) — Plate and Chain provide Physical Resistance. No more than 2 resistance stats on a single item.
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 35, Rare Plate:**
 ```

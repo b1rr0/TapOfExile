@@ -3580,7 +3580,7 @@ console.log("\n=== PHASE 5k: User adjustments ===");
   }
 
   // ─── 5k-31: Add intermediate nodes on new edges book-ks3↔ks5 and book-ks0↔ks2 ───
-  // (User: "добавь ноды на ребра 592↔595 и 593↔591" - these are ks3↔ks6 and ks4↔ks2,
+  // (User request: "add nodes on edges 592↔595 and 593↔591" - these are ks3↔ks6 and ks4↔ks2,
   //  but ks6 was deleted, so we use ks3↔ks5 and ks0↔ks2 as the nearest structural addition)
   console.log("  5k-31: Add intermediate nodes on book edges ks3↔ks5 and ks0↔ks2");
   {

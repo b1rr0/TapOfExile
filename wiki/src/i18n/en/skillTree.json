@@ -1,6 +1,6 @@
 {
-  "title": "Passive Skill Tree", "subtitle": "200+ allocatable nodes to customize your character's stats and elemental damage profile.",
-  "interactiveTitle": "Interactive Tree", "interactiveHint": "Pan with drag, zoom with scroll/pinch. Click a node to allocate it. Start by clicking a class emblem start node.",
+  "title": "Asterism", "subtitle": "200+ allocatable nodes to customize your character's stats and elemental damage profile.",
+  "interactiveTitle": "Interactive Asterism", "interactiveHint": "Pan with drag, zoom with scroll/pinch. Click a node to allocate it. Start by clicking a class emblem start node.",
   "nodeTypesTitle": "Node Types",
   "minorTitle": "Minor Nodes", "minorSub": "Small stat bonuses",
   "minorDesc": "Small percentage bonuses to individual stats. These form the backbone of your build, providing incremental improvements like +5% Damage, +3% Crit Chance, or +20 flat HP.",
@@ -19,7 +19,7 @@
   "lightningName": "Lightning Damage", "lightningDesc": "Converts portion of damage to lightning element",
   "coldName": "Cold Damage", "coldDesc": "Converts portion of damage to cold element",
   "modPercent": "Percent", "modFlatPercent": "Flat + Percent", "modElemental": "Elemental",
-  "mechanicsTitle": "Skill Tree Mechanics",
+  "mechanicsTitle": "Asterism Mechanics",
   "allocTitle": "Allocation & Reset",
   "alloc1": "Allocate points as you level up (1 point per level)", "alloc2": "Nodes must be connected to an already allocated node",
   "alloc3": "Max 6 class-specific skill nodes per character", "alloc4": "Full reset available at any time (costs 100 gold per node)",

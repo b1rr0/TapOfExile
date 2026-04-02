@@ -6,6 +6,7 @@ import { League } from '../shared/entities/league.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { Character } from '../shared/entities/character.entity';
 import { Item } from '../shared/entities/item.entity';
+import { TradeListing } from '../shared/entities/trade-listing.entity';
 import { Player } from '../shared/entities/player.entity';
 import { LeagueService, JP_MONTH_NAMES } from './league.service';
 import {
@@ -33,18 +34,30 @@ export class LeagueMigrationService implements OnModuleInit {
   ) {}
 
   /**
-   * On startup: check if the active monthly league has expired.
-   * Handles the case where the CRON job was missed (server was down on 1st).
+   * On startup: migrate ALL expired monthly leagues that were missed.
+   * Handles the case where the CRON job was missed (server was down).
    */
   async onModuleInit() {
-    const monthlyLeague = await this.leagueService.getActiveMonthlyLeague();
-    if (!monthlyLeague) return;
+    const expiredLeagues = await this.leagueRepo.find({
+      where: { type: 'monthly', status: 'active' },
+    });
 
-    if (monthlyLeague.endsAt && monthlyLeague.endsAt < new Date()) {
-      this.logger.warn(
-        `Expired monthly league detected on startup: "${monthlyLeague.name}" (ended ${monthlyLeague.endsAt.toISOString()}). Running migration...`,
-      );
-      await this.handleMonthlyMigration();
+    const now = new Date();
+    for (const league of expiredLeagues) {
+      if (league.endsAt && league.endsAt < now) {
+        this.logger.warn(
+          `Expired monthly league detected on startup: "${league.name}" (ended ${league.endsAt.toISOString()}). Running migration...`,
+        );
+        try {
+          const result = await this.migrateLeague(league.id);
+          this.logger.log(
+            `Migration of "${league.name}" complete: ${result.playersTransferred} players, ` +
+              `${result.charactersTransferred} characters transferred.`,
+          );
+        } catch (error) {
+          this.logger.error(`Migration of "${league.name}" failed:`, error);
+        }
+      }
     }
   }
 
@@ -74,8 +87,9 @@ export class LeagueMigrationService implements OnModuleInit {
       const result = await this.migrateLeague(monthlyLeague.id);
       this.logger.log(
         `Migration complete: ${result.playersTransferred} players, ` +
-          `${result.charactersTransferred} characters, ` +
-          `${result.itemsTransferred} items transferred.`,
+          `${result.charactersTransferred} characters transferred. ` +
+          `Equipped items kept, bag items purged. ` +
+          `${result.tradesTransferred} trades transferred.`,
       );
 
       // Create league for the current month (handles both CRON on 1st and late startup)
@@ -124,6 +138,7 @@ export class LeagueMigrationService implements OnModuleInit {
 
     let totalCharacters = 0;
     let totalItems = 0;
+    let totalTrades = 0;
     let totalGold = 0n;
     const playerResults: LeagueTransferPlayerResult[] = [];
 
@@ -142,6 +157,7 @@ export class LeagueMigrationService implements OnModuleInit {
         playerResults.push(result);
         totalCharacters += result.charactersMoved;
         totalItems += result.itemsMoved;
+        totalTrades += result.tradesMoved;
         totalGold += BigInt(result.goldMerged);
       }
 
@@ -177,6 +193,7 @@ export class LeagueMigrationService implements OnModuleInit {
       playersTransferred: playerResults.length,
       charactersTransferred: totalCharacters,
       itemsTransferred: totalItems,
+      tradesTransferred: totalTrades,
       goldTransferred: totalGold,
       sourceLeagueId: monthlyLeagueId,
       targetLeagueId: standard.id,
@@ -231,16 +248,72 @@ export class LeagueMigrationService implements OnModuleInit {
       .where('playerLeagueId = :plId', { plId: monthlyPl.id })
       .execute();
 
-    // Transfer items
+    // Transfer only equipped items to standard; delete bag items
     const itemCount = await queryRunner.manager.count(Item, {
       where: { playerLeagueId: monthlyPl.id },
     });
+    // Move equipped items (on characters) to standard
     await queryRunner.manager
       .createQueryBuilder()
       .update(Item)
       .set({ playerLeagueId: standardPl.id })
+      .where('playerLeagueId = :plId AND status = :status', {
+        plId: monthlyPl.id,
+        status: 'equipped',
+      })
+      .execute();
+    // Delete remaining bag items (not transferred)
+    await queryRunner.manager
+      .createQueryBuilder()
+      .delete()
+      .from(Item)
       .where('playerLeagueId = :plId', { plId: monthlyPl.id })
       .execute();
+
+    // Transfer active trade listings (seller side)
+    const tradeCount = await queryRunner.manager.count(TradeListing, {
+      where: { sellerPlayerLeagueId: monthlyPl.id, status: 'active' },
+    });
+    if (tradeCount > 0) {
+      await queryRunner.manager
+        .createQueryBuilder()
+        .update(TradeListing)
+        .set({
+          sellerPlayerLeagueId: standardPl.id,
+          leagueId: standardLeagueId,
+        })
+        .where(
+          'sellerPlayerLeagueId = :plId AND status = :status',
+          { plId: monthlyPl.id, status: 'active' },
+        )
+        .execute();
+    }
+
+    // Update buyer side of any listings bought by this player
+    await queryRunner.manager
+      .createQueryBuilder()
+      .update(TradeListing)
+      .set({ buyerPlayerLeagueId: standardPl.id })
+      .where('buyerPlayerLeagueId = :plId', { plId: monthlyPl.id })
+      .execute();
+
+    // Delete non-active trade listings (sold/cancelled/expired) — they're historical
+    await queryRunner.manager
+      .createQueryBuilder()
+      .delete()
+      .from(TradeListing)
+      .where(
+        'sellerPlayerLeagueId = :plId AND status != :status',
+        { plId: monthlyPl.id, status: 'active' },
+      )
+      .execute();
+
+    // Set activeCharacterId on standard PL if not set
+    if (!standardPl.activeCharacterId && monthlyPl.activeCharacterId) {
+      await queryRunner.manager.update(PlayerLeague, standardPl.id, {
+        activeCharacterId: monthlyPl.activeCharacterId,
+      });
+    }
 
     // Remove empty monthly PlayerLeague
     await queryRunner.manager.delete(PlayerLeague, monthlyPl.id);
@@ -250,6 +323,7 @@ export class LeagueMigrationService implements OnModuleInit {
       goldMerged: String(monthlyPl.gold),
       charactersMoved: charCount,
       itemsMoved: itemCount,
+      tradesMoved: tradeCount,
     };
   }
 

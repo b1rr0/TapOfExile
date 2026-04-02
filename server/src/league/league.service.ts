@@ -85,6 +85,15 @@ export class LeagueService implements OnModuleInit {
   }
 
   /**
+   * Get ALL leagues (admin - includes completed/migrating).
+   */
+  async getAllLeagues(): Promise<League[]> {
+    return this.leagueRepo.find({
+      order: { startsAt: 'DESC' },
+    });
+  }
+
+  /**
    * Get a league by ID.
    */
   async getLeague(leagueId: string): Promise<League> {

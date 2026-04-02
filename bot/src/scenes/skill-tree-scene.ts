@@ -35,7 +35,7 @@ const WPN_STAT_NAMES: Record<string, string> = {
   staffDmg: 'Staff', staffAmp: 'Staff',
 };
 
-/* ── Module-level tree cache (built once, shared across all mounts) ── */
+/* ── Module-level asterism cache (built once, shared across all mounts) ── */
 
 let _cachedTree: SkillTreeResult | null = null;
 function getTree(): SkillTreeResult {
@@ -52,7 +52,7 @@ function touchDist(t: TouchList): number {
 }
 
 /**
- * SkillTreeScene - circular passive skill tree (PoE2-style).
+ * SkillTreeScene - circular passive asterism (PoE2-style).
  *
  * Renders an SVG graph with pan + pinch-zoom.
  * Each class has an emblem circle with a class image and 16 class-specific
@@ -153,7 +153,7 @@ export class SkillTreeScene {
             <span class="skill-tree__points" id="st-points">${totalPoints - usedPoints} pts</span>
             <span class="skill-tree__class-pts" id="st-class-pts">${classUsed}/${this._getMaxClassSkills()} class</span>
           </div>
-          <span class="skill-tree__title">Passive Tree</span>
+          <span class="skill-tree__title">Asterism</span>
           <button class="scene-close-btn" id="st-back">&times;</button>
         </div>
         <div class="skill-tree__actions-row">
@@ -758,7 +758,7 @@ export class SkillTreeScene {
         newRaw = skill.spellBase! * newG;
       } else {
         curRaw = tapDamage * skill.damageMultiplier * curG;
-        newRaw = (tapDamage + dTap) * skill.damageMultiplier * newG;
+        newRaw = (tapDamage + dTap + dTapFlat) * skill.damageMultiplier * newG;
       }
       // Weapon dmg multiplier (e.g. swordDmg +6% → damage * 1.06)
       if (weaponDmgMult > 0) {
@@ -893,7 +893,7 @@ export class SkillTreeScene {
     const char = this.state.getActiveCharacter();
     if (!char) return "";
 
-    // Base HP from class stats (tree % scales base, not total)
+    // Base HP from class stats (asterism % scales base, not total)
     const classDef = CLASS_DEFS[char.classId];
     const baseHp = classDef
       ? classDef.base.hp + classDef.growth.hp * ((char.level || 1) - 1)
@@ -1040,7 +1040,7 @@ export class SkillTreeScene {
     const allocArr = [...this._allocated];
     const validation = validateAllocations(char.classId, char.level, allocArr);
     if (!validation.valid) {
-      console.error("[SkillTree] FE validation failed:", validation.errors);
+      console.error("[Asterism] FE validation failed:", validation.errors);
       if (this._acceptBtn) {
         this._acceptBtn.textContent = `\u2716 ${validation.errors[0] || "Invalid"}`;
         setTimeout(() => {
@@ -1068,7 +1068,7 @@ export class SkillTreeScene {
         }, 1500);
       }
     } catch (err: any) {
-      console.error("[SkillTree] Accept failed:", err);
+      console.error("[Asterism] Accept failed:", err);
       const msg = err?.response?.data?.message || err?.message || "Error";
       if (this._acceptBtn) {
         this._acceptBtn.textContent = `\u2716 ${msg}`;

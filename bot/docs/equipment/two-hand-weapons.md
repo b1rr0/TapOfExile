@@ -1,25 +1,25 @@
-# Two-Hand Weapons (Двуручное оружие)
+# Two-Hand Weapons
 
 **Slot:** `two_hand`
-**Описание:** Двуручное оружие - луки, посохи, двуручные мечи/топоры. Занимает оба слота рук. Статы ~1.5x выше одноручного, но нельзя носить щит/второе оружие.
+**Description:** Two-hand weapons — bows, staves, greatswords/greataxes. Occupies both hand slots. Stats are ~1.5x higher than one-hand, but you cannot wear a shield/second weapon.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип               | Код            | Особенность                     |
+| Subtype              | Code           | Feature                         |
 |----------------------|----------------|---------------------------------|
-| Greatsword (Двуруч.)  | `th_sword`   | Высокий физ. урон               |
-| Greataxe (Секира)     | `th_axe`     | Максимальный физ. урон          |
-| Bow (Лук)             | `th_bow`     | Дальний бой, крит              |
-| Staff (Посох)         | `th_staff`   | Элементальный урон              |
-| Greatmace (Молот)     | `th_mace`    | Огромный урон, медленный        |
+| Greatsword            | `th_sword`   | High phys. damage               |
+| Greataxe              | `th_axe`     | Maximum phys. damage            |
+| Bow                   | `th_bow`     | Ranged, crit                    |
+| Staff                 | `th_staff`   | Elemental damage                |
+| Greatmace             | `th_mace`    | Huge damage, slow               |
 
 ---
 
-## Базовые характеристики (implicit)
+## Base Stats (implicit)
 
-Двуручное оружие имеет ~1.5x базовый урон одноручного:
+Two-hand weapons have ~1.5x base damage of one-hand:
 
 | Tier | iLvl      | Base Damage (min-max) |
 |------|-----------|-----------------------|
@@ -31,9 +31,9 @@
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
-> **Множитель x1.5:** Все flat-значения у двуручного оружия в ~1.5 раза выше одноручного.
+> **x1.5 Multiplier:** All flat values on two-hand weapons are ~1.5 times higher than one-hand.
 
 ### Flat Physical Damage (`flat_phys_dmg`)
 
@@ -117,7 +117,7 @@
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 30, Rare Greataxe:**
 ```

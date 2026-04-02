@@ -5,7 +5,7 @@ export default function SkillTreeBuilderPage() {
     <div className="ct-page">
       <div className="ct-page__header">
         <div className="ct-page__info">
-          <span className="ct-page__nickname">Skill Tree Builder</span>
+          <span className="ct-page__nickname">Asterism Builder</span>
         </div>
       </div>
       <div className="ct-page__tree">

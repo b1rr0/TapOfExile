@@ -1,7 +1,7 @@
 ﻿/**
- * Passive Skill Tree - organic branching circular graph, ~560 nodes.
+ * Asterism - organic branching circular graph, ~560 nodes.
  *
- * The tree is pre-computed at build time (see generate-tree.ts) and loaded
+ * The asterism is pre-computed at build time (see generate-tree.ts) and loaded
  * from skill-tree-data.ts at runtime - zero computation on import.
  *
  * To regenerate after changing the generation algorithm:

@@ -1,24 +1,24 @@
-# Belts (Пояса)
+# Belts
 
 **Slot:** `belt`
-**Описание:** Пояс - утилитарно-защитный слот. Основной источник HP и gold find. Также даёт броню и life regen. Не имеет атакующих статов.
+**Description:** Belt is a utility-defensive slot. The main source of HP and gold find. Also provides armour and life regen. Has no offensive stats.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип                      | Код            | Особенность                     |
+| Subtype                     | Code           | Feature                         |
 |-----------------------------|----------------|---------------------------------|
-| Leather Belt (Кожаный)      | `belt_leather`| Implicit: +flat_hp              |
-| Chain Belt (Цепной)         | `belt_chain`  | Implicit: +flat_energy_shield   |
-| Heavy Belt (Тяжёлый)        | `belt_heavy`  | Implicit: +flat_armor           |
-| Cloth Belt (Тканевый)       | `belt_cloth`  | Implicit: +gold_find            |
+| Leather Belt                | `belt_leather`| Implicit: +flat_hp              |
+| Chain Belt                  | `belt_chain`  | Implicit: +flat_energy_shield   |
+| Heavy Belt                  | `belt_heavy`  | Implicit: +flat_armor           |
+| Cloth Belt                  | `belt_cloth`  | Implicit: +gold_find            |
 
 ---
 
-## Implicit бонусы (зависят от подтипа)
+## Implicit Bonuses (depend on subtype)
 
-| Подтип    | Implicit Stat       | T5 (1-19) | T4 (20-39) | T3 (40-59) | T2 (60-79) | T1 (80-100) |
+| Subtype   | Implicit Stat       | T5 (1-19) | T4 (20-39) | T3 (40-59) | T2 (60-79) | T1 (80-100) |
 |-----------|---------------------|-----------|------------|------------|------------|-------------|
 | Leather   | flat_hp             | 5 - 15    | 5 - 28     | 5 - 45     | 5 - 65     | 5 - 90      |
 | Chain     | flat_energy_shield  | 2 - 6     | 2 - 12     | 2 - 20     | 2 - 30     | 2 - 42      |
@@ -27,7 +27,7 @@
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### Flat Life (`flat_hp`)
 
@@ -119,11 +119,11 @@
 | T2   | 60 - 79   | 3%  | 32%  |
 | T1   | 80 - 100  | 3%  | 45%  |
 
-> Пояс — важный слот для покрытия резистов. Максимум 2 резист-стата. Heavy Belt предпочтителен для Physical Resistance.
+> Belt is an important slot for covering resistances. Maximum 2 resistance stats. Heavy Belt is preferred for Physical Resistance.
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 18, Common Leather Belt:**
 ```
@@ -150,7 +150,7 @@ Implicit: + 78 Armour
 + 72 Armour
 + 60% Gold Find
 + 25 Life Regeneration
-+ 22 Armour (дубль - не бывает, переролл)
++ 22 Armour (duplicate — cannot happen, reroll)
 ```
 
-> **Примечание:** Один и тот же стат не может выпасть дважды на одном предмете. При дубле - переролл.
+> **Note:** The same stat cannot roll twice on a single item. On duplicate — reroll.

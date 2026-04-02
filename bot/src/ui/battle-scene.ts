@@ -172,6 +172,7 @@ export class BattleScene {
           <div class="hp-bar-fill" id="hp-bar"></div>
           <span class="hp-text" id="hp-text"></span>
         </div>
+        <div class="monster-resists" id="monster-resists"></div>
       </div>
 
       <div class="effects-layer" id="effects-layer"></div>
@@ -194,24 +195,41 @@ export class BattleScene {
       const heroSkin = getHeroSkin(this._heroSkinId) as SkinConfig | undefined;
       const enemySkin = getEnemySkin(initialEnemySkinId) as SkinConfig | undefined;
 
-      if (!heroSkin) throw new Error(`Hero skin not found: ${this._heroSkinId}`);
-      if (!enemySkin) throw new Error(`Enemy skin not found: ${initialEnemySkinId}`);
-
-      this.hero = new HeroCharacter(heroSkin);
-      this.enemy = new EnemyCharacter(enemySkin);
+      // Background renderer is always created (fallback gradient if image fails)
       this.bgRenderer = new BackgroundRenderer();
 
-      await Promise.all([
-        this.hero.load(),
-        this.enemy.load(),
-        this.bgRenderer.load(this._backgroundSrc),
+      // Hero — try with requested skin, fallback to samurai_1
+      if (heroSkin) {
+        this.hero = new HeroCharacter(heroSkin);
+      } else {
+        console.warn(`[BattleScene] Hero skin not found: ${this._heroSkinId}, trying samurai_1`);
+        const fallback = getHeroSkin("samurai_1") as SkinConfig | undefined;
+        if (fallback) this.hero = new HeroCharacter(fallback);
+      }
+
+      // Enemy — optional, will be loaded per-monster on spawn
+      if (enemySkin) {
+        this.enemy = new EnemyCharacter(enemySkin);
+      } else {
+        console.warn(`[BattleScene] Enemy skin not found: ${initialEnemySkinId}`);
+      }
+
+      // Load all resources in parallel; each failure is independent
+      const loadPromises: Promise<any>[] = [];
+      if (this.hero)       loadPromises.push(this.hero.load().catch(e => console.warn("[BattleScene] Hero load failed:", e)));
+      if (this.enemy)      loadPromises.push(this.enemy.load().catch(e => console.warn("[BattleScene] Enemy load failed:", e)));
+      loadPromises.push(this.bgRenderer.load(this._backgroundSrc).catch(e => console.warn("[BattleScene] BG load failed:", e)));
+      await Promise.all(loadPromises);
+
+      // Load projectile sprites in background (non-blocking)
+      Promise.allSettled([
         this.projectileLayer.load("fireball", "/assets/skils_sprites/fire/fireball/v0/fireball_sprite.json"),
         this.projectileLayer.load("sword_throw", "/assets/skils_sprites/physical/sword_throw/v0/sword_throw_sprite.json"),
-      ]);
+      ]).catch(() => { /* silently ignore projectile failures */ });
 
       this.useSprites = true;
 
-      // Show canvas
+      // ALWAYS show canvas — even if some sprites failed, we'll draw bg + whatever loaded
       this.sceneCanvas!.classList.remove("hidden");
       this._resizeCanvas();
       this._ctx = this.sceneCanvas!.getContext("2d");
@@ -225,14 +243,14 @@ export class BattleScene {
         const correctSkin = getEnemySkin(this._enemySkinId) as SkinConfig | undefined;
         if (correctSkin) {
           this.enemy = new EnemyCharacter(correctSkin);
-          await this.enemy.load();
+          await this.enemy.load().catch(e => console.warn("[BattleScene] Corrected enemy load failed:", e));
           console.log(`[BattleScene] Skin changed during load: ${initialEnemySkinId} → ${this._enemySkinId}`);
         }
       }
 
-      // Start idle
-      this.hero.play("idle");
-      this.enemy.play("idle");
+      // Start idle for whatever loaded
+      if (this.hero)  this.hero.play("idle");
+      if (this.enemy) this.enemy.play("idle");
 
       // Draw first frame
       this._drawFrame();
@@ -248,14 +266,28 @@ export class BattleScene {
       });
       this._resizeObserver.observe(this.container);
 
-      console.log(`[BattleScene] Loaded hero=${heroSkin.name}, enemy=${this.enemy ? this._enemySkinId : "none"}`);
+      console.log(`[BattleScene] Loaded hero=${this.hero ? this._heroSkinId : "NONE"}, enemy=${this.enemy ? this._enemySkinId : "NONE"}, bg=${!!this._backgroundSrc}`);
     } catch (err) {
+      // Even on total failure — show canvas with dark background instead of black div
+      console.error("[BattleScene] Sprites not available:", err);
+      console.error("[BattleScene] heroSkinId:", this._heroSkinId, "enemySkinId:", this._enemySkinId);
       this.useSprites = false;
       this.hero = null;
       this.enemy = null;
       this.bgRenderer = null;
-      console.error("[BattleScene] Sprites not available:", err);
-      console.error("[BattleScene] heroSkinId:", this._heroSkinId, "enemySkinId:", this._enemySkinId);
+      // Show canvas anyway with fallback dark fill
+      if (this.sceneCanvas) {
+        this.sceneCanvas.classList.remove("hidden");
+        this._resizeCanvas();
+        const ctx = this.sceneCanvas.getContext("2d");
+        if (ctx) {
+          const grad = ctx.createLinearGradient(0, 0, 0, this.sceneCanvas.height);
+          grad.addColorStop(0, "#1a1a2e");
+          grad.addColorStop(1, "#0f0f1a");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, this.sceneCanvas.width, this.sceneCanvas.height);
+        }
+      }
     }
   }
 
@@ -345,10 +377,16 @@ export class BattleScene {
     const h = this._canvasH;
     const dpr = this._dpr;
 
-    // 1. Background
+    // 1. Background (always fill — gradient fallback if bgRenderer failed)
     ctx.clearRect(0, 0, w, h);
-    if (this.bgRenderer) {
+    if (this.bgRenderer && this.bgRenderer._loaded) {
       this.bgRenderer.draw(ctx, w, h);
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "#1a1a2e");
+      grad.addColorStop(1, "#0f0f1a");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
     }
 
     // 2. Hero
@@ -529,6 +567,27 @@ export class BattleScene {
     }
 
     this._updateHp(monster);
+
+    // Show resistance icons (only if >= 50%)
+    const resistsEl = this.container.querySelector("#monster-resists") as HTMLElement | null;
+    if (resistsEl) {
+      const res = monster.resistance || {};
+      const icons: { icon: string; value: number }[] = [];
+      const phys = res.physical ?? 0;
+      const fire = res.fire ?? 0;
+      const light = res.lightning ?? 0;
+      const cold = res.cold ?? 0;
+      if (phys >= 0.5) icons.push({ icon: "\uD83D\uDEE1\uFE0F", value: phys });
+      if (fire >= 0.5) icons.push({ icon: "\uD83D\uDD25", value: fire });
+      if (light >= 0.5) icons.push({ icon: "\u26A1", value: light });
+      if (cold >= 0.5) icons.push({ icon: "\u2744\uFE0F", value: cold });
+      resistsEl.innerHTML = icons.map(r => {
+        const pct = Math.round(r.value * 100);
+        const cls = r.value >= 0.75 ? "monster-resist--red" : "monster-resist--yellow";
+        return `<span class="monster-resist ${cls}" title="${pct}%">${r.icon}${pct}%</span>`;
+      }).join("");
+    }
+
     this.monsterInfoEl!.classList.remove("hidden");
 
     // Resolve the correct skin + variant for this monster

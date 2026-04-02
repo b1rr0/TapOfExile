@@ -40,16 +40,28 @@ export class ShopService implements OnModuleInit {
   async onModuleInit() {
     const count = await this.shopItemRepo.count();
     if (count === 0) {
-      await this.shopItemRepo.save({
-        id: 'trade_slots_10',
-        label: '+10 Trade Slots',
-        description: 'Expand your trade listing limit by 10 slots',
-        category: 'upgrades',
-        priceShards: 100,
-        enabled: true,
-        metadata: { slots: 10 },
-        sortOrder: 0,
-      });
+      await this.shopItemRepo.save([
+        {
+          id: 'trade_slots_10',
+          label: '+10 Trade Slots',
+          description: 'Expand your trade listing limit by 10 slots',
+          category: 'upgrades',
+          priceShards: 100,
+          enabled: true,
+          metadata: { slots: 10 },
+          sortOrder: 0,
+        },
+        {
+          id: 'bag_slots_20',
+          label: '+20 Bag Slots',
+          description: 'Expand your inventory by 20 extra slots',
+          category: 'upgrades',
+          priceShards: 150,
+          enabled: true,
+          metadata: { slots: 20 },
+          sortOrder: 1,
+        },
+      ]);
       this.logger.log('Seeded default shop items');
     }
   }
@@ -59,13 +71,15 @@ export class ShopService implements OnModuleInit {
   async getBalance(telegramId: string) {
     const player = await this.playerRepo.findOne({
       where: { telegramId },
-      select: ['telegramId', 'shards', 'extraTradeSlots'],
+      select: ['telegramId', 'shards', 'extraTradeSlots', 'extraBagSlots'],
     });
     if (!player) throw new NotFoundException('Player not found');
     return {
       shards: player.shards,
       extraTradeSlots: player.extraTradeSlots,
       maxTradeSlots: B.BASE_TRADE_SLOTS + player.extraTradeSlots,
+      extraBagSlots: player.extraBagSlots ?? 0,
+      maxBagSlots: 52 + (player.extraBagSlots ?? 0),
     };
   }
 
@@ -316,6 +330,15 @@ export class ShopService implements OnModuleInit {
           player.extraTradeSlots + B.TRADE_SLOTS_PER_PURCHASE,
           B.MAX_EXTRA_TRADE_SLOTS,
         );
+      } else if (shopItemId === 'bag_slots_20') {
+        const maxExtraBag = B.MAX_EXTRA_BAG_SLOTS ?? 60;
+        if (player.extraBagSlots >= maxExtraBag) {
+          throw new BadRequestException('Maximum bag slots reached');
+        }
+        player.extraBagSlots = Math.min(
+          player.extraBagSlots + (B.BAG_SLOTS_PER_PURCHASE ?? 20),
+          maxExtraBag,
+        );
       }
 
       // Deduct shards
@@ -338,6 +361,8 @@ export class ShopService implements OnModuleInit {
         shards: player.shards,
         extraTradeSlots: player.extraTradeSlots,
         maxTradeSlots: B.BASE_TRADE_SLOTS + player.extraTradeSlots,
+        extraBagSlots: player.extraBagSlots ?? 0,
+        maxBagSlots: 52 + (player.extraBagSlots ?? 0),
       };
     });
   }

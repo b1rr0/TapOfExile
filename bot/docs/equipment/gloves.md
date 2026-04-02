@@ -1,21 +1,21 @@
-# Gloves (Перчатки)
+# Gloves
 
 **Slot:** `gloves`
-**Описание:** Перчатки - гибридный слот. Дают оборонительные статы (броня/уклонение/ES) и часть атакующих (крит шанс, % физ урон, life on hit). Уникальный микс атаки и защиты.
+**Description:** Gloves are a hybrid slot. They provide defensive stats (armour/evasion/ES) and some offensive ones (crit chance, % phys damage, life on hit). A unique mix of offence and defence.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип                      | Код              | Особенность                     |
+| Subtype                     | Code             | Feature                         |
 |-----------------------------|------------------|---------------------------------|
-| Gauntlets (Латные)          | `glov_gauntlet` | Броня, атака                    |
-| Bracers (Наручи)            | `glov_bracer`   | Уклонение, крит                 |
-| Wraps (Обмотки)             | `glov_wrap`     | Энергощит, крит                 |
+| Gauntlets                   | `glov_gauntlet` | Armour, offence                 |
+| Bracers                     | `glov_bracer`   | Evasion, crit                   |
+| Wraps                       | `glov_wrap`     | Energy shield, crit             |
 
 ---
 
-## Базовая защита (implicit)
+## Base Defence (implicit)
 
 | Tier | iLvl      | Base Armour | Base Evasion | Base ES |
 |------|-----------|-------------|--------------|---------|
@@ -27,7 +27,7 @@
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### % Physical Damage (`pct_phys_dmg`)
 
@@ -91,7 +91,7 @@
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 20, Common Gauntlets:**
 ```

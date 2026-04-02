@@ -1,55 +1,55 @@
-# Расчёт выпадения наград (Loot)
+# Loot Drop Calculations
 
-## Ключевые файлы
+## Key Files
 
-| Файл | Назначение |
-|------|-----------|
-| `shared/endgame-maps.ts` | `rollMapDrops()` — основная логика дропа |
-| `server/src/loot/loot.service.ts` | Обёртка: вызов rollMapDrops + bag management |
-| `shared/balance.ts` | Константы баланса наград за монстров |
-| `server/src/combat/combat.service.ts` | Вызов loot при complete |
+| File | Purpose |
+|------|---------|
+| `shared/endgame-maps.ts` | `rollMapDrops()` — main drop logic |
+| `server/src/loot/loot.service.ts` | Wrapper: calls rollMapDrops + bag management |
+| `shared/balance.ts` | Monster reward balance constants |
+| `server/src/combat/combat.service.ts` | Calls loot on complete |
 
 ## Drop Settings (shared/endgame-maps.ts)
 
-### Обычные карты (Regular Maps)
+### Regular Maps
 
 ```
-60% → Ключ того же тира
-20% → Ключ тира+1 (cap: MAX_TIER=10)
- 5% → Boss ключ (только если tier >= 5)
+60% → Key of same tier
+20% → Key of tier+1 (cap: MAX_TIER=10)
+ 5% → Boss key (only if tier >= 5)
 ```
 
-- Tier+1 срабатывает только если same-tier не выпал
-- Boss ключ — random boss из 8
+- Tier+1 triggers only if same-tier didn't drop
+- Boss key — random boss from 8
 
-### Босс-карты (Boss Maps)
+### Boss Maps
 
 ```
-Гарантированно: 1-2 обычных ключа (tier 5-8)
-  - Тир: Math.random() * (max-min) + min
-30% → Бонусный ключ тира+1
- 5% → Boss ключ (tier 3, random boss)
+Guaranteed: 1-2 regular keys (tier 5-8)
+  - Tier: Math.random() * (max-min) + min
+30% → Bonus key of tier+1
+ 5% → Boss key (tier 3, random boss)
 ```
 
 ## Boss Key Tier Selection (pickBossKeyTier)
 
-| Источник | Boss Key Tier |
-|----------|---------------|
-| Boss maps | Всегда tier 3 (Mythic) |
+| Source | Boss Key Tier |
+|--------|---------------|
+| Boss maps | Always tier 3 (Mythic) |
 | Regular tier 9-10 | Tier 3 (Mythic) |
 | Regular tier 7-8 | Tier 2 (Empowered) |
 | Regular tier 5-6 | Tier 1 (Standard) |
 
-## Качество ключей по тиру (tierQuality)
+## Key Quality by Tier (tierQuality)
 
-| Map Tier | Качество |
-|----------|----------|
+| Map Tier | Quality |
+|----------|---------|
 | 1-3 | common |
 | 4-6 | rare |
 | 7-9 | epic |
 | 10 | legendary |
 
-## Структура дропнутого ключа
+## Dropped Key Structure
 
 ### Map Key:
 
@@ -85,10 +85,10 @@
 ## Bag Management (loot.service.ts)
 
 - **Max bag size: 32 items**
-- При переполнении — самые старые предметы вытесняются (FIFO)
-- `addItemsToBag()` персистит в БД
+- On overflow — oldest items are evicted (FIFO)
+- `addItemsToBag()` persists to DB
 
-## Награды за монстров (balance.ts)
+## Monster Rewards (balance.ts)
 
 ### Location-Based (Story Mode)
 
@@ -105,7 +105,7 @@
 | 9 | 300 | 220 |
 | 10 | 420 | 300 |
 
-Эти значения умножаются на rarity mul и tier/act mul.
+These values are multiplied by rarity mul and tier/act mul.
 
 ### XP Progression (Leveling)
 
@@ -116,26 +116,26 @@ xpToNext = Math.floor(XP_BASE * XP_GROWTH^(level-1))
 
 ## Endgame Unlock
 
-Открывается после прохождения всех 5 актов (8+ локаций в каждом).
+Unlocks after completing all 5 acts (8+ locations in each).
 
-Стартовый набор:
-- 3 ключа Tier 1 (`B.ENDGAME_STARTER_KEYS = 3, ENDGAME_STARTER_TIER = 1`)
+Starter kit:
+- 3 Tier 1 keys (`B.ENDGAME_STARTER_KEYS = 3, ENDGAME_STARTER_TIER = 1`)
 
-## Pipeline дропа
+## Drop Pipeline
 
 ```
 1. Combat complete                          → combat.service.ts
-2. Если endgame: rollMapDrops(tier, isBoss) → shared/endgame-maps.ts
-3. Дропы → loot.service.addItemsToBag()     → DB persist
-4. Ответ клиенту: mapDrops[]               → BagItem[]
+2. If endgame: rollMapDrops(tier, isBoss)   → shared/endgame-maps.ts
+3. Drops → loot.service.addItemsToBag()     → DB persist
+4. Response to client: mapDrops[]           → BagItem[]
 5. FE: state.bag.push(...mapDrops)          → state.ts
-6. FE: Victory scene показывает дропы       → victory-scene.ts
+6. FE: Victory scene shows drops            → victory-scene.ts
 ```
 
-## Ключевые формулы резюме
+## Key Formulas Summary
 
 ```
-Monster Gold = baseGold * rarityMul * tierGoldMul (или actMul для story)
+Monster Gold = baseGold * rarityMul * tierGoldMul (or actMul for story)
 Monster XP   = baseXp   * rarityMul * tierXpMul
 Map Drop     = rollMapDrops(tier, isBoss, direction)
 Boss Key Tier = f(source tier): 5-6→1, 7-8→2, 9-10→3, boss→3

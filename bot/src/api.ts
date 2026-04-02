@@ -262,6 +262,10 @@ export const loot = {
     return post(`/loot/sell/${itemId}`);
   },
 
+  bulkSell(itemIds: string[]): Promise<{ gold: number; sold: number }> {
+    return post("/loot/bulk-sell", { itemIds });
+  },
+
   equipPotion(itemId: string, slot: string) {
     return post("/loot/equip-potion", { itemId, slot });
   },
@@ -279,7 +283,7 @@ export const loot = {
   },
 };
 
-/* ── Skill Tree ────────────────────────────────────────── */
+/* ── Asterism ──────────────────────────────────────────── */
 
 export const skillTree = {
   get(characterId: string) {

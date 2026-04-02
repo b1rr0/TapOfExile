@@ -1,7 +1,7 @@
 ﻿/**
- * Skill Tree Validation - shared between FE (pre-validation) and BE (authoritative).
+ * Asterism Validation - shared between FE (pre-validation) and BE (authoritative).
  *
- * Validates that a set of allocated node IDs forms a valid skill tree:
+ * Validates that a set of allocated node IDs forms a valid asterism:
  * 1. Start node must be allocated
  * 2. All IDs must be valid node indices
  * 3. All allocated nodes must be connected to start via other allocated nodes (BFS)

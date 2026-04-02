@@ -1,33 +1,33 @@
-# Система наград
+# Reward System
 
-## Ключевые файлы
+## Key Files
 
-| Файл | Назначение |
-|------|-----------|
-| `server/src/combat/combat.service.ts` | `processTap()` — XP за килл; `completeSession()` — gold + loot |
+| File | Purpose |
+|------|---------|
+| `server/src/combat/combat.service.ts` | `processTap()` — XP per kill; `completeSession()` — gold + loot |
 | `server/src/combat/combat.gateway.ts` | WebSocket gateway |
-| `server/src/loot/loot.service.ts` | Роллинг дропов, управление сумкой |
-| `shared/endgame-maps.ts` | `rollMapDrops()` — логика дропа ключей |
-| `shared/balance.ts` | Константы баланса |
-| `bot/src/game/state.ts` | Обновление клиентского стейта |
+| `server/src/loot/loot.service.ts` | Drop rolling, bag management |
+| `shared/endgame-maps.ts` | `rollMapDrops()` — key drop logic |
+| `shared/balance.ts` | Balance constants |
+| `bot/src/game/state.ts` | Client state update |
 
 ---
 
-## Когда что начисляется
+## When rewards are credited
 
-| Награда | Момент | Потеря при смерти |
-|---------|--------|-------------------|
-| **XP** | За каждого убитого монстра (сразу) | XP Loss по формуле (lvl 40+) |
-| **Gold** | Только при полном прохождении | Всё потеряно |
-| **Loot** | Только при полном прохождении | Весь потерян |
+| Reward | Moment | Loss on death |
+|--------|--------|---------------|
+| **XP** | Per monster killed (immediately) | XP Loss by formula (lvl 40+) |
+| **Gold** | Only on full completion | All lost |
+| **Loot** | Only on full completion | All lost |
 
-**Ключевой принцип**: XP — награда за прогресс в бою (каждый килл). Gold и loot — награда за завершение (всё или ничего).
+**Key principle**: XP is a reward for combat progress (each kill). Gold and loot are rewards for completion (all or nothing).
 
 ---
 
-## 1. XP → за каждого убитого монстра
+## 1. XP → per monster killed
 
-Начисляется в `processTap()` в момент `monster.currentHp <= 0`.
+Credited in `processTap()` at the moment `monster.currentHp <= 0`.
 
 ### XP Level Scaling
 ```
@@ -35,17 +35,17 @@ scaledXp = baseXp / (1 + XP_LEVEL_SCALING_A * D²)
 D = |playerLevel - monsterLevel|, A = 0.4
 ```
 
-Монстр одного уровня с игроком → полный XP. Разница ±5 уровней → XP сильно падает.
+Monster at the same level as the player → full XP. Difference of ±5 levels → XP drops significantly.
 
-### Daily Bonus (первые 3 килла/день)
+### Daily Bonus (first 3 kills/day)
 ```
 if dailyBonusKillsUsed < 3:
-  xp *= 3  (тройной XP)
+  xp *= 3  (triple XP)
   dailyBonusKillsUsed++
 ```
-Сброс в UTC 00:00 (по `dailyBonusResetDate` как YYYY-MM-DD).
+Resets at UTC 00:00 (by `dailyBonusResetDate` as YYYY-MM-DD).
 
-### Level Up (мгновенный, в момент килла)
+### Level Up (instant, at the moment of kill)
 ```typescript
 xpToNext = Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, char.level - 1))
 // = Math.floor(100 * 1.3^(level-1))
@@ -53,42 +53,42 @@ xpToNext = Math.floor(B.XP_BASE * Math.pow(B.XP_GROWTH, char.level - 1))
 while (char.xp >= char.xpToNext) {
   char.xp -= char.xpToNext
   char.level++
-  // Пересчёт всех статов через statsAtLevel(classId, level)
+  // Recalculate all stats via statsAtLevel(classId, level)
 }
 ```
 MAX_LEVEL = 60.
 
-### Ответ сервера (в tap-result при killed=true)
+### Server response (in tap-result when killed=true)
 ```typescript
 {
-  // ... стандартные поля tap-result ...
+  // ... standard tap-result fields ...
   killed: true,
-  xpGained,              // сколько XP получено за этого монстра
-  level, xp, xpToNext,   // актуальные значения после начисления
-  leveledUp,             // true если произошёл level up
+  xpGained,              // how much XP gained for this monster
+  level, xp, xpToNext,   // current values after crediting
+  leveledUp,             // true if level up occurred
 }
 ```
 
-### Клиент (при killed=true)
-1. Показать `+{xpGained} XP` флоатер над монстром
-2. Если `leveledUp` — анимация level up
-3. Обновить XP-бар в UI
+### Client (when killed=true)
+1. Show `+{xpGained} XP` floater above monster
+2. If `leveledUp` — level up animation
+3. Update XP bar in UI
 
 ---
 
-## 2. Gold + Loot → только при полном прохождении
+## 2. Gold + Loot → only on full completion
 
-Начисляется в `completeSession()` при `combat:complete`.
+Credited in `completeSession()` on `combat:complete`.
 
 ### Gold → PlayerLeague
 ```typescript
 playerLeague.gold = String(BigInt(pl.gold) + BigInt(session.totalGoldEarned))
 ```
-Gold хранится как BigInt строка. Золото копится в Redis-сессии за каждого убитого монстра, но записывается в БД **только при полном прохождении**.
+Gold is stored as BigInt string. Gold accumulates in Redis session for each killed monster, but is written to DB **only on full completion**.
 
 ### Loot Drops → BagItem (endgame only)
-Вызывается `lootService.rollMapDrops(tier, isBossMap, direction)` — см. [07-loot-calculations.md](./07-loot-calculations.md).
-Дропы добавляются в сумку (max 32 предмета на лигу).
+Calls `lootService.rollMapDrops(tier, isBossMap, direction)` — see [07-loot-calculations.md](./07-loot-calculations.md).
+Drops are added to the bag (max 32 items per league).
 
 ### Location Completion → Character (story mode)
 ```typescript
@@ -100,7 +100,7 @@ if (mode === 'location' && !completedLocations.includes(locationId)):
 ```typescript
 character.totalMapsRun++
 character.highestTierCompleted = Math.max(current, mapTier)
-// Для босс-карт: character.completedBosses.push(bossId) (deduplicated)
+// For boss maps: character.completedBosses.push(bossId) (deduplicated)
 ```
 
 ### Meta Stats → Player (lifetime)
@@ -121,7 +121,7 @@ CombatSession {
 ### Cleanup → Redis
 `DELETE combat:session:{sessionId}`
 
-### Ответ сервера (combat:completed)
+### Server response (combat:completed)
 ```typescript
 {
   totalGold, totalXp,
@@ -137,38 +137,38 @@ CombatSession {
 
 ## Victory Scene (FE)
 
-Отображает:
-- Заработанное золото (форматированное число)
-- Суммарный XP за весь бой
-- Level up индикатор (если был за время боя)
-- Список дропнутых ключей с CSS-классами по качеству
-- Оставшиеся daily bonus
-- Кнопка "Return to Hideout" → HideoutScene
+Displays:
+- Earned gold (formatted number)
+- Total XP for the entire combat
+- Level up indicator (if occurred during combat)
+- List of dropped keys with CSS classes by quality
+- Remaining daily bonus
+- "Return to Hideout" button → HideoutScene
 
 ---
 
-## Смерть игрока
+## Player death
 
-Если HP <= 0 (через `combat:player-died` или `tap-result.playerDead`):
-1. Combat loop останавливается
-2. Redis сессия удаляется
-3. **Gold потерян** — золото из сессии не записывается в БД
-4. **Loot потерян** — дропы не ролятся
-5. **XP сохранён** — весь XP за убитых монстров уже начислен (при каждом килле)
-6. **XP Loss** — штраф опыта при смерти (см. формулу ниже)
-7. FE: DeathScene с "Respawn" → полный HP reset → HideoutScene
+If HP <= 0 (via `combat:player-died` or `tap-result.playerDead`):
+1. Combat loop stops
+2. Redis session is deleted
+3. **Gold lost** — session gold is not written to DB
+4. **Loot lost** — drops are not rolled
+5. **XP preserved** — all XP for killed monsters already credited (on each kill)
+6. **XP Loss** — XP penalty on death (see formula below)
+7. FE: DeathScene with "Respawn" → full HP reset → HideoutScene
 
-### XP Loss при смерти
+### XP Loss on death
 
-Кубическая кривая: штраф растёт от 0% до 50% в диапазоне уровней 40–56.
+Cubic curve: penalty grows from 0% to 50% in the level range 40-56.
 
 ```
-          ⎧ 0,                            L ≤ 40
-Loss(L) = ⎨ 50 × ((L - 40) / 16)^3,      41 ≤ L ≤ 56
-          ⎩ 50,                            L ≥ 57
+          { 0,                            L <= 40
+Loss(L) = { 50 * ((L - 40) / 16)^3,      41 <= L <= 56
+          { 50,                            L >= 57
 ```
 
-Формула в коде:
+Formula in code:
 ```typescript
 function xpLossPercent(level: number): number {
   if (level <= 40) return 0;
@@ -176,61 +176,61 @@ function xpLossPercent(level: number): number {
   return 50 * Math.pow((level - 40) / 16, 3);
 }
 
-// Применение при смерти:
+// Applied on death:
 const lostXp = Math.floor(char.xp * xpLossPercent(char.level) / 100);
 char.xp = Math.max(0, char.xp - lostXp);
-// XP loss НЕ снижает уровень — только текущий прогресс к следующему
+// XP loss does NOT reduce level — only current progress toward the next one
 ```
 
-**Таблица значений:**
+**Value table:**
 
-| Уровень | Потеря XP |
-|---------|-----------|
-| ≤ 40    | 0%        |
-| 41      | 0.01%     |
-| 42      | 0.10%     |
-| 43      | 0.34%     |
-| 44      | 0.78%     |
-| 45      | 1.56%     |
-| 46      | 2.74%     |
-| 47      | 4.39%     |
-| 48      | 6.59%     |
-| 49      | 9.43%     |
-| 50      | 13.02%    |
-| 51      | 17.46%    |
-| 52      | 22.87%    |
-| 53      | 29.37%    |
-| 54      | 37.10%    |
-| 55      | 46.20%    |
-| 56      | 50%       |
-| 57+     | 50%       |
+| Level | XP Loss |
+|-------|---------|
+| <= 40 | 0%      |
+| 41    | 0.01%   |
+| 42    | 0.10%   |
+| 43    | 0.34%   |
+| 44    | 0.78%   |
+| 45    | 1.56%   |
+| 46    | 2.74%   |
+| 47    | 4.39%   |
+| 48    | 6.59%   |
+| 49    | 9.43%   |
+| 50    | 13.02%  |
+| 51    | 17.46%  |
+| 52    | 22.87%  |
+| 53    | 29.37%  |
+| 54    | 37.10%  |
+| 55    | 46.20%  |
+| 56    | 50%     |
+| 57+   | 50%     |
 
-**Дизайн-логика:**
-- До lvl 40 — безопасная зона, смерть бесплатна
-- 40–56 — агрессивная кубическая кривая (16 уровней), штраф растёт нелинейно
-- 57+ — максимальный cap 50% текущего XP
-- XP loss уменьшает только прогресс внутри текущего уровня (derank невозможен)
+**Design rationale:**
+- Up to lvl 40 — safe zone, death is free
+- 40-56 — aggressive cubic curve (16 levels), penalty grows non-linearly
+- 57+ — maximum cap of 50% of current XP
+- XP loss only reduces progress within the current level (derank is impossible)
 
 ---
 
-## Побег (Flee)
+## Flee
 
 1. `combat:flee` → { sessionId }
-2. BE: stopCombatLoop, удаление Redis-сессии
-3. **Gold потерян, loot потерян**
-4. **XP сохранён** — уже начислен за каждый килл
-5. **XP Loss НЕ применяется** — штраф только при смерти
-6. BE: `combat:fled` → FE возврат на карту
+2. BE: stopCombatLoop, delete Redis session
+3. **Gold lost, loot lost**
+4. **XP preserved** — already credited per kill
+5. **XP Loss is NOT applied** — penalty only on death
+6. BE: `combat:fled` → FE return to map
 
 ---
 
-## Распределение данных
+## Data Distribution
 
-| Данные | Куда | Когда | При смерти/побеге |
-|--------|------|-------|-------------------|
-| XP | Character.xp/level | Per-kill (сразу) | Сохранён (минус XP Loss при смерти) |
-| Gold | PlayerLeague.gold | Complete only | Потерян |
-| Bag items | BagItem → PlayerLeague | Complete only | Потеряны |
-| Meta stats | Player.totalGold/kills/taps | Complete only | Не записаны |
-| Locations | Character.completedLocations | Complete only | Не записана |
-| Endgame | Character.totalMapsRun etc. | Complete only | Не записаны |
+| Data | Where | When | On death/flee |
+|------|-------|------|---------------|
+| XP | Character.xp/level | Per-kill (immediately) | Preserved (minus XP Loss on death) |
+| Gold | PlayerLeague.gold | Complete only | Lost |
+| Bag items | BagItem → PlayerLeague | Complete only | Lost |
+| Meta stats | Player.totalGold/kills/taps | Complete only | Not written |
+| Locations | Character.completedLocations | Complete only | Not written |
+| Endgame | Character.totalMapsRun etc. | Complete only | Not written |

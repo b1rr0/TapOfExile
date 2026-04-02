@@ -51,9 +51,9 @@ function findShapeCrossings(shape: ConstellationShape): number {
   return count;
 }
 
-/* ── Full tree edge crossing check ──────────── */
+/* ── Full asterism edge crossing check ──────────── */
 
-function checkTreeCrossings() {
+function checkAsterismCrossings() {
   const tree = buildSkillTree();
   const { nodes, edges, figureMembership } = tree;
 
@@ -186,7 +186,7 @@ function ShapeCard({ shape, tier }: { shape: ConstellationShape; tier: string })
 /* ── Page ───────────────────────────────────── */
 
 export default function FigureMapPage() {
-  const treeStats = useMemo(() => checkTreeCrossings(), []);
+  const astStats = useMemo(() => checkAsterismCrossings(), []);
   const innerCross = INNER_SHAPES.reduce((s, sh) => s + findShapeCrossings(sh), 0);
   const outerCross = OUTER_SHAPES.reduce((s, sh) => s + findShapeCrossings(sh), 0);
   const shapeCross = innerCross + outerCross;
@@ -195,18 +195,18 @@ export default function FigureMapPage() {
     <div className="fm-page">
       {/* ── Header ── */}
       <div className="fm-topbar">
-        <h1 className="fm-topbar__title">Skill Tree &mdash; Figure Test</h1>
+        <h1 className="fm-topbar__title">Asterism &mdash; Figure Test</h1>
         <div className="fm-topbar__badges">
-          <span className="fm-badge">{treeStats.total} nodes</span>
-          <span className="fm-badge">{treeStats.edgeCount} edges</span>
-          <span className={`fm-badge ${treeStats.crossCount === 0 ? 'fm-badge--ok' : 'fm-badge--err'}`}>
-            {treeStats.crossCount === 0 ? 'No tree crossings' : `${treeStats.crossCount} tree crossings!`}
+          <span className="fm-badge">{astStats.total} nodes</span>
+          <span className="fm-badge">{astStats.edgeCount} edges</span>
+          <span className={`fm-badge ${astStats.crossCount === 0 ? 'fm-badge--ok' : 'fm-badge--err'}`}>
+            {astStats.crossCount === 0 ? 'No crossings' : `${astStats.crossCount} crossings!`}
           </span>
-          <span className={`fm-badge ${treeStats.figCrossCount === 0 ? 'fm-badge--ok' : 'fm-badge--err'}`}>
-            {treeStats.figCrossCount === 0 ? 'No fig crossings' : `${treeStats.figCrossCount} fig crossings!`}
+          <span className={`fm-badge ${astStats.figCrossCount === 0 ? 'fm-badge--ok' : 'fm-badge--err'}`}>
+            {astStats.figCrossCount === 0 ? 'No fig crossings' : `${astStats.figCrossCount} fig crossings!`}
           </span>
-          <span className={`fm-badge ${treeStats.distViols === 0 ? 'fm-badge--ok' : 'fm-badge--err'}`}>
-            {treeStats.distViols === 0 ? 'No distance violations' : `${treeStats.distViols} too close!`}
+          <span className={`fm-badge ${astStats.distViols === 0 ? 'fm-badge--ok' : 'fm-badge--err'}`}>
+            {astStats.distViols === 0 ? 'No distance violations' : `${astStats.distViols} too close!`}
           </span>
         </div>
       </div>
@@ -221,7 +221,7 @@ export default function FigureMapPage() {
         <div className="fm-stats__section">
           <h3>Node counts</h3>
           <div className="fm-stats__grid">
-            {Object.entries(treeStats.counts).map(([t, c]) => (
+            {Object.entries(astStats.counts).map(([t, c]) => (
               <div key={t} className="fm-stats__item">
                 <span className={`fm-stats__dot fm-stats__dot--${t}`} />
                 <span>{t}</span>
@@ -230,10 +230,10 @@ export default function FigureMapPage() {
             ))}
           </div>
         </div>
-        {treeStats.crossDetails.length > 0 && (
+        {astStats.crossDetails.length > 0 && (
           <div className="fm-stats__section fm-stats__section--err">
             <h3>Edge crossings</h3>
-            {treeStats.crossDetails.map((d, i) => <div key={i} className="fm-stats__cross">{d}</div>)}
+            {astStats.crossDetails.map((d, i) => <div key={i} className="fm-stats__cross">{d}</div>)}
           </div>
         )}
       </div>

@@ -10,12 +10,16 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagg
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { LeagueService } from './league.service';
+import { LeagueMigrationService } from './league-migration.service';
 import { SwitchLeagueDto } from './dto/switch-league.dto';
 
 @ApiTags('leagues')
 @Controller('leagues')
 export class LeagueController {
-  constructor(private leagueService: LeagueService) {}
+  constructor(
+    private leagueService: LeagueService,
+    private leagueMigrationService: LeagueMigrationService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all active leagues' })
@@ -94,5 +98,19 @@ export class LeagueController {
       gold: pl.gold,
       activeCharacterId: pl.activeCharacterId,
     };
+  }
+
+  @Post('admin/migrate/:leagueId')
+  @ApiOperation({ summary: 'Admin: manually trigger league migration' })
+  @ApiResponse({ status: 201, description: 'Migration result' })
+  async adminMigrateLeague(@Param('leagueId') leagueId: string) {
+    return this.leagueMigrationService.triggerMigration(leagueId);
+  }
+
+  @Get('admin/all')
+  @ApiOperation({ summary: 'Admin: list ALL leagues (including completed)' })
+  async adminListAllLeagues() {
+    const leagues = await this.leagueService.getAllLeagues();
+    return { leagues };
   }
 }

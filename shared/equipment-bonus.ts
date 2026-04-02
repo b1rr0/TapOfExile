@@ -45,6 +45,7 @@ export interface EquipmentBonuses {
   versatileSpellLevel: number; // bonus levels for ALL spells, but 1.5× weaker
   arcaneCritChance: number;    // arcane crit chance percentage points (e.g. 5 = +5%)
   arcaneCritMultiplier: number; // arcane crit multiplier percentage points (e.g. 20 = +20%)
+  pctElementalDmg: number;     // percentage increase to all elemental damage (fire + cold + lightning)
 }
 
 /** Mapping from StatId → EquipmentBonuses key */
@@ -80,6 +81,7 @@ const STAT_TO_BONUS: Record<StatId, keyof EquipmentBonuses> = {
   versatile_spell_level: 'versatileSpellLevel',
   arcane_crit_chance: 'arcaneCritChance',
   arcane_crit_multiplier: 'arcaneCritMultiplier',
+  pct_elemental_dmg: 'pctElementalDmg',
   skill_level: 'versatileSpellLevel',  // deprecated → versatile
 };
 
@@ -117,6 +119,7 @@ export function emptyBonuses(): EquipmentBonuses {
     versatileSpellLevel: 0,
     arcaneCritChance: 0,
     arcaneCritMultiplier: 0,
+    pctElementalDmg: 0,
   };
 }
 
@@ -211,6 +214,7 @@ export interface EffectiveStats extends BaseCharStats {
   versatileSpellLevel: number;
   arcaneCritChance: number;
   arcaneCritMultiplier: number;
+  pctElementalDmg: number;
 }
 
 const RES_CAP = 75;
@@ -272,10 +276,10 @@ export function applyBonuses(
     specialValue: base.specialValue,
     resistance: effectiveRes,
     elementalDamage: base.elementalDamage,
-    // Gear elemental damage
-    gearFireDmg: bonuses.flatFireDmg,
-    gearColdDmg: bonuses.flatColdDmg,
-    gearLightningDmg: bonuses.flatLightningDmg,
+    // Gear elemental damage (scaled by pctElementalDmg multiplier)
+    gearFireDmg: bonuses.flatFireDmg * (1 + bonuses.pctElementalDmg / 100),
+    gearColdDmg: bonuses.flatColdDmg * (1 + bonuses.pctElementalDmg / 100),
+    gearLightningDmg: bonuses.flatLightningDmg * (1 + bonuses.pctElementalDmg / 100),
     // Utility
     goldFind: bonuses.goldFind,
     xpBonus: bonuses.xpBonus,
@@ -288,6 +292,7 @@ export function applyBonuses(
     weaponSpellLevel: bonuses.weaponSpellLevel,
     arcaneSpellLevel: bonuses.arcaneSpellLevel,
     versatileSpellLevel: bonuses.versatileSpellLevel,
+    pctElementalDmg: bonuses.pctElementalDmg,
     arcaneCritChance: bonuses.arcaneCritChance,
     arcaneCritMultiplier: bonuses.arcaneCritMultiplier,
   };

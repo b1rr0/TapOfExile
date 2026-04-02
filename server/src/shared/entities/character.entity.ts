@@ -130,7 +130,7 @@ export class Character {
   @Column({ type: 'jsonb', default: '[]' })
   allocatedNodes: number[];
 
-  // Active skills unlocked via skill tree (derived from activeSkill nodes)
+  // Active skills unlocked via asterism (derived from activeSkill nodes)
   @Column({ type: 'jsonb', default: '[]' })
   unlockedActiveSkills: string[];
 

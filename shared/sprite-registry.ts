@@ -2,7 +2,7 @@
  * Asset paths & skin metadata - shared registry.
  *
  * Contains paths to static game assets (character sprites, enemy sprites,
- * potions, skill tree emblems, backgrounds) so they can be referenced
+ * potions, asterism emblems, backgrounds) so they can be referenced
  * from both the bot frontend and the wiki.
  *
  * Actual sprite animation configs (fps, loop, json atlas) stay in
@@ -100,9 +100,9 @@ export const MONSTER_SKIN_MAP: Record<string, string> = {
   Shogun:         "striker",
 };
 
-// ── Skill Tree Emblem Images ────────────────────────────
+// ── Asterism Emblem Images ──────────────────────────────
 
-/** Class emblem background images for the skill tree canvas. */
+/** Class emblem background images for the asterism canvas. */
 export const CLASS_EMBLEM_IMG: Record<string, string> = {
   samurai: "skiiltree/samurai.png",
   warrior: "skiiltree/warrior.png",

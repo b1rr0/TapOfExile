@@ -91,8 +91,9 @@ const QUALITY_MUL: Record<string, number> = { common: 1, rare: 3, epic: 8, legen
 function calcSellPrice(item: BagItem): number {
   const mul = QUALITY_MUL[item.quality] || 1;
   if (item.type === "equipment") {
-    const iLvl = item.properties?.itemLevel || item.level || 1;
-    return Math.max(1, Math.floor((iLvl as number) * mul));
+    const iLvl = (item.properties?.itemLevel || item.level || 1) as number;
+    const basePrice = 5 + 0.008 * iLvl * iLvl * iLvl;
+    return Math.max(1, Math.floor(basePrice * mul));
   }
   if (item.type === "potion") return Math.max(1, 5 * mul);
   if (item.type === "map_key") return Math.max(1, (item.tier || 1) * 10);
@@ -100,9 +101,9 @@ function calcSellPrice(item: BagItem): number {
   return 1;
 }
 
-const GRID_COLS = 4;
-const GRID_ROWS = 8;
-const TOTAL_CELLS = GRID_COLS * GRID_ROWS;
+const GRID_COLS = 5;
+const GRID_ROWS = 11;
+const TOTAL_CELLS = GRID_COLS * GRID_ROWS; // 55 slots (52 base + room for extras)
 
 export class ChestPanel {
   container: HTMLElement;
@@ -116,6 +117,9 @@ export class ChestPanel {
   _modalEl: HTMLElement | null;
   /** Filtered+sorted items cached for click lookups */
   _displayedItems: BagItem[];
+  /** Bulk-sell selection mode */
+  _selectMode: boolean;
+  _selectedIds: Set<string>;
 
   constructor(container: HTMLElement, events: EventBus, state: GameState) {
     this.container = container;
@@ -128,6 +132,8 @@ export class ChestPanel {
     this._tooltip = new ItemTooltip();
     this._modalEl = null;
     this._displayedItems = [];
+    this._selectMode = false;
+    this._selectedIds = new Set();
 
     this._createPanel();
   }
@@ -157,10 +163,17 @@ export class ChestPanel {
           <button class="bag-sort-btn" data-sort="quality">Quality</button>
           <button class="bag-sort-btn" data-sort="level">Level</button>
           <button class="bag-sort-btn bag-sort-btn--active" data-sort="newest">Newest</button>
+          <button class="bag-sort-btn bag-select-toggle" id="bag-select-toggle">Select</button>
         </div>
 
         <!-- 4x8 item grid -->
         <div class="bag-grid" id="bag-grid"></div>
+
+        <!-- Bulk sell floating bar (hidden by default) -->
+        <div class="bag-bulk-bar hidden" id="bag-bulk-bar">
+          <span class="bag-bulk-bar__info" id="bag-bulk-info">0 items — 0 &#x1FA99;</span>
+          <button class="bag-bulk-bar__sell" id="bag-bulk-sell">Sell All</button>
+        </div>
       </div>
 
       <!-- Item detail modal -->
@@ -206,6 +219,18 @@ export class ChestPanel {
       this._renderGrid();
     });
 
+    // Select mode toggle
+    this._el.querySelector("#bag-select-toggle")!.addEventListener("click", () => {
+      this._selectMode = !this._selectMode;
+      this._selectedIds.clear();
+      this._el!.querySelector("#bag-select-toggle")!.classList.toggle("bag-sort-btn--active", this._selectMode);
+      this._renderGrid();
+      this._updateBulkBar();
+    });
+
+    // Bulk sell button
+    this._el.querySelector("#bag-bulk-sell")!.addEventListener("click", () => this._bulkSell());
+
     // Grid clicks + long-press (delegated)
     const gridEl = this._el.querySelector("#bag-grid")!;
 
@@ -214,7 +239,22 @@ export class ChestPanel {
       if (!cell) return;
       const idx = parseInt(cell.dataset.idx!, 10);
       const item = this._displayedItems[idx];
-      if (item) this._openItemModal(item);
+      if (!item) return;
+
+      if (this._selectMode) {
+        // Toggle selection
+        if (this._selectedIds.has(item.id)) {
+          this._selectedIds.delete(item.id);
+          cell.classList.remove("bag-cell--selected");
+        } else {
+          this._selectedIds.add(item.id);
+          cell.classList.add("bag-cell--selected");
+        }
+        this._updateBulkBar();
+        return;
+      }
+
+      this._openItemModal(item);
     });
 
     // Long-press for tooltip
@@ -328,8 +368,10 @@ export class ChestPanel {
         const item = items[i];
         const quality = item.quality || "common";
         const iconHtml = this._getItemIconHtml(item);
+        const selectedCls = this._selectMode && this._selectedIds.has(item.id) ? " bag-cell--selected" : "";
         html += `
-          <div class="bag-cell bag-cell--${quality}" data-idx="${i}">
+          <div class="bag-cell bag-cell--${quality}${selectedCls}" data-idx="${i}">
+            ${this._selectMode ? '<div class="bag-cell__check">&#x2714;</div>' : ''}
             <div class="bag-cell__icon">${iconHtml}</div>
             <div class="bag-cell__level">${this._getItemBadge(item)}</div>
           </div>
@@ -525,8 +567,8 @@ export class ChestPanel {
             <span class="bag-modal__compare-name">${current.name || current.flaskType}</span>
           </div>
           <div class="bag-modal__compare-stats">
-            <span style="color:${healColor}">Heal: ${newHeal}% ${healDiff > 0 ? "+" : ""}${healDiff !== 0 ? healDiff + "%" : ""}</span>
-            <span style="color:${chargeColor}">Charges: ${newCharges} ${chargeDiff > 0 ? "+" : ""}${chargeDiff !== 0 ? chargeDiff : ""}</span>
+            <span>Heal: ${curHeal}% <span style="color:${healColor}">${healDiff > 0 ? "+" : ""}${healDiff !== 0 ? healDiff + "%" : ""}</span></span>
+            <span>Charges: ${curCharges} <span style="color:${chargeColor}">${chargeDiff > 0 ? "+" : ""}${chargeDiff !== 0 ? chargeDiff : ""}</span></span>
           </div>
         </div>
       `;
@@ -745,6 +787,45 @@ export class ChestPanel {
     }
   }
 
+  /* ── Bulk sell ─────────────────────────────────────────── */
+
+  _updateBulkBar(): void {
+    const bar = this._el!.querySelector("#bag-bulk-bar") as HTMLElement;
+    if (!this._selectMode || this._selectedIds.size === 0) {
+      bar.classList.add("hidden");
+      return;
+    }
+    const items = this._getBagItems().filter((i) => this._selectedIds.has(i.id));
+    const totalGold = items.reduce((sum, i) => sum + calcSellPrice(i), 0);
+    const info = this._el!.querySelector("#bag-bulk-info")!;
+    info.innerHTML = `${items.length} items — ${totalGold} &#x1FA99;`;
+    bar.classList.remove("hidden");
+  }
+
+  async _bulkSell(): Promise<void> {
+    if (this._selectedIds.size === 0) return;
+    const ids = [...this._selectedIds];
+
+    try {
+      const result = await loot.bulkSell(ids);
+
+      this._selectedIds.clear();
+      this._selectMode = false;
+      this._el!.querySelector("#bag-select-toggle")!.classList.remove("bag-sort-btn--active");
+
+      await this.state.refreshState();
+      this._renderTabs();
+      this._renderGrid();
+      this._updateBulkBar();
+
+      if (result.gold > 0) {
+        this.events.emit("goldChanged", { gold: result.gold });
+      }
+    } catch (err) {
+      console.error("[ChestPanel] Bulk sell failed:", err);
+    }
+  }
+
   /* ── Open / Close ──────────────────────────────────────── */
 
   toggle(): void {
@@ -771,6 +852,9 @@ export class ChestPanel {
     this.isOpen = false;
     this._tooltip.hide();
     this._closeModal();
+    // Reset select mode on close
+    this._selectMode = false;
+    this._selectedIds.clear();
 
     this._el!.classList.remove("bag-visible");
     this._el!.classList.add("bag-closing");

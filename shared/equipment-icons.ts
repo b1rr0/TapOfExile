@@ -1594,8 +1594,252 @@ const ICON_FILES: Record<string, string[]> = {
 };
 
 /**
+ * In-use icon filenames per set (only these are used in-game).
+ * Each item gets a unique display name and stat pool based on its filename.
+ */
+const IN_USE_ICONS: Record<string, string[]> = {
+  swords: [
+    "Ancient_Thornspire_Cleaver.png", "Ashborn_Katana.png", "Ashenbrand_Cleaver.png",
+    "Bloodoak_Cleaver.png", "Cursed_Azureblight_Cleaver.png", "Cursed_Duskfang_Cleaver.png",
+    "Duskbrand_Cleaver.png", "Duskfall_Cleaver.png", "Ember_Emberfang_Cleaver.png",
+    "Embercleaver_Sabre.png", "Frostbane_Cleaver.png", "Glacial_Fang_Blade.png",
+    "Goldflare_Cleaver.png", "Hollow_Emberfang_Cleaver_2.png", "Nightpurge_Cleaver.png",
+    "Shattered_Emberfang_Cleaver.png", "Storm_Duskfang_Cleaver.png", "Tideborne_Cleaver.png",
+    "Veilpiercer's_Edge.png", "Veilpiercer_Blade.png",
+  ],
+  axes: [
+    "Blackpine_Reaper.png", "Bloodaxe_of_the_Forsaken.png", "Bloodfang_Cleaver.png",
+    "Bloodmoon_Reaver.png", "Bloodpeak_Reaper.png", "Bloodreaver's_Cleave.png",
+    "Bloodrusted_Cleaver.png", "Bloodthorn_Reaper.png", "Cursed_Bloodmoon_Cleaver.png",
+    "Ember_Bloodrite_Cleaver.png", "Emberfell_Cleaver.png", "Grimstone_Reaper.png",
+    "Hollow_Bloodmoon_Cleaver_4.png", "Hollow_Bloodrite_Cleaver.png",
+    "Shattered_Bloodmoon_Cleaver.png", "Shattered_Bloodpeak_Cleaver.png",
+    "Storm_Bloodrite_Cleaver.png", "Stormbreaker's_Maul.png", "Thornblight_Cleaver.png",
+    "Voidborn_Bloodmoon_Cleaver_3.png",
+  ],
+  blades: [
+    "Amethyst_Fang.png", "Ashblight_Dirk.png", "Azureblight_Katana.png",
+    "Crescent_Fang.png", "Crimson_Marrow_Blade.png", "Crimson_Marrow_Cleaver.png",
+    "Crimson_Talon_Blade.png", "Ember_Nightfall_Cleaver.png", "Frostbrand_Katana.png",
+    "Hollow_Amethyst_Blight.png", "Hollow_Crimson_Blight_Cleaver.png", "Hollow_Talon.png",
+    "Nightfang_Cleaver.png", "Nightpiercer_Katana.png", "Ravenclaw_Cleaver.png",
+    "Rotbone_Cleaver.png", "Storm_Amethyst_Fang.png", "Thornspire_Dirk.png",
+    "Verdant_Fang_Cleaver.png", "Verdant_Scourge.png",
+  ],
+  scrolls: [
+    "Azurite_Codex_of_Ruin.png", "Codex_of_Wasting.png", "Crimson_Binding_Scroll.png",
+    "Cursed_Veilbound_Grimoire.png", "Forsaken_Veilbound_Codex.png", "Nightbound_Codex.png",
+    "Paw_of_the_Covenant.png", "Scroll_of_Twilight_Ruin.png",
+    "Scrolls_of_the_Starfall_Covenant.png", "Shattered_Codex_of_Withering_Truths.png",
+    "Shattered_Embercall_Grimoire.png", "Storm_Crimson_Covenant_Scroll_3.png",
+    "Storm_Veilscript_Codex.png", "Veilmark_Codex.png", "Veilweave_Codex.png",
+    "Verdant_Blight_Codex.png", "Verdant_Grimoire_of_Blight.png",
+    "Voidborn_Abyssal_Codex_Scroll.png", "Voidborn_Crimson_Covenant_Scroll.png",
+    "Voidpact_Grimoire.png",
+  ],
+  bows: [
+    "Ancient_Emberflight_Longbow.png", "Ancient_Thornwood_Whisper.png",
+    "Carrionfeather_Longbow.png", "Cursed_Ebonwing_Recurve.png", "Ebonwhisper_Longbow.png",
+    "Ebonwing_Recurve.png", "Ebonwood_Recurve.png", "Forsaken_Shadowpine_Recurve.png",
+    "Frostbite_Whisper.png", "Hollow_Stormwrath_Recurve.png", "Ravenstrike_Longbow.png",
+    "Scorchwing_Recurve.png", "Shadowpiercer_Longbow.png",
+    "Shattered_Bloodthorn_Recurve.png", "Sorrow's_Crescent.png", "Spinebark_Recurve.png",
+    "Spinethorn_Recurve.png", "Stormwrath_Recurve.png", "Voidborn_Shadowpine_Recurve.png",
+    "Voidstrike_Recurve.png",
+  ],
+  staffs: [
+    "Azureblight_Scepter.png", "Azurite_Thaumaturge's_Rod.png", "Bloodmoon_Scepter.png",
+    "Bloodthorn_Scepter.png", "Bonegnaw_Crook.png", "Bonelust_Crook.png",
+    "Bonewraith_Scepter.png", "Crescent_Voidstaff.png", "Crimson_Conduit_Staff.png",
+    "Crimson_Thaumaturge's_Rod.png", "Ebonspire_Crook.png", "Embercrown_Staff.png",
+    "Marrowveil_Scepter.png", "Ossein_Conduit_Staff.png", "Ossuary_Crook.png",
+    "Serpent's_Coil_Staff.png", "Starfall_Scepter.png", "Stormveil_Scepter.png",
+    "Thornwick_Conduit.png", "Verdant_Scepter_of_Thorns.png",
+  ],
+  helmets: [
+    "Ancient_Grimscale_Helm.png", "Ancient_Grimscale_Helm_3.png", "Crimson_Ossuary_Crown.png",
+    "Crimson_Thane_Helm.png", "Crimson_Thrall_Helm.png", "Crimson_Witch's_Helm.png",
+    "Cursed_Grimscale_Coronet.png", "Emberveil_Coronet.png", "Emberveil_Crown.png",
+    "Emberveil_Horns.png", "Forsaken_Emberveil_Crown.png", "Grimfeather_Helm.png",
+    "Grimveil_Coronet.png", "Hollow_Grimscale_Helm.png", "Storm_Embercrest_Helm.png",
+    "Thornscale_Helm.png", "Thornwood_Crown.png", "Voidborn_Emberveil_Helm.png",
+    "Voidborn_Grimscale_Helm_4.png", "Voidwraith_Helm.png",
+  ],
+  plates: [
+    "Azuremantle_Cuirass.png", "Bloodplate_Cuirass.png", "Bloodrite_Cuirass.png",
+    "Bloodstitched_Doublet.png", "Bloodweave_Cuirass.png", "Bonelord's_Cuirass.png",
+    "Crimson_Harbinger_Plate.png", "Crimson_Thornplate.png",
+    "Cursed_Bloodweave_Cuirass_2.png", "Ember_Ironbound_Thoraxplate.png",
+    "Goldenscale_Cuirass.png", "Goldplate_Sentinel.png", "Shadowplate_Corselet.png",
+    "Shattered_Thornplate_Cuirass.png", "Thornbound_Cuirass.png", "Thornscale_Harness.png",
+    "Thornweave_Cuirass.png", "Thornwood_Pauldrons.png", "Veilbound_Cuirass.png",
+    "Voidborn_Goldenscale_Cuirass.png",
+  ],
+  mantles: [
+    "Ancient_Shadowveil_Mantle.png", "Crimson_Veilcloak.png", "Duskweave_Mantle.png",
+    "Ember_Ravenwing_Mantle.png", "Emberfell_Mantle.png", "Forsaken_Thornweave_Mantle.png",
+    "Forsaken_Thornweave_Mantle_2.png", "Frostweave_Mantle.png", "Frostweaver's_Mantle.png",
+    "Goldweave_Mantle.png", "Hollow_Shadowveil_Mantle.png", "Ravenwing_Shroud.png",
+    "Shadowpall_Mantle.png", "Shattered_Frostweave_Mantle.png",
+    "Shattered_Shadowveil_Mantle_2.png", "Shroudweaver's_Mantle.png",
+    "Storm_Thornweave_Mantle.png", "Thornwood_Shroud.png",
+    "Voidborn_Shadowveil_Mantle.png", "Voidborn_Shadowweave_Mantle_3.png",
+  ],
+  gloves: [
+    "Ancient_Bloodwraith_Grips_2.png", "Bloodhound's_Grasp.png", "Bloodhusk_Grips.png",
+    "Bloodpulse_Wraps.png", "Bloodsoaked_Wraiths.png", "Bloodthorn_Gauntlets.png",
+    "Bloodveil_Gauntlets.png", "Bloodveil_Wraps.png", "Bloodweave_Grips.png",
+    "Bloodwraith_Grips.png", "Cursed_Bonegrip_Gauntlets.png", "Ember_Ashen_Grips.png",
+    "Hollow_Crimson_Thorngrips.png", "Nightfall_Grips.png", "Rotwood_Gauntlets.png",
+    "Shadowpact_Grips.png", "Shadowveil_Grips.png", "Shattered_Veilweaver's_Grasp.png",
+    "Veilwraith_Grips.png", "Wraithbound_Gauntlets.png",
+  ],
+  belts: [
+    "Abyssal_Cinch.png", "Ancient_Cinderbound_Girdle_2.png", "Ancient_Wraithbound_Girdle.png",
+    "Bloodwarden's_Cincture.png", "Bloodwrath_Girdle.png", "Boneweave_Girdle.png",
+    "Carrionwraith_Girdle.png", "Crimson_Warden's_Girdle.png",
+    "Cursed_Shadowbound_Girdle.png", "Ember_Cinderbound_Girdle.png",
+    "Forsaken_Cinderbound_Girdle.png", "Hollow_Cinderbound_Girdle.png",
+    "Shadowbind_Cincture.png", "Shadowbound_Girdle.png", "Storm_Abyssal_Cinch.png",
+    "Storm_Cinderbound_Girdle.png", "Tarnished_Corslet_Girdle.png",
+    "Verdant_Girdle_of_Thorns.png", "Verdant_Siege_Girdle.png", "Voidstitched_Girdle.png",
+  ],
+  boots: [
+    "Amethyst_Marrow_Treads.png", "Ancient_Abyssal_Treads.png", "Ashenmire_Treads.png",
+    "Ashenworn_Greaves.png", "Bloodmire_Treads.png", "Cindercrust_Greaves.png",
+    "Cinderfell_Treads.png", "Crimson_Void_Treads.png", "Hollow_Frostbind_Treads.png",
+    "Marrowstep_Treads.png", "Mossgrown_Treads.png", "Shadowstep_Greaves.png",
+    "Shattered_Shadowstep_Greaves.png", "Stonewraith_Treads.png",
+    "Storm_Mossgrown_Treads.png", "Stormveil_Treads.png", "Thornveil_Treads.png",
+    "Umbralshard_Treads.png", "Voidborn_Embercinder_Treads.png",
+    "Voidborn_Shadowstep_Greaves.png",
+  ],
+  rings: [
+    "Ashborn_Signet.png", "Embercrest_Sigil.png", "Emberfang_Sigil.png",
+    "Emberwraith_Sigil.png", "Forsaken_Abyssal_Signet.png",
+    "Forsaken_Obsidian_Covenant_Ring.png", "Grimwood_Sigil.png", "Nightfall_Signet.png",
+    "Oathkeeper's_Seal.png", "Obsidian_Covenant_Ring.png", "Ravenclaw_Sigil.png",
+    "Sable_Oath_Sigil.png", "Serpent's_Covenant_Ring.png",
+    "Shattered_Embercrest_Sigil.png", "Sigil_of_the_Withered_Crown.png",
+    "Sovereign's_Seal.png", "Stormveil_Sigil.png", "Thornweave_Signet.png",
+    "Voidborn_Serpent's_Coil_Ring_2.png", "Voidpulse_Sigil.png",
+  ],
+  amulets: [
+    "Abyssal_Anchor.png", "Abyssal_Sigil.png", "Azurite_Watcher's_Seal.png",
+    "Bloodwood_Effigy.png", "Chalice_of_Cinders.png", "Crimson_Oath_Medallion.png",
+    "Crimson_Tether_Amulet.png", "Embercrest_Amulet.png", "Emberfang_Talisman.png",
+    "Emberscourge_Talisman.png", "Gilded_Redemption_Cross.png", "Hollowveil_Talisman.png",
+    "Latticebound_Talisman.png", "Luneblight_Charm.png", "Pawbound_Talisman.png",
+    "Raven's_Hollow_Eye.png", "Shadowpact_Talisman.png", "Solaris_Oath_Amulet.png",
+    "Verdant_Sorrow_Pendant.png", "Verdant_Teardrop_Amulet.png",
+  ],
+};
+
+// ── Deterministic hash for per-icon stat pools ──────────
+
+/** Simple string hash (djb2). Returns a positive integer. */
+function hashStr(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+/** Number of stats each individual item gets in its personal pool. */
+const ITEM_POOL_SIZE = 5;
+
+/**
+ * Get a deterministic personal stat pool for a specific icon filename.
+ * Uses the filename as a seed to always pick the same subset of stats.
+ *
+ * @param iconFilename - e.g. "Ashborn_Katana.png"
+ * @param slotPool     - full stat pool for this slot (from SLOT_STAT_POOLS)
+ * @returns subset of slotPool, always the same for the same filename
+ */
+export function getItemStatPool(iconFilename: string, slotPool: readonly string[]): string[] {
+  if (slotPool.length <= ITEM_POOL_SIZE) return [...slotPool];
+
+  const baseName = iconFilename.replace(/\.png$/i, '');
+  const seed = hashStr(baseName);
+
+  // Fisher-Yates shuffle with deterministic seed
+  const pool = [...slotPool];
+  let s = seed;
+  for (let i = pool.length - 1; i > 0; i--) {
+    // Simple LCG step for deterministic pseudo-random
+    s = (s * 1664525 + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, ITEM_POOL_SIZE);
+}
+
+/**
+ * Get deterministic stat range multipliers for a specific item.
+ * Half of the item's stats get x2 ranges (strong stats), the other half get x0.5 (weak stats).
+ * Uses filename hash with a different offset to produce a unique distribution per item.
+ *
+ * @param iconFilename - e.g. "Ashborn_Katana.png"
+ * @param statPool     - the item's personal stat pool (from getItemStatPool)
+ * @returns Record mapping each StatId to its multiplier (2.0 or 0.5)
+ */
+export function getItemStatMultipliers(iconFilename: string, statPool: readonly string[]): Record<string, number> {
+  const baseName = iconFilename.replace(/\.png$/i, '');
+  // Use a different seed offset so multiplier order differs from pool selection order
+  const seed = hashStr(baseName + '_multipliers');
+
+  // Shuffle indices to decide which stats get x2 vs x0.5
+  const indices = statPool.map((_, i) => i);
+  let s = seed;
+  for (let i = indices.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  // First half (floor) get x2, rest get x0.5
+  const strongCount = Math.floor(statPool.length / 2);
+  const result: Record<string, number> = {};
+  for (let i = 0; i < indices.length; i++) {
+    const statId = statPool[indices[i]];
+    result[statId] = i < strongCount ? 2.0 : 0.5;
+  }
+  return result;
+}
+
+/**
+ * Convert icon filename to display name.
+ * "Ashborn_Katana.png" → "Ashborn Katana"
+ * "Hollow_Emberfang_Cleaver_2.png" → "Hollow Emberfang Cleaver"
+ */
+export function iconToDisplayName(iconFilename: string): string {
+  return iconFilename
+    .replace(/\.png$/i, '')
+    .replace(/_\d+$/, '')       // remove trailing _2, _3 etc.
+    .replace(/_/g, ' ')
+    .replace(/'/g, "'");
+}
+
+/**
+ * Pick a random in-use icon path for the given equipment subtype code.
+ * Returns { path, filename } so the caller can derive name and stat pool.
+ */
+export function pickRandomInUseIcon(subtypeCode: string): { path: string; filename: string } {
+  const setKey = SUBTYPE_ICON_SET[subtypeCode];
+  if (!setKey) return { path: "/assets/equipments/weapon/swords/in_use/Ashborn_Katana.png", filename: "Ashborn_Katana.png" };
+  const folder = ICON_PATHS[setKey];
+  const files = IN_USE_ICONS[setKey];
+  if (!files || files.length === 0) return { path: folder + "/in_use/placeholder.png", filename: "placeholder.png" };
+  const idx = Math.floor(Math.random() * files.length);
+  const filename = files[idx];
+  return { path: folder + "/in_use/" + filename, filename };
+}
+
+/**
  * Pick a random icon path for the given equipment subtype code.
  * Returns a full asset path like /assets/equipments/weapon/swords/Ashborn_Katana.png
+ * @deprecated Use pickRandomInUseIcon instead for per-item stat pools and names
  */
 export function pickRandomIcon(subtypeCode: string): string {
   const setKey = SUBTYPE_ICON_SET[subtypeCode];

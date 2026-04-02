@@ -1,25 +1,25 @@
-# One-Hand Weapons (Одноручное оружие)
+# One-Hand Weapons
 
 **Slot:** `one_hand`
-**Описание:** Одноручное оружие - мечи, топоры, жезлы, кинжалы. Позволяет использовать щит или второе оружие во второй руке.
+**Description:** One-hand weapons — swords, axes, wands, daggers. Allows using a shield or a second weapon in the off-hand.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип          | Код            | Особенность                     |
+| Subtype         | Code           | Feature                         |
 |-----------------|----------------|---------------------------------|
-| Sword (Меч)     | `oh_sword`    | Баланс урона и крита            |
-| Axe (Топор)     | `oh_axe`      | Высокий физ. урон               |
-| Dagger (Кинжал) | `oh_dagger`   | Высокий крит                    |
-| Wand (Жезл)     | `oh_wand`     | Элементальный урон              |
-| Mace (Булава)   | `oh_mace`     | Высокий урон, низкая скорость   |
+| Sword           | `oh_sword`    | Balance of damage and crit      |
+| Axe             | `oh_axe`      | High phys. damage               |
+| Dagger          | `oh_dagger`   | High crit                       |
+| Wand            | `oh_wand`     | Elemental damage                |
+| Mace            | `oh_mace`     | High damage, low speed          |
 
 ---
 
-## Базовые характеристики (implicit)
+## Base Stats (implicit)
 
-Каждое одноручное оружие имеет базовый урон, зависящий от iLvl:
+Each one-hand weapon has base damage depending on iLvl:
 
 | Tier | iLvl      | Base Damage (min-max) |
 |------|-----------|-----------------------|
@@ -31,10 +31,10 @@
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### Flat Physical Damage (`flat_phys_dmg`)
-Добавочный физический урон к атаке.
+Added physical damage to attacks.
 
 | Tier | iLvl      | Min | Max |
 |------|-----------|-----|-----|
@@ -45,7 +45,7 @@
 | T1   | 80 - 100  | 1   | 75  |
 
 ### % Physical Damage (`pct_phys_dmg`)
-Процентный бонус к физическому урону оружия.
+Percentage bonus to weapon physical damage.
 
 | Tier | iLvl      | Min | Max  |
 |------|-----------|-----|------|
@@ -56,7 +56,7 @@
 | T1   | 80 - 100  | 5%  | 160% |
 
 ### Flat Fire Damage (`flat_fire_dmg`)
-Добавочный урон огнём.
+Added fire damage.
 
 | Tier | iLvl      | Min | Max |
 |------|-----------|-----|-----|
@@ -67,7 +67,7 @@
 | T1   | 80 - 100  | 1   | 60  |
 
 ### Flat Cold Damage (`flat_cold_dmg`)
-Добавочный урон холодом.
+Added cold damage.
 
 | Tier | iLvl      | Min | Max |
 |------|-----------|-----|-----|
@@ -78,7 +78,7 @@
 | T1   | 80 - 100  | 1   | 60  |
 
 ### Flat Lightning Damage (`flat_lightning_dmg`)
-Добавочный урон молнией. Широкий разброс (от 1 до макс).
+Added lightning damage. Wide range (from 1 to max).
 
 | Tier | iLvl      | Min | Max |
 |------|-----------|-----|-----|
@@ -89,7 +89,7 @@
 | T1   | 80 - 100  | 1   | 80  |
 
 ### Critical Strike Chance (`crit_chance`)
-Добавочный шанс крит. удара.
+Added critical strike chance.
 
 | Tier | iLvl      | Min  | Max  |
 |------|-----------|------|------|
@@ -100,7 +100,7 @@
 | T1   | 80 - 100  | 0.5% | 12%  |
 
 ### Critical Strike Multiplier (`crit_multiplier`)
-Добавочный множитель крит. урона.
+Added critical damage multiplier.
 
 | Tier | iLvl      | Min  | Max  |
 |------|-----------|------|------|
@@ -111,7 +111,7 @@
 | T1   | 80 - 100  | 5%   | 85%  |
 
 ### Block Chance (`block_chance`)
-Шанс блока (только одноручное оружие).
+Block chance (one-hand weapons only).
 
 | Tier | iLvl      | Min | Max |
 |------|-----------|-----|-----|
@@ -122,7 +122,7 @@
 | T1   | 80 - 100  | 1%  | 15% |
 
 ### Life on Hit (`life_on_hit`)
-Восстановление HP за каждый удар.
+HP restored per hit.
 
 | Tier | iLvl      | Min | Max |
 |------|-----------|-----|-----|
@@ -134,7 +134,7 @@
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 45, Rare One-Hand Sword:**
 ```

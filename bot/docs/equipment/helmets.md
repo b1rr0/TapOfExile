@@ -1,21 +1,21 @@
-# Helmets (Шлемы)
+# Helmets
 
 **Slot:** `helmet`
-**Описание:** Защитная экипировка для головы. Даёт оборонительные статы (HP, броня, уклонение, энергощит) и бонус к опыту.
+**Description:** Defensive head equipment. Provides defensive stats (HP, armour, evasion, energy shield) and experience bonus.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип                 | Код             | Особенность                     |
+| Subtype                | Code            | Feature                         |
 |------------------------|----------------|---------------------------------|
-| Heavy Helm (Тяж. шлем)  | `helm_heavy` | Броня, HP                       |
-| Light Helm (Лёг. шлем)  | `helm_light` | Уклонение, энергощит            |
-| Circlet (Диадема)       | `helm_circlet`| Энергощит, бонус опыта          |
+| Heavy Helm              | `helm_heavy` | Armour, HP                      |
+| Light Helm              | `helm_light` | Evasion, energy shield          |
+| Circlet                 | `helm_circlet`| Energy shield, XP bonus         |
 
 ---
 
-## Базовая защита (implicit)
+## Base Defence (implicit)
 
 | Tier | iLvl      | Base Armour | Base Evasion | Base ES |
 |------|-----------|-------------|--------------|---------|
@@ -25,11 +25,11 @@
 | T2   | 60 - 79   | 45 - 80     | 30 - 55      | 20 - 42 |
 | T1   | 80 - 100  | 70 - 120    | 48 - 85      | 35 - 65 |
 
-> Подтип определяет какая базовая защита выше: Heavy = Armour, Light = Evasion, Circlet = ES.
+> Subtype determines which base defence is higher: Heavy = Armour, Light = Evasion, Circlet = ES.
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### Flat Life (`flat_hp`)
 
@@ -161,11 +161,11 @@
 | T2   | 60 - 79   | 3%  | 32%  |
 | T1   | 80 - 100  | 3%  | 45%  |
 
-> Максимум 2 резист-стата на одном шлеме. Heavy Helm = physical/elemental резисты, Circlet = elemental.
+> Maximum 2 resistance stats on a single helmet. Heavy Helm = physical/elemental resistances, Circlet = elemental.
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 25, Common Heavy Helm:**
 ```
