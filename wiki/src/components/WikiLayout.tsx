@@ -1,17 +1,19 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const WIKI_LINKS = [
-  { to: '/wiki', label: '&#127968; Overview', end: true },
-  { to: '/wiki/characters', label: '&#9876;&#65039; Classes' },
-  { to: '/wiki/enemies', label: '&#128121; Enemies' },
-  { to: '/wiki/equipment', label: '&#129514; Equipment' },
-  { to: '/wiki/skill-tree', label: '&#127795; Skill Tree' },
-  { to: '/wiki/damage', label: '&#128163; Damage' },
-  { to: '/wiki/plot', label: '&#128214; Plot' },
-  { to: '/wiki/maps', label: '&#128506;&#65039; Maps' },
+  { to: '/wiki', icon: '🏠', key: 'overview', end: true },
+  { to: '/wiki/characters', icon: '⚔️', key: 'classes' },
+  { to: '/wiki/enemies', icon: '👹', key: 'enemies' },
+  { to: '/wiki/equipment', icon: '🧪', key: 'equipment' },
+  { to: '/wiki/skill-tree', icon: '🌳', key: 'skillTree' },
+  { to: '/wiki/damage', icon: '💥', key: 'damage' },
+  { to: '/wiki/plot', icon: '📖', key: 'plot' },
+  { to: '/wiki/maps', icon: '🗺️', key: 'maps' },
 ];
 
 export default function WikiLayout() {
+  const { t } = useTranslation('common');
   return (
     <div className="wiki-section">
       <div className="wiki-subnav">
@@ -22,8 +24,9 @@ export default function WikiLayout() {
               to={link.to}
               end={link.end}
               className={({ isActive }) => (isActive ? 'active' : '')}
-              dangerouslySetInnerHTML={{ __html: link.label }}
-            />
+            >
+              {link.icon} {t(`wikiNav.${link.key}`)}
+            </NavLink>
           ))}
         </div>
       </div>

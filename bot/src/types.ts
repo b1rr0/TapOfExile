@@ -1,4 +1,4 @@
-// ── Re-export shared types ───────────────────────────────
+﻿// ── Re-export shared types ───────────────────────────────
 
 export type {
   ModMode,
@@ -45,7 +45,6 @@ export interface Meta {
   lastSaveTime: number;
   totalTaps: number;
   totalKills: number;
-  totalGold: number;
   version: number;
 }
 
@@ -91,6 +90,21 @@ export interface BagItem {
   maxCharges?: number;
   currentCharges?: number;
   healPercent?: number;
+  /** Equipment properties (type='equipment') - stored in Item.properties JSONB */
+  properties?: {
+    slot?: string;
+    subtype?: string;
+    rarity?: string;
+    itemLevel?: number;
+    reqLevel?: number;
+    baseDamage?: number;
+    baseArmor?: number;
+    baseEvasion?: number;
+    baseES?: number;
+    implicit?: { id: string; value: number };
+    stats?: { id: string; value: number }[];
+    [key: string]: unknown;
+  };
 }
 
 export interface Character {
@@ -113,12 +127,31 @@ export interface Character {
   dodgeChance: number;
   specialValue: number;
   resistance?: import("@shared/types").ElementalResistance;
+  elementalDamage?: import("@shared/types").ElementalDamage;
+  /** Equipment bonus stats (effective, with gear applied) */
+  gearFireDmg?: number;
+  gearColdDmg?: number;
+  gearLightningDmg?: number;
+  goldFind?: number;
+  xpBonus?: number;
+  lifeOnHit?: number;
+  lifeRegen?: number;
+  armor?: number;
+  blockChance?: number;
+  cooldownReduction?: number;      // percentage (e.g. 25 = 25% CDR)
+  passiveDpsBonus?: number;        // percentage (e.g. 10 = +10% passive DPS)
+  arcaneCritChance?: number;       // 0..1 - arcane crit chance
+  arcaneCritMultiplier?: number;   // e.g. 1.5
   combat: CombatState;
   locations: LocationState;
   inventory: InventoryState;
   bag: BagItem[];
   endgame: EndgameState;
   allocatedNodes: number[];
+  /** Active skills unlocked via skill tree */
+  unlockedActiveSkills?: string[];
+  /** Equipped action bar (4 slots) */
+  equippedSkills?: (string | null)[];
   /** Daily bonus wins remaining (first 3 wins give x3 XP) */
   dailyBonusRemaining?: number;
 }
@@ -135,6 +168,8 @@ export interface PlayerProxy {
 
 export interface GameData {
   gold: number;
+  shards: string;
+  purchasedSkins: string[];
   activeCharacterId: string | null;
   characters: Character[];
   leagues: LeagueInfo[];
@@ -207,6 +242,12 @@ export interface ActModifier {
   name: string;
   description: string;
   type: string;
+  /** Effect stat key used by combat system (e.g. 'damage', 'critChance', 'dodge', 'armor', 'damageTaken') */
+  stat: string;
+  /** Effect target: 'self' = player buff/debuff, 'enemy' = enemy debuff */
+  target: 'self' | 'enemy';
+  /** Additive modifier value (e.g. 0.05 = +5%, -0.05 = -5%, flat for armor) */
+  value: number;
 }
 
 // ── Character Class Types ────────────────────────────────

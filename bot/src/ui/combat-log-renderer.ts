@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared combat-log rendering utilities.
  *
  * Used by:
@@ -12,7 +12,10 @@ import { ELEMENT_COLORS } from "@shared/types";
 /* ── Public types ─────────────────────────────────────── */
 
 export interface LogEntry {
-  type: 'player_attack' | 'enemy_attack' | 'dodge' | 'block' | 'monster_died' | 'player_died' | 'xp_gained';
+  type: 'player_attack' | 'enemy_attack' | 'dodge' | 'block' | 'monster_died' | 'player_died' | 'xp_gained'
+    | 'skill_hit' | 'skill_heal' | 'skill_buff'
+    | 'passive_crit_explosion' | 'passive_multi_strike'
+    | 'passive_dodge_counter' | 'passive_shield_bash' | 'passive_thorns';
   timestamp: number;
   monsterName?: string;
   attackName?: string;
@@ -21,6 +24,10 @@ export interface LogEntry {
   isCrit?: boolean;
   /** XP amount gained (for xp_gained entries) */
   xpAmount?: number;
+  /** Skill name (for skill entries) */
+  skillName?: string;
+  /** Heal amount (for skill_heal entries) */
+  healAmount?: number;
 }
 
 /* ── Helpers ──────────────────────────────────────────── */
@@ -58,8 +65,8 @@ export function formatBreakdown(breakdown: DamageBreakdown | null | undefined): 
 
 /**
  * Create a DOM element for a single log entry.
- * @param entry — the log entry
- * @param startTime — absolute ms timestamp of combat start (for time display)
+ * @param entry - the log entry
+ * @param startTime - absolute ms timestamp of combat start (for time display)
  */
 export function renderLogEntry(entry: LogEntry, startTime: number): HTMLDivElement {
   const el = document.createElement("div");
@@ -107,6 +114,48 @@ export function renderLogEntry(entry: LogEntry, startTime: number): HTMLDivEleme
       el.innerHTML = `<div class="combat-log-divider combat-log-divider--red"></div>${t} <span class="log-player-death">\uD83D\uDC80 You died</span><div class="combat-log-divider combat-log-divider--red"></div>`;
       break;
     }
+    case 'skill_hit': {
+      el.className = "combat-log-entry combat-log-entry--skill";
+      const bd = formatBreakdown(entry.breakdown);
+      const crit = entry.isCrit ? ' <span class="combat-log-crit">CRIT!</span>' : '';
+      el.innerHTML = `${t} <span class="log-skill-name">[${entry.skillName}]</span> \u2192 <span class="log-target">${entry.monsterName}</span>: ${bd} <span class="log-total">(${entry.damage})</span>${crit}`;
+      break;
+    }
+    case 'skill_heal': {
+      el.className = "combat-log-entry combat-log-entry--skill-heal";
+      el.innerHTML = `${t} <span class="log-skill-name">[${entry.skillName}]</span> <span class="log-heal">+${entry.healAmount} HP</span>`;
+      break;
+    }
+    case 'skill_buff': {
+      el.className = "combat-log-entry combat-log-entry--skill-buff";
+      el.innerHTML = `${t} <span class="log-skill-name">[${entry.skillName}]</span> <span class="log-buff">buff applied</span>`;
+      break;
+    }
+    case 'passive_crit_explosion': {
+      el.className = "combat-log-entry combat-log-entry--passive";
+      el.innerHTML = `${t} <span class="log-passive">Crit Explosion</span> \u2192 <span class="log-target">${entry.monsterName}</span>: <span class="log-total">${entry.damage}</span>`;
+      break;
+    }
+    case 'passive_multi_strike': {
+      el.className = "combat-log-entry combat-log-entry--passive";
+      el.innerHTML = `${t} <span class="log-passive">Multi Strike</span> \u2192 <span class="log-target">${entry.monsterName}</span>: <span class="log-total">${entry.damage}</span>`;
+      break;
+    }
+    case 'passive_dodge_counter': {
+      el.className = "combat-log-entry combat-log-entry--passive";
+      el.innerHTML = `${t} <span class="log-passive">Dodge Counter</span> \u2192 <span class="log-target">${entry.monsterName}</span>: <span class="log-total">${entry.damage}</span>`;
+      break;
+    }
+    case 'passive_shield_bash': {
+      el.className = "combat-log-entry combat-log-entry--passive";
+      el.innerHTML = `${t} <span class="log-passive">Shield Bash</span> \u2192 <span class="log-target">${entry.monsterName}</span>: <span class="log-total">${entry.damage}</span>`;
+      break;
+    }
+    case 'passive_thorns': {
+      el.className = "combat-log-entry combat-log-entry--passive";
+      el.innerHTML = `${t} <span class="log-passive">Thorns</span> \u2192 <span class="log-target">${entry.monsterName}</span>: <span class="log-total">${entry.damage}</span>`;
+      break;
+    }
   }
 
   return el;
@@ -129,9 +178,9 @@ export function renderLogEntries(container: HTMLElement, entries: LogEntry[], st
 /**
  * Create the fullscreen log panel markup.
  * Uses shared class `.combat-log-panel` for consistent styling everywhere.
- * @param panelId — unique id for the panel element
- * @param listId — unique id for the list element
- * @param closeId — unique id for the close button
+ * @param panelId - unique id for the panel element
+ * @param listId - unique id for the list element
+ * @param closeId - unique id for the close button
  */
 export function createLogPanelHTML(panelId: string, listId: string, closeId: string): string {
   return `

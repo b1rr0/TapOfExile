@@ -1,5 +1,6 @@
-import { renderLogEntry, renderLogEntries, createLogPanelHTML } from "./combat-log-renderer.js";
+﻿import { renderLogEntry, renderLogEntries, createLogPanelHTML } from "./combat-log-renderer.js";
 import type { LogEntry } from "./combat-log-renderer.js";
+import { ACTIVE_SKILLS } from "@shared/active-skills";
 
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
@@ -10,7 +11,7 @@ interface EventBus {
 export class CombatLog {
   private container: HTMLElement;
   private events: EventBus;
-  /** All log entries — public so DeathScene can read them */
+  /** All log entries - public so DeathScene can read them */
   entries: LogEntry[] = [];
   private panelEl: HTMLElement | null = null;
   private listEl: HTMLElement | null = null;
@@ -22,6 +23,7 @@ export class CombatLog {
 
   // Event handler refs for cleanup
   private _onDamage: ((data: any) => void) | null = null;
+  private _onSkillHit: ((data: any) => void) | null = null;
   private _onEnemyAttack: ((data: any) => void) | null = null;
   private _onMonsterSpawned: ((data: any) => void) | null = null;
   private _onMonsterDied: ((data: any) => void) | null = null;
@@ -70,53 +72,95 @@ export class CombatLog {
   private _listen(): void {
     // Player attacks monster
     this._onDamage = (data: any) => {
+      const ts = Date.now();
       this.addEntry({
         type: 'player_attack',
-        timestamp: Date.now(),
+        timestamp: ts,
         monsterName: this.currentMonsterName,
         damage: data.damage,
         breakdown: data.damageBreakdown || null,
         isCrit: data.isCrit,
       });
+      // Passive procs from tap
+      if (data.critExplosionDmg > 0) {
+        this.addEntry({ type: 'passive_crit_explosion', timestamp: ts, monsterName: this.currentMonsterName, damage: data.critExplosionDmg });
+      }
+      if (data.multiStrikeDmg > 0) {
+        this.addEntry({ type: 'passive_multi_strike', timestamp: ts, monsterName: this.currentMonsterName, damage: data.multiStrikeDmg });
+      }
     };
     this.events.on("damage", this._onDamage);
 
+    // Active skill hits
+    this._onSkillHit = (data: any) => {
+      const ts = Date.now();
+      const skillDef = ACTIVE_SKILLS[data.skillId as keyof typeof ACTIVE_SKILLS];
+      const skillName = skillDef?.name || data.skillId;
+
+      if (data.skillType === 'heal') {
+        this.addEntry({ type: 'skill_heal', timestamp: ts, skillName, healAmount: data.healAmount });
+      } else if (data.skillType === 'buff' || data.skillType === 'debuff') {
+        this.addEntry({ type: 'skill_buff', timestamp: ts, skillName });
+      } else if (data.damage > 0) {
+        this.addEntry({
+          type: 'skill_hit',
+          timestamp: ts,
+          monsterName: this.currentMonsterName,
+          skillName,
+          damage: data.damage,
+          breakdown: data.damageBreakdown || null,
+          isCrit: data.isCrit,
+        });
+      }
+    };
+    this.events.on("skillHit", this._onSkillHit);
+
     // Enemy attacks player
     this._onEnemyAttack = (data: any) => {
+      const ts = Date.now();
       if (data.dodged) {
         this.addEntry({
           type: 'dodge',
-          timestamp: Date.now(),
+          timestamp: ts,
           monsterName: this.currentMonsterName,
           attackName: data.attackName,
         });
+        if (data.dodgeCounterDmg > 0) {
+          this.addEntry({ type: 'passive_dodge_counter', timestamp: ts, monsterName: this.currentMonsterName, damage: data.dodgeCounterDmg });
+        }
       } else if (data.blocked) {
         this.addEntry({
           type: 'block',
-          timestamp: Date.now(),
+          timestamp: ts,
           monsterName: this.currentMonsterName,
           attackName: data.attackName,
         });
+        if (data.shieldBashDmg > 0) {
+          this.addEntry({ type: 'passive_shield_bash', timestamp: ts, monsterName: this.currentMonsterName, damage: data.shieldBashDmg });
+        }
       } else if (data.damage > 0) {
         this.addEntry({
           type: 'enemy_attack',
-          timestamp: Date.now(),
+          timestamp: ts,
           monsterName: this.currentMonsterName,
           attackName: data.attackName,
           damage: data.damage,
           breakdown: data.breakdown || null,
         });
+        if (data.thornsDmg > 0) {
+          this.addEntry({ type: 'passive_thorns', timestamp: ts, monsterName: this.currentMonsterName, damage: data.thornsDmg });
+        }
       }
     };
     this.events.on("enemyAttack", this._onEnemyAttack);
 
-    // Monster spawned — track name
+    // Monster spawned - track name
     this._onMonsterSpawned = (monster: any) => {
       this.currentMonsterName = monster.name || 'Monster';
     };
     this.events.on("monsterSpawned", this._onMonsterSpawned);
 
-    // Monster died — add separator
+    // Monster died - add separator
     this._onMonsterDied = (data: any) => {
       this.addEntry({
         type: 'monster_died',
@@ -191,6 +235,7 @@ export class CombatLog {
 
   destroy(): void {
     if (this._onDamage) this.events.off("damage", this._onDamage);
+    if (this._onSkillHit) this.events.off("skillHit", this._onSkillHit);
     if (this._onEnemyAttack) this.events.off("enemyAttack", this._onEnemyAttack);
     if (this._onMonsterSpawned) this.events.off("monsterSpawned", this._onMonsterSpawned);
     if (this._onMonsterDied) this.events.off("monsterDied", this._onMonsterDied);

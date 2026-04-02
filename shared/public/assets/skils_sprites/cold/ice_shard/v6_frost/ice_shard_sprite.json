@@ -219,6 +219,182 @@
         "h": 32
       },
       "duration": 60
+    },
+    {
+      "filename": "ice_shard 10",
+      "frame": {
+        "x": 480,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
+    },
+    {
+      "filename": "ice_shard 11",
+      "frame": {
+        "x": 528,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
+    },
+    {
+      "filename": "ice_shard 12",
+      "frame": {
+        "x": 576,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
+    },
+    {
+      "filename": "ice_shard 13",
+      "frame": {
+        "x": 624,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
+    },
+    {
+      "filename": "ice_shard 14",
+      "frame": {
+        "x": 672,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
+    },
+    {
+      "filename": "ice_shard 15",
+      "frame": {
+        "x": 720,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
+    },
+    {
+      "filename": "ice_shard 16",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
+    },
+    {
+      "filename": "ice_shard 17",
+      "frame": {
+        "x": 816,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 32
+      },
+      "duration": 60
     }
   ],
   "meta": {
@@ -226,15 +402,16 @@
     "image": "ice_shard_sprite.png",
     "format": "RGBA8888",
     "size": {
-      "w": 480,
+      "w": 864,
       "h": 32
     },
     "scale": "1",
     "skill": {
       "renderType": "projectile",
-      "renderDurationMs": 600,
+      "renderDurationMs": 1080,
       "drawW": 100,
-      "drawH": 70
+      "drawH": 70,
+      "impactFrame": 10
     }
   }
 }

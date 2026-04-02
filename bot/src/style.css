@@ -1,4 +1,4 @@
-/* === Reset & Base === */
+﻿/* === Reset & Base === */
 * {
   margin: 0;
   padding: 0;
@@ -6,7 +6,7 @@
 }
 
 /**
- * Dead Cells Design System — Game (Bot) tokens
+ * Dead Cells Design System - Game (Bot) tokens
  * Full token definitions in /shared/design-tokens.css
  * Legacy --game-* aliases maintained for compat
  */
@@ -117,11 +117,11 @@
 html, body {
   height: 100%;
   overflow: hidden;
+  background: var(--game-dark);
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: radial-gradient(ellipse at center, var(--game-bg2) 0%, var(--game-bg) 60%, var(--game-dark) 100%);
   color: var(--game-text);
   user-select: none;
   -webkit-user-select: none;
@@ -135,6 +135,7 @@ body {
   margin: 0 auto;
   position: relative;
   overflow: hidden;
+  background: var(--game-dark);
 }
 
 /* === Scene Container === */
@@ -219,6 +220,31 @@ body {
   border-color: rgba(255, 100, 100, 0.5);
 }
 
+/* Unified scene header close button (✕, right-aligned in flex headers) */
+.scene-close-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  background: rgba(20, 10, 40, 0.8);
+  color: var(--game-text);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: auto;
+  line-height: 1;
+}
+.scene-close-btn:active {
+  transform: scale(0.9);
+  background: rgba(249, 207, 135, 0.15);
+  border-color: var(--game-border-active);
+}
+
 /* Loading */
 #loading-screen {
   align-items: center;
@@ -242,7 +268,7 @@ body {
   margin-top: 8px;
 }
 
-/* === HUD (top bar — location/scene title) === */
+/* === HUD (top bar - location/scene title) === */
 .hud {
   display: flex;
   align-items: center;
@@ -651,7 +677,7 @@ body {
 }
 
 /* === Monster === */
-/* Monster info (name + HP) — wide bar pinned top-center under HUD */
+/* Monster info (name + HP) - wide bar pinned top-center under HUD */
 .monster-info {
   position: absolute;
   top: 4px;
@@ -758,7 +784,7 @@ body {
 .float-damage--pure.crit     { font-size: 30px; text-shadow: 0 0 18px rgba(218,112,214,0.9); }
 .float-damage--physical.crit { font-size: 30px; text-shadow: 0 0 10px rgba(192,192,192,0.7); }
 
-/* ── Incoming player damage — bigger, slower ────────── */
+/* ── Incoming player damage - bigger, slower ────────── */
 .float-damage--incoming {
   font-size: 26px;
   animation: floatUpSlow 1.1s ease-out forwards;
@@ -862,6 +888,7 @@ body {
 .combat-screen {
   display: flex;
   flex-direction: column;
+  background: var(--game-dark);
 }
 
 .combat-screen .battle-scene {
@@ -1064,15 +1091,73 @@ body {
 
 .action-slot__cooldown {
   position: absolute;
-  inset: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0%;
   background: rgba(0, 0, 0, 0.7);
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s;
+  transition: height 0.05s linear;
 }
 
-.action-slot--on-cooldown .action-slot__cooldown {
-  opacity: 1;
+.action-slot--on-cooldown .action-slot__cooldown,
+.action-slot--on-cd .action-slot__cooldown {
+  height: 100%;
+}
+
+.action-slot--on-cd {
+  filter: grayscale(0.5);
+}
+
+/* ── Skill tooltip (long-press) ── */
+.skill-tooltip {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 10000;
+  background: rgba(16, 21, 36, 0.96);
+  border: 1px solid var(--ds-gold, #F9CF87);
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 260px;
+  pointer-events: none;
+  animation: tooltip-in 0.15s ease-out;
+}
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.skill-tooltip__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-gold, #F9CF87);
+  margin-bottom: 2px;
+}
+.skill-tooltip__type {
+  font-size: 11px;
+  color: var(--ds-cyan, #DFFFFE);
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+.skill-tooltip__desc {
+  font-size: 11px;
+  color: rgba(249, 207, 135, 0.7);
+  margin-bottom: 4px;
+}
+.skill-tooltip__row {
+  font-size: 12px;
+  color: var(--ds-gold, #F9CF87);
+  line-height: 1.4;
+}
+.skill-tooltip__row b {
+  color: #fff;
+}
+
+.ability-icon {
+  image-rendering: pixelated;
+  width: 56px;
+  height: 56px;
+  display: block;
+  margin: 0 auto;
 }
 
 .action-slot--empty {
@@ -1388,6 +1473,7 @@ body {
   justify-content: center;
   position: relative;
   min-height: 0;
+  overflow: hidden;
 }
 
 .hideout-hero__sprite {
@@ -1396,7 +1482,7 @@ body {
 
 .hideout-nav {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   padding: 12px 12px 8px;
   background: rgba(5, 2, 8, 0.95);
@@ -1484,6 +1570,9 @@ body {
   font-weight: 800;
   letter-spacing: 2px;
   color: var(--game-text);
+  flex: 1;
+  text-align: center;
+  margin: 0;
 }
 
 /* Act tabs */
@@ -1498,9 +1587,8 @@ body {
 }
 
 .map-tab {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 4px;
+  flex: 0 0 auto;
+  padding: 8px 12px;
   border: 2px solid #4a3520;
   border-radius: 8px;
   background: var(--game-bg2);
@@ -1529,14 +1617,7 @@ body {
   opacity: 0.85;
 }
 
-.map-tab--locked {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.map-tab--locked:active {
-  transform: none;
-}
+/* locked tabs are no longer rendered */
 
 .map-list {
   flex: 1;
@@ -1645,7 +1726,7 @@ body {
   vertical-align: middle;
 }
 
-/* Side branch visual — slightly different border */
+/* Side branch visual - slightly different border */
 .location-card--side {
   border-left: 3px solid rgba(79, 195, 247, 0.35);
 }
@@ -1884,7 +1965,7 @@ body {
 }
 
 /* =============================================
-   EQUIPMENT  — Pure CSS, mobile-first layout
+   EQUIPMENT  - Pure CSS, mobile-first layout
    ============================================= */
 
 /* --- Toggle button on game screen (top-right, inside battle area) --- */
@@ -1969,22 +2050,36 @@ body {
 }
 
 /* --- Gold row (only visible in inventory) --- */
-.equipment-gold-row {
+.equipment-info-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 16px 0;
+  gap: 20px;
+  padding: 12px 24px 0;
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
 }
 
-.equipment-gold__icon {
-  font-size: 22px;
+.equipment-info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.equipment-info__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(160, 140, 210, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.equipment-info__icon {
+  font-size: 20px;
   color: var(--game-gold);
 }
 
-.equipment-gold__value {
-  font-size: 20px;
+.equipment-info__value {
+  font-size: 18px;
   font-weight: 700;
   color: var(--game-gold);
   font-variant-numeric: tabular-nums;
@@ -2000,7 +2095,7 @@ body {
   text-transform: uppercase;
   color: var(--game-accent2);
   margin: 0 0 10px;
-  padding-top: 8vh;
+  padding-top: 3vh;
   text-shadow: 0 0 10px rgba(249, 207, 135, 0.40);
 }
 
@@ -2101,20 +2196,30 @@ body {
   pointer-events: none;
 }
 
-/* --- Weapon slots — slightly taller --- */
+/* --- Weapon slots --- */
 .inv-slot--weapon {
-  aspect-ratio: 1 / 1.2;
   border-color: #3d2a82;
 }
 
-/* --- Chest/Armor slot — spans 2 rows --- */
+/* --- Chest/Armor slot - spans 2 rows --- */
 .inv-slot--chest {
   grid-row: span 2;
   aspect-ratio: auto;
   border-color: #3d2a82;
+  overflow: hidden;
 }
 
-/* --- Accessory slots — smaller feel --- */
+/* When a gear item is equipped - image fills the slot */
+.inv-slot--filled .inv-slot__icon {
+  filter: none;
+  margin-bottom: 0;
+}
+.inv-slot--filled .inv-slot__icon img {
+  display: block;
+  object-fit: contain;
+}
+
+/* --- Accessory slots - smaller feel --- */
 .inv-slot--acc {
   border-color: #2e2060;
 }
@@ -2122,7 +2227,6 @@ body {
 /* --- Misc (gloves, belt, boots) --- */
 .inv-slot--misc {
   border-color: #2a1d58;
-  aspect-ratio: 1 / 0.85;
 }
 
 /* --- Consumables row (2 potions, pushed lower) --- */
@@ -2130,9 +2234,10 @@ body {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  padding: 20px 60px 40px;
+  padding: 10px 60px 40px;
   max-width: 280px;
   margin: 0 auto;
+  margin-top: 14px;
 }
 
 .inv-slot--potion {
@@ -2148,7 +2253,7 @@ body {
 }
 
 /* =============================================
-   INVENTORY BAG  — 4×8 item grid with sorting
+   INVENTORY BAG  - 4×8 item grid with sorting
    ============================================= */
 
 /* --- Fullscreen overlay --- */
@@ -2344,6 +2449,14 @@ body {
   font-size: 24px;
   line-height: 1;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bag-cell__icon img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 /* --- Cell level badge --- */
@@ -2355,7 +2468,7 @@ body {
 }
 
 /* =============================================
-   ITEM TOOLTIP — floating long-press tooltip
+   ITEM TOOLTIP - floating long-press tooltip
    ============================================= */
 
 .item-tooltip {
@@ -2417,72 +2530,47 @@ body {
 }
 
 /* =============================================
-   BAG TABS — dynamic type filter tabs
+   BAG TABS - dynamic type filter tabs
    ============================================= */
 
-.bag-tabs {
-  display: flex;
-  gap: 6px;
+.bag-filter-row {
   padding: 0 16px 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
 }
 
-.bag-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.bag-tab {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  padding: 6px 10px;
+.bag-type-select {
+  width: 100%;
+  padding: 8px 12px;
   border: 2px solid #3a2878;
   border-radius: 8px;
   background: linear-gradient(145deg, #1e1548 0%, #15103a 100%);
-  color: rgba(160, 140, 210, 0.7);
-  font-size: 11px;
+  color: #e0d4ff;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.3px;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a08cd2' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.bag-tab:active {
-  transform: scale(0.95);
-}
-
-.bag-tab--active {
+.bag-type-select:focus {
   border-color: #7b5cf0;
-  color: #e0d4ff;
-  background: linear-gradient(145deg, #2a1e60 0%, #1e1548 100%);
   box-shadow: 0 0 8px rgba(123, 92, 240, 0.3);
 }
 
-.bag-tab__icon {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.bag-tab__label {
-  white-space: nowrap;
-}
-
-.bag-tab__count {
-  font-size: 9px;
-  color: rgba(160, 140, 210, 0.5);
-  font-weight: 600;
-}
-
-.bag-tab--active .bag-tab__count {
-  color: rgba(200, 185, 240, 0.7);
+.bag-type-select option {
+  background: #15103a;
+  color: #e0d4ff;
+  padding: 6px;
 }
 
 /* =============================================
-   BAG ITEM MODAL — detail popup with equip/discard
+   BAG ITEM MODAL - detail popup with equip/discard
    ============================================= */
 
 .bag-modal {
@@ -2622,6 +2710,30 @@ body {
   background: rgba(164, 2, 57, 0.35);
 }
 
+/* Equipment equip button - same style as potion equip */
+.bag-modal__equip-item-btn {
+  width: 100%;
+  padding: 10px 8px;
+  border: 2px solid var(--ds-border-crimson);
+  border-bottom: 4px solid #832154;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #d1394e 50%, #cd2f46 50%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+}
+.bag-modal__equip-item-btn:active {
+  transform: scale(0.95);
+  border-color: var(--ds-crimson-bright);
+  background: rgba(164, 2, 57, 0.35);
+}
+.bag-modal__equip-item-btn--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* Comparison block */
 .bag-modal__compare {
   padding: 6px 8px;
@@ -2642,17 +2754,64 @@ body {
   color: rgba(200, 185, 240, 0.6);
 }
 
+.bag-modal__compare-header {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(160, 140, 210, 0.45);
+  margin-bottom: 4px;
+}
+
 .bag-modal__compare-stats {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(160, 140, 210, 0.1);
+}
+
+.bag-modal__compare-stat {
   font-size: 10px;
-  font-weight: 600;
+  color: rgba(200, 185, 240, 0.55);
+  line-height: 1.4;
 }
 
 /* Discard button */
-.bag-modal__discard-btn {
+.bag-modal__actions-row {
+  display: flex;
+  gap: 8px;
   width: 100%;
+}
+
+.bag-modal__sell-btn {
+  flex: 1;
+  width: 100%;
+  padding: 8px;
+  border: 2px solid rgba(249, 207, 135, 0.3);
+  border-radius: 8px;
+  background: rgba(60, 45, 10, 0.5);
+  color: #f9cf87;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bag-modal__sell-btn:active {
+  transform: scale(0.95);
+  border-color: rgba(249, 207, 135, 0.6);
+  background: rgba(249, 207, 135, 0.15);
+}
+
+.bag-modal__sell-price {
+  font-weight: 800;
+  color: #ffd700;
+}
+
+.bag-modal__discard-btn {
+  flex: 1;
   padding: 8px;
   border: 2px solid rgba(255, 80, 80, 0.25);
   border-radius: 8px;
@@ -2727,6 +2886,16 @@ body {
   margin-bottom: 10px;
 }
 
+.equip-potion-modal__lore {
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1.4;
+  color: rgba(180, 160, 120, 0.65);
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(180, 160, 120, 0.15);
+}
+
 .equip-potion-modal__unequip-btn {
   width: 100%;
   padding: 8px;
@@ -2764,6 +2933,108 @@ body {
 
 .equip-potion-modal__close-btn:active {
   transform: scale(0.95);
+}
+
+/* Actions row (Unequip + Change side by side) */
+.equip-potion-modal__actions-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.equip-potion-modal__actions-row .equip-potion-modal__unequip-btn {
+  flex: 1;
+  margin-top: 0;
+}
+.equip-potion-modal__change-btn {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid rgba(100, 180, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(10, 30, 60, 0.5);
+  color: #64b5f6;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.equip-potion-modal__change-btn:active {
+  transform: scale(0.95);
+  border-color: rgba(100, 180, 255, 0.5);
+  background: rgba(100, 180, 255, 0.15);
+}
+
+/* ── Equip Picker (item list in equipment panel) ──── */
+.equip-picker__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-cyan-mid, #8EEEED);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.equip-picker__list {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.equip-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.equip-picker__item:active {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+.equip-picker__item--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.equip-picker__icon {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.equip-picker__info {
+  flex: 1;
+  min-width: 0;
+}
+.equip-picker__name {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.equip-picker__meta {
+  font-size: 10px;
+  color: rgba(200, 185, 240, 0.6);
+  margin-top: 1px;
+}
+.equip-picker__stats {
+  font-size: 10px;
+  color: rgba(180, 220, 180, 0.7);
+  margin-top: 1px;
+}
+.equip-picker__warn {
+  font-size: 10px;
+  color: #ff4444;
+  margin-top: 1px;
 }
 
 /* Empty potion slot styling */
@@ -3072,6 +3343,20 @@ body {
   margin-top: 2px;
 }
 
+.char-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 4px;
+}
+
+.char-card__stat {
+  font-size: 11px;
+  color: var(--game-text);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
 .char-select__new-btn {
   margin: 0 16px 24px;
   padding: 14px 24px;
@@ -3144,6 +3429,9 @@ body {
   font-weight: 800;
   letter-spacing: 2px;
   color: var(--game-text);
+  flex: 1;
+  text-align: center;
+  margin: 0;
 }
 
 .char-create__section {
@@ -3184,7 +3472,7 @@ body {
   border-color: var(--game-accent);
 }
 
-/* Class cards — 2x2 grid */
+/* Class cards - 2x2 grid */
 /* League selection */
 .char-create__leagues {
   display: grid;
@@ -3535,7 +3823,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   HIDEOUT — Canvas hero (replacing old CSS samurai)
+   HIDEOUT - Canvas hero (replacing old CSS samurai)
    ═══════════════════════════════════════════════════════ */
 
 .hideout-hero__canvas {
@@ -3546,48 +3834,56 @@ body {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
+/* Character info - overlaid on hero area */
 .hideout-char-info {
-  text-align: center;
-  padding: 4px 0 0;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 12px 8px;
+}
+
+.hideout-char-info__top {
+  display: flex;
+  justify-content: center;
+}
+
+.hideout-char-info__league {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--game-accent2, #B9508D);
+  background: rgba(185, 80, 141, 0.12);
+  border: 1px solid rgba(185, 80, 141, 0.3);
+  border-radius: 10px;
+  padding: 2px 10px;
+}
+
+.hideout-char-info__bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
 }
 
 .hideout-char-info__name {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--game-text);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--game-text, #F9CF87);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+  letter-spacing: 0.5px;
 }
 
 .hideout-char-info__class {
   font-size: 12px;
-  color: var(--game-text);
-  opacity: 0.5;
-}
-
-.hideout-char-info__league {
-  font-size: 11px;
   font-weight: 600;
-  color: var(--game-accent2);
-  margin-top: 2px;
-  letter-spacing: 0.5px;
-}
-
-.hideout-char-info__stats-btn {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 4px 18px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--game-gold, #ffd700);
-  background: rgba(255, 215, 0, 0.08);
-  border: 1px solid rgba(255, 215, 0, 0.25);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.hideout-char-info__stats-btn:active {
-  background: rgba(255, 215, 0, 0.18);
-  border-color: var(--game-gold, #ffd700);
+  color: var(--game-text, #F9CF87);
+  opacity: 0.55;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
 }
 
 /* ── Stats overlay ──────────────────────────────── */
@@ -3786,6 +4082,194 @@ body {
   color: var(--ds-cyan-mid);
 }
 
+/* ── Stats overlay tab bar ── */
+.stats-overlay__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px 0;
+}
+
+.stats-overlay__tab-btn {
+  flex: 1;
+  padding: 9px 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--game-border, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  color: var(--game-muted, #888);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.stats-overlay__tab-btn--active {
+  background: rgba(249, 207, 135, 0.12);
+  border-color: var(--ds-gold, #F9CF87);
+  color: var(--ds-gold, #F9CF87);
+}
+
+.stats-overlay__tab-content {
+  display: block;
+}
+.stats-overlay__tab-content.hidden {
+  display: none;
+}
+
+/* ── Skill cards (Skills tab) ── */
+.stats-overlay__skill-level-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 4px;
+  background: rgba(249,207,135,0.06);
+  border: 1px solid rgba(249,207,135,0.15);
+  border-radius: 10px;
+}
+.stats-overlay__skill-level-label {
+  font-size: 0.82em;
+  color: rgba(249,207,135,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stats-overlay__skill-level-value {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--game-gold, #F9CF87);
+}
+.stats-overlay__skill-level-mult {
+  margin-left: auto;
+  font-size: 0.85em;
+  color: var(--game-accent, #00bfff);
+  opacity: 0.8;
+}
+
+.stats-overlay__skill-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stats-overlay__skill-card {
+  padding: 12px 14px;
+  background: rgba(223,255,254,0.04);
+  border: 1px solid rgba(223,255,254,0.12);
+  border-radius: 12px;
+}
+
+.stats-overlay__skill-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.stats-overlay__skill-icon-slot {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: rgba(223,255,254,0.06);
+  border: 1px solid rgba(223,255,254,0.1);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-overlay__skill-icon-img {
+  image-rendering: pixelated;
+  width: 40px;
+  height: 40px;
+  display: block;
+}
+
+.stats-overlay__skill-card-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-overlay__skill-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ds-gold-bright, #F9CF87);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-overlay__skill-card-desc {
+  font-size: 11px;
+  color: var(--game-muted, #888);
+  line-height: 1.3;
+}
+
+.stats-overlay__skill-card-elems {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.stats-overlay__skill-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.stats-overlay__skill-card-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: rgba(16,21,36,0.5);
+  border-radius: 8px;
+}
+
+.stats-overlay__skill-card-stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--game-muted, #888);
+}
+
+.stats-overlay__skill-card-stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #DFFFFE;
+}
+
+.stats-overlay__skill-card-stat-value--gold {
+  color: var(--ds-gold, #F9CF87);
+}
+
+.stats-overlay__skill-card-stat-value--cyan {
+  color: var(--ds-cyan-mid, #DFFFFE);
+}
+
+.stats-overlay__skill-card--tap {
+  background: rgba(164,2,57,0.08);
+  border-color: rgba(164,2,57,0.2);
+}
+
+.stats-overlay__skill-card--tap .stats-overlay__skill-card-stats {
+  grid-template-columns: 1fr 1fr;
+}
+
+.stats-overlay__skills-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--game-muted, #888);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* Special ability row (stats overlay) */
 .stats-overlay__special {
   display: flex;
@@ -3874,6 +4358,8 @@ body {
   letter-spacing: 2px;
   color: var(--game-text);
   margin: 0;
+  flex: 1;
+  text-align: center;
 }
 
 .skin-shop__info {
@@ -3972,11 +4458,46 @@ body {
   background: linear-gradient(180deg, #b36fd0 0%, #8a4aa3 100%);
 }
 
+.skin-card__buy-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--ds-border-gold);
+  border-bottom: 4px solid #b08430;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #c9952e 50%, #a87a20 50%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: transform 0.08s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.skin-card__buy-btn:active {
+  transform: scale(0.92);
+  border-bottom-width: 2px;
+}
+
+.skin-card--locked {
+  opacity: 0.75;
+}
+
+.skin-card--locked canvas {
+  filter: brightness(0.6);
+}
+
+.skin-shop__shards {
+  min-width: 60px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--game-accent);
+}
+
 /* ═══════════════════════════════════════════════════════
-   COMBAT — Zone Modifiers Side Panel (right edge)
+   COMBAT - Zone Modifiers Side Panel (right edge)
    ═══════════════════════════════════════════════════════ */
 
-/* Toggle tab — sits on the right edge, vertically centered */
+/* Toggle tab - sits on the right edge, vertically centered */
 .combat-mods-toggle {
   position: absolute;
   right: 0;
@@ -4008,7 +4529,7 @@ body {
   border-color: var(--game-accent);
 }
 
-/* Panel — slides out from the right */
+/* Panel - slides out from the right */
 .combat-mods-panel {
   position: absolute;
   right: 34px;
@@ -4086,7 +4607,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   MAP — Zone Modifiers Banner (collapsible)
+   MAP - Zone Modifiers Banner (collapsible)
    ═══════════════════════════════════════════════════════ */
 
 .map-modifiers {
@@ -4199,22 +4720,24 @@ body {
   color: #ef9a9a;
 }
 
-/* Map tab font size — smaller to fit zone names */
-.map-tab {
-  font-size: 10px;
-  padding: 8px 2px;
+/* Map tabs - scrollable, no overlap */
+.map-tabs {
+  scrollbar-width: none;
+}
+.map-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 /* ═══════════════════════════════════════════════════════
-   STORYBOOK — Location Viewer (combat-layout fullscreen)
+   STORYBOOK - Location Viewer (combat-layout fullscreen)
    ═══════════════════════════════════════════════════════ */
 
-/* Fullscreen overlay — uses .screen flex layout (same as combat) */
+/* Fullscreen overlay - uses .screen flex layout (same as combat) */
 .sb-loc-fullscreen {
   z-index: 50;
 }
 
-/* HUD prev/next arrows — inline in the top bar */
+/* HUD prev/next arrows - inline in the top bar */
 .sb-loc-hud-arrow {
   background: none;
   border: none;
@@ -4231,7 +4754,7 @@ body {
   color: var(--game-accent);
 }
 
-/* Counter badge — right side of HUD */
+/* Counter badge - right side of HUD */
 .sb-loc-counter {
   position: absolute;
   right: 12px;
@@ -4241,7 +4764,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* Bottom description panel — replaces ATTACK button area */
+/* Bottom description panel - replaces ATTACK button area */
 .sb-loc-desc-panel {
   padding: 10px 16px 14px;
   background: var(--game-dark);
@@ -4334,7 +4857,7 @@ body {
 
 
 /* ═══════════════════════════════════════════════════════
-   MAP DEVICE SCENE — Endgame map key selection
+   MAP DEVICE SCENE - Endgame map key selection
    ═══════════════════════════════════════════════════════ */
 
 .map-device {
@@ -4361,6 +4884,8 @@ body {
   letter-spacing: 2px;
   color: var(--game-text);
   margin: 0;
+  flex: 1;
+  text-align: center;
 }
 
 /* ── Map Device Tabs ────────────────────────────────────── */
@@ -4429,7 +4954,7 @@ body {
 .md-slot__filled--epic    { border-color: #ffd740; box-shadow: 0 0 8px rgba(255, 215, 64, 0.2); }
 .md-slot__filled--legendary { border-color: #ff9100; box-shadow: 0 0 12px rgba(255, 145, 0, 0.25); }
 
-/* Boss key tiers — slot */
+/* Boss key tiers - slot */
 .md-slot__filled--boss_silver { border-color: #b0bec5; box-shadow: 0 0 8px rgba(176, 190, 197, 0.25); }
 .md-slot__filled--boss_gold   { border-color: #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
 .md-slot__filled--boss_red    { border-color: #f44336; box-shadow: 0 0 12px rgba(244, 67, 54, 0.35); }
@@ -4551,7 +5076,7 @@ body {
 .md-key-card--epic    { border-color: #ffd740; }
 .md-key-card--legendary { border-color: #ff9100; }
 
-/* Boss key tiers — cards */
+/* Boss key tiers - cards */
 .md-key-card--boss_silver { border-color: #b0bec5; background: rgba(176, 190, 197, 0.08); }
 .md-key-card--boss_gold   { border-color: #ffd700; background: rgba(255, 215, 0, 0.08); }
 .md-key-card--boss_red    { border-color: #f44336; background: rgba(244, 67, 54, 0.08); }
@@ -4714,10 +5239,10 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   VICTORY — Map Drops Section
+   VICTORY - Map Drops Section
    ═══════════════════════════════════════════════════════ */
 
-/* Old victory-map-drop styles removed — replaced by .victory-drops in Victory Scene section */
+/* Old victory-map-drop styles removed - replaced by .victory-drops in Victory Scene section */
 
 /* ═══════════════════════════════════════════════════════
    PASSIVE SKILL TREE
@@ -4748,9 +5273,9 @@ body {
 .skill-tree__pts-wrap {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 2px;
-  margin-left: auto;
+  min-width: 60px;
 }
 
 .skill-tree__actions-row {
@@ -4787,6 +5312,8 @@ body {
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--game-text);
+  flex: 1;
+  text-align: center;
 }
 
 .skill-tree__points {
@@ -4832,65 +5359,78 @@ body {
 /* ── Edges ────────────────────────────── */
 
 .st-edge {
-  stroke: rgba(100,80,130,0.25);
-  stroke-width: 2;
+  stroke: rgba(80,80,95,0.3);
+  stroke-width: 1.5;
   transition: stroke 0.2s;
 }
 .st-edge--active {
-  stroke: rgba(200,160,255,0.6);
+  stroke: rgba(100,170,240,0.6);
   stroke-width: 2.5;
+}
+/* Uniform edge color - class & figure edges match base */
+.st-edge--class,
+.st-edge--figure {
+  stroke: rgba(80,80,95,0.3);
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+}
+.st-edge--class-outline { display: none; }
+.st-edge--class.st-edge--active,
+.st-edge--figure.st-edge--active {
+  stroke: rgba(100,170,240,0.6);
+  stroke-width: 2.5;
+  stroke-dasharray: none;
 }
 
 /* ── Nodes ────────────────────────────── */
+/* All nodes same gray fill, only stroke differs */
 
-.st-node circle,
-.st-node path {
-  fill: #2a2040;
-  stroke: #5a4a70;
+.st-node circle {
+  fill: #1a1a22;
+  stroke: #4a4a58;
   stroke-width: 2;
   cursor: pointer;
   transition: fill 0.15s, stroke 0.15s, filter 0.15s;
 }
 
-/* Minor */
+/* Minor - gray stroke (normal tier) */
 .st-node--minor circle {
-  fill: #2a2040;
-  stroke: #5a4a70;
+  fill: #1a1a22;
+  stroke: #4a4a58;
 }
 
-/* Notable */
-.st-node--notable path {
-  fill: #3a2a50;
-  stroke: #8a6aff;
+/* Notable - yellow stroke (strong tier) */
+.st-node--notable circle {
+  fill: #1a1a22;
+  stroke: #F9CF87;
   stroke-width: 2.5;
 }
 
-/* Keystone */
-.st-node--keystone path {
-  fill: #4a2040;
-  stroke: #ff6a8a;
-  stroke-width: 3;
+/* Keystone - blue stroke (medium tier) */
+.st-node--keystone circle {
+  fill: #1a1a22;
+  stroke: #5aa0e0;
+  stroke-width: 2.5;
 }
 
-/* Figure Entry (gateway into figure clusters) */
-.st-node--figureEntry path {
-  fill: #1a1a1a;
-  stroke: #888;
+/* Figure Entry - blue stroke (medium tier) */
+.st-node--figureEntry circle {
+  fill: #1a1a22;
+  stroke: #5aa0e0;
   stroke-width: 2;
 }
 
 /* Start */
 .st-node--start circle {
-  fill: #1a3040;
-  stroke: var(--game-gold);
+  fill: #1a1a22;
+  stroke: #4a5a7a;
   stroke-width: 3;
 }
 
 /* ── Node states ──────────────────────── */
 
-/* Allocated — Dead Cells v2 cyan */
-.st-node--allocated circle,
-.st-node--allocated path {
+/* Allocated - Dead Cells v2 cyan */
+.st-node--allocated circle {
   fill: var(--ds-cyan-dim);
   stroke: var(--ds-cyan);
   filter: drop-shadow(0 0 6px rgba(223, 255, 254, 0.55));
@@ -4900,32 +5440,26 @@ body {
   stroke: var(--ds-gold-bright);
   filter: drop-shadow(0 0 8px rgba(255, 208, 96, 0.55));
 }
-.st-node--notable.st-node--allocated path {
+.st-node--notable.st-node--allocated circle {
   fill: var(--ds-cyan-mid);
   stroke: var(--ds-cyan);
   filter: drop-shadow(0 0 8px rgba(223, 255, 254, 0.65));
 }
-.st-node--keystone.st-node--allocated path {
-  fill: #ff4a6a;
-  stroke: #ff8aa0;
-  filter: drop-shadow(0 0 10px rgba(255,74,106,0.6));
-}
-.st-node--figureEntry.st-node--allocated path {
+.st-node--figureEntry.st-node--allocated circle {
   fill: #444;
   stroke: #ccc;
   filter: drop-shadow(0 0 6px rgba(150,150,150,0.5));
 }
 
 /* Reachable (available to allocate) */
-.st-node--reachable circle,
-.st-node--reachable path {
-  stroke: rgba(200,160,255,0.7);
+.st-node--reachable circle {
+  stroke: rgba(100,170,240,0.7);
   animation: st-pulse 2s ease-in-out infinite;
 }
 
 @keyframes st-pulse {
-  0%, 100% { filter: drop-shadow(0 0 2px rgba(200,160,255,0.2)); }
-  50%      { filter: drop-shadow(0 0 8px rgba(200,160,255,0.5)); }
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(100,170,240,0.2)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(100,170,240,0.5)); }
 }
 
 /* ── Class emblem circles ─────────────── */
@@ -4956,21 +5490,21 @@ body {
   pointer-events: none;
 }
 
-/* ── Class skill nodes — red skills (inside emblem) ── */
+/* ── Class skill nodes - red skills (inside emblem) ── */
 
-.st-node--classSkill:not(.st-node--classConnector) path {
+.st-node--classSkill:not(.st-node--classConnector) circle {
   fill: #1a0010;
   stroke: #A40239;
   stroke-width: 2;
 }
 
-.st-node--classSkill:not(.st-node--classConnector).st-node--allocated path {
+.st-node--classSkill:not(.st-node--classConnector).st-node--allocated circle {
   fill: #8b0030;
   stroke: #ff3366;
   filter: drop-shadow(0 0 7px rgba(164,2,57,0.7));
 }
 
-.st-node--classSkill:not(.st-node--classConnector).st-node--reachable path {
+.st-node--classSkill:not(.st-node--classConnector).st-node--reachable circle {
   stroke: rgba(255,51,102,0.8);
   animation: st-pulse-class 2s ease-in-out infinite;
 }
@@ -4980,22 +5514,46 @@ body {
   50%      { filter: drop-shadow(0 0 9px rgba(255,51,102,0.7)); }
 }
 
-/* ── Class connector nodes — dim path nodes (inside emblem) ── */
+/* ── Active Skill nodes - hexagon shape (inside emblem) ── */
 
-.st-node--classConnector path,
-.st-node--classSkill.st-node--classConnector path {
+.st-node--activeSkill path {
+  fill: #0a1520;
+  stroke: #DFFFFE;
+  stroke-width: 2;
+}
+
+.st-node--activeSkill.st-node--allocated path {
+  fill: #1a3040;
+  stroke: #F9CF87;
+  filter: drop-shadow(0 0 8px rgba(249,207,135,0.6));
+}
+
+.st-node--activeSkill.st-node--reachable path {
+  stroke: rgba(223,255,254,0.8);
+  animation: st-pulse-active 2s ease-in-out infinite;
+}
+
+@keyframes st-pulse-active {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(223,255,254,0.3)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(223,255,254,0.7)); }
+}
+
+/* ── Class connector nodes - dim circle nodes (inside emblem) ── */
+
+.st-node--classConnector circle,
+.st-node--classSkill.st-node--classConnector circle {
   fill: #141e30;
   stroke: #3a5070;
   stroke-width: 1.5;
 }
 
-.st-node--classConnector.st-node--allocated path {
+.st-node--classConnector.st-node--allocated circle {
   fill: #2a4060;
   stroke: #5a80a0;
   filter: drop-shadow(0 0 4px rgba(80,140,200,0.4));
 }
 
-.st-node--classConnector.st-node--reachable path {
+.st-node--classConnector.st-node--reachable circle {
   stroke: rgba(80,140,200,0.5);
   animation: st-pulse-connector 2.5s ease-in-out infinite;
 }
@@ -5005,39 +5563,10 @@ body {
   50%      { filter: drop-shadow(0 0 5px rgba(80,140,200,0.4)); }
 }
 
-.st-edge--class-outline {
-  stroke: #000;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-.st-edge--class {
-  stroke: #D4A88C;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-}
-.st-edge--class.st-edge--active {
-  stroke: #E8C4A8;
-  stroke-width: 2.5;
-}
-.st-edge--figure {
-  stroke: rgba(136,136,136,0.4);
-  stroke-width: 1;
-  stroke-dasharray: 4 2;
-}
-.st-edge--figure.st-edge--active {
-  stroke: rgba(255,106,138,0.6);
-  stroke-width: 1.5;
-  stroke-dasharray: none;
-}
+/* Old class/figure edge styles removed - uniform colors defined above */
 
-/* ── Node ID numbers ─────────────────── */
-.st-node-id {
-  fill: rgba(255,255,255,0.7);
-  font-size: 5px;
-  font-family: monospace;
-  pointer-events: none;
-  user-select: none;
-}
+/* ── Node ID numbers (removed from production) ── */
+.st-node-id { display: none; }
 
 /* ── Tooltip ──────────────────────────── */
 
@@ -5049,11 +5578,12 @@ body {
   background: rgba(10,5,20,0.95);
   border: 1px solid rgba(200,160,255,0.4);
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 10px 14px;
   text-align: center;
   z-index: 20;
   pointer-events: none;
   min-width: 140px;
+  max-width: 280px;
 }
 
 .st-tip__name {
@@ -5077,11 +5607,184 @@ body {
   letter-spacing: 1px;
 }
 
+/* Preview card layout (icon + info side by side) */
+.st-tip__preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.st-tip__icon-slot {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: rgba(223,255,254,0.06);
+  border: 1px solid rgba(223,255,254,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.st-tip__icon-canvas {
+  image-rendering: pixelated;
+  width: 48px;
+  height: 48px;
+  display: block;
+}
+
+.st-tip__preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Stats grid for skill details */
+.st-tip__stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 8px;
+  margin-top: 4px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(200,160,255,0.15);
+}
+
+.st-tip__stat-pair {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.st-tip__stat-label {
+  color: rgba(240,230,211,0.5);
+}
+
+.st-tip__stat-value {
+  color: #DFFFFE;
+  font-weight: 600;
+}
+
+.st-tip__skill-info {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.st-tip__stat {
+  color: #DFFFFE;
+  font-weight: 600;
+}
+
+.st-tip__cd {
+  color: rgba(249,207,135,0.85);
+}
+
+.st-tip__elem {
+  font-size: 10px;
+  color: rgba(200,180,240,0.7);
+  margin-top: 2px;
+}
+
+.st-tip__effect {
+  font-size: 11px;
+  color: #B9508D;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
 .st-tip__hint {
   font-size: 10px;
   color: rgba(200,160,255,0.6);
   margin-top: 4px;
   font-style: italic;
+}
+
+/* ── Weapon Match Badge ──────────── */
+
+.st-tip__wpn-match {
+  font-size: 11px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.st-tip__wpn-match--yes {
+  color: #DFFFFE;
+  background: rgba(223,255,254,0.10);
+  border: 1px solid rgba(223,255,254,0.25);
+}
+.st-tip__wpn-match--no {
+  color: #A40239;
+  background: rgba(164,2,57,0.10);
+  border: 1px solid rgba(164,2,57,0.25);
+}
+
+/* ── Life on Hit ──────────── */
+
+.st-tip__loh {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.st-tip__loh-icon {
+  color: #A40239;
+  font-size: 13px;
+}
+.st-tip__loh-label {
+  color: rgba(240,230,211,0.6);
+}
+.st-tip__loh-val {
+  color: #DFFFFE;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* ── DPS Impact Preview ──────────── */
+
+.st-tip__dps-impact {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(223,255,254,0.15);
+}
+
+.st-tip__dps-header {
+  font-size: 10px;
+  color: #DFFFFE;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
+.st-tip__dps-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.st-tip__dps-name {
+  color: var(--ds-gold-bright, #F9CF87);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+  flex-shrink: 1;
+}
+
+.st-tip__dps-vals {
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Controls (zoom buttons) ──────────── */
@@ -5364,6 +6067,42 @@ body {
   text-shadow: 0 0 6px rgba(179,136,255,0.3);
 }
 
+/* Skill log entries */
+.combat-log-entry--skill {
+  color: #ffbb44;
+}
+.combat-log-entry--skill-heal {
+  color: #66ff88;
+}
+.combat-log-entry--skill-buff {
+  color: #88ddff;
+}
+.log-skill-name {
+  color: #ffcc66;
+  font-weight: 700;
+  font-size: 10px;
+}
+.log-heal {
+  color: #66ff88;
+  font-weight: 700;
+}
+.log-buff {
+  color: #88ddff;
+  font-style: italic;
+}
+
+/* Passive proc log entries */
+.combat-log-entry--passive {
+  color: #cc99ff;
+  opacity: 0.85;
+  font-size: 10px;
+}
+.log-passive {
+  color: #cc99ff;
+  font-weight: 600;
+  font-style: italic;
+}
+
 /* ═══════════════════════════════════════════════
    Death Scene
    ═══════════════════════════════════════════════ */
@@ -5531,6 +6270,7 @@ body {
   font-size: 0.85rem;
   color: var(--game-gold);
   white-space: nowrap;
+  min-width: 60px;
 }
 
 .dojo-arena {
@@ -5755,7 +6495,7 @@ body {
   font-size: 0.85rem;
   color: var(--game-gold);
   min-width: 60px;
-  text-align: right;
+  text-align: left;
 }
 
 .dojo-landing__center {
@@ -5797,7 +6537,7 @@ body {
   border: 1px solid var(--game-border);
 }
 
-/* Dojo Results — extra button */
+/* Dojo Results - extra button */
 .dojo-results__btn--top {
   background: linear-gradient(135deg, #34495e, #2c3e50);
   color: var(--game-text);
@@ -5986,6 +6726,266 @@ body {
   font-weight: 700;
   color: var(--game-text);
   padding: 12px 0 4px;
+}
+
+/* Master tabs (Friends / Referrals) */
+.friends-master-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px 12px 8px;
+}
+
+.friends-master-tab {
+  flex: 1;
+  padding: 10px 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  color: var(--game-muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.friends-master-tab--active {
+  background: rgba(249, 207, 135, 0.12);
+  border-color: var(--ds-gold, #F9CF87);
+  color: var(--ds-gold, #F9CF87);
+}
+
+/* Section containers */
+.friends-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.friends-section.hidden {
+  display: none;
+}
+
+/* Share menu */
+.friends-share {
+  margin: 8px 12px 4px;
+  position: relative;
+}
+
+.friends-share__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, var(--ds-crimson, #A40239) 0%, var(--ds-deep-rose, #832154) 100%);
+  border: none;
+  border-bottom: 3px solid var(--ds-deep-rose, #832154);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.friends-share__toggle:active {
+  filter: brightness(0.85);
+}
+
+.friends-share__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 4px;
+  background: var(--game-panel-bg, rgba(16, 21, 36, 0.95));
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.friends-share__menu.hidden {
+  display: none;
+}
+
+.friends-share__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  border-radius: 6px;
+  color: var(--game-text, #F9CF87);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.friends-share__option:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Referral section */
+.friends-referral {
+  margin: 8px 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+}
+
+.friends-referral__your-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.friends-referral__label {
+  font-size: 0.78rem;
+  color: var(--game-muted);
+  white-space: nowrap;
+}
+
+.friends-referral__code {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ds-gold, #F9CF87);
+  font-family: monospace;
+  letter-spacing: 1px;
+  user-select: all;
+}
+
+.friends-referral__copy {
+  background: none;
+  border: none;
+  color: var(--ds-cyan, #DFFFFE);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 4px;
+  opacity: 0.7;
+}
+
+.friends-referral__copy:active {
+  opacity: 1;
+}
+
+.friends-referral__enter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.friends-referral__enter.hidden {
+  display: none;
+}
+
+.friends-referral__input {
+  flex: 1;
+  padding: 7px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  color: var(--game-text);
+  font-size: 0.85rem;
+  font-family: monospace;
+  outline: none;
+}
+
+.friends-referral__input:focus {
+  border-color: var(--ds-cyan, #DFFFFE);
+}
+
+.friends-referral__apply {
+  padding: 7px 14px;
+  background: linear-gradient(180deg, var(--ds-crimson, #A40239) 0%, var(--ds-deep-rose, #832154) 100%);
+  border: none;
+  border-bottom: 2px solid var(--ds-deep-rose, #832154);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.friends-referral__apply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.friends-referral__hint {
+  font-size: 0.75rem;
+  color: var(--game-muted);
+  text-align: center;
+}
+
+.friends-referral__done {
+  font-size: 0.75rem;
+  color: var(--ds-cyan, #DFFFFE);
+  text-align: center;
+}
+
+/* Referral stats */
+.friends-referral-stats {
+  margin: 8px 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.friends-referral-stats__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.friends-referral-stats__label {
+  font-size: 0.82rem;
+  color: var(--game-muted);
+}
+
+.friends-referral-stats__value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--game-text, #F9CF87);
+  font-family: monospace;
+}
+
+.friends-referral-stats__value--num {
+  color: var(--ds-cyan, #DFFFFE);
+}
+
+/* Referral info block */
+.friends-referral-info {
+  margin: 8px 12px 12px;
+  padding: 10px 12px;
+  background: rgba(164, 2, 57, 0.1);
+  border: 1px solid rgba(164, 2, 57, 0.3);
+  border-radius: 8px;
+}
+
+.friends-referral-info__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ds-gold, #F9CF87);
+  margin-bottom: 4px;
+}
+
+.friends-referral-info__text {
+  font-size: 0.78rem;
+  color: var(--game-muted);
+  line-height: 1.4;
 }
 
 /* Tabs */
@@ -6431,3 +7431,887 @@ body {
 .friends-profile__remove-btn:active {
   background: rgba(192, 57, 43, 0.35);
 }
+
+/* ══════════════════════════════════════════════════════════
+   Trade Panel
+   ══════════════════════════════════════════════════════════ */
+
+.trade-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+.trade-overlay.hidden {
+  pointer-events: none;
+}
+.trade-overlay.hidden .trade-panel {
+  transform: translateY(110%);
+}
+.trade-overlay.trade-visible {
+  background: rgba(0, 0, 0, 0.8);
+  pointer-events: auto;
+}
+.trade-overlay.trade-visible .trade-panel {
+  transform: translateY(0);
+}
+.trade-overlay.trade-closing {
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+}
+.trade-overlay.trade-closing .trade-panel {
+  transform: translateY(110%);
+}
+
+.trade-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--game-bg);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.trade-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 1.6rem;
+  background: none;
+  border: none;
+  color: var(--game-muted);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.trade-title {
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--game-gold);
+  margin: 12px 0 4px;
+  font-weight: 700;
+}
+
+.trade-gold-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+.trade-gold-icon { font-size: 1.1rem; }
+.trade-gold-value {
+  color: var(--game-gold);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* ── Tabs ─────────────────────────────────────── */
+
+.trade-tabs {
+  display: flex;
+  padding: 0 12px;
+  gap: 2px;
+  border-bottom: 1px solid var(--game-border);
+  flex-shrink: 0;
+}
+
+.trade-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 0.78rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  text-align: center;
+}
+.trade-tab--active {
+  color: var(--game-gold);
+  border-bottom-color: var(--ds-crimson, #A40239);
+}
+
+/* ── Content area ─────────────────────────────── */
+
+.trade-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.trade-loading {
+  text-align: center;
+  color: var(--game-muted);
+  padding: 2rem;
+}
+.trade-empty {
+  text-align: center;
+  color: var(--game-muted);
+  padding: 2rem;
+  font-size: 0.85rem;
+}
+
+/* ── Filters ──────────────────────────────────── */
+
+.trade-filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.trade-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.trade-chip {
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  border: 1px solid var(--game-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.trade-chip--active {
+  background: var(--ds-crimson, #A40239);
+  border-color: var(--ds-crimson, #A40239);
+  color: #fff;
+}
+.trade-chip--common.trade-chip--active { background: #607D8B; border-color: #607D8B; }
+.trade-chip--rare.trade-chip--active { background: #1976D2; border-color: #1976D2; }
+.trade-chip--epic.trade-chip--active { background: #7B1FA2; border-color: #7B1FA2; }
+.trade-chip--legendary.trade-chip--active { background: #F57F17; border-color: #F57F17; }
+
+.trade-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--game-text);
+  outline: none;
+}
+.trade-search-input:focus {
+  border-color: var(--ds-crimson, #A40239);
+}
+
+.trade-sort-row {
+  display: flex;
+  gap: 6px;
+}
+.trade-sort-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 0.72rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.trade-sort-btn--active {
+  color: var(--ds-cyan, #DFFFFE);
+  border-color: var(--ds-cyan, #DFFFFE);
+}
+
+/* ── Listing cards (market browse) ────────────── */
+
+.trade-listings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trade-listing-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.trade-listing-card:active {
+  border-color: var(--game-border-active);
+}
+
+.trade-listing-card__icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+.trade-listing-card__info {
+  flex: 1;
+  min-width: 0;
+}
+.trade-listing-card__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trade-listing-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: var(--game-muted);
+  margin-top: 2px;
+}
+.trade-listing-card__quality {
+  text-transform: capitalize;
+}
+.trade-listing-card__seller { color: var(--ds-cyan-mid, #8EEEED); }
+
+.trade-listing-card__price-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.trade-listing-card__price {
+  color: var(--game-gold);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.trade-listing-card__buy-btn {
+  padding: 4px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 4px;
+  background: var(--ds-crimson, #A40239);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.trade-listing-card__buy-btn:active {
+  filter: brightness(0.8);
+}
+
+/* ── Own listing marker ────────────────────────── */
+.trade-listing-card--own {
+  opacity: 0.65;
+  border-left: 3px solid var(--ds-cyan-mid, #8EEEED);
+}
+.trade-listing-card__own-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--ds-cyan-mid, #8EEEED);
+  color: var(--ds-navy, #101524);
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+}
+.trade-listing-card__own-label {
+  font-size: 0.68rem;
+  color: var(--ds-cyan-mid, #8EEEED);
+  font-style: italic;
+}
+
+/* ── Sell tab ─────────────────────────────────── */
+
+.trade-sell-header {
+  font-size: 0.85rem;
+  color: var(--game-muted);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.trade-sell-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.trade-sell-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.trade-sell-item:active {
+  border-color: var(--game-border-active);
+}
+.trade-sell-item__icon {
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+.trade-sell-item__name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.trade-sell-item__meta {
+  font-size: 0.62rem;
+  color: var(--game-muted);
+  text-transform: capitalize;
+}
+
+/* ── My Listings / History rows ───────────────── */
+
+.trade-listing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid var(--game-border);
+}
+.trade-listing-row__icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.trade-listing-row__info {
+  flex: 1;
+  min-width: 0;
+}
+.trade-listing-row__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trade-listing-row__meta {
+  font-size: 0.68rem;
+  color: var(--game-muted);
+  margin-top: 2px;
+}
+.trade-listing-row__cancel-btn {
+  padding: 5px 14px;
+  font-size: 0.72rem;
+  border: 1px solid var(--ds-crimson, #A40239);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ds-crimson-bright, #FF4D6A);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.trade-listing-row__cancel-btn:active {
+  background: rgba(164, 2, 57, 0.2);
+}
+
+.trade-history-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--game-border);
+}
+.trade-history-badge {
+  padding: 2px 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.trade-badge--buy { background: rgba(79, 195, 247, 0.15); color: var(--ds-cyan-mid, #8EEEED); }
+.trade-badge--sell { background: rgba(164, 2, 57, 0.15); color: var(--ds-crimson-bright, #FF4D6A); }
+.trade-badge--cancelled { background: rgba(128, 128, 128, 0.15); color: var(--game-muted); }
+
+.trade-history-row__info { flex: 1; min-width: 0; }
+.trade-history-row__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trade-history-row__meta {
+  font-size: 0.68rem;
+  color: var(--game-muted);
+}
+
+/* ── Modal ────────────────────────────────────── */
+
+.trade-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.trade-modal.hidden { display: none; }
+
+.trade-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+.trade-modal__content {
+  position: relative;
+  width: 90%;
+  max-width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--game-bg);
+  border: 1px solid var(--game-border-active);
+  border-radius: 10px;
+  padding: 16px;
+  z-index: 1;
+}
+.trade-modal__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 1.4rem;
+  background: none;
+  border: none;
+  color: var(--game-muted);
+  cursor: pointer;
+}
+.trade-modal__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--game-gold);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.trade-modal__item-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.trade-modal__item-icon { font-size: 1.6rem; flex-shrink: 0; }
+.trade-modal__item-info { flex: 1; }
+.trade-modal__item-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.trade-modal__item-meta {
+  font-size: 0.72rem;
+  color: var(--game-muted);
+  text-transform: capitalize;
+  margin-top: 2px;
+}
+.trade-modal__stat {
+  font-size: 0.72rem;
+  color: var(--ds-cyan-mid, #8EEEED);
+  margin-top: 2px;
+}
+
+.trade-modal__price-breakdown {
+  margin-bottom: 14px;
+}
+.trade-modal__price-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 0.82rem;
+  color: var(--game-muted);
+}
+.trade-modal__price-row--total {
+  border-top: 1px solid var(--game-border);
+  margin-top: 4px;
+  padding-top: 8px;
+  font-weight: 700;
+  color: var(--game-text);
+}
+.trade-modal__gold {
+  color: var(--game-gold);
+  font-weight: 700;
+}
+
+.trade-modal__price-input-row {
+  margin-bottom: 8px;
+}
+.trade-modal__label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--game-muted);
+  margin-bottom: 4px;
+}
+.trade-price-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--game-gold);
+  font-weight: 700;
+  outline: none;
+  text-align: center;
+}
+.trade-price-input:focus {
+  border-color: var(--ds-crimson, #A40239);
+}
+
+.trade-commission-preview {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--game-muted);
+  margin-bottom: 14px;
+}
+.trade-commission-note {
+  color: var(--game-muted);
+  font-size: 0.68rem;
+}
+
+.trade-modal__actions {
+  display: flex;
+  gap: 8px;
+}
+.trade-modal__confirm-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  background: var(--ds-crimson, #A40239);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.trade-modal__confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.trade-modal__confirm-btn:active:not(:disabled) {
+  filter: brightness(0.8);
+}
+.trade-modal__cancel-btn {
+  flex: 0.6;
+  padding: 10px;
+  font-size: 0.85rem;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--game-muted);
+  cursor: pointer;
+}
+
+/* ── Toast ────────────────────────────────────── */
+
+.trade-toast {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--game-text);
+  font-size: 0.82rem;
+  border-radius: 20px;
+  border: 1px solid var(--game-border-active);
+  z-index: 70;
+  pointer-events: none;
+  animation: trade-toast-in 0.3s ease;
+}
+@keyframes trade-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SHOP SCENE - Shard Shop
+   ═══════════════════════════════════════════════════════ */
+
+.shop-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--game-bg);
+  overflow-y: auto;
+}
+
+.shop-scene__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--game-dark);
+  border-bottom: 2px solid var(--game-accent);
+  flex-shrink: 0;
+}
+
+.shop-scene__back {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  background: rgba(20, 10, 40, 0.8);
+  color: var(--game-text);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.shop-scene__back:active {
+  transform: scale(0.9);
+  background: rgba(249, 207, 135, 0.15);
+}
+
+.shop-scene__title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--game-text);
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.shop-scene__shards {
+  min-width: 60px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--game-accent);
+}
+
+.shop-scene__content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.shop-scene__loading,
+.shop-scene__error {
+  text-align: center;
+  color: var(--game-text-dim);
+  padding: 40px 0;
+  font-size: 14px;
+}
+
+/* Balance */
+.shop-scene__balance {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--game-dark);
+  border: 1px solid var(--game-border-active);
+  border-radius: 12px;
+}
+
+.shop-scene__balance-icon {
+  font-size: 24px;
+}
+
+.shop-scene__balance-amount {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--game-accent);
+  letter-spacing: 1px;
+}
+
+.shop-scene__balance-label {
+  font-size: 14px;
+  color: var(--game-text-dim);
+  letter-spacing: 1px;
+}
+
+/* Section */
+.shop-scene__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-scene__section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--game-text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Star packages */
+.shop-scene__packages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-scene__package {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--ds-bg-raised);
+  border: 1px solid var(--ds-border-gold);
+  border-radius: 10px;
+  color: var(--game-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.shop-scene__package:active {
+  transform: scale(0.97);
+  background: rgba(249, 207, 135, 0.12);
+}
+
+.shop-scene__package-amount {
+  font-weight: 800;
+  color: var(--game-accent);
+}
+
+.shop-scene__package-price {
+  font-size: 13px;
+  color: var(--game-text-dim);
+}
+
+/* Shop items */
+.shop-scene__items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-scene__item {
+  padding: 14px 16px;
+  background: var(--ds-bg-raised);
+  border: 1px solid var(--ds-border-mid);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shop-scene__item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shop-scene__item-name {
+  font-weight: 700;
+  color: var(--game-text);
+  font-size: 14px;
+}
+
+.shop-scene__item-info {
+  font-size: 12px;
+  color: var(--game-text-dim);
+  background: rgba(255,255,255,0.06);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.shop-scene__item-desc {
+  font-size: 12px;
+  color: var(--game-text-dim);
+  margin: 0;
+}
+
+.shop-scene__item-buy {
+  align-self: flex-end;
+  padding: 8px 18px;
+  background: linear-gradient(180deg, var(--ds-bg-crimson, #A40239) 0%, #832154 100%);
+  border: none;
+  border-bottom: 4px solid #832154;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+}
+
+.shop-scene__item-buy:active {
+  transform: scale(0.95);
+  border-bottom-width: 2px;
+}
+
+/* History */
+.shop-scene__history-btn {
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--game-border);
+  border-radius: 8px;
+  color: var(--game-text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.shop-scene__history-btn:active {
+  background: rgba(255,255,255,0.04);
+}
+
+.shop-scene__history-content {
+  padding: 12px;
+  background: var(--game-dark);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--game-text-dim);
+}
+
+.shop-scene__history-content h4 {
+  color: var(--game-text);
+  font-size: 13px;
+  margin: 0 0 6px;
+}
+
+.shop-scene__history-content h4:not(:first-child) {
+  margin-top: 12px;
+}
+
+.shop-scene__history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shop-scene__history-list li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--ds-border-dim);
+}
+
+/* ── Bugei / Arcane stat label colors ─────────────────── */
+.stat-bugei { color: #F9CF87; font-weight: 600; }
+.stat-arcane { color: #B9508D; font-weight: 600; }

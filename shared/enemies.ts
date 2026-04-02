@@ -1,5 +1,5 @@
-/**
- * Monster type definitions — shared between wiki, bot, and server.
+﻿/**
+ * Monster type definitions - shared between wiki, bot, and server.
  *
  * Each monster type has display metadata (icon, colors, description)
  * and gameplay data (element, resistances, min stage).

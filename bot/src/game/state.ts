@@ -1,5 +1,5 @@
-import { B } from "../data/balance.js";
-import { api } from "../api.js";
+﻿import { B } from "../data/balance.js";
+import { api, auth } from "../api.js";
 import type { GameData, Character, PlayerProxy, BagItem, LeagueInfo } from "../types.js";
 import type { EventBus } from "./events.js";
 
@@ -8,6 +8,8 @@ import type { EventBus } from "./events.js";
 function createDefault(): GameData {
   return {
     gold: 0,
+    shards: "0",
+    purchasedSkins: [],
     activeCharacterId: null,
     characters: [],
     leagues: [],
@@ -15,13 +17,12 @@ function createDefault(): GameData {
       lastSaveTime: Date.now(),
       totalTaps: 0,
       totalKills: 0,
-      totalGold: 0,
       version: 4,
     },
   };
 }
 
-/** Custom error thrown when player is banned — caught by main.ts to show ban screen. */
+/** Custom error thrown when player is banned - caught by main.ts to show ban screen. */
 export class BannedError extends Error {
   bannedUntil: number;
   banReason: string;
@@ -43,30 +44,57 @@ export class GameState {
   /** Bag items (per-league, shared across characters) */
   bag: BagItem[];
 
+  /** Whether the player already has a referrer set */
+  hasReferrer: boolean;
+  referrerName: string | null;
+  referralCount: number;
+  referralIncome: number;
+
   constructor(events: EventBus) {
     this.events = events;
     this.data = createDefault();
     this._playerProxy = null;
     this.bag = [];
+    this.hasReferrer = false;
+    this.referrerName = null;
+    this.referralCount = 0;
+    this.referralIncome = 0;
   }
 
   /* ── Load from server ────────────────────────────────── */
 
   /**
    * Authenticate via Telegram, join league if needed, load full state.
-   * Throws BannedError if player is banned — caller must catch and show ban screen.
+   * Throws BannedError if player is banned - caller must catch and show ban screen.
    */
   async load(): Promise<void> {
     const tg = (window as any).Telegram?.WebApp;
     const initData: string | null = tg?.initData || null;
 
     if (!initData) {
-      console.warn("[GameState] No Telegram initData — cannot authenticate");
+      console.warn("[GameState] No Telegram initData - cannot authenticate");
       throw new Error("Telegram initData required");
     }
 
-    // 1. Authenticate
-    const authResult = await api.auth.login(initData);
+    // 1. Try restoring session from stored refresh token (avoids full re-login on reload)
+    let authResult: Awaited<ReturnType<typeof api.auth.login>> | null = null;
+
+    if (!auth.isAuthenticated()) {
+      const restored = await auth.refresh();
+      if (restored) {
+        // Token refreshed — still need player data, fetch via a lightweight login
+        // (login is idempotent: returns same player, refreshes tokens)
+      }
+    }
+
+    // Full login with Telegram initData (always, to get player payload)
+    // Check both Telegram's start_param and URL query string (bot passes ref via URL)
+    let startParam: string | undefined = tg?.initDataUnsafe?.start_param || undefined;
+    if (!startParam) {
+      const urlRef = new URLSearchParams(window.location.search).get("ref");
+      if (urlRef && /^ref_\d+$/.test(urlRef)) startParam = urlRef;
+    }
+    authResult = await api.auth.login(initData, startParam);
 
     // Ban check at auth level
     if (authResult.player.banned) {
@@ -111,6 +139,8 @@ export class GameState {
     }
 
     this.data.gold = Number(state.gold);
+    this.data.shards = state.shards || "0";
+    this.data.purchasedSkins = state.purchasedSkins || [];
     this.data.activeCharacterId = state.activeCharacterId;
     this.data.characters = state.characters.map((c: any) => ({
       id: c.id,
@@ -130,14 +160,30 @@ export class GameState {
       critChance: c.critChance,
       critMultiplier: c.critMultiplier,
       dodgeChance: c.dodgeChance,
+      arcaneCritChance: c.arcaneCritChance,
+      arcaneCritMultiplier: c.arcaneCritMultiplier,
       specialValue: c.specialValue,
       resistance: c.resistance || {},
+      elementalDamage: c.elementalDamage || {},
+      armor: c.armor,
+      blockChance: c.blockChance,
+      cooldownReduction: c.cooldownReduction,
+      passiveDpsBonus: c.passiveDpsBonus,
+      lifeOnHit: c.lifeOnHit,
+      lifeRegen: c.lifeRegen,
+      goldFind: c.goldFind,
+      xpBonus: c.xpBonus,
+      gearFireDmg: c.gearFireDmg,
+      gearColdDmg: c.gearColdDmg,
+      gearLightningDmg: c.gearLightningDmg,
       combat: c.combat,
       locations: c.locations,
       inventory: c.inventory,
       bag: [], // Bag is per-league, not per-character
       endgame: c.endgame,
       allocatedNodes: c.allocatedNodes || [],
+      unlockedActiveSkills: c.unlockedActiveSkills || [],
+      equippedSkills: c.equippedSkills || [null, null, null, null],
       dailyBonusRemaining: c.dailyBonusRemaining ?? 3,
     }));
 
@@ -158,13 +204,18 @@ export class GameState {
       maxCharges: item.maxCharges,
       currentCharges: item.currentCharges,
       healPercent: item.healPercent,
+      properties: item.properties,
     }));
+
+    this.hasReferrer = !!state.hasReferrer;
+    this.referrerName = state.referrerName || null;
+    this.referralCount = state.referralCount || 0;
+    this.referralIncome = state.referralIncome || 0;
 
     this.data.meta = {
       lastSaveTime: state.meta.lastSaveTime,
       totalTaps: state.meta.totalTaps,
       totalKills: state.meta.totalKills,
-      totalGold: state.meta.totalGold,
       version: state.meta.version,
     };
 
@@ -176,7 +227,7 @@ export class GameState {
     this.events.emit("stateLoaded", this.data);
   }
 
-  /* ── Save (no-op — server handles persistence) ──────── */
+  /* ── Save (no-op - server handles persistence) ──────── */
 
   save(): void {
     // No-op: server is authoritative, no localStorage writes
@@ -288,6 +339,7 @@ export class GameState {
       maxCharges: item.maxCharges,
       currentCharges: item.currentCharges,
       healPercent: item.healPercent,
+      properties: item.properties,
     }));
   }
 

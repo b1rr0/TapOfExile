@@ -1,4 +1,12 @@
-import { haptic } from "../utils/haptic.js";
+﻿import { haptic } from "../utils/haptic.js";
+import {
+  ACTIVE_SKILLS,
+  type ActiveSkillId,
+  getSkillScalingType,
+  computeEffectiveSkillLevel,
+  computeSkillLevelGrowth,
+} from "@shared/active-skills.js";
+import type { ProjectileLayer } from "./projectile-layer.js";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -8,7 +16,13 @@ export interface ActionBarCharData {
   xpToNext: number;
   maxHp: number;
   hp: number;
+  tapDamage: number;
+  critChance: number;
+  critMultiplier: number;
   dodgeChance: number;
+  weaponSpellLevel: number;
+  arcaneSpellLevel: number;
+  versatileSpellLevel: number;
   resistance?: { physical?: number; fire?: number; lightning?: number; cold?: number };
 }
 
@@ -126,7 +140,7 @@ function setupPotionBtn(
   btn.dataset.flaskType = flaskType;
 
   const img = document.createElement("img");
-  img.src = `/assets/potions/${flaskType}/red_${Math.min(Math.max(charges, 1), 5)}.png`;
+  img.src = `/assets/equipments/consumables/${flaskType}s/red_${Math.min(Math.max(charges, 1), 5)}.png`;
   img.className = "potion-sprite";
   img.style.width = "24px";
   img.style.height = "24px";
@@ -177,7 +191,7 @@ export function initPotionSlots(opts: PotionSlotOptions): () => void {
       const img = btn.querySelector(".potion-sprite") as HTMLImageElement | null;
       if (img && data.remainingCharges > 0) {
         const flaskType = btn.dataset.flaskType || "";
-        img.src = `/assets/potions/${flaskType}/red_${data.remainingCharges}.png`;
+        img.src = `/assets/equipments/consumables/${flaskType}s/red_${data.remainingCharges}.png`;
       } else if (img && data.remainingCharges <= 0) {
         btn.classList.add("action-slot--empty");
         img.style.opacity = "0.3";
@@ -190,6 +204,201 @@ export function initPotionSlots(opts: PotionSlotOptions): () => void {
     if (events && onPotionUsed) {
       events.off("potionUsed", onPotionUsed);
     }
+  };
+}
+
+// ── initAbilitySlots ─────────────────────────────────────
+
+export interface AbilitySlotOptions {
+  container: HTMLElement;
+  /** Up to 4 equipped skill IDs (null = empty slot) */
+  equippedSkills: (string | null)[];
+  /** ProjectileLayer - used for icon extraction (first frame) and preloading sprites */
+  projectileLayer: ProjectileLayer;
+  /** Called when player taps an ability button */
+  onCastSkill: (skillId: string) => void;
+  /** EventBus for listening to skillHit cooldown data */
+  events: { on(e: string, cb: (data: any) => void): void; off(e: string, cb: (data: any) => void): void };
+  /** Character data for tooltip calculations */
+  charData?: ActionBarCharData;
+}
+
+/**
+ * Populate the 4 ability slots with equipped skill icons,
+ * wire click handlers, and manage cooldown overlays.
+ * Returns a cleanup function.
+ */
+export async function initAbilitySlots(opts: AbilitySlotOptions): Promise<() => void> {
+  const { container, equippedSkills, projectileLayer, onCastSkill, events, charData } = opts;
+
+  // Track cooldown timers for cleanup
+  const cooldownTimers: ReturnType<typeof setInterval>[] = [];
+  const skillSlotMap = new Map<string, HTMLButtonElement>();
+  const longPressTimers: ReturnType<typeof setTimeout>[] = [];
+
+  // Tooltip element (reused)
+  let tooltip: HTMLElement | null = null;
+  function dismissTooltip() {
+    if (tooltip) {
+      tooltip.remove();
+      tooltip = null;
+    }
+  }
+
+  function showSkillTooltip(btn: HTMLElement, def: typeof ACTIVE_SKILLS[ActiveSkillId]) {
+    dismissTooltip();
+    if (!charData) return;
+
+    const sType = getSkillScalingType(def);
+    const sEffLv = computeEffectiveSkillLevel(
+      charData.level, sType,
+      charData.weaponSpellLevel || 0, charData.arcaneSpellLevel || 0, charData.versatileSpellLevel || 0,
+    );
+    const sGrowth = computeSkillLevelGrowth(sEffLv);
+    const typeIcon = sType === 'arcane' ? '🔮' : '⚔️';
+    const typeName = sType === 'arcane' ? 'Arcane' : 'Bugei';
+    const cdSec = (def.cooldownMs / 1000).toFixed(1);
+
+    let dmgLine = '';
+    if (def.skillType === 'damage') {
+      const critMult = charData.critMultiplier || 1.5;
+      const critChance = charData.critChance || 0;
+      const expectedMult = (1 - critChance) + critChance * critMult;
+      let raw: number;
+      if (sType === 'arcane') {
+        raw = Math.floor(def.spellBase! * sGrowth);
+      } else {
+        raw = Math.floor((charData.tapDamage || 1) * def.damageMultiplier * sGrowth);
+      }
+      const expected = Math.floor(raw * expectedMult);
+      dmgLine = `<div class="skill-tooltip__row">Damage: <b>${expected.toLocaleString()}</b></div>`;
+    } else if (def.skillType === 'heal') {
+      dmgLine = `<div class="skill-tooltip__row">Heal: <b>${Math.round((def.healPercent || 0) * 100)}% HP</b></div>`;
+    } else if (def.effect) {
+      const val = def.effect.value < 1 ? `${Math.round(def.effect.value * 100)}%` : String(Math.round(def.effect.value));
+      dmgLine = `<div class="skill-tooltip__row">${def.skillType === 'buff' ? '+' : '-'}${val} ${def.effect.stat} (${(def.effect.durationMs / 1000).toFixed(0)}s)</div>`;
+    }
+
+    const descLine = def.description || '';
+
+    tooltip = document.createElement('div');
+    tooltip.className = 'skill-tooltip';
+    tooltip.innerHTML = `
+      <div class="skill-tooltip__name">${def.name}</div>
+      <div class="skill-tooltip__type">${typeIcon} ${typeName} Spell &middot; Lv.${sEffLv}</div>
+      ${descLine ? `<div class="skill-tooltip__desc">${descLine}</div>` : ''}
+      ${dmgLine}
+      <div class="skill-tooltip__row">Cooldown: ${cdSec}s</div>
+    `;
+
+    // Position above the button
+    const rect = btn.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+    document.body.appendChild(tooltip);
+  }
+
+  // Load sprites + populate buttons
+  for (let i = 0; i < 4; i++) {
+    const skillId = equippedSkills[i];
+    const btn = container.querySelector(`#ability-${i}`) as HTMLButtonElement | null;
+    if (!btn) continue;
+
+    if (!skillId) {
+      btn.classList.add("action-slot--empty");
+      continue;
+    }
+
+    const def = ACTIVE_SKILLS[skillId as ActiveSkillId];
+    if (!def) {
+      btn.classList.add("action-slot--empty");
+      continue;
+    }
+
+    // Load sprite into projectile layer
+    const jsonUrl = `/assets/${def.spritePath}`;
+    await projectileLayer.load(skillId, jsonUrl);
+
+    // Extract first frame as icon
+    const iconCanvas = projectileLayer.getIcon(skillId, 56);
+    if (iconCanvas) {
+      iconCanvas.className = "ability-icon";
+      btn.prepend(iconCanvas);
+      btn.classList.remove("action-slot--empty");
+    }
+
+    btn.title = `${def.name} (${(def.cooldownMs / 1000).toFixed(1)}s)`;
+    skillSlotMap.set(skillId, btn);
+
+    // Click handler
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (btn.classList.contains("action-slot--on-cd")) return;
+      onCastSkill(skillId);
+      haptic("light");
+    });
+
+    // Long-press tooltip (500ms hold)
+    let lpTimer: ReturnType<typeof setTimeout> | null = null;
+    let lpShown = false;
+    btn.addEventListener("pointerdown", (e) => {
+      lpShown = false;
+      lpTimer = setTimeout(() => {
+        lpShown = true;
+        showSkillTooltip(btn, def);
+      }, 500);
+      longPressTimers.push(lpTimer);
+    });
+    const cancelLp = () => {
+      if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+      if (lpShown) { dismissTooltip(); lpShown = false; }
+    };
+    btn.addEventListener("pointerup", cancelLp);
+    btn.addEventListener("pointerleave", cancelLp);
+    btn.addEventListener("pointercancel", cancelLp);
+  }
+
+  // Listen for skill result → start cooldown overlay
+  const onSkillHit = (data: any) => {
+    if (!data.cooldownUntil || !data.skillId) return;
+    const btn = skillSlotMap.get(data.skillId);
+    if (!btn) return;
+
+    const def = ACTIVE_SKILLS[data.skillId as ActiveSkillId];
+    if (!def) return;
+
+    const cdOverlay = btn.querySelector(".action-slot__cooldown") as HTMLElement | null;
+    if (!cdOverlay) return;
+
+    const now = Date.now();
+    const totalMs = def.cooldownMs;
+    const endsAt = data.cooldownUntil;
+
+    btn.classList.add("action-slot--on-cd");
+    cdOverlay.style.height = "100%";
+
+    const tick = setInterval(() => {
+      const remaining = endsAt - Date.now();
+      if (remaining <= 0) {
+        clearInterval(tick);
+        btn.classList.remove("action-slot--on-cd");
+        cdOverlay.style.height = "0%";
+        return;
+      }
+      const pct = (remaining / totalMs) * 100;
+      cdOverlay.style.height = `${pct}%`;
+    }, 50);
+
+    cooldownTimers.push(tick);
+  };
+
+  events.on("skillHit", onSkillHit);
+
+  return () => {
+    events.off("skillHit", onSkillHit);
+    for (const t of cooldownTimers) clearInterval(t);
+    for (const t of longPressTimers) clearTimeout(t);
+    dismissTooltip();
   };
 }
 

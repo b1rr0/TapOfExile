@@ -1,5 +1,5 @@
-/**
- * Skill Tree Validation — shared between FE (pre-validation) and BE (authoritative).
+﻿/**
+ * Skill Tree Validation - shared between FE (pre-validation) and BE (authoritative).
  *
  * Validates that a set of allocated node IDs forms a valid skill tree:
  * 1. Start node must be allocated
@@ -8,7 +8,7 @@
  * 4. Points budget: outer nodes <= level - 1, class skills <= MAX_CLASS_SKILLS
  */
 
-import { buildSkillTree, getClassStartNode, MAX_CLASS_SKILLS } from './skill-tree';
+import { buildSkillTree, getClassStartNode, getMaxClassSkills } from './skill-tree';
 
 export interface ValidationResult {
   valid: boolean;
@@ -18,9 +18,9 @@ export interface ValidationResult {
 /**
  * Validate a set of allocated node IDs for a given class and level.
  *
- * @param classId   — character class (samurai, warrior, mage, archer)
- * @param level     — current character level
- * @param allocated — array of allocated node IDs
+ * @param classId   - character class (samurai, warrior, mage, archer)
+ * @param level     - current character level
+ * @param allocated - array of allocated node IDs
  */
 export function validateAllocations(
   classId: string,
@@ -50,7 +50,7 @@ export function validateAllocations(
     }
   }
 
-  // 3. Graph connectivity — BFS from start node
+  // 3. Graph connectivity - BFS from start node
   if (allocSet.has(startNodeId)) {
     const visited = new Set<number>();
     const queue: number[] = [startNodeId];
@@ -78,12 +78,14 @@ export function validateAllocations(
 
   // 4. Points budget
   let outerCount = 0;
-  let classSkillCount = 0;
+  let classSkillCount = 0;  // classSkill (connectors) + activeSkill (skill nodes)
+  let activeSkillCount = 0; // only activeSkill nodes (for level-gating)
   for (const id of allocated) {
     const node = tree.nodes[id];
     if (!node) continue;
-    if (node.type === 'classSkill') {
+    if (node.type === 'classSkill' || node.type === 'activeSkill') {
       classSkillCount++;
+      if (node.type === 'activeSkill') activeSkillCount++;
     } else if (node.type !== 'start') {
       outerCount++;
     }
@@ -93,8 +95,16 @@ export function validateAllocations(
   if (outerCount > maxOuter) {
     errors.push(`Too many outer nodes: ${outerCount} > ${maxOuter}`);
   }
-  if (classSkillCount > MAX_CLASS_SKILLS) {
-    errors.push(`Too many class skills: ${classSkillCount} > ${MAX_CLASS_SKILLS}`);
+  const maxClassSkills = getMaxClassSkills(level);
+  if (classSkillCount > maxClassSkills) {
+    errors.push(`Too many class skills: ${classSkillCount} > ${maxClassSkills}`);
+  }
+
+  // 5. Active skill budget: 0 by default, scales with level, 8 by level 45
+  // Skills themselves have no level requirement - only the count is gated.
+  const maxActiveSkills = Math.min(8, Math.floor(level * 8 / 45));
+  if (activeSkillCount > maxActiveSkills) {
+    errors.push(`Too many active skills for level ${level}: ${activeSkillCount} > ${maxActiveSkills}`);
   }
 
   return { valid: errors.length === 0, errors };

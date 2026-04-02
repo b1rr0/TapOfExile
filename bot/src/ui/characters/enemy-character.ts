@@ -1,8 +1,8 @@
-import { Character } from "./character.js";
+﻿import { Character } from "./character.js";
 import type { SkinConfig } from "../../types.js";
 
 /**
- * EnemyCharacter — enemy on the right side of the battlefield.
+ * EnemyCharacter - enemy on the right side of the battlefield.
  *
  * Defaults:
  *  - Positioned at 62% of canvas width, -15px offset
@@ -10,9 +10,9 @@ import type { SkinConfig } from "../../types.js";
  *  - Ground line at 85% of canvas height
  *
  * Provides high-level methods for the battle lifecycle:
- *  - spawn()  — entrance animation + run → idle
- *  - die()    — death sprite animation → fade out
- *  - hit()    — shake on damage
+ *  - spawn()  - entrance animation + run → idle
+ *  - die()    - death sprite animation → fade out
+ *  - hit()    - shake on damage
  *
  * To use a different enemy skin, pass any sprite config that has
  * at least `idle`, `run`, and `death` animations.
@@ -46,8 +46,8 @@ export class EnemyCharacter extends Character {
   _defaultEntranceSpeed: number;
 
   /**
-   * @param skin — entry from ENEMY_SKINS registry
-   * @param overrides — optional position/size overrides
+   * @param skin - entry from ENEMY_SKINS registry
+   * @param overrides - optional position/size overrides
    */
   constructor(skin: SkinConfig, overrides: EnemyOverrides = {}) {
     super({
@@ -82,7 +82,7 @@ export class EnemyCharacter extends Character {
 
   /**
    * Die: play death sprite animation, then fade out.
-   * @param onGone — called when the character is fully invisible
+   * @param onGone - called when the character is fully invisible
    */
   die(onGone?: () => void): void {
     this.play("death", {

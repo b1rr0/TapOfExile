@@ -1,0 +1,11 @@
+{
+  "title": "Champions", "subtitle": "Live leaderboards — real-time data from the game server.",
+  "dojoTitle": "Dojo Damage", "dojoSub": "Top players by best damage dealt in a {{seconds}}-second Dojo round.",
+  "thPlayer": "Player", "thClass": "Class", "thLevel": "Level", "thBestDamage": "Best Damage",
+  "dojoParamsTitle": "Dojo Parameters",
+  "countdownDuration": "Countdown Duration", "countdownValue": "{{seconds}} seconds", "countdownDesc": "Preparation time before the round starts",
+  "roundDuration": "Round Duration", "roundValue": "{{seconds}} seconds", "roundDesc": "Time to deal maximum damage",
+  "scoring": "Scoring", "scoringValue": "Best damage", "scoringDesc": "Only your personal best is stored on the leaderboard",
+  "xpTitle": "Most Experienced Fighters", "xpSub": "Top players ranked by character level and total experience gained.",
+  "thTotalXP": "Total XP", "thDamage": "Bugei Dmg", "thCrit": "Bugei Crit", "thDojoBest": "Dojo Best", "failedToLoad": "Failed to load: {{error}}"
+}

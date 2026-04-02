@@ -1,4 +1,4 @@
-import {
+﻿import {
   BOSS_MAPS,
   MAP_KEY_TYPES,
   getTierDef,
@@ -12,7 +12,7 @@ import { preconnectSocket } from "../combat-socket.js";
 import type { SharedDeps, BagItem } from "../types.js";
 
 /**
- * MapDeviceScene — endgame map device where players select and activate map keys.
+ * MapDeviceScene - endgame map device where players select and activate map keys.
  *
  * Regular Maps flow:  Select key -> Choose direction (boss) -> Activate
  * Boss Maps flow:     Select key -> Activate (direction = boss automatically)
@@ -56,8 +56,8 @@ export class MapDeviceScene {
     this.container.innerHTML = `
       <div class="map-device">
         <div class="map-device__header">
-          <button class="map-back-btn" id="md-back-btn">&#x2190;</button>
           <h2 class="map-device__title">Map Device</h2>
+          <button class="scene-close-btn" id="md-back-btn">&times;</button>
         </div>
         <div class="map-device__tabs" id="md-tabs">
           <button class="md-tab md-tab--active" data-tab="regular">Regular Maps</button>
@@ -82,7 +82,7 @@ export class MapDeviceScene {
       this.sceneManager.switchTo("map");
     });
 
-    // Tab clicks — delegated on stable #md-tabs
+    // Tab clicks - delegated on stable #md-tabs
     (this.container.querySelector("#md-tabs") as HTMLElement).addEventListener("click", (e: MouseEvent) => {
       const tab = (e.target as HTMLElement).closest(".md-tab") as HTMLElement | null;
       if (!tab) return;
@@ -103,7 +103,7 @@ export class MapDeviceScene {
       this._activateMap();
     });
 
-    // Key selection — delegated on stable #md-keys
+    // Key selection - delegated on stable #md-keys
     this._keysEl!.addEventListener("click", (e: MouseEvent) => {
       const card = (e.target as HTMLElement).closest(".md-key-card") as HTMLElement | null;
       if (!card) return;
@@ -123,7 +123,7 @@ export class MapDeviceScene {
       this._updateActivateBtn();
     });
 
-    // Direction selection — delegated on stable #md-slot
+    // Direction selection - delegated on stable #md-slot
     this._slotEl!.addEventListener("click", (e: MouseEvent) => {
       const card = (e.target as HTMLElement).closest(".md-direction-card") as HTMLElement | null;
       if (!card) return;

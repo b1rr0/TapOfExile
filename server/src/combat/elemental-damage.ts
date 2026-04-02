@@ -7,6 +7,9 @@ import type {
 
 const ELEMENTS: DamageElement[] = ['physical', 'fire', 'lightning', 'cold', 'pure'];
 
+/** Monster resistance hard cap (player cap = 75% in equipment-bonus.ts) */
+const MONSTER_RES_CAP = 95;
+
 /**
  * Compute per-element damage after applying monster resistances.
  *
@@ -37,8 +40,9 @@ export function computeElementalDamage(
     if (elem === 'pure') {
       breakdown.pure = Math.floor(rawElemDmg);
     } else {
-      const resist = resistance[elem as keyof ElementalResistance] || 0;
-      const effective = rawElemDmg * (1 - (resist* 0.01));
+      const rawResist = resistance[elem as keyof ElementalResistance] || 0;
+      const resist = Math.min(rawResist, MONSTER_RES_CAP);
+      const effective = rawElemDmg * (1 - (resist * 0.01));
       breakdown[elem] = Math.max(0, Math.floor(effective));
     }
   }

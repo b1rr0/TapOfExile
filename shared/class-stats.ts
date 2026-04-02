@@ -1,5 +1,5 @@
-/**
- * CLASS STATS & PER-LEVEL GROWTH — single source of truth.
+﻿/**
+ * CLASS STATS & PER-LEVEL GROWTH - single source of truth.
  *
  * Used by both FE (character selection screen) and BE (character creation, level-up).
  * Max level: 60.
@@ -14,7 +14,9 @@ export interface ClassBaseStats {
   tapDamage: number;
   critChance: number;       // 0..1
   critMultiplier: number;
-  dodgeChance: number;      // 0..1  — chance to completely avoid incoming hit
+  dodgeChance: number;      // 0..1  - chance to completely avoid incoming hit
+  arcaneCritChance: number;      // 0..1 - arcane crit (mage-only growth)
+  arcaneCritMultiplier: number;  // e.g. 1.5
   resistance: ElementalResistance;
 }
 
@@ -25,9 +27,11 @@ export interface ClassGrowth {
   critChance: number;       // per-level addition (e.g. 0.002 = +0.2% per level)
   critMultiplier: number;
   dodgeChance: number;
+  arcaneCritChance: number;      // per-level (only mage has non-zero)
+  arcaneCritMultiplier: number;  // per-level (only mage has non-zero)
 }
 
-/** Unique class ability — one per class, shown in a special section. */
+/** Unique class ability - one per class, shown in a special section. */
 export interface ClassSpecial {
   id: string;
   name: string;
@@ -69,22 +73,26 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       critChance: 0.05,
       critMultiplier: 1.5,
       dodgeChance: 0.02,
+      arcaneCritChance: 0,
+      arcaneCritMultiplier: 1.3,
       resistance: { physical: 30, fire: 0, lightning: 0, cold: 0 },
     },
     growth: {
-      hp: 18,
-      tapDamage: 1.4,
-      critChance: 0.001,
-      critMultiplier: 0.01,
+      hp: 20,
+      tapDamage: 2.0,
+      critChance: 0,
+      critMultiplier: 0,
       dodgeChance: 0.001,
+      arcaneCritChance: 0,
+      arcaneCritMultiplier: 0,
     },
     special: {
       id: 'blockChance',
       name: 'Block',
       icon: '🛡️',
       description: 'Chance to block any incoming attack',
-      baseValue: 0.15,
-      growth: 0.002,
+      baseValue: 0.20,     // was 0.15 - stronger block baseline
+      growth: 0.003,       // was 0.002
       format: 'percent',
     },
   },
@@ -101,6 +109,8 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       critChance: 0.05,
       critMultiplier: 1.5,
       dodgeChance: 0.05,
+      arcaneCritChance: 0,
+      arcaneCritMultiplier: 1.3,
       resistance: { physical: 10, fire: 0, lightning: 10, cold: 0 },
     },
     growth: {
@@ -109,6 +119,8 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       critChance: 0.003,
       critMultiplier: 0.02,
       dodgeChance: 0.002,
+      arcaneCritChance: 0,
+      arcaneCritMultiplier: 0,
     },
     special: {
       id: 'critDamage',
@@ -133,14 +145,18 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       critChance: 0.05,
       critMultiplier: 1.5,
       dodgeChance: 0.03,
+      arcaneCritChance: 0.10,
+      arcaneCritMultiplier: 1.3,
       resistance: { physical: 0, fire: 20, lightning: 15, cold: 15 },
     },
     growth: {
       hp: 8,
-      tapDamage: 2.2,
-      critChance: 0.002,
-      critMultiplier: 0.03,
+      tapDamage: 0.2,
+      critChance: 0,             // no crit chance growth from levels
+      critMultiplier: 0,         // no crit damage growth from levels
       dodgeChance: 0.001,
+      arcaneCritChance: 0,       // no arcane crit growth from levels
+      arcaneCritMultiplier: 0,   // no arcane crit dmg growth from levels
     },
     special: {
       id: 'spellAmp',
@@ -165,14 +181,18 @@ export const CLASS_DEFS: Record<string, ClassDef> = {
       critChance: 0.05,
       critMultiplier: 1.5,
       dodgeChance: 0.06,
+      arcaneCritChance: 0,
+      arcaneCritMultiplier: 1.3,
       resistance: { physical: 5, fire: 0, lightning: 0, cold: 10 },
     },
     growth: {
       hp: 10,
       tapDamage: 1.6,
-      critChance: 0.004,
-      critMultiplier: 0.025,
+      critChance: 0,
+      critMultiplier: 0,
       dodgeChance: 0.002,
+      arcaneCritChance: 0,
+      arcaneCritMultiplier: 0,
     },
     special: {
       id: 'doubleShot',
@@ -201,6 +221,8 @@ export function statsAtLevel(classId: string, level: number): ClassBaseStats {
       critChance: 0.05,
       critMultiplier: 1.5,
       dodgeChance: 0,
+      arcaneCritChance: 0,
+      arcaneCritMultiplier: 1.5,
       resistance: { physical: 0, fire: 0, lightning: 0, cold: 0 },
     };
   }
@@ -211,12 +233,14 @@ export function statsAtLevel(classId: string, level: number): ClassBaseStats {
   const n = lvl - 1;
 
   return {
-    hp:             Math.floor(b.hp + g.hp * n),
-    tapDamage:      Math.floor(b.tapDamage + g.tapDamage * n),
-    critChance:     parseFloat((b.critChance + g.critChance * n).toFixed(4)),
-    critMultiplier: parseFloat((b.critMultiplier + g.critMultiplier * n).toFixed(2)),
-    dodgeChance:    parseFloat((b.dodgeChance + g.dodgeChance * n).toFixed(4)),
-    resistance:     { ...b.resistance },
+    hp:                  Math.floor(b.hp + g.hp * n),
+    tapDamage:           Math.floor(b.tapDamage + g.tapDamage * n),
+    critChance:          parseFloat((b.critChance + g.critChance * n).toFixed(4)),
+    critMultiplier:      parseFloat((b.critMultiplier + g.critMultiplier * n).toFixed(2)),
+    dodgeChance:         parseFloat((b.dodgeChance + g.dodgeChance * n).toFixed(4)),
+    arcaneCritChance:    parseFloat((b.arcaneCritChance + g.arcaneCritChance * n).toFixed(4)),
+    arcaneCritMultiplier: parseFloat((b.arcaneCritMultiplier + g.arcaneCritMultiplier * n).toFixed(2)),
+    resistance:          { ...b.resistance },
   };
 }
 
@@ -235,11 +259,13 @@ export function specialAtLevel(classId: string, level: number): number {
  * Stat labels for UI display.
  */
 export const STAT_LABELS: Record<string, { label: string; icon: string; format: 'flat' | 'percent' }> = {
-  hp:             { label: 'HP',           icon: '❤️',  format: 'flat' },
-  tapDamage:      { label: 'Damage',       icon: '⚔️',  format: 'flat' },
-  critChance:     { label: 'Crit Chance',  icon: '💥',  format: 'percent' },
-  critMultiplier: { label: 'Crit Dmg',    icon: '✖️',  format: 'percent' },
-  dodgeChance:    { label: 'Dodge',        icon: '💨',  format: 'percent' },
+  hp:                   { label: 'HP',                  icon: '❤️',  format: 'flat' },
+  tapDamage:            { label: 'Bugei Damage',        icon: '⚔️',  format: 'flat' },
+  critChance:           { label: 'Bugei Crit Chance',   icon: '💥',  format: 'percent' },
+  critMultiplier:       { label: 'Bugei Crit Damage',   icon: '✖️',  format: 'percent' },
+  dodgeChance:          { label: 'Dodge',               icon: '💨',  format: 'percent' },
+  arcaneCritChance:     { label: 'Arcane Crit Chance',  icon: '🔮',  format: 'percent' },
+  arcaneCritMultiplier: { label: 'Arcane Crit Damage',  icon: '🔮',  format: 'percent' },
 };
 
 export const RESISTANCE_LABELS: Record<string, { label: string; color: string }> = {

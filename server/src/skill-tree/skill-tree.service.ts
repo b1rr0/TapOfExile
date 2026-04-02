@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   BadRequestException,
   NotFoundException,
@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Character } from '../shared/entities/character.entity';
 import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { validateAllocations } from '@shared/skill-tree-validation';
+import { buildSkillTree } from '@shared/skill-tree';
 
 @Injectable()
 export class SkillTreeService {
@@ -75,6 +76,38 @@ export class SkillTreeService {
     // Deduplicate and save
     const unique = [...new Set(allocated)];
     char.allocatedNodes = unique;
+
+    // Sync unlocked active skills from allocated activeSkill nodes
+    const tree = buildSkillTree();
+    const newUnlocked: string[] = [];
+    for (const nodeId of unique) {
+      const node = tree.nodes[nodeId];
+      if (node && node.type === 'activeSkill' && node.def?.activeSkillId) {
+        newUnlocked.push(node.def.activeSkillId);
+      }
+    }
+    char.unlockedActiveSkills = newUnlocked;
+
+    // Clean up equipped skills - remove any that are no longer unlocked
+    const unlockedSet = new Set(newUnlocked);
+    const equipped: (string | null)[] = [...(char.equippedSkills || [null, null, null, null])];
+    while (equipped.length < 4) equipped.push(null);
+    for (let i = 0; i < equipped.length; i++) {
+      if (equipped[i] && !unlockedSet.has(equipped[i]!)) equipped[i] = null;
+    }
+
+    // Auto-equip newly unlocked skills into empty slots
+    const alreadyEquipped = new Set(equipped.filter(Boolean));
+    for (const skillId of newUnlocked) {
+      if (alreadyEquipped.has(skillId)) continue;
+      const emptySlot = equipped.indexOf(null);
+      if (emptySlot === -1) break; // all slots full
+      equipped[emptySlot] = skillId;
+      alreadyEquipped.add(skillId);
+    }
+
+    char.equippedSkills = equipped;
+
     await this.charRepo.save(char);
 
     return { allocated: unique };
@@ -109,6 +142,8 @@ export class SkillTreeService {
     await this.playerLeagueRepo.save(pl);
 
     char.allocatedNodes = [];
+    char.unlockedActiveSkills = [];
+    char.equippedSkills = [null, null, null, null];
     await this.charRepo.save(char);
 
     return { cost, allocated: [] };

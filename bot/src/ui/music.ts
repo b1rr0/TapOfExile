@@ -1,5 +1,5 @@
-/**
- * Global music manager — singleton.
+﻿/**
+ * Global music manager - singleton.
  * Persists across scene switches so the track doesn't restart
  * every time the player returns to hideout.
  */
@@ -23,14 +23,14 @@ class MusicManager {
   /** Start (or resume) a track. Does nothing if already playing the same src. */
   play(src: string): void {
     if (this.audio && this._src === src) {
-      // Same track — just resume if enabled
+      // Same track - just resume if enabled
       if (this._enabled && this.audio.paused) {
         this.audio.play().catch(() => {});
       }
       return;
     }
 
-    // Different track or first call — create element
+    // Different track or first call - create element
     this.stop();
     this._src = src;
     this.audio = new Audio(src);

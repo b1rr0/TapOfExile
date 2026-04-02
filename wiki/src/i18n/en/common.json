@@ -1,0 +1,37 @@
+{
+  "nav": {
+    "home": "Home",
+    "champions": "Champions",
+    "trade": "Trade",
+    "wiki": "Wiki",
+    "play": "Play",
+    "discord": "Discord",
+    "telegramBot": "Telegram Bot"
+  },
+  "footer": { "copyright": "© EKNM, underground since 201X" },
+  "wikiNav": {
+    "overview": "Overview", "classes": "Classes", "enemies": "Enemies",
+    "equipment": "Equipment", "skillTree": "Skill Tree", "damage": "Damage",
+    "plot": "Plot", "maps": "Maps"
+  },
+  "stats": {
+    "hp": "HP", "damage": "Bugei Damage", "critChance": "Bugei Crit Chance",
+    "critDmg": "Bugei Crit Damage", "dodge": "Dodge", "resistance": "Resistance",
+    "resistances": "Resistances", "level": "Level",
+    "arcaneCrit": "Arcane Crit Chance", "arcaneCritDmg": "Arcane Crit Damage"
+  },
+  "quality": { "common": "Common", "rare": "Rare", "epic": "Epic", "legendary": "Legendary" },
+  "rarity": { "common": "Common", "rare": "Rare", "epic": "Epic", "boss": "Boss" },
+  "elements": { "physical": "Physical", "fire": "Fire", "lightning": "Lightning", "cold": "Cold", "pure": "Pure" },
+  "ui": {
+    "loading": "Loading...", "noRecords": "No records yet. Be the first!",
+    "all": "All", "main": "Main", "side": "Side", "buff": "buff", "debuff": "debuff",
+    "prev": "« Prev", "next": "Next »",
+    "page": "Page {{current}} of {{total}} ({{count}} listings)"
+  },
+  "table": {
+    "tier": "Tier", "name": "Name", "type": "Type", "slot": "Slot",
+    "description": "Description", "class": "Class", "value": "Value", "parameter": "Parameter"
+  },
+  "lang": { "en": "EN", "ua": "UA" }
+}

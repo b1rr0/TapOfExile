@@ -1,0 +1,19 @@
+{
+  "title": "Maps & Boss Keys", "subtitle": "Endgame content unlocked after completing all 5 acts. {{tiers}} map tiers and {{bosses}} unique boss encounters.",
+  "unlockTitle": "Endgame Unlock", "unlockDesc": "Maps unlock after completing all main-chain locations (orders 1-8) in all 5 acts. Upon unlocking, you receive <strong>3 Tier 1 Map Keys</strong> to get started.",
+  "tabTiers": "Map Tiers", "tabBosses": "Boss Maps", "tabKeys": "Boss Key Tiers", "tabDrops": "Drop System",
+  "thTier": "Tier", "thQuality": "Quality", "thHpMult": "HP Mult", "thGoldMult": "Gold Mult", "thXpMult": "XP Mult", "thMonsterLvl": "Monster Lvl",
+  "tiersNote": "Map monsters use Act 5 stats as a baseline, scaled by the tier multipliers above. Higher tiers feature tougher monsters but greatly increased rewards.",
+  "bossType": "Boss Type: {{type}}", "hp": "HP:", "gold": "Gold:", "xp": "XP:",
+  "thBossKeyTier": "Boss Key Tier", "thName": "Name", "thHpScale": "HP Scale", "thGoldScale": "Gold Scale", "thXpScale": "XP Scale",
+  "keySelectionTitle": "Boss Key Tier Selection",
+  "keySelectionDesc": "The quality of boss keys you find depends on the map tier you're running. Lower tiers drop Standard keys, mid tiers drop Empowered, and the highest tiers drop Mythic keys. Boss maps always award the best quality keys.",
+  "regularDrops": "Regular Map Drops", "thDropType": "Drop Type", "thChance": "Chance", "thDetails": "Details",
+  "sameTierKey": "Same Tier Key", "sameTierDetail": "Map key of the same tier you just completed",
+  "tierUpKey": "Tier Up Key", "tierUpDetail": "Map key one tier higher (if not at max)",
+  "bossKey": "Boss Key", "bossKeyDetail": "Only from Tier {{tier}}+ maps",
+  "bossDrops": "Boss Map Drops",
+  "guaranteedKey": "Guaranteed Key", "guaranteedDetail": "Random tier between {{min}}-{{max}}",
+  "bonusKey": "Bonus Key", "bonusDetail": "One tier above the guaranteed drop",
+  "bossKeyAlways": "Boss Key", "bossKeyAlwaysDetail": "Always Mythic (Tier 3) quality"
+}

@@ -1,4 +1,4 @@
-// Temporarily disable the assertion to see positions
+﻿// Temporarily disable the assertion to see positions
 import { SkillTreeBuilder, EMBLEM_RADIUS, NODE_RADIUS, CLASS_IDS } from './skill-tree';
 
 const CX = 800, CY = 800;
@@ -34,6 +34,6 @@ for (let j = 0; j < 5; j++) {
 // Check: does inner[0]→trunk[0] cross inner[1]→trunk[2]?
 // inner[0] at angle base-0.30, inner[1] at angle base+0
 // trunk[0] at angle base-0.32, trunk[2] at angle base+0
-// So inner[0]→trunk[0] goes from (base-0.30, R0+104) to (base-0.32, R0+192) — almost radial
-// And inner[1]→trunk[2] goes from (base+0, R0+104) to (base+0, R0+192) — perfectly radial
+// So inner[0]→trunk[0] goes from (base-0.30, R0+104) to (base-0.32, R0+192) - almost radial
+// And inner[1]→trunk[2] goes from (base+0, R0+104) to (base+0, R0+192) - perfectly radial
 // These shouldn't cross! Unless jitter moves them...

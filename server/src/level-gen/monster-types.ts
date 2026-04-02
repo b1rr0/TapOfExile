@@ -1,4 +1,4 @@
-import { B } from '../shared/constants/balance.constants';
+﻿import { B } from '../shared/constants/balance.constants';
 import type { ElementalResistance, ElementalDamage } from '@shared/types';
 import type { MonsterAttack } from '@shared/monster-attacks';
 import { MONSTER_ATTACKS } from '@shared/monster-attacks';
@@ -21,7 +21,7 @@ export interface MonsterType {
   eyeColor: string;
   resistance?: ElementalResistance;
   outgoingDamage?: ElementalDamage;
-  /** Attack pool — server picks randomly each tick */
+  /** Attack pool - server picks randomly each tick */
   attacks?: MonsterAttack[];
 }
 

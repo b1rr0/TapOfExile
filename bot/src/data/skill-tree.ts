@@ -1,5 +1,5 @@
-/**
- * Skill Tree — re-exported from shared module.
+﻿/**
+ * Skill Tree - re-exported from shared module.
  * Single source of truth: @shared/skill-tree
  */
 export {
@@ -13,6 +13,7 @@ export {
   EMBLEM_RADIUS,
   NODE_RADIUS,
   MAX_CLASS_SKILLS,
+  getMaxClassSkills,
   CLASS_IDS,
   CLASS_IMG,
 } from "@shared/skill-tree";

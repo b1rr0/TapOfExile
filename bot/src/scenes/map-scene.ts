@@ -1,4 +1,4 @@
-import {
+﻿import {
   getLocationsForAct,
   getHighestUnlockedAct,
   getScaledRewards,
@@ -12,7 +12,7 @@ import { preconnectSocket } from "../combat-socket.js";
 import type { SharedDeps, Location, ActModifier } from "../types.js";
 
 /**
- * MapScene — scroll-list of location cards with act tabs.
+ * MapScene - scroll-list of location cards with act tabs.
  *
  * Tab bar at the top lets the player switch between acts.
  * Only completed acts and the current (highest unlocked) act are accessible.
@@ -67,8 +67,8 @@ export class MapScene {
     this.container.innerHTML = `
       <div class="map">
         <div class="map-header">
-          <button class="map-back-btn" id="map-back-btn">&#x2190;</button>
           <h2 class="map-title">Map</h2>
+          <button class="scene-close-btn" id="map-back-btn">&times;</button>
         </div>
         <div class="map-tabs" id="map-tabs">${tabs}</div>
         <div class="map-list" id="map-list"></div>
@@ -78,8 +78,8 @@ export class MapScene {
     // Cache list element
     this._listEl = this.container.querySelector("#map-list");
 
-    // Delegated click on #map-list — handles both cards and mods toggle
-    this._listEl!.addEventListener("click", (e: MouseEvent) => {
+    // Delegated click on #map-list - handles both cards and mods toggle
+    this._listEl!.addEventListener("click", async (e: MouseEvent) => {
       // Modifiers toggle
       const toggle = (e.target as HTMLElement).closest("#map-mod-toggle");
       if (toggle) {
@@ -101,6 +101,7 @@ export class MapScene {
       const location = locations.find((l) => l.id === locId);
       if (location) {
         preconnectSocket(); // Start connecting before scene mount
+        await this.state.refreshState().catch(() => {});
         this.sceneManager.switchTo("combat", { location });
       }
     });
@@ -137,17 +138,15 @@ export class MapScene {
 
   _buildTabs(highestAct: number): string {
     let html = "";
-    for (let a = 1; a <= TOTAL_ACTS; a++) {
+    for (let a = 1; a <= highestAct; a++) {
       const def = ACT_DEFINITIONS[a - 1];
       const label: string = def ? def.name : `Act ${a}`;
 
       let cls = "map-tab";
       if (a === this._selectedAct) {
         cls += " map-tab--active";
-      } else if (a <= highestAct) {
-        cls += " map-tab--unlocked";
       } else {
-        cls += " map-tab--locked";
+        cls += " map-tab--unlocked";
       }
       html += `<button class="${cls}" data-act="${a}">${label}</button>`;
     }
@@ -160,20 +159,17 @@ export class MapScene {
     return html;
   }
 
-  _updateTabVisuals(highestAct: number): void {
+  _updateTabVisuals(_highestAct: number): void {
     const tabs = this.container.querySelectorAll(".map-tab") as NodeListOf<HTMLElement>;
     tabs.forEach((tab) => {
-      // Skip endgame tab — it manages its own classes
       if (tab.dataset.act === "endgame") return;
 
       const a = Number(tab.dataset.act);
       tab.className = "map-tab";
       if (a === this._selectedAct) {
         tab.classList.add("map-tab--active");
-      } else if (a <= highestAct) {
-        tab.classList.add("map-tab--unlocked");
       } else {
-        tab.classList.add("map-tab--locked");
+        tab.classList.add("map-tab--unlocked");
       }
     });
   }
@@ -202,7 +198,7 @@ export class MapScene {
     let startY = 0;
     let tracking = false;
 
-    // Use pointer events — work on both touch and mouse (desktop testing)
+    // Use pointer events - work on both touch and mouse (desktop testing)
     mapEl.addEventListener("pointerdown", (e: PointerEvent) => {
       startX = e.clientX;
       startY = e.clientY;
@@ -318,7 +314,7 @@ export class MapScene {
             <div class="location-card__desc">${loc.description}</div>
           </div>
           <div class="location-card__rewards">
-            <span class="location-card__gold">&#9789; ${scaled.gold}</span>
+            <span class="location-card__gold">&#x1FA99; ${scaled.gold}</span>
             <span class="location-card__xp">XP ${scaled.xp}</span>
           </div>
         </div>

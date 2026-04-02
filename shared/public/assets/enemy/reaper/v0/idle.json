@@ -5,7 +5,7 @@
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -13,11 +13,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -25,9 +25,9 @@
     {
       "filename": "reaper #idle 1",
       "frame": {
-        "x": 80,
+        "x": 170,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -35,11 +35,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -47,9 +47,9 @@
     {
       "filename": "reaper #idle 2",
       "frame": {
-        "x": 160,
+        "x": 340,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -57,11 +57,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -69,9 +69,9 @@
     {
       "filename": "reaper #idle 3",
       "frame": {
-        "x": 240,
+        "x": 510,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -79,11 +79,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -91,9 +91,9 @@
     {
       "filename": "reaper #idle 4",
       "frame": {
-        "x": 320,
+        "x": 680,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -101,11 +101,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -113,9 +113,9 @@
     {
       "filename": "reaper #idle 5",
       "frame": {
-        "x": 400,
+        "x": 850,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -123,11 +123,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -135,9 +135,9 @@
     {
       "filename": "reaper #idle 6",
       "frame": {
-        "x": 480,
+        "x": 1020,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -145,11 +145,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -157,9 +157,9 @@
     {
       "filename": "reaper #idle 7",
       "frame": {
-        "x": 560,
+        "x": 1190,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -167,11 +167,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -179,9 +179,9 @@
     {
       "filename": "reaper #idle 8",
       "frame": {
-        "x": 640,
+        "x": 1360,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -189,11 +189,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -201,9 +201,9 @@
     {
       "filename": "reaper #idle 9",
       "frame": {
-        "x": 720,
+        "x": 1530,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -211,11 +211,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -223,9 +223,9 @@
     {
       "filename": "reaper #idle 10",
       "frame": {
-        "x": 800,
+        "x": 1700,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -233,11 +233,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -245,9 +245,9 @@
     {
       "filename": "reaper #idle 11",
       "frame": {
-        "x": 880,
+        "x": 1870,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -255,11 +255,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -267,9 +267,9 @@
     {
       "filename": "reaper #idle 12",
       "frame": {
-        "x": 960,
+        "x": 2040,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -277,11 +277,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -289,9 +289,9 @@
     {
       "filename": "reaper #idle 13",
       "frame": {
-        "x": 1040,
+        "x": 2210,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -299,11 +299,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -311,9 +311,9 @@
     {
       "filename": "reaper #idle 14",
       "frame": {
-        "x": 1120,
+        "x": 2380,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -321,11 +321,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100
@@ -333,9 +333,9 @@
     {
       "filename": "reaper #idle 15",
       "frame": {
-        "x": 1200,
+        "x": 2550,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "rotated": false,
@@ -343,407 +343,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 16",
-      "frame": {
-        "x": 1280,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 17",
-      "frame": {
-        "x": 1360,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 18",
-      "frame": {
-        "x": 1440,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 19",
-      "frame": {
-        "x": 1520,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 20",
-      "frame": {
-        "x": 1600,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 21",
-      "frame": {
-        "x": 1680,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 22",
-      "frame": {
-        "x": 1760,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 23",
-      "frame": {
-        "x": 1840,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 24",
-      "frame": {
-        "x": 1920,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 25",
-      "frame": {
-        "x": 2000,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 26",
-      "frame": {
-        "x": 2080,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 27",
-      "frame": {
-        "x": 2160,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 28",
-      "frame": {
-        "x": 2240,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 29",
-      "frame": {
-        "x": 2320,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 30",
-      "frame": {
-        "x": 2400,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 31",
-      "frame": {
-        "x": 2480,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 32",
-      "frame": {
-        "x": 2560,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
-        "h": 96
-      },
-      "duration": 100
-    },
-    {
-      "filename": "reaper #idle 33",
-      "frame": {
-        "x": 2640,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 80,
-        "h": 96
-      },
-      "sourceSize": {
-        "w": 80,
+        "w": 170,
         "h": 96
       },
       "duration": 100

@@ -1,4 +1,4 @@
-import { EventBus } from "./game/events.js";
+﻿import { EventBus } from "./game/events.js";
 import { GameState, BannedError } from "./game/state.js";
 import { SceneManager } from "./scenes/scene-manager.js";
 import { CombatScene } from "./scenes/combat-scene.js";
@@ -13,9 +13,11 @@ import { MapDeviceScene } from "./scenes/map-device-scene.js";
 import { SkillTreeScene } from "./scenes/skill-tree-scene.js";
 import { DeathScene } from "./scenes/death-scene.js";
 import { DojoScene } from "./scenes/dojo-scene.js";
+import { ShopScene } from "./scenes/shop-scene.js";
+import { MarketScene } from "./scenes/market-scene.js";
 import { api } from "./api.js";
 
-// Feature flags — re-exported from config to avoid circular imports
+// Feature flags - re-exported from config to avoid circular imports
 export { IS_TESTING } from "./config.js";
 import { IS_TESTING } from "./config.js";
 
@@ -25,6 +27,36 @@ if (tg) {
   tg.ready();
   tg.expand();
   if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+
+  // Match Telegram chrome to game background - eliminates grey strips
+  const BG = "#080b15";
+  try { tg.setBackgroundColor(BG); } catch (_) {}
+  try { tg.setHeaderColor(BG); } catch (_) {}
+  try { tg.setBottomBarColor?.(BG); } catch (_) {}
+} else if (IS_TESTING) {
+  // Dev/test mode: inject mock Telegram.WebApp so QA can run the app outside Telegram.
+  // The server accepts "test_user_id=999999999" only when NODE_ENV !== "production".
+  (window as any).Telegram = {
+    WebApp: {
+      initData: 'test_user_id=999999999',
+      initDataUnsafe: {
+        user: { id: 999999999, first_name: 'TestUser', username: 'testuser', is_bot: false },
+        auth_date: Math.floor(Date.now() / 1000),
+      },
+      ready: () => {},
+      expand: () => {},
+      close: () => {},
+      disableVerticalSwipes: () => {},
+      platform: 'unknown',
+      version: '6.0',
+      colorScheme: 'dark',
+      themeParams: {},
+      isExpanded: true,
+      viewportHeight: window.innerHeight,
+      viewportStableHeight: window.innerHeight,
+    },
+  };
+  console.warn('[Main] Test mode: mock Telegram.WebApp injected (userId=999999999)');
 }
 
 // Core systems
@@ -151,6 +183,8 @@ function startGame(): void {
   sceneManager.register("death", DeathScene);
   sceneManager.register("dojo", DojoScene);
   sceneManager.register("storybook", StorybookScene);
+  sceneManager.register("shop", ShopScene);
+  sceneManager.register("market", MarketScene);
 
   if (!state.hasCharacters()) {
     sceneManager.switchTo("characterCreate");
@@ -180,7 +214,7 @@ function startGame(): void {
       showSubscriptionGate(() => startGame());
     }
   } catch (err) {
-    // Ban check — show full-screen ban instead of game
+    // Ban check - show full-screen ban instead of game
     if (err instanceof BannedError) {
       console.warn("[Main] Player is banned until", new Date(err.bannedUntil));
       showBanScreen(err.bannedUntil, err.banReason);

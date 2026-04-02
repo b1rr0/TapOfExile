@@ -1,11 +1,11 @@
-import { formatNumber } from "../utils/format.js";
+﻿import { formatNumber } from "../utils/format.js";
 import { TOTAL_ACTS } from "../data/locations.js";
 import { formatCombatTime, renderLogEntries, createLogPanelHTML } from "../ui/combat-log-renderer.js";
 import type { LogEntry } from "../ui/combat-log-renderer.js";
 import type { SharedDeps, BagItem } from "../types.js";
 
 /**
- * VictoryScene — shown after completing a location or endgame map.
+ * VictoryScene - shown after completing a location or endgame map.
  *
  * Displays:
  *  - "Victory!" title + location name
@@ -30,12 +30,12 @@ export class VictoryScene {
 
   /**
    * @param params.locationName
-   * @param params.rewards — { gold, xp }
-   * @param params.actComplete — act number if the act was just completed
-   * @param params.isMapVictory — true if this was an endgame map
-   * @param params.mapDrops — array of dropped map key items
-   * @param params.logEntries — LogEntry[] from CombatLog
-   * @param params.combatStartTime — absolute ms timestamp
+   * @param params.rewards - { gold, xp }
+   * @param params.actComplete - act number if the act was just completed
+   * @param params.isMapVictory - true if this was an endgame map
+   * @param params.mapDrops - array of dropped map key items
+   * @param params.logEntries - LogEntry[] from CombatLog
+   * @param params.combatStartTime - absolute ms timestamp
    */
   mount(params: Record<string, any> = {}): void {
     const {
@@ -70,11 +70,15 @@ export class VictoryScene {
         // Render potion sprite if flaskType is available
         if (d.type === 'potion' && d.flaskType) {
           const charges = Math.min(d.maxCharges ?? 2, 5);
-          iconHtml = `<img class="victory-drop__icon" src="/assets/potions/${d.flaskType}/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+          iconHtml = `<img class="victory-drop__icon" src="/assets/equipments/consumables/${d.flaskType}s/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+        } else if (d.type === 'equipment' && d.icon) {
+          iconHtml = `<img class="victory-drop__icon" src="${d.icon}" style="width:32px;height:32px;image-rendering:pixelated">`;
         }
+        const levelBadge = d.level ? `<span class="victory-drop__level">iLvl ${d.level}</span>` : '';
         return `<div class="victory-drop victory-drop--${d.quality}">
           ${iconHtml}
           <span class="victory-drop__name">${d.name}</span>
+          ${levelBadge}
         </div>`;
       }).join("");
       dropsHtml = `
@@ -114,7 +118,7 @@ export class VictoryScene {
 
           <div class="victory-rewards">
             <div class="victory-reward">
-              <span class="victory-reward__icon">&#9789;</span>
+              <span class="victory-reward__icon">&#x1FA99;</span>
               <span class="victory-reward__value">+${formatNumber(rewards.gold)}</span>
               <span class="victory-reward__label">Gold</span>
             </div>

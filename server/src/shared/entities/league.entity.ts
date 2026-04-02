@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -13,7 +13,7 @@ export class League {
   id: string;
 
   @Column({ type: 'varchar', length: 128 })
-  name: string; // "Standard", "Monthly #7 – Feb 2026"
+  name: string; // "Standard", "Monthly #7 - Feb 2026"
 
   @Column({ type: 'varchar', length: 16 })
   type: string; // "standard" | "monthly"

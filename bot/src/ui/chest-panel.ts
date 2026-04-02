@@ -1,5 +1,5 @@
-/**
- * ChestPanel — bag overlay with tabs, sorting, long-press tooltip,
+﻿/**
+ * ChestPanel - bag overlay with tabs, sorting, long-press tooltip,
  * item detail modal with equip/discard actions.
  *
  * Tabs: "All" + dynamic tabs per item type in bag.
@@ -8,9 +8,21 @@
  * Tap: opens item detail modal (equip potions, discard, compare).
  */
 
-import type { BagItem } from "../types.js";
+import type { BagItem, Character } from "../types.js";
 import { ItemTooltip, QUALITY_COLORS } from "./item-tooltip.js";
 import { loot } from "../api.js";
+import { STAT_DEFS, SUBTYPES, getValidUISlots } from "@shared/equipment-defs";
+import type { StatId, EquipmentSlotId } from "@shared/equipment-defs";
+import { getLore } from "@shared/equipment-lore";
+
+const POTION_LORE: Record<string, string> = {
+  small_vial: 'Concentrated to the point where a single drop can mend a sword-wound, these vials are the assassin\'s friend - small enough to hide in a sleeve, potent enough to cheat death.',
+  round_flask: 'Brewed in the cellars of wandering alchemists, this flask holds a crimson draught that knits torn flesh and mends shattered bone. The warmth it brings is fleeting, but in battle, a heartbeat is all one needs.',
+  corked_flask: 'Sealed with wax etched in forgotten sigils, the cork holds back more than liquid - it restrains a living remedy that yearns to mend. Those who drink speak of fire rushing through their veins, burning away pain and weakness alike.',
+  tall_bottle: 'Forged in the crucibles of the Order of the Crimson Eye, this slender vessel carries a distillation of life itself. Each sip restores what the battlefield takes, though the alchemists warn: the body remembers every debt.',
+  wide_bottle: 'A vessel of war, broad-shouldered and built to endure the chaos of battle. The draught within pulses with a deep scarlet glow, as if the blood of the earth itself has been captured and made to serve mortal need.',
+  jug: 'An ancient vessel passed down through generations of warriors. Its contents swirl with a depth that defies its humble appearance - a single draught can pull a dying soul back from the brink, though the price is whispered to be paid in years, not coin.',
+};
 
 interface EventBus {
   on(event: string, callback: (...args: any[]) => void): void;
@@ -21,6 +33,7 @@ interface EventBus {
 interface GameState {
   getActiveCharacter(): {
     bag: BagItem[];
+    level: number;
     inventory?: { equipment?: Record<string, any> };
   } | null;
   bag: BagItem[];
@@ -33,13 +46,59 @@ type TabType = "all" | string;
 /** Quality tier order for sorting (higher = better). */
 const QUALITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
 
-/** Tab display config. */
+/** Tab display config - equipment broken into individual slot types. */
 const TAB_CONFIG: Record<string, { label: string; icon: string }> = {
   all:          { label: "All",       icon: "&#x2B1A;" },
+  // Equipment slot tabs
+  weapon:       { label: "Bugei",     icon: "&#x2694;" },
+  helmet:       { label: "Helmet",    icon: "&#x1FA96;" },
+  armor:        { label: "Armor",     icon: "&#x1F6E1;" },
+  gloves:       { label: "Gloves",    icon: "&#x1F9E4;" },
+  belt:         { label: "Belt",      icon: "&#x1F4BF;" },
+  boots:        { label: "Boots",     icon: "&#x1F462;" },
+  ring:         { label: "Ring",      icon: "&#x1F48D;" },
+  amulet:       { label: "Amulet",    icon: "&#x1F4FF;" },
+  // Non-equipment tabs
   potion:       { label: "Potions",   icon: "&#x1F9EA;" },
   map_key:      { label: "Maps",      icon: "&#x1F5FA;" },
   boss_map_key: { label: "Boss",      icon: "&#x1F480;" },
 };
+
+/** Map equipment slot to tab key. */
+const SLOT_TO_TAB: Record<string, string> = {
+  one_hand: "weapon",
+  two_hand: "weapon",
+  helmet: "helmet",
+  armor: "armor",
+  gloves: "gloves",
+  belt: "belt",
+  boots: "boots",
+  ring: "ring",
+  amulet: "amulet",
+};
+
+/** Get the tab key for a bag item. */
+function getItemTabKey(item: BagItem): string {
+  if (item.type === "equipment" && item.properties?.slot) {
+    return SLOT_TO_TAB[item.properties.slot as string] || "weapon";
+  }
+  return item.type;
+}
+
+/** Sell price calculation (mirrors server logic). */
+const QUALITY_MUL: Record<string, number> = { common: 1, rare: 3, epic: 8, legendary: 20 };
+
+function calcSellPrice(item: BagItem): number {
+  const mul = QUALITY_MUL[item.quality] || 1;
+  if (item.type === "equipment") {
+    const iLvl = item.properties?.itemLevel || item.level || 1;
+    return Math.max(1, Math.floor((iLvl as number) * mul));
+  }
+  if (item.type === "potion") return Math.max(1, 5 * mul);
+  if (item.type === "map_key") return Math.max(1, (item.tier || 1) * 10);
+  if (item.type === "boss_map_key") return Math.max(1, (item.bossKeyTier || 1) * 50);
+  return 1;
+}
 
 const GRID_COLS = 4;
 const GRID_ROWS = 8;
@@ -86,8 +145,12 @@ export class ChestPanel {
 
         <h2 class="bag-title">Chest</h2>
 
-        <!-- Tabs -->
-        <div class="bag-tabs" id="bag-tabs"></div>
+        <!-- Type filter dropdown -->
+        <div class="bag-filter-row">
+          <select class="bag-type-select" id="bag-type-select">
+            <option value="all">All</option>
+          </select>
+        </div>
 
         <!-- Sort buttons -->
         <div class="bag-sort-row">
@@ -136,16 +199,10 @@ export class ChestPanel {
       this._renderGrid();
     });
 
-    // Tab clicks (delegated)
-    this._el.querySelector("#bag-tabs")!.addEventListener("click", (e: Event) => {
-      const btn = (e.target as HTMLElement).closest(".bag-tab") as HTMLElement | null;
-      if (!btn) return;
-      const tab = btn.dataset.tab as TabType;
-      if (tab === this._activeTab) return;
-      this._activeTab = tab;
-      this._el!.querySelectorAll(".bag-tab").forEach((b) => {
-        b.classList.toggle("bag-tab--active", (b as HTMLElement).dataset.tab === tab);
-      });
+    // Type filter dropdown
+    this._el.querySelector("#bag-type-select")!.addEventListener("change", (e: Event) => {
+      const select = e.target as HTMLSelectElement;
+      this._activeTab = select.value as TabType;
       this._renderGrid();
     });
 
@@ -206,32 +263,41 @@ export class ChestPanel {
     });
   }
 
-  /* ── Tabs ───────────────────────────────────────────────── */
+  /* ── Type filter dropdown ────────────────────────────────── */
 
   _renderTabs(): void {
-    const tabsEl = this._el!.querySelector("#bag-tabs");
-    if (!tabsEl) return;
+    const selectEl = this._el!.querySelector("#bag-type-select") as HTMLSelectElement | null;
+    if (!selectEl) return;
 
     const items = this._getBagItems();
-    const types = new Set(items.map((i) => i.type));
 
-    let html = `<button class="bag-tab ${this._activeTab === "all" ? "bag-tab--active" : ""}" data-tab="all">
-      <span class="bag-tab__icon">${TAB_CONFIG.all.icon}</span>
-      <span class="bag-tab__label">${TAB_CONFIG.all.label}</span>
-      <span class="bag-tab__count">${items.length}</span>
-    </button>`;
-
-    for (const type of types) {
-      const cfg = TAB_CONFIG[type] || { label: type, icon: "?" };
-      const count = items.filter((i) => i.type === type).length;
-      html += `<button class="bag-tab ${this._activeTab === type ? "bag-tab--active" : ""}" data-tab="${type}">
-        <span class="bag-tab__icon">${cfg.icon}</span>
-        <span class="bag-tab__label">${cfg.label}</span>
-        <span class="bag-tab__count">${count}</span>
-      </button>`;
+    // Collect all unique tab keys present in bag
+    const tabKeys = new Set<string>();
+    for (const item of items) {
+      tabKeys.add(getItemTabKey(item));
     }
 
-    tabsEl.innerHTML = html;
+    // Build options - "All" always first
+    let html = `<option value="all" ${this._activeTab === "all" ? "selected" : ""}>
+      ${TAB_CONFIG.all.icon} ${TAB_CONFIG.all.label} (${items.length})
+    </option>`;
+
+    // Ordered tab keys (equipment slots first, then non-equipment)
+    const orderedKeys = [
+      "weapon", "helmet", "armor", "gloves", "belt", "boots", "ring", "amulet",
+      "potion", "map_key", "boss_map_key",
+    ];
+
+    for (const key of orderedKeys) {
+      if (!tabKeys.has(key)) continue;
+      const cfg = TAB_CONFIG[key] || { label: key, icon: "?" };
+      const count = items.filter((i) => getItemTabKey(i) === key).length;
+      html += `<option value="${key}" ${this._activeTab === key ? "selected" : ""}>
+        ${cfg.icon} ${cfg.label} (${count})
+      </option>`;
+    }
+
+    selectEl.innerHTML = html;
   }
 
   /* ── Grid rendering ────────────────────────────────────── */
@@ -246,9 +312,9 @@ export class ChestPanel {
 
     let items = this._getBagItems();
 
-    // Filter by active tab
+    // Filter by active tab (using slot-based keys for equipment)
     if (this._activeTab !== "all") {
-      items = items.filter((i) => i.type === this._activeTab);
+      items = items.filter((i) => getItemTabKey(i) === this._activeTab);
     }
 
     // Sort
@@ -279,7 +345,10 @@ export class ChestPanel {
   _getItemIconHtml(item: BagItem): string {
     if (item.type === "potion" && item.flaskType) {
       const charges = Math.min(Math.max(item.currentCharges ?? item.maxCharges ?? 1, 1), 5);
-      return `<img src="/assets/potions/${item.flaskType}/red_${charges}.png" style="width:32px;height:32px;image-rendering:pixelated">`;
+      return `<img src="/assets/equipments/consumables/${item.flaskType}s/red_${charges}.png" style="width:42px;height:42px;image-rendering:pixelated">`;
+    }
+    if (item.type === "equipment" && item.icon) {
+      return `<img src="${item.icon}" style="width:64px;height:64px;image-rendering:pixelated">`;
     }
     return item.icon || "?";
   }
@@ -287,6 +356,9 @@ export class ChestPanel {
   _getItemBadge(item: BagItem): string {
     if (item.type === "potion" && item.maxCharges) {
       return `${item.currentCharges ?? item.maxCharges}/${item.maxCharges}`;
+    }
+    if (item.type === "equipment" && item.properties?.reqLevel) {
+      return `Lv.${item.properties.reqLevel}`;
     }
     if (item.tier) return `T${item.tier}`;
     if (item.level) return `Lv.${item.level}`;
@@ -330,8 +402,8 @@ export class ChestPanel {
 
       bodyHtml = `
         <div class="bag-modal__sprite">
-          <img src="/assets/potions/${item.flaskType}/red_${spriteIdx}.png"
-               style="width:64px;height:64px;image-rendering:pixelated">
+          <img src="/assets/equipments/consumables/${item.flaskType}s/red_${spriteIdx}.png"
+               style="width:83px;height:83px;image-rendering:pixelated">
         </div>
         <div class="bag-modal__stats">
           <div class="bag-modal__stat-row">
@@ -369,14 +441,33 @@ export class ChestPanel {
           </div>
         </div>
       `;
+    } else if (item.type === "equipment") {
+      bodyHtml = this._renderEquipmentModal(item, char, equipment);
     }
+
+    // Lore (equipment from catalogs, potions from POTION_LORE)
+    const loreText = item.type === 'equipment' && item.icon
+      ? getLore(item.icon)
+      : item.type === 'potion' && item.flaskType
+        ? POTION_LORE[item.flaskType] || undefined
+        : undefined;
+    const loreHtml = loreText
+      ? `<div class="equip-potion-modal__lore">${loreText}</div>`
+      : '';
+
+    const sellPrice = calcSellPrice(item);
 
     contentEl.innerHTML = `
       <button class="bag-modal__close">&times;</button>
       <div class="bag-modal__name" style="color:${q.color}">${item.name}</div>
       <div class="bag-modal__quality" style="color:${q.color}">${q.label}</div>
       ${bodyHtml}
-      <button class="bag-modal__discard-btn" data-item-id="${item.id}">Discard</button>
+      <div class="bag-modal__actions-row">
+        <button class="bag-modal__sell-btn" data-item-id="${item.id}">
+          Sell <span class="bag-modal__sell-price">${sellPrice} &#x1FA99;</span>
+        </button>
+      </div>
+      ${loreHtml}
     `;
 
     // Show modal
@@ -385,16 +476,27 @@ export class ChestPanel {
     // Wire close
     contentEl.querySelector(".bag-modal__close")!.addEventListener("click", () => this._closeModal());
 
-    // Wire discard
-    contentEl.querySelector(".bag-modal__discard-btn")!.addEventListener("click", async () => {
-      await this._discardItem(item.id);
+    // Wire sell
+    contentEl.querySelector(".bag-modal__sell-btn")!.addEventListener("click", async () => {
+      await this._sellItem(item.id);
     });
 
-    // Wire equip buttons
+    // Discard button removed - sell is sufficient
+
+    // Wire equip buttons (potions)
     contentEl.querySelectorAll(".bag-modal__equip-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const slot = (btn as HTMLElement).dataset.slot!;
         await this._equipPotion(item.id, slot);
+      });
+    });
+
+    // Wire equip-item buttons (gear)
+    contentEl.querySelectorAll(".bag-modal__equip-item-btn").forEach((btn) => {
+      if ((btn as HTMLElement).classList.contains("bag-modal__equip-item-btn--disabled")) return;
+      btn.addEventListener("click", async () => {
+        const slot = (btn as HTMLElement).dataset.slot!;
+        await this._equipItem(item.id, slot);
       });
     });
   }
@@ -418,8 +520,8 @@ export class ChestPanel {
       compHtml = `
         <div class="bag-modal__compare">
           <div class="bag-modal__compare-current">
-            <img src="/assets/potions/${current.flaskType}/red_${spriteIdx}.png"
-                 style="width:24px;height:24px;image-rendering:pixelated">
+            <img src="/assets/equipments/consumables/${current.flaskType}s/red_${spriteIdx}.png"
+                 style="width:31px;height:31px;image-rendering:pixelated">
             <span class="bag-modal__compare-name">${current.name || current.flaskType}</span>
           </div>
           <div class="bag-modal__compare-stats">
@@ -440,6 +542,147 @@ export class ChestPanel {
     `;
   }
 
+  /** Render the item detail body for equipment items (stats + equip buttons). */
+  _renderEquipmentModal(
+    item: BagItem,
+    char: { level: number; inventory?: { equipment?: Record<string, any> } } | null,
+    equipment: Record<string, any>,
+  ): string {
+    const props = item.properties || {};
+    const sub = SUBTYPES.find(s => s.code === props.subtype);
+    const handTag = sub?.slot === 'one_hand' ? ' (1H)' : sub?.slot === 'two_hand' ? ' (2H)' : '';
+    const subtypeName = (sub?.name || props.subtype || '') + handTag;
+    const reqLevel = props.reqLevel || 0;
+    const charLevel = char?.level || 0;
+    const canEquip = charLevel >= reqLevel;
+
+    let statsHtml = '<div class="bag-modal__stats">';
+
+    // Base stats
+    if (props.baseDamage) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base Damage</span><span class="bag-modal__stat-val">${props.baseDamage}</span></div>`;
+    }
+    if (props.baseArmor) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base Armour</span><span class="bag-modal__stat-val">${props.baseArmor}</span></div>`;
+    }
+    if (props.baseEvasion) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base Evasion</span><span class="bag-modal__stat-val">${props.baseEvasion}</span></div>`;
+    }
+    if (props.baseES) {
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">Base ES</span><span class="bag-modal__stat-val">${props.baseES}</span></div>`;
+    }
+
+    // Implicit
+    if (props.implicit) {
+      const implDef = STAT_DEFS[props.implicit.id as StatId];
+      const implName = implDef?.name || props.implicit.id;
+      const implUnit = implDef?.unit === '+N%' ? '%' : implDef?.unit === '+N/s' ? '/s' : '';
+      statsHtml += `<div class="bag-modal__stat-row" style="color:#b0a060"><span class="bag-modal__stat-label">Implicit</span><span class="bag-modal__stat-val">+${props.implicit.value}${implUnit} ${implName}</span></div>`;
+    }
+
+    // Rolled stats
+    for (const stat of props.stats || []) {
+      const def = STAT_DEFS[stat.id as StatId];
+      const name = def?.name || stat.id;
+      const unit = def?.unit === '+N%' ? '%' : def?.unit === '+N/s' ? '/s' : '';
+      statsHtml += `<div class="bag-modal__stat-row"><span class="bag-modal__stat-label">${name}</span><span class="bag-modal__stat-val">+${stat.value}${unit}</span></div>`;
+    }
+
+    // Req level
+    const lvlColor = canEquip ? '#888' : '#ff4444';
+    statsHtml += `<div class="bag-modal__stat-row" style="margin-top:6px"><span class="bag-modal__stat-label" style="color:${lvlColor}">Required Level</span><span class="bag-modal__stat-val" style="color:${lvlColor}">${reqLevel}</span></div>`;
+    statsHtml += '</div>';
+
+    // Equip buttons
+    const itemSlot = props.slot as EquipmentSlotId;
+    const validSlots = itemSlot ? getValidUISlots(itemSlot) : [];
+
+    const SLOT_LABELS: Record<string, string> = {
+      'weapon-left': 'Left Hand', 'weapon-right': 'Right Hand',
+      'head': 'Helmet', 'chest': 'Armor',
+      'accessory-1': 'Ring L', 'accessory-2': 'Amulet', 'accessory-3': 'Ring R',
+      'gloves': 'Gloves', 'belt': 'Belt', 'boots': 'Boots',
+    };
+
+    let equipHtml = '<div class="bag-modal__equip-row">';
+    for (const slotId of validSlots) {
+      const label = SLOT_LABELS[slotId] || slotId;
+      const disabledCls = canEquip ? '' : 'bag-modal__equip-item-btn--disabled';
+      const disabledTitle = canEquip ? '' : `title="Level ${reqLevel} required"`;
+
+      // Current slot preview with stats
+      let compHtml = "";
+      const currentGear = equipment[slotId];
+      if (currentGear && currentGear.type === 'equipment') {
+        const curQ = QUALITY_COLORS[currentGear.quality] || QUALITY_COLORS.common;
+        const curIcon = currentGear.icon
+          ? `<img src="${currentGear.icon}" style="width:28px;height:28px;image-rendering:pixelated">`
+          : '';
+        const curProps = currentGear.properties || {};
+
+        // Build current item stats summary
+        let curStatsHtml = '';
+        if (curProps.baseDamage) curStatsHtml += `<div class="bag-modal__compare-stat">Base Dmg: ${curProps.baseDamage}</div>`;
+        if (curProps.baseArmor) curStatsHtml += `<div class="bag-modal__compare-stat">Armour: ${curProps.baseArmor}</div>`;
+        if (curProps.baseEvasion) curStatsHtml += `<div class="bag-modal__compare-stat">Evasion: ${curProps.baseEvasion}</div>`;
+        if (curProps.baseES) curStatsHtml += `<div class="bag-modal__compare-stat">ES: ${curProps.baseES}</div>`;
+        if (curProps.implicit) {
+          const cImplDef = STAT_DEFS[curProps.implicit.id as StatId];
+          const cImplUnit = cImplDef?.unit === '+N%' ? '%' : cImplDef?.unit === '+N/s' ? '/s' : '';
+          curStatsHtml += `<div class="bag-modal__compare-stat" style="color:#b0a060">+${curProps.implicit.value}${cImplUnit} ${cImplDef?.name || curProps.implicit.id}</div>`;
+        }
+        for (const st of curProps.stats || []) {
+          const stDef = STAT_DEFS[st.id as StatId];
+          const stUnit = stDef?.unit === '+N%' ? '%' : stDef?.unit === '+N/s' ? '/s' : '';
+          curStatsHtml += `<div class="bag-modal__compare-stat">+${st.value}${stUnit} ${stDef?.name || st.id}</div>`;
+        }
+
+        compHtml = `
+          <div class="bag-modal__compare">
+            <div class="bag-modal__compare-header">Currently equipped:</div>
+            <div class="bag-modal__compare-current">
+              ${curIcon}
+              <span class="bag-modal__compare-name" style="color:${curQ.color}">${currentGear.name || 'Unknown'}</span>
+            </div>
+            ${curStatsHtml ? `<div class="bag-modal__compare-stats">${curStatsHtml}</div>` : ''}
+          </div>
+        `;
+      }
+
+      equipHtml += `
+        <div class="bag-modal__equip-slot">
+          <button class="bag-modal__equip-item-btn ${disabledCls}" data-slot="${slotId}" ${disabledTitle}>
+            Equip → ${label}
+          </button>
+          ${compHtml}
+        </div>
+      `;
+    }
+    equipHtml += '</div>';
+
+    if (!canEquip) {
+      equipHtml += `<div class="bag-modal__level-warn" style="color:#ff4444;font-size:12px;text-align:center;margin-top:4px">Your level ${charLevel} is too low (need ${reqLevel})</div>`;
+    }
+
+    // Lore from catalog
+    const loreText = item.icon ? getLore(item.icon) : undefined;
+    const loreHtml = loreText
+      ? `<div class="equip-potion-modal__lore">${loreText}</div>`
+      : '';
+
+    // Equipment icon sprite
+    const iconHtml = item.icon
+      ? `<div class="bag-modal__sprite"><img src="${item.icon}" style="width:128px;height:128px;image-rendering:pixelated"></div>`
+      : '';
+
+    return `
+      ${iconHtml}
+      <div class="bag-modal__type-label">${subtypeName}</div>
+      ${statsHtml}
+      ${equipHtml}
+    `;
+  }
+
   _closeModal(): void {
     if (this._modalEl) {
       this._modalEl.classList.add("hidden");
@@ -457,6 +700,36 @@ export class ChestPanel {
       this._renderGrid();
     } catch (err) {
       console.error("[ChestPanel] Equip failed:", err);
+    }
+  }
+
+  async _equipItem(itemId: string, slotId: string): Promise<void> {
+    try {
+      await loot.equipItem(itemId, slotId);
+      this._closeModal();
+      await this.state.refreshState();
+      this._renderTabs();
+      this._renderGrid();
+      this.events.emit("equipmentChanged");
+    } catch (err: any) {
+      console.error("[ChestPanel] Equip item failed:", err);
+      // Show error message to user if it's a level check failure
+      if (err?.message?.includes('too low')) {
+        alert(err.message);
+      }
+    }
+  }
+
+  async _sellItem(itemId: string): Promise<void> {
+    try {
+      const result = await loot.sellItem(itemId);
+      this._closeModal();
+      await this.state.refreshState();
+      this._renderTabs();
+      this._renderGrid();
+      this.events.emit("goldChanged", { gold: result.gold });
+    } catch (err) {
+      console.error("[ChestPanel] Sell failed:", err);
     }
   }
 

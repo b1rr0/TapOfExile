@@ -1,11 +1,10 @@
-/**
- * FriendsPanel — fullscreen overlay with 3 tabs:
- *  1. Friends list (accepted) — tap to view profile + equipment
- *  2. Requests (incoming pending) — accept / reject
- *  3. Search — find characters by nickname, send request
+﻿/**
+ * FriendsPanel - fullscreen overlay with 2 master tabs:
+ *  1. Friends - sub-tabs: list, requests, search
+ *  2. Referrals - referral ID, stats, enter code, share, info
  */
 
-import { friends } from "../api.js";
+import { friends, player } from "../api.js";
 import { getCharacterClass } from "../data/character-classes.js";
 
 interface EventBus {
@@ -17,9 +16,15 @@ interface EventBus {
 interface GameState {
   getActiveCharacter(): { id: string; [k: string]: any } | null;
   refreshState(): Promise<void>;
+  data: { shards: string; [k: string]: any };
+  hasReferrer: boolean;
+  referrerName: string | null;
+  referralCount: number;
+  referralIncome: number;
 }
 
-type TabType = "friends" | "requests" | "search";
+type MasterTab = "friends" | "referrals";
+type FriendsSubTab = "friends" | "requests" | "search";
 
 export class FriendsPanel {
   container: HTMLElement;
@@ -27,7 +32,8 @@ export class FriendsPanel {
   state: GameState;
   isOpen: boolean;
   _el: HTMLElement | null;
-  _activeTab: TabType;
+  _activeMasterTab: MasterTab;
+  _activeSubTab: FriendsSubTab;
   _searchTimer: ReturnType<typeof setTimeout> | null;
   _profileEl: HTMLElement | null;
 
@@ -37,7 +43,8 @@ export class FriendsPanel {
     this.state = state;
     this.isOpen = false;
     this._el = null;
-    this._activeTab = "friends";
+    this._activeMasterTab = "friends";
+    this._activeSubTab = "friends";
     this._searchTimer = null;
     this._profileEl = null;
 
@@ -55,13 +62,25 @@ export class FriendsPanel {
         <button class="friends-close-btn" id="friends-close">&times;</button>
         <h2 class="friends-title">Friends</h2>
 
-        <div class="friends-tabs" id="friends-tabs">
-          <button class="friends-tab friends-tab--active" data-tab="friends">Friends</button>
-          <button class="friends-tab" data-tab="requests">Requests</button>
-          <button class="friends-tab" data-tab="search">Search</button>
+        <div class="friends-master-tabs" id="friends-master-tabs">
+          <button class="friends-master-tab friends-master-tab--active" data-master="friends">Friends</button>
+          <button class="friends-master-tab" data-master="referrals">Referrals</button>
         </div>
 
-        <div class="friends-content" id="friends-content"></div>
+        <!-- Friends section -->
+        <div class="friends-section" id="friends-section-friends">
+          <div class="friends-tabs" id="friends-tabs">
+            <button class="friends-tab friends-tab--active" data-tab="friends">Friends</button>
+            <button class="friends-tab" data-tab="requests">Requests</button>
+            <button class="friends-tab" data-tab="search">Search</button>
+          </div>
+          <div class="friends-content" id="friends-content"></div>
+        </div>
+
+        <!-- Referrals section -->
+        <div class="friends-section hidden" id="friends-section-referrals">
+          <div class="friends-referrals-body" id="friends-referrals-body"></div>
+        </div>
       </div>
 
       <div class="friends-profile-overlay hidden" id="friends-profile-overlay">
@@ -85,23 +104,39 @@ export class FriendsPanel {
     this._profileEl!.querySelector(".friends-profile-backdrop")!
       .addEventListener("click", () => this._closeProfile());
 
-    // Tab clicks
+    // Master tab clicks
+    this._el.querySelector("#friends-master-tabs")!.addEventListener("click", (e: Event) => {
+      const btn = (e.target as HTMLElement).closest(".friends-master-tab") as HTMLElement | null;
+      if (!btn) return;
+      const tab = btn.dataset.master as MasterTab;
+      if (tab === this._activeMasterTab) return;
+      this._activeMasterTab = tab;
+      this._el!.querySelectorAll(".friends-master-tab").forEach((b) => {
+        b.classList.toggle("friends-master-tab--active", (b as HTMLElement).dataset.master === tab);
+      });
+      this._el!.querySelector("#friends-section-friends")!.classList.toggle("hidden", tab !== "friends");
+      this._el!.querySelector("#friends-section-referrals")!.classList.toggle("hidden", tab !== "referrals");
+      if (tab === "friends") this._renderFriendsContent();
+      if (tab === "referrals") this._renderReferralsContent();
+    });
+
+    // Sub-tab clicks (friends section)
     this._el.querySelector("#friends-tabs")!.addEventListener("click", (e: Event) => {
       const btn = (e.target as HTMLElement).closest(".friends-tab") as HTMLElement | null;
       if (!btn) return;
-      const tab = btn.dataset.tab as TabType;
-      if (tab === this._activeTab) return;
-      this._activeTab = tab;
+      const tab = btn.dataset.tab as FriendsSubTab;
+      if (tab === this._activeSubTab) return;
+      this._activeSubTab = tab;
       this._el!.querySelectorAll(".friends-tab").forEach((b) => {
         b.classList.toggle("friends-tab--active", (b as HTMLElement).dataset.tab === tab);
       });
-      this._renderContent();
+      this._renderFriendsContent();
     });
   }
 
   /* ── Content rendering ────────────────────────────────── */
 
-  async _renderContent(): Promise<void> {
+  async _renderFriendsContent(): Promise<void> {
     const contentEl = this._el!.querySelector("#friends-content")!;
     const char = this.state.getActiveCharacter();
     if (!char) {
@@ -111,7 +146,7 @@ export class FriendsPanel {
 
     contentEl.innerHTML = `<div class="friends-loading">Loading...</div>`;
 
-    switch (this._activeTab) {
+    switch (this._activeSubTab) {
       case "friends":
         await this._renderFriendsList(contentEl as HTMLElement, char.id);
         break;
@@ -122,6 +157,95 @@ export class FriendsPanel {
         this._renderSearch(contentEl as HTMLElement, char.id);
         break;
     }
+  }
+
+  _renderReferralsContent(): void {
+    const body = this._el!.querySelector("#friends-referrals-body")!;
+    const tg = (window as any).Telegram?.WebApp;
+    const myId = tg?.initDataUnsafe?.user?.id || "";
+
+    body.innerHTML = `
+      <div class="shop-scene__balance" style="margin: 8px 12px;">
+        <span class="shop-scene__balance-icon">&#x1F48E;</span>
+        <span class="shop-scene__balance-amount">${this.state.data.shards || "0"}</span>
+        <span class="shop-scene__balance-label">Shards</span>
+      </div>
+
+      <div class="friends-referral-stats">
+        <div class="friends-referral-stats__row">
+          <span class="friends-referral-stats__label">Your Referral ID</span>
+          <span class="friends-referral-stats__value">
+            <span class="friends-referral__code">${myId}</span>
+            <button class="friends-referral__copy" id="ref-copy-id" title="Copy">&#x1F4CB;</button>
+          </span>
+        </div>
+        <div class="friends-referral-stats__row">
+          <span class="friends-referral-stats__label">Referred Players</span>
+          <span class="friends-referral-stats__value friends-referral-stats__value--num">${this.state.referralCount}</span>
+        </div>
+        <div class="friends-referral-stats__row">
+          <span class="friends-referral-stats__label">Your Income (10%)</span>
+          <span class="friends-referral-stats__value friends-referral-stats__value--num">${this.state.referralIncome} shards</span>
+        </div>
+      </div>
+
+      ${this.state.hasReferrer
+        ? `<div class="friends-referral__done">Invited by: <strong>${this.state.referrerName || 'Unknown'}</strong></div>`
+        : `<div class="friends-referral__enter" id="ref-enter">
+            <input class="friends-referral__input" type="text" placeholder="Enter referral ID..." maxlength="20" id="ref-input" inputmode="numeric">
+            <button class="friends-referral__apply" id="ref-apply">Apply</button>
+          </div>
+          <div class="friends-referral__hint">Enter the code of the friend who invited you</div>`
+      }
+
+      <div class="friends-share" id="ref-share">
+        <button class="friends-share__toggle" id="ref-share-toggle">
+          <span>&#x1F517;</span> Share Invite Link
+        </button>
+        <div class="friends-share__menu hidden" id="ref-share-menu">
+          <button class="friends-share__option" data-share="telegram">&#x2708;&#xFE0F; Send in Telegram</button>
+          <button class="friends-share__option" data-share="instagram">&#x1F4F7; Instagram Stories</button>
+          <button class="friends-share__option" data-share="copy">&#x1F4CB; Copy Link</button>
+        </div>
+      </div>
+
+      <div class="friends-referral-info">
+        <div class="friends-referral-info__title">How it works</div>
+        <div class="friends-referral-info__text">
+          Invite friends and earn! Share your Referral ID or invite link.
+          When someone enters your ID, you both get <b>50 shards</b>.
+          Plus you earn <b>10%</b> of every Stars purchase they make!
+        </div>
+      </div>
+    `;
+
+    // Copy ID
+    body.querySelector("#ref-copy-id")!.addEventListener("click", () => {
+      const id = myId ? String(myId) : "";
+      if (!id) return;
+      navigator.clipboard.writeText(id).then(() => {
+        this._showToast("ID copied!");
+      }).catch(() => {
+        this._showToast("ID: " + id);
+      });
+    });
+
+    // Apply referral
+    const applyBtn = body.querySelector("#ref-apply");
+    if (applyBtn) {
+      applyBtn.addEventListener("click", () => this._handleApplyReferral());
+    }
+
+    // Share toggle
+    const shareToggle = body.querySelector("#ref-share-toggle")!;
+    const shareMenu = body.querySelector("#ref-share-menu")!;
+    shareToggle.addEventListener("click", () => shareMenu.classList.toggle("hidden"));
+    shareMenu.addEventListener("click", (e: Event) => {
+      const btn = (e.target as HTMLElement).closest(".friends-share__option") as HTMLElement | null;
+      if (!btn) return;
+      shareMenu.classList.add("hidden");
+      this._handleShare(btn.dataset.share || "copy");
+    });
   }
 
   /* ── Friends list tab ──────────────────────────────────── */
@@ -158,9 +282,7 @@ export class FriendsPanel {
         `;
       }).join("");
 
-      // Click handlers
       el.addEventListener("click", (e: Event) => {
-        // Action buttons (chat / trade) — coming soon
         const actionBtn = (e.target as HTMLElement).closest(".friends-item__action-btn") as HTMLElement | null;
         if (actionBtn) {
           e.stopPropagation();
@@ -171,7 +293,6 @@ export class FriendsPanel {
           return;
         }
 
-        // Tap on row → view profile
         const item = (e.target as HTMLElement).closest(".friends-item") as HTMLElement | null;
         if (!item) return;
         const friendCharId = item.dataset.charId!;
@@ -226,7 +347,6 @@ export class FriendsPanel {
         try {
           await friends.respond(friendshipId, accept);
           row.remove();
-          // Check if list is now empty
           if (!el.querySelector(".friends-request")) {
             el.innerHTML = `<div class="friends-empty">No pending requests</div>`;
           }
@@ -266,7 +386,6 @@ export class FriendsPanel {
       }, 300);
     });
 
-    // Focus input
     setTimeout(() => input.focus(), 100);
   }
 
@@ -348,9 +467,9 @@ export class FriendsPanel {
         <div class="friends-profile__section-title">Stats</div>
         <div class="friends-profile__stats">
           <div class="friends-profile__stat">HP: ${c.maxHp}</div>
-          <div class="friends-profile__stat">Damage: ${c.tapDamage}</div>
-          <div class="friends-profile__stat">Crit: ${Math.round((c.critChance || 0) * 100)}%</div>
-          <div class="friends-profile__stat">Crit Dmg: ${Math.round((c.critMultiplier || 1) * 100)}%</div>
+          <div class="friends-profile__stat"><span class="stat-bugei">Bugei</span> Damage: ${c.tapDamage}</div>
+          <div class="friends-profile__stat"><span class="stat-bugei">Bugei</span> Crit Chance: ${Math.round((c.critChance || 0) * 100)}%</div>
+          <div class="friends-profile__stat"><span class="stat-bugei">Bugei</span> Crit Damage: ${Math.round((c.critMultiplier || 1) * 100)}%</div>
           <div class="friends-profile__stat">Dodge: ${Math.round((c.dodgeChance || 0) * 100)}%</div>
           <div class="friends-profile__stat">Dojo Best: ${c.dojoBestDamage > 0 ? this._formatDmg(c.dojoBestDamage) : "---"}</div>
         </div>
@@ -382,8 +501,7 @@ export class FriendsPanel {
           try {
             await friends.remove(friendshipId);
             this._closeProfile();
-            // Refresh friends list
-            this._renderContent();
+            this._renderFriendsContent();
           } catch (err) {
             console.error("[FriendsPanel] Remove failed:", err);
           }
@@ -401,6 +519,95 @@ export class FriendsPanel {
 
   _closeProfile(): void {
     if (this._profileEl) this._profileEl.classList.add("hidden");
+  }
+
+  async _handleApplyReferral(): Promise<void> {
+    const input = this._el?.querySelector("#ref-input") as HTMLInputElement | null;
+    const btn = this._el?.querySelector("#ref-apply") as HTMLButtonElement | null;
+    if (!input || !btn) return;
+
+    const code = input.value.trim();
+    if (!code || !/^\d+$/.test(code)) {
+      this._showToast("Enter a valid numeric ID");
+      return;
+    }
+
+    const tg = (window as any).Telegram?.WebApp;
+    const myId = tg?.initDataUnsafe?.user?.id;
+    if (myId && String(myId) === code) {
+      this._showToast("Cannot refer yourself");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "...";
+    try {
+      await player.applyReferral(code);
+      this.state.hasReferrer = true;
+      // Replace enter form + hint with "Invited by" message
+      const enterEl = this._el?.querySelector("#ref-enter");
+      const hintEl = this._el?.querySelector(".friends-referral__hint");
+      if (enterEl) enterEl.remove();
+      if (hintEl) hintEl.remove();
+      // Insert "Invited by" after stats block
+      const statsEl = this._el?.querySelector(".friends-referral-stats");
+      if (statsEl) {
+        const doneDiv = document.createElement("div");
+        doneDiv.className = "friends-referral__done";
+        doneDiv.innerHTML = `Invited by: <strong>${code}</strong>`;
+        statsEl.after(doneDiv);
+      }
+      this._showToast("+50 shards!");
+      this.state.refreshState().catch(() => {});
+    } catch (err: any) {
+      btn.disabled = false;
+      btn.textContent = "Apply";
+      const msg = err?.message || "Error";
+      this._showToast(msg);
+    }
+  }
+
+  _handleShare(mode: string): void {
+    const tg = (window as any).Telegram?.WebApp;
+    const userId = tg?.initDataUnsafe?.user?.id;
+    if (!userId) {
+      this._showToast("Cannot generate invite link");
+      return;
+    }
+
+    const url = `https://t.me/tap_of_exile_bot?start=ref_${userId}`;
+    const text = "Join Tap of Exile and get 50 Shards!";
+
+    switch (mode) {
+      case "telegram":
+        if (tg?.openTelegramLink) {
+          tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+        } else {
+          this._copyToClipboard(url);
+        }
+        break;
+
+      case "instagram":
+        if (tg?.openLink) {
+          tg.openLink(`https://www.instagram.com/stories/create/?url=${encodeURIComponent(url)}`);
+        } else {
+          window.open(`https://www.instagram.com/stories/create/?url=${encodeURIComponent(url)}`, "_blank");
+        }
+        break;
+
+      case "copy":
+      default:
+        this._copyToClipboard(url);
+        break;
+    }
+  }
+
+  _copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this._showToast("Link copied!");
+    }).catch(() => {
+      this._showToast(text);
+    });
   }
 
   _showToast(msg: string): void {
@@ -448,14 +655,22 @@ export class FriendsPanel {
   open(): void {
     if (this.isOpen) return;
     this.isOpen = true;
-    this._activeTab = "friends";
+    this._activeMasterTab = "friends";
+    this._activeSubTab = "friends";
 
-    // Reset tab UI
+    // Reset master tabs UI
+    this._el!.querySelectorAll(".friends-master-tab").forEach((b) => {
+      b.classList.toggle("friends-master-tab--active", (b as HTMLElement).dataset.master === "friends");
+    });
+    this._el!.querySelector("#friends-section-friends")!.classList.remove("hidden");
+    this._el!.querySelector("#friends-section-referrals")!.classList.add("hidden");
+
+    // Reset sub-tabs UI
     this._el!.querySelectorAll(".friends-tab").forEach((b) => {
       b.classList.toggle("friends-tab--active", (b as HTMLElement).dataset.tab === "friends");
     });
 
-    this._renderContent();
+    this._renderFriendsContent();
     this._el!.classList.remove("hidden", "friends-closing");
     void this._el!.offsetHeight;
     this._el!.classList.add("friends-visible");

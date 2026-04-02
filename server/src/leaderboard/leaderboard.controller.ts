@@ -1,10 +1,10 @@
-import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
+﻿import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LeaderboardService } from './leaderboard.service';
 import { LeaderboardQueryDto } from './dto/leaderboard-query.dto';
 
 /**
- * Public leaderboard endpoints — no authentication required.
+ * Public leaderboard endpoints - no authentication required.
  * Used by the wiki site and other public-facing pages.
  */
 @ApiTags('leaderboard')

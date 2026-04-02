@@ -81,7 +81,13 @@ export class Effects {
     });
 
     this._on("skillHit", (data: any) => {
-      if (data.damageBreakdown) {
+      if (data.skillType === "heal" && data.healAmount > 0) {
+        this.showHeal(data.healAmount);
+      } else if (data.skillType === "buff") {
+        this.showPlayerStatus("BUFF", "#F9CF87");
+      } else if (data.skillType === "debuff") {
+        this.showPlayerStatus("DEBUFF", "#B9508D");
+      } else if (data.damageBreakdown) {
         this.showElementalDamage(data.damageBreakdown, data.isCrit);
       } else if (data.damage > 0) {
         this.showDamageNumber(data.damage, data.isCrit);

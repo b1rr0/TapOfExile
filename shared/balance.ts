@@ -1,5 +1,5 @@
-/**
- * GAME BALANCE — single source of truth for both FE and BE.
+﻿/**
+ * GAME BALANCE - single source of truth for both FE and BE.
  *
  * All numeric balance constants live here.
  * Endgame-specific balance (tiers, drop chances, bosses) lives in endgame-maps.ts.
@@ -8,17 +8,24 @@
 export const B = {
 
   /* ── Scaling formulas ─────────────────────── */
-  ACT_SCALING_BASE: 2.5,            // actMul = 2.5^(act-1)
+  /**
+   * General act scaling - used for Gold & XP.
+   * HP and DMG have their own dedicated act scaling below.
+   */
+  ACT_SCALING_BASE: 3.5,            // actMul = 3.5^(act-1) - gold/xp
 
-  /* ── Monsters — base stats (location mode) ── */
-  MONSTER_HP_BASE: 10,
-  MONSTER_HP_GROWTH: 1.5,            // 1.5^(order-1)
+  /* ── Monsters - HP (PoE-style: HP >> DMG) ─── */
+  MONSTER_HP_BASE: 300,              // base HP at order=1, act=1, common
+  MONSTER_HP_GROWTH: 1.55,           // 1.55^(order-1) - within-act scaling
   MONSTER_HP_RANDOM: 0.15,           // +/-15%
+  ACT_HP_SCALING: 4.0,              // actHpMul = 4.0^(act-1) - A5O10 boss ≈ 16M
 
-  MONSTER_GOLD_BASE: 3,
+  /* ── Monsters - Gold ─────────────────────── */
+  MONSTER_GOLD_BASE: 15,             // was 3 - proportional to higher HP
   MONSTER_GOLD_GROWTH: 1.35,
 
-  MONSTER_XP_BASE: 5,
+  /* ── Monsters - XP ───────────────────────── */
+  MONSTER_XP_BASE: 15,               // was 5 - proportional to higher HP
   MONSTER_XP_GROWTH: 1.3,
 
   /* Legacy infinite mode */
@@ -32,7 +39,7 @@ export const B = {
   LEGACY_XP_GROWTH: 1.3,
   LEGACY_XP_WAVE_BONUS: 0.05,
 
-  /* Map monsters — base reference point (Act 5, Order 10) */
+  /* Map monsters - base reference point (Act 5, Order 10) */
   MAP_BASE_ACT: 5,
   MAP_BASE_ORDER: 10,
 
@@ -61,12 +68,12 @@ export const B = {
   /* ── Player progression ───────────────────── */
   MAX_LEVEL: 60,
   XP_BASE: 100,                     // xpToNext = XP_BASE * XP_GROWTH^(level-1)
-  XP_GROWTH: 1.3,
+  XP_GROWTH: 1.18,                  // was 1.3 - flatter curve, L60 reachable in ~3K runs
 
   /** XP level-scaling: XP = BaseXP / (1 + a*D²), D = |playerLevel - enemyLevel| */
-  XP_LEVEL_SCALING_A: 0.4,
+  XP_LEVEL_SCALING_A: 0.3,          // was 0.4 - softer penalty for level difference
 
-  /** Legacy fallback — class-specific stats in shared/class-stats.ts */
+  /** Legacy fallback - class-specific stats in shared/class-stats.ts */
   STARTING_STATS: {
     level: 1,
     tapDamage: 2,
@@ -79,9 +86,10 @@ export const B = {
 
   /* ── Enemy attack system ─────────────────── */
   ENEMY_ATTACK_INTERVAL_MS: 1000,     // 1 attack per second
-  MONSTER_DMG_BASE: 3,                 // base damage at order=1, common
-  MONSTER_DMG_GROWTH: 1.4,             // dmg = BASE * GROWTH^(order-1)
+  MONSTER_DMG_BASE: 15,                // base damage at order=1, common (was 3)
+  MONSTER_DMG_GROWTH: 1.15,            // dmg per order = 1.15^(order-1) (was 1.4)
   MONSTER_DMG_RANDOM: 0.10,            // ±10% variance
+  ACT_DMG_SCALING: 3.5,               // actDmgMul = 3.5^(act-1) - A5O10 boss ≈ 20K
   RARITY_DMG_MULTIPLIERS: {
     common: 1.0,
     rare:   1.3,
@@ -96,7 +104,7 @@ export const B = {
 
   /* ── Elemental system ───────────────────────── */
 
-  /** Default elemental damage profile — 100% physical for everyone.
+  /** Default elemental damage profile - 100% physical for everyone.
    *  Elemental splits come from skill-tree nodes, not from class. */
   DEFAULT_ELEMENTAL_DAMAGE: { physical: 1.0 } as Record<string, number>,
 
@@ -119,13 +127,21 @@ export const B = {
 
   /* ── Anti-cheat ──────────────────────────── */
   ANTICHEAT_WINDOW_MS: 3000,              // 3-second counting window
-  ANTICHEAT_MSG_LIMIT: 30,               // max socket messages per 3-sec window
+  ANTICHEAT_MSG_LIMIT: 50,               // max socket messages per 3-sec window (~17/s)
   ANTICHEAT_BAN_DURATION_MS: 86_400_000,  // 1 day (24h)
 
   /* ── Dojo ──────────────────────────────── */
   DOJO_COUNTDOWN_MS: 3_000,              // 3-second countdown before fight
   DOJO_ROUND_MS: 10_000,                 // 10-second fight
   DOJO_SESSION_TTL: 60,                  // Redis TTL (1 min)
+
+  /* ── Premium shop ─────────────────────── */
+  BASE_TRADE_SLOTS: 5,                   // base max active trade listings
+  TRADE_SLOTS_PER_PURCHASE: 10,          // +10 per purchase
+  MAX_EXTRA_TRADE_SLOTS: 95,             // 5 base + 95 = 100 max
+  SKIN_PRICE_SHARDS: 350,               // cost per non-default skin
+  REFERRAL_REWARD_SHARDS: 50,            // shards for both referrer & referee
+  REFERRAL_INCOME_PERCENT: 10,           // % of referral's Stars purchases → referrer
 };
 
 /* ── Rarity display data ─────────────────── */

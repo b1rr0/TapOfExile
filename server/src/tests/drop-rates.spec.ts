@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Loot Pool simulation tests.
  *
  * New system: 3 independent rolls per combat, weighted pool with implicit
@@ -204,7 +204,7 @@ describe('Map Key Drop Rates', () => {
           }
         }
 
-        console.log(`\n  ═══ MAP TIER ${tier} — KEY DROPS ═══`);
+        console.log(`\n  ═══ MAP TIER ${tier} - KEY DROPS ═══`);
         console.log(`  Map keys: ${totalMapKeys} (${formatRecord(mapKeysByTier as any)})`);
         console.log(`  Boss keys: ${totalBossKeys} (${formatRecord(bossKeysByTier as any)})`);
 
@@ -215,7 +215,7 @@ describe('Map Key Drop Rates', () => {
 });
 
 describe('Quality progression summary', () => {
-  it('1000 combats per source — progression table', () => {
+  it('1000 combats per source - progression table', () => {
     const bigRuns = 1000;
 
     console.log('\n  ═══ PROGRESSION (1000 combats × 3 rolls each) ═══');

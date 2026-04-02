@@ -1,4 +1,4 @@
-import { buildSkillTree, NODE_RADIUS } from './skill-tree';
+﻿import { buildSkillTree, NODE_RADIUS } from './skill-tree';
 const tree = buildSkillTree();
 const { nodes, edges, figureMembership } = tree;
 
@@ -79,7 +79,7 @@ for (const n of nodes) {
 }
 console.log('Max notable→figureEntry:', maxNFE, worstNFE);
 
-// Figure stats — per-shape breakdown
+// Figure stats - per-shape breakdown
 const figureEntries = nodes.filter(n => n.type === 'figureEntry');
 const figureStats: Record<string, number> = {};
 for (const fe of figureEntries) {

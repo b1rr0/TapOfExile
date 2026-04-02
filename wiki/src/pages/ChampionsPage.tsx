@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import CharacterModal from '../components/CharacterModal';
 import { CLASS_DEFS } from '@shared/class-stats';
 import { B } from '@shared/balance';
@@ -37,6 +38,10 @@ interface XpEntry {
   skinId: string;
   level: number;
   xp: string;
+  tapDamage: number;
+  critChance: number;
+  critMultiplier: number;
+  dojoBestDamage: number;
   telegramUsername: string | null;
 }
 
@@ -95,12 +100,12 @@ function ClassCell({ classId }: { classId: string }) {
   );
 }
 
-function TableState({ loading, error, empty }: { loading: boolean; error: string | null; empty: boolean }) {
+function TableState({ loading, error, empty, t }: { loading: boolean; error: string | null; empty: boolean; t: (key: string) => string }) {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
         <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⏳</div>
-        Loading...
+        {t('common:ui.loading')}
       </div>
     );
   }
@@ -115,7 +120,7 @@ function TableState({ loading, error, empty }: { loading: boolean; error: string
   if (empty) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-        No records yet. Be the first!
+        {t('common:ui.noRecords')}
       </div>
     );
   }
@@ -151,9 +156,11 @@ function LeagueTabs({
 function ClassFilter({
   active,
   onChange,
+  allLabel,
 }: {
   active: string;
   onChange: (id: string) => void;
+  allLabel: string;
 }) {
   return (
     <div className="champ-class-filter">
@@ -161,7 +168,7 @@ function ClassFilter({
         className={`class-filter-btn ${active === 'all' ? 'active' : ''}`}
         onClick={() => onChange('all')}
       >
-        All
+        {allLabel}
       </button>
       {CLASS_LIST.map((cls) => (
         <button
@@ -180,6 +187,9 @@ function ClassFilter({
    MAIN COMPONENT
    ══════════════════════════════════════════════ */
 export default function ChampionsPage() {
+  const { t } = useTranslation('champions');
+  const { t: tc } = useTranslation('common');
+
   const [leagues, setLeagues] = useState<LeagueInfo[]>([]);
   const [dojoLeagueId, setDojoLeagueId] = useState<string | null>(null);
   const [xpLeagueId, setXpLeagueId] = useState<string | null>(null);
@@ -229,9 +239,9 @@ export default function ChampionsPage() {
         return r.json();
       })
       .then((d) => setDojoData(d.leaderboard || []))
-      .catch((e) => setDojoError(`Failed to load: ${e.message}`))
+      .catch((e) => setDojoError(t('failedToLoad', { error: e.message })))
       .finally(() => setDojoLoading(false));
-  }, [dojoLeagueId, leaguesLoading]);
+  }, [dojoLeagueId, leaguesLoading, t]);
 
   /* ── Fetch XP ─────────────────────────────── */
   useEffect(() => {
@@ -246,9 +256,9 @@ export default function ChampionsPage() {
         return r.json();
       })
       .then((d) => setXpData(d.leaderboard || []))
-      .catch((e) => setXpError(`Failed to load: ${e.message}`))
+      .catch((e) => setXpError(t('failedToLoad', { error: e.message })))
       .finally(() => setXpLoading(false));
-  }, [xpLeagueId, leaguesLoading]);
+  }, [xpLeagueId, leaguesLoading, t]);
 
   /* ── Filtered data ────────────────────────── */
   const filteredDojo = dojoClassFilter === 'all'
@@ -262,33 +272,33 @@ export default function ChampionsPage() {
   return (
     <>
       <div className="page-heading">
-        <h1>🏆 Champions</h1>
-        <p>Live leaderboards &mdash; real-time data from the game server.</p>
+        <h1>🏆 {t('title')}</h1>
+        <p>{t('subtitle')}</p>
       </div>
 
       {/* ════════════════════ DOJO ════════════════════ */}
-      <h2 className="section-title">🏆 Dojo Damage</h2>
+      <h2 className="section-title">🏆 {t('dojoTitle')}</h2>
       <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-        Top players by best damage dealt in a {B.DOJO_ROUND_MS / 1000}-second Dojo round.
+        {t('dojoSub', { seconds: B.DOJO_ROUND_MS / 1000 })}
       </p>
 
       {leaguesLoading ? (
-        <TableState loading error={null} empty={false} />
+        <TableState loading error={null} empty={false} t={tc} />
       ) : (
         <>
           <LeagueTabs leagues={leagues} activeLeagueId={dojoLeagueId} onChange={setDojoLeagueId} />
-          <ClassFilter active={dojoClassFilter} onChange={setDojoClassFilter} />
-          <TableState loading={dojoLoading} error={dojoError} empty={!dojoLoading && !dojoError && filteredDojo.length === 0} />
+          <ClassFilter active={dojoClassFilter} onChange={setDojoClassFilter} allLabel={tc('ui.all')} />
+          <TableState loading={dojoLoading} error={dojoError} empty={!dojoLoading && !dojoError && filteredDojo.length === 0} t={tc} />
           {!dojoLoading && !dojoError && filteredDojo.length > 0 && (
             <div style={{ overflowX: 'auto' }}>
               <table className="wiki-table">
                 <thead>
                   <tr>
                     <th style={{ width: 50 }}>#</th>
-                    <th>Player</th>
-                    <th>Class</th>
-                    <th>Level</th>
-                    <th>Best Damage</th>
+                    <th>{t('thPlayer')}</th>
+                    <th>{t('thClass')}</th>
+                    <th>{t('thLevel')}</th>
+                    <th>{t('thBestDamage')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -309,59 +319,62 @@ export default function ChampionsPage() {
       )}
 
       {/* ════════════════════ DOJO PARAMS ════════════════════ */}
-      <h2 className="section-title" style={{ marginTop: '2rem' }}>Dojo Parameters</h2>
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>{t('dojoParamsTitle')}</h2>
       <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
         <table className="wiki-table">
           <thead>
             <tr>
-              <th>Parameter</th>
-              <th>Value</th>
-              <th>Description</th>
+              <th>{tc('table.parameter')}</th>
+              <th>{tc('table.value')}</th>
+              <th>{tc('table.description')}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Countdown Duration</strong></td>
-              <td style={{ color: 'var(--accent-gold)' }}>{B.DOJO_COUNTDOWN_MS / 1000} seconds</td>
-              <td>Preparation time before the round starts</td>
+              <td><strong>{t('countdownDuration')}</strong></td>
+              <td style={{ color: 'var(--accent-gold)' }}>{t('countdownValue', { seconds: B.DOJO_COUNTDOWN_MS / 1000 })}</td>
+              <td>{t('countdownDesc')}</td>
             </tr>
             <tr>
-              <td><strong>Round Duration</strong></td>
-              <td style={{ color: 'var(--accent-gold)' }}>{B.DOJO_ROUND_MS / 1000} seconds</td>
-              <td>Time to deal maximum damage</td>
+              <td><strong>{t('roundDuration')}</strong></td>
+              <td style={{ color: 'var(--accent-gold)' }}>{t('roundValue', { seconds: B.DOJO_ROUND_MS / 1000 })}</td>
+              <td>{t('roundDesc')}</td>
             </tr>
             <tr>
-              <td><strong>Scoring</strong></td>
-              <td style={{ color: 'var(--accent-gold)' }}>Best damage</td>
-              <td>Only your personal best is stored on the leaderboard</td>
+              <td><strong>{t('scoring')}</strong></td>
+              <td style={{ color: 'var(--accent-gold)' }}>{t('scoringValue')}</td>
+              <td>{t('scoringDesc')}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       {/* ════════════════════ XP LEADERBOARD ════════════════════ */}
-      <h2 className="section-title" style={{ marginTop: '3rem' }}>⭐ Most Experienced Fighters</h2>
+      <h2 className="section-title" style={{ marginTop: '3rem' }}>⭐ {t('xpTitle')}</h2>
       <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-        Top players ranked by character level and total experience gained.
+        {t('xpSub')}
       </p>
 
       {leaguesLoading ? (
-        <TableState loading error={null} empty={false} />
+        <TableState loading error={null} empty={false} t={tc} />
       ) : (
         <>
           <LeagueTabs leagues={leagues} activeLeagueId={xpLeagueId} onChange={setXpLeagueId} />
-          <ClassFilter active={xpClassFilter} onChange={setXpClassFilter} />
-          <TableState loading={xpLoading} error={xpError} empty={!xpLoading && !xpError && filteredXp.length === 0} />
+          <ClassFilter active={xpClassFilter} onChange={setXpClassFilter} allLabel={tc('ui.all')} />
+          <TableState loading={xpLoading} error={xpError} empty={!xpLoading && !xpError && filteredXp.length === 0} t={tc} />
           {!xpLoading && !xpError && filteredXp.length > 0 && (
             <div style={{ overflowX: 'auto' }}>
               <table className="wiki-table">
                 <thead>
                   <tr>
                     <th style={{ width: 50 }}>#</th>
-                    <th>Player</th>
-                    <th>Class</th>
-                    <th>Level</th>
-                    <th>Total XP</th>
+                    <th>{t('thPlayer')}</th>
+                    <th>{t('thClass')}</th>
+                    <th>{t('thLevel')}</th>
+                    <th>{t('thTotalXP')}</th>
+                    <th>⚔️ {t('thDamage')}</th>
+                    <th>🎯 {t('thCrit')}</th>
+                    <th>🏆 {t('thDojoBest')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -372,6 +385,9 @@ export default function ChampionsPage() {
                       <ClassCell classId={e.classId} />
                       <td style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{e.level}</td>
                       <td style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>{formatXp(e.xp)}</td>
+                      <td>{formatNumber(e.tapDamage)}</td>
+                      <td style={{ color: 'var(--accent-gold)' }}>{Math.round(e.critChance * 100)}%/{(e.critMultiplier * 100).toFixed(0)}%</td>
+                      <td style={{ color: 'var(--accent-gold)' }}>{e.dojoBestDamage > 0 ? formatNumber(e.dojoBestDamage) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>

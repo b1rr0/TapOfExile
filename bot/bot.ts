@@ -25,6 +25,15 @@ const welcomeImage = path.join(__dirname, "assets", "welcome.png");
 
 bot.command("start", (ctx) => {
   const name = ctx.from.first_name || "Warrior";
+
+  // Pass referral param to webapp URL if present (e.g. /start ref_123456)
+  const startPayload = ctx.message?.text?.split(" ")[1] || "";
+  let webappUrl = WEBAPP_URL!;
+  if (startPayload && /^ref_\d+$/.test(startPayload)) {
+    const sep = webappUrl.includes("?") ? "&" : "?";
+    webappUrl = `${webappUrl}${sep}ref=${startPayload}`;
+  }
+
   ctx.replyWithPhoto(Input.fromLocalFile(welcomeImage), {
     caption:
       "⚔️ *Let the game begin!*\n\n" +
@@ -37,7 +46,7 @@ bot.command("start", (ctx) => {
         [
           {
             text: "⚔️ Play Tap of Exile ⚔️",
-            web_app: { url: WEBAPP_URL },
+            web_app: { url: webappUrl },
           },
         ],
       ],

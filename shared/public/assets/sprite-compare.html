@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Hero Skin Size Comparison</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #101524; color: #F9CF87; font-family: monospace; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 8px; font-size: 1.5rem; }
+  #summary { text-align: center; margin-bottom: 16px; font-size: 0.85rem; color: #DFFFFE; white-space: pre-wrap; }
+  .grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .skin-card {
+    background: #1a1f35; border: 1px solid #333; border-radius: 8px;
+    padding: 10px; text-align: center; width: 200px;
+  }
+  .skin-card h3 { font-size: 0.8rem; color: #DFFFFE; margin-bottom: 4px; }
+  .skin-card .info { font-size: 0.6rem; color: #888; margin-bottom: 2px; }
+  .skin-card .body-info { font-size: 0.7rem; color: #F9CF87; margin-bottom: 6px; font-weight: bold; }
+  .canvas-wrap {
+    position: relative; width: 180px; height: 320px; margin: 0 auto;
+    background: #0a0e1a; border: 1px dashed #333; overflow: hidden;
+  }
+  canvas { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); image-rendering: pixelated; }
+  .ground-line { position: absolute; bottom: 32px; left: 0; right: 0; height: 1px; background: rgba(255,0,0,0.3); }
+</style>
+</head>
+<body>
+<h1>Hero Skin Size Comparison</h1>
+<div id="summary">Loading...</div>
+<div class="grid" id="grid"></div>
+<script>
+const MUL = 1.092;
+
+const SKINS = [
+  { id: "samurai_1",  name: "Samurai I",   dW: 252, dH: 336, ancY: 0.146, scale: 1.30, path: "characters/samurai/samurai_1" },
+  { id: "samurai_2",  name: "Samurai II",  dW: 400, dH: 400, ancY: 0.39,  scale: 1.45, path: "characters/samurai/samurai_2" },
+  { id: "samurai_3",  name: "Samurai III", dW: 400, dH: 400, ancY: 0.355, scale: 1.47, path: "characters/samurai/samurai_3" },
+  { id: "samurai_4",  name: "Samurai IV",  dW: 196, dH: 200, ancY: 0.22,  scale: 1.27, path: "characters/samurai/samurai_4" },
+  { id: "knight_1",   name: "Knight I",    dW: 240, dH: 210, ancY: 0.274, scale: 1.88, path: "characters/knight/knight_1" },
+  { id: "knight_2",   name: "Knight II",   dW: 128, dH: 128, ancY: 0.0,   scale: 2.50, path: "characters/knight/knight_2" },
+  { id: "knight_3",   name: "Knight III",  dW: 368, dH: 274, ancY: 0.31,  scale: 1.80, path: "characters/knight/knight_3" },
+  { id: "knight_4",   name: "Knight IV",   dW: 360, dH: 360, ancY: 0.361, scale: 1.61, path: "characters/knight/knight_4" },
+  { id: "wizard_1",   name: "Wizard I",    dW: 256, dH: 256, ancY: 0.03,  scale: 1.25, path: "characters/wizard/wizard_1" },
+  { id: "wizard_2",   name: "Wizard II",   dW: 300, dH: 300, ancY: 0.32,  scale: 1.50, path: "characters/wizard/wizard_2" },
+  { id: "archer_1",   name: "Archer I",    dW: 256, dH: 256, ancY: 0.109, scale: 1.06, path: "characters/archer/archer_1" },
+  { id: "archer_2",   name: "Archer II",   dW: 184, dH: 240, ancY: 0.0,   scale: 2.05, path: "characters/archer/archer_2" },
+  { id: "archer_3",   name: "Archer III",  dW: 256, dH: 256, ancY: 0.0,   scale: 1.60, path: "characters/archer/archer_3" },
+  { id: "archer_4",   name: "Archer IV",   dW: 200, dH: 200, ancY: 0.33,  scale: 2.29, path: "characters/archer/archer_4/Character" },
+];
+
+// Measure non-transparent pixel bounds in the source frame
+function measureBody(img, frame) {
+  const c = document.createElement("canvas");
+  c.width = frame.w;
+  c.height = frame.h;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(img, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
+  const data = ctx.getImageData(0, 0, frame.w, frame.h).data;
+
+  let minY = frame.h, maxY = 0;
+  for (let y = 0; y < frame.h; y++) {
+    for (let x = 0; x < frame.w; x++) {
+      const alpha = data[(y * frame.w + x) * 4 + 3];
+      if (alpha > 20) { // threshold for "visible" pixel
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (minY > maxY) return { bodyH: 0, topPad: 0, bottomPad: 0, fillRatio: 0 };
+
+  const bodyH = maxY - minY + 1;
+  return {
+    bodyH,
+    topPad: minY,
+    bottomPad: frame.h - maxY - 1,
+    fillRatio: bodyH / frame.h,
+  };
+}
+
+async function loadSkin(skin) {
+  try {
+    const res = await fetch(skin.path + "/idle.json");
+    const data = await res.json();
+    const meta = data.meta || {};
+    const imgFile = meta.image || "idle.png";
+
+    let frame;
+    if (Array.isArray(data.frames)) {
+      frame = data.frames[0].frame;
+    } else {
+      const key = Object.keys(data.frames)[0];
+      frame = data.frames[key].frame;
+    }
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ img, frame });
+      img.onerror = () => resolve(null);
+      img.src = skin.path + "/" + imgFile;
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function init() {
+  const grid = document.getElementById("grid");
+  const results = [];
+
+  for (const skin of SKINS) {
+    const effW = Math.round(skin.dW * MUL * skin.scale);
+    const effH = Math.round(skin.dH * MUL * skin.scale);
+    const visH = Math.round(effH * (1 - skin.ancY));
+
+    const result = await loadSkin(skin);
+    let bodyInfo = null;
+    let renderedBodyH = 0;
+
+    if (result) {
+      bodyInfo = measureBody(result.img, result.frame);
+      // Rendered body height = source body height * (effH / frame.h)
+      const scaleRatio = effH / result.frame.h;
+      renderedBodyH = Math.round(bodyInfo.bodyH * scaleRatio);
+    }
+
+    const card = document.createElement("div");
+    card.className = "skin-card";
+    card.innerHTML = `
+      <h3>${skin.name}</h3>
+      <div class="info">scale: ${skin.scale} | frame: ${result ? result.frame.w+'×'+result.frame.h : '?'}</div>
+      <div class="info">visH: ${visH}px | fill: ${bodyInfo ? Math.round(bodyInfo.fillRatio*100)+'%' : '?'}</div>
+      <div class="body-info">bodyH: ${renderedBodyH}px</div>
+      <div class="canvas-wrap">
+        <div class="ground-line"></div>
+        <canvas id="c_${skin.id}" width="180" height="320"></canvas>
+      </div>
+    `;
+    grid.appendChild(card);
+
+    if (result) {
+      const { img, frame } = result;
+      const canvas = document.getElementById("c_" + skin.id);
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+
+      const groundY = 320 - 32;
+      const w = effW;
+      const h = effH;
+      const x = (180 - w) / 2;
+      const y = groundY - h + h * skin.ancY + 10;
+
+      ctx.drawImage(img, frame.x, frame.y, frame.w, frame.h, x, y, w, h);
+
+      results.push({ id: skin.id, name: skin.name, scale: skin.scale, renderedBodyH, fillRatio: bodyInfo.fillRatio, visH });
+    }
+  }
+
+  // Show summary with suggested scales
+  const TARGET_BODY = 180;
+  let summaryText = `Target body height: ${TARGET_BODY}px\n\n`;
+  summaryText += results.map(r => {
+    const needed = r.renderedBodyH > 0 ? (TARGET_BODY / r.renderedBodyH * r.scale).toFixed(2) : '?';
+    const diff = r.renderedBodyH - TARGET_BODY;
+    const mark = Math.abs(diff) < 20 ? '✓' : (diff > 0 ? '↓' : '↑');
+    return `${mark} ${r.name}: bodyH=${r.renderedBodyH}px fill=${Math.round(r.fillRatio*100)}% → need scale ${needed}`;
+  }).join('\n');
+
+  document.getElementById("summary").textContent = summaryText;
+}
+
+init();
+</script>
+</body>
+</html>

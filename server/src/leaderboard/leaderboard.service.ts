@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { DojoRecord } from '../shared/entities/dojo-record.entity';
 import { Character } from '../shared/entities/character.entity';
 import { League } from '../shared/entities/league.entity';
 import { Player } from '../shared/entities/player.entity';
+import { aggregateEquipmentStats, applyBonuses } from '@shared/equipment-bonus';
+import { statsAtLevel, CLASS_DEFS } from '@shared/class-stats';
+import { buildSkillTree } from '@shared/skill-tree';
+import { computeAllocatedBonuses } from '@shared/skill-node-defs';
 
 @Injectable()
 export class LeaderboardService {
@@ -75,7 +79,7 @@ export class LeaderboardService {
 
   /**
    * Global dojo leaderboard: top N by best damage.
-   * Uses denormalized leagueId on dojo_records — no JOIN with characters needed.
+   * Uses denormalized leagueId on dojo_records - no JOIN with characters needed.
    */
   async getDojoLeaderboard(limit = 50, leagueId?: string) {
     const where: any = {};
@@ -118,6 +122,10 @@ export class LeaderboardService {
         'c.skinId',
         'c.level',
         'c.xp',
+        'c.tapDamage',
+        'c.critChance',
+        'c.critMultiplier',
+        'c.dojoBestDamage',
         'p.telegramUsername',
       ])
       .orderBy('c.level', 'DESC')
@@ -139,6 +147,10 @@ export class LeaderboardService {
         skinId: c.skinId,
         level: c.level,
         xp: c.xp,
+        tapDamage: c.tapDamage,
+        critChance: c.critChance,
+        critMultiplier: c.critMultiplier,
+        dojoBestDamage: c.dojoBestDamage,
         telegramUsername: c.player?.telegramUsername || null,
       })),
     };
@@ -180,6 +192,44 @@ export class LeaderboardService {
       }
     }
 
+    // Compute effective stats (equipment + tree bonuses) for profile display
+    const gearItems = char.equipmentSlots
+      ?.filter(s => s.item && s.item.type === 'equipment')
+      .map(s => ({ properties: s.item!.properties || {} })) || [];
+    const bonuses = aggregateEquipmentStats(gearItems);
+    const base = statsAtLevel(char.classId, char.level);
+    const eff = applyBonuses(
+      { tapDamage: base.tapDamage, maxHp: base.hp, hp: char.hp, critChance: base.critChance, critMultiplier: base.critMultiplier, dodgeChance: base.dodgeChance, specialValue: char.specialValue, resistance: base.resistance, elementalDamage: char.elementalDamage || {} },
+      bonuses,
+    );
+
+    // Apply tree bonuses
+    const allocSet = new Set<number>(char.allocatedNodes || []);
+    if (allocSet.size > 0) {
+      const skillTree = buildSkillTree();
+      const treeBonuses = computeAllocatedBonuses(skillTree.nodes, allocSet);
+      const pct = treeBonuses.percent;
+      eff.tapDamage += Math.floor(base.tapDamage * (pct.tapDamage || 0));
+      eff.maxHp += Math.floor(base.hp * (pct.hp || 0));
+      eff.critChance += (pct.critChance || 0);
+      eff.critMultiplier += (pct.critMultiplier || 0);
+      eff.dodgeChance += (pct.dodgeChance || 0);
+      if (pct.blockChance) eff.blockChance += pct.blockChance;
+      if (pct.armor) eff.armor += Math.floor((eff.armor || 0) * pct.armor);
+      if (pct.cooldownReduction) {
+        const equipMul = 1 - eff.cooldownReduction / 100;
+        const treeMul = 1 - pct.cooldownReduction;
+        eff.cooldownReduction = (1 - equipMul * treeMul) * 100;
+      }
+      eff.arcaneCritChance += (pct.arcaneCritChance || 0) * 100;
+      eff.arcaneCritMultiplier += (pct.arcaneCritMultiplier || 0) * 100;
+    }
+
+    // Arcane crit (class-based + equipment + tree)
+    const classStats = statsAtLevel(char.classId, char.level);
+    const effectiveArcaneCritChance = classStats.arcaneCritChance + eff.arcaneCritChance / 100;
+    const effectiveArcaneCritMultiplier = classStats.arcaneCritMultiplier + eff.arcaneCritMultiplier / 100;
+
     return {
       character: {
         id: char.id,
@@ -190,14 +240,19 @@ export class LeaderboardService {
         xp: char.xp,
         xpToNext: char.xpToNext,
         hp: char.hp,
-        maxHp: char.maxHp,
-        tapDamage: char.tapDamage,
-        critChance: char.critChance,
-        critMultiplier: char.critMultiplier,
-        dodgeChance: char.dodgeChance,
+        maxHp: eff.maxHp,
+        tapDamage: eff.tapDamage,
+        critChance: eff.critChance,
+        critMultiplier: eff.critMultiplier,
+        dodgeChance: eff.dodgeChance,
+        armor: eff.armor,
+        blockChance: eff.blockChance,
+        cooldownReduction: eff.cooldownReduction,
+        arcaneCritChance: effectiveArcaneCritChance,
+        arcaneCritMultiplier: effectiveArcaneCritMultiplier,
         specialValue: char.specialValue,
         elementalDamage: char.elementalDamage,
-        resistance: char.resistance,
+        resistance: eff.resistance,
         dojoBestDamage: char.dojoBestDamage,
         endgameUnlocked: char.endgameUnlocked,
         completedBosses: char.completedBosses,

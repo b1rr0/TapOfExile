@@ -1,4 +1,4 @@
-import {
+﻿import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
@@ -74,7 +74,7 @@ export class CombatGateway
         return true;
       }
     } catch {
-      // Swallow Redis failures — don't block gameplay
+      // Swallow Redis failures - don't block gameplay
     }
     return false;
   }
@@ -156,7 +156,7 @@ export class CombatGateway
     // Pause combat loop
     this.stopCombatLoop(sessionId);
 
-    // Start grace period — if player doesn't reconnect, flee/complete
+    // Start grace period - if player doesn't reconnect, flee/complete
     const mode = this.sessionModes.get(sessionId);
     const timer = setTimeout(async () => {
       this.disconnectTimers.delete(telegramId);
@@ -189,7 +189,7 @@ export class CombatGateway
   }
 
   /**
-   * Resolve telegramId for a socket — O(1), no async, no polling.
+   * Resolve telegramId for a socket - O(1), no async, no polling.
    *
    * telegramId is written to client.data synchronously during handleConnection
    * right after JWT verification, before any async operations. This means
@@ -227,7 +227,7 @@ export class CombatGateway
   ) {
     const telegramId = this.resolveUser(client);
     if (!telegramId) {
-      client.emit('combat:error', { message: 'Auth not ready — please retry' });
+      client.emit('combat:error', { message: 'Auth not ready - please retry' });
       return;
     }
 
@@ -242,7 +242,7 @@ export class CombatGateway
 
     try {
       // If the user already has an active session, re-send its state
-      // (client retry after transport upgrade — the first response was lost)
+      // (client retry after transport upgrade - the first response was lost)
       const existingSessionId = this.userSessions.get(telegramId);
       if (existingSessionId) {
         const existing = await this.combatService.getSession(existingSessionId);
@@ -258,7 +258,7 @@ export class CombatGateway
           });
           return;
         }
-        // Session exists in map but not in Redis — clean up
+        // Session exists in map but not in Redis - clean up
         this.sessionModes.delete(existingSessionId);
         this.userSessions.delete(telegramId);
       }
@@ -273,7 +273,7 @@ export class CombatGateway
 
       this.userSessions.set(telegramId, result.sessionId);
       this.sessionModes.set(result.sessionId, 'location');
-      // Combat loop deferred — starts when client sends combat:entrance-done
+      // Combat loop deferred - starts when client sends combat:entrance-done
 
       client.emit('combat:started', result);
     } catch (err) {
@@ -290,7 +290,7 @@ export class CombatGateway
   ) {
     const telegramId = this.resolveUser(client);
     if (!telegramId) {
-      client.emit('combat:error', { message: 'Auth not ready — please retry' });
+      client.emit('combat:error', { message: 'Auth not ready - please retry' });
       return;
     }
 
@@ -348,7 +348,7 @@ export class CombatGateway
   ) {
     const telegramId = this.resolveUser(client);
     if (!telegramId) {
-      client.emit('combat:error', { message: 'Auth not ready — please retry' });
+      client.emit('combat:error', { message: 'Auth not ready - please retry' });
       return;
     }
 
@@ -488,9 +488,9 @@ export class CombatGateway
         this.userSessions.delete(telegramId);
         this.sessionModes.delete(data.sessionId);
       } else if (result.killed && !result.isComplete) {
-        // Monster killed but wave continues — pause attacks until entrance-done
+        // Monster killed but wave continues - pause attacks until entrance-done
         this.stopCombatLoop(data.sessionId);
-        console.log(`[CombatGateway] Monster killed — loop paused, waiting for entrance-done (session=${data.sessionId})`);
+        console.log(`[CombatGateway] Monster killed - loop paused, waiting for entrance-done (session=${data.sessionId})`);
       }
     } catch (err) {
       const msg = (err as Error).message;
@@ -573,7 +573,7 @@ export class CombatGateway
 
     // Only start if not already running (idempotent)
     if (this.combatLoops.has(sessionId)) {
-      console.log(`[CombatGateway] entrance-done ignored — loop already running for ${sessionId}`);
+      console.log(`[CombatGateway] entrance-done ignored - loop already running for ${sessionId}`);
       return;
     }
 
@@ -692,6 +692,42 @@ export class CombatGateway
 
     if (await this.rateLimitCheck(client, telegramId)) return;
 
+    // Check session mode to route dojo vs combat
+    const mode = this.sessionModes.get(data.sessionId);
+
+    if (mode === 'dojo') {
+      try {
+        const dojoResult = await this.combatService.processDojoCastSkill(
+          telegramId,
+          data.sessionId,
+          data.skillId,
+        );
+
+        client.emit('combat:skill-result', dojoResult);
+
+        // If dojo ended (timer expired), auto-complete
+        if (dojoResult.dojoEnded) {
+          this.stopDojoTimer(data.sessionId);
+          try {
+            const completionResult = await this.combatService.completeDojo(
+              telegramId,
+              data.sessionId,
+            );
+            this.userSessions.delete(telegramId);
+            this.sessionModes.delete(data.sessionId);
+            client.emit('combat:dojo-completed', completionResult);
+          } catch { /* already completed */ }
+        }
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (!msg?.includes('cooldown')) {
+          client.emit('combat:error', { message: msg || 'Skill cast failed' });
+        }
+      }
+      return;
+    }
+
+    // Regular combat skill cast
     try {
       const result = await this.combatService.castSkill(
         telegramId,
@@ -710,7 +746,7 @@ export class CombatGateway
         this.userSessions.delete(telegramId);
         this.sessionModes.delete(data.sessionId);
       } else if (result.killed && !result.isComplete) {
-        // Monster killed — pause attacks until entrance-done
+        // Monster killed - pause attacks until entrance-done
         this.stopCombatLoop(data.sessionId);
       }
     } catch (err) {
@@ -739,7 +775,7 @@ export class CombatGateway
         }
 
         const socketId = this.userSockets.get(telegramId);
-        if (!socketId) return; // User disconnected — loop will be stopped by handleDisconnect
+        if (!socketId) return; // User disconnected - loop will be stopped by handleDisconnect
 
         if (result.attacks.length > 0 || result.playerDead) {
           this.server.to(socketId).emit('combat:enemy-attack', {
@@ -762,7 +798,7 @@ export class CombatGateway
       } catch (err) {
         console.error('[CombatGateway] Loop error:', err);
       }
-    }, 200); // 200ms tick — supports per-attack speeds from 0.3s to 3s
+    }, 200); // 200ms tick - supports per-attack speeds from 0.3s to 3s
 
     this.combatLoops.set(sessionId, interval);
   }

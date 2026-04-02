@@ -1,5 +1,5 @@
-/**
- * API Client — communicates with the NestJS backend.
+﻿/**
+ * API Client - communicates with the NestJS backend.
  *
  * All game state mutations go through this client.
  * Auth uses Telegram initData → JWT.
@@ -9,6 +9,20 @@ const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
+
+// Restore refresh token from sessionStorage (survives page reload)
+try {
+  const stored = sessionStorage.getItem("toe_rt");
+  if (stored) refreshToken = stored;
+} catch { /* SSR / restricted env */ }
+
+function persistRefreshToken(token: string | null) {
+  refreshToken = token;
+  try {
+    if (token) sessionStorage.setItem("toe_rt", token);
+    else sessionStorage.removeItem("toe_rt");
+  } catch { /* ignore */ }
+}
 
 /* ── HTTP helpers ──────────────────────────────────────── */
 
@@ -62,7 +76,12 @@ async function tryRefreshToken(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
     });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      // Refresh token expired or revoked — clear it
+      persistRefreshToken(null);
+      accessToken = null;
+      return false;
+    }
     const data = await res.json();
     accessToken = data.accessToken;
     return true;
@@ -98,7 +117,7 @@ function del<T = any>(path: string): Promise<T> {
 /* ── Auth ──────────────────────────────────────────────── */
 
 export const auth = {
-  async login(initData: string) {
+  async login(initData: string, startParam?: string) {
     const data = await post<{
       accessToken: string;
       refreshToken: string;
@@ -112,9 +131,9 @@ export const auth = {
         bannedUntil: number | null;
         banReason: string | null;
       };
-    }>("/auth/telegram", { initData });
+    }>("/auth/telegram", { initData, startParam });
     accessToken = data.accessToken;
-    refreshToken = data.refreshToken;
+    persistRefreshToken(data.refreshToken);
     return data;
   },
 
@@ -136,6 +155,10 @@ export const auth = {
 export const player = {
   getState() {
     return get("/player");
+  },
+
+  applyReferral(referralCode: string) {
+    return post<{ success: boolean }>("/player/apply-referral", { referralCode });
   },
 };
 
@@ -235,12 +258,24 @@ export const loot = {
     return del(`/loot/bag/${itemId}`);
   },
 
+  sellItem(itemId: string): Promise<{ gold: number }> {
+    return post(`/loot/sell/${itemId}`);
+  },
+
   equipPotion(itemId: string, slot: string) {
     return post("/loot/equip-potion", { itemId, slot });
   },
 
   unequipPotion(slot: string) {
     return post("/loot/unequip-potion", { slot });
+  },
+
+  equipItem(itemId: string, slotId: string) {
+    return post("/loot/equip-item", { itemId, slotId });
+  },
+
+  unequipItem(slotId: string) {
+    return post("/loot/unequip-item", { slotId });
   },
 };
 
@@ -304,6 +339,90 @@ export const friends = {
   },
 };
 
+/* ── Trade ─────────────────────────────────────────────── */
+
+export const trade = {
+  browse(params: {
+    itemType?: string;
+    quality?: string;
+    itemSubtype?: string;
+    search?: string;
+    sort?: string;
+    offset?: number;
+    limit?: number;
+    leagueId?: string;
+  } = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== '') qs.set(k, String(v));
+    }
+    const q = qs.toString();
+    return get(`/trade/browse${q ? '?' + q : ''}`);
+  },
+
+  myListings() {
+    return get('/trade/my');
+  },
+
+  history() {
+    return get('/trade/history');
+  },
+
+  createListing(itemId: string, price: string) {
+    return post('/trade/list', { itemId, price });
+  },
+
+  buy(listingId: string) {
+    return post('/trade/buy', { listingId });
+  },
+
+  cancel(listingId: string) {
+    return post('/trade/cancel', { listingId });
+  },
+
+  stats(leagueId?: string) {
+    const q = leagueId ? `?leagueId=${leagueId}` : '';
+    return get(`/trade/stats${q}`);
+  },
+};
+
+/* ── Shop ─────────────────────────────────────────────── */
+
+const shop = {
+  products() {
+    return get('/shop/products');
+  },
+
+  items() {
+    return get('/shop/items');
+  },
+
+  balance() {
+    return get<{ shards: string; extraTradeSlots: number; maxTradeSlots: number }>(
+      '/shop/balance',
+    );
+  },
+
+  createInvoice(productId: string) {
+    return post<{ invoiceLink: string }>('/shop/create-invoice', { productId });
+  },
+
+  buyItem(shopItemId: string) {
+    return post<{ shards: string; extraTradeSlots: number; maxTradeSlots: number }>(
+      '/shop/buy-item',
+      { shopItemId },
+    );
+  },
+
+  payments() {
+    return get('/shop/payments');
+  },
+
+  transactions() {
+    return get('/shop/transactions');
+  },
+};
+
 /* ── Default export ────────────────────────────────────── */
 
 export const api = {
@@ -315,4 +434,6 @@ export const api = {
   loot,
   skillTree,
   friends,
+  trade,
+  shop,
 };

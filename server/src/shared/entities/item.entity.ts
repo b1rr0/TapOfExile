@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryColumn,
   Column,
@@ -37,7 +37,7 @@ export class Item {
   @Column({ type: 'int', nullable: true })
   level: number | null;
 
-  @Column({ type: 'varchar', length: 32, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   icon: string | null;
 
   @Column({ type: 'bigint' })
@@ -60,7 +60,7 @@ export class Item {
   @Column({ type: 'int', nullable: true })
   bossKeyTier: number | null;
 
-  // ── Potion fields (hot path — real columns, NOT in JSONB) ──
+  // ── Potion fields (hot path - real columns, NOT in JSONB) ──
 
   @Column({ type: 'varchar', length: 32, nullable: true })
   flaskType: string | null;

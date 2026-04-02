@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { B } from '../shared/constants/balance.constants';
 import type { ElementalResistance, ElementalDamage, ResistableElement } from '@shared/types';
 import type { MonsterAttack } from '@shared/monster-attacks';
@@ -12,7 +12,7 @@ export interface ServerMonster {
   currentHp: number;
   goldReward: number;
   xpReward: number;
-  /** Effective location level — used for XP scaling vs player level */
+  /** Effective location level - used for XP scaling vs player level */
   level: number;
   resistance: ElementalResistance;
   outgoingDamage: ElementalDamage;
@@ -21,7 +21,7 @@ export interface ServerMonster {
   attacks?: MonsterAttack[];
   /** Skin ID for the enemy sprite (e.g. "soldier", "orc") */
   skinId: string;
-  /** Color variant subfolder (e.g. "v0", "v1_crimson") — empty = base skin */
+  /** Color variant subfolder (e.g. "v0", "v1_crimson") - empty = base skin */
   skinVariant: string;
 }
 
@@ -29,7 +29,7 @@ export interface MonsterSpawn {
   type: string;
   count: number;
   rarity: string;
-  /** Color variant subfolder (e.g. "v1_crimson") — omit for base skin */
+  /** Color variant subfolder (e.g. "v1_crimson") - omit for base skin */
   skinVariant?: string;
 }
 
@@ -56,11 +56,15 @@ export class LevelGenService {
   ): ServerMonster {
     const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
     const rarity = RARITIES[rarityId] || RARITIES.common;
+
+    // Separate act scaling: HP, DMG, Gold/XP each use their own multiplier
+    const actHpMul = Math.pow(B.ACT_HP_SCALING, actNumber - 1);
+    const actDmgMul = Math.pow(B.ACT_DMG_SCALING, actNumber - 1);
     const actMul = Math.pow(B.ACT_SCALING_BASE, actNumber - 1);
 
     // HP
     const hpScale = Math.pow(B.MONSTER_HP_GROWTH, locationOrder - 1);
-    const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actMul);
+    const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actHpMul);
     const hpMin = Math.max(1, Math.floor(baseHp * (1 - B.MONSTER_HP_RANDOM)));
     const hpMax = Math.ceil(baseHp * (1 + B.MONSTER_HP_RANDOM));
     const hp = randInt(hpMin, hpMax);
@@ -76,9 +80,9 @@ export class LevelGenService {
     // Elemental resistance: base from type + rarity bonus, capped
     const resistance = this.computeResistance(type.resistance, rarityId);
 
-    // Outgoing damage (attack power)
+    // Outgoing damage (attack power) - uses ACT_DMG_SCALING (slower than HP)
     const dmgScale = Math.pow(B.MONSTER_DMG_GROWTH, locationOrder - 1);
-    const baseDmg = B.MONSTER_DMG_BASE * dmgScale * (B.RARITY_DMG_MULTIPLIERS[rarityId] || 1.0) * actMul;
+    const baseDmg = B.MONSTER_DMG_BASE * dmgScale * (B.RARITY_DMG_MULTIPLIERS[rarityId] || 1.0) * actDmgMul;
     const dmgMin = Math.max(1, Math.floor(baseDmg * (1 - B.MONSTER_DMG_RANDOM)));
     const dmgMax = Math.ceil(baseDmg * (1 + B.MONSTER_DMG_RANDOM));
     const scaledDamage = randInt(dmgMin, dmgMax);
@@ -120,12 +124,15 @@ export class LevelGenService {
     const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
     const rarity = RARITIES[rarityId] || RARITIES.common;
 
+    // Separate act scaling for HP, DMG, and Gold/XP
+    const actHpMul = Math.pow(B.ACT_HP_SCALING, B.MAP_BASE_ACT - 1);
+    const actDmgMul = Math.pow(B.ACT_DMG_SCALING, B.MAP_BASE_ACT - 1);
     const actMul = Math.pow(B.ACT_SCALING_BASE, B.MAP_BASE_ACT - 1);
     const orderScale = B.MAP_BASE_ORDER;
 
     // HP
     const hpScale = Math.pow(B.MONSTER_HP_GROWTH, orderScale - 1);
-    const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actMul * tierHpMul);
+    const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actHpMul * tierHpMul);
     const hpMin = Math.max(1, Math.floor(baseHp * (1 - B.MONSTER_HP_RANDOM)));
     const hpMax = Math.ceil(baseHp * (1 + B.MONSTER_HP_RANDOM));
     const hp = randInt(hpMin, hpMax);
@@ -140,9 +147,9 @@ export class LevelGenService {
 
     const resistance = this.computeResistance(type.resistance, rarityId);
 
-    // Outgoing damage (attack power)
+    // Outgoing damage (attack power) - uses ACT_DMG_SCALING + tierHpMul for endgame
     const dmgScale = Math.pow(B.MONSTER_DMG_GROWTH, orderScale - 1);
-    const baseDmg = B.MONSTER_DMG_BASE * dmgScale * (B.RARITY_DMG_MULTIPLIERS[rarityId] || 1.0) * actMul * tierHpMul;
+    const baseDmg = B.MONSTER_DMG_BASE * dmgScale * (B.RARITY_DMG_MULTIPLIERS[rarityId] || 1.0) * actDmgMul * tierHpMul;
     const dmgMin = Math.max(1, Math.floor(baseDmg * (1 - B.MONSTER_DMG_RANDOM)));
     const dmgMax = Math.ceil(baseDmg * (1 + B.MONSTER_DMG_RANDOM));
     const scaledDamage = randInt(dmgMin, dmgMax);

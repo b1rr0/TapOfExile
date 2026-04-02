@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
@@ -17,5 +17,16 @@ export class PlayerController {
   @ApiResponse({ status: 404, description: 'Player not found or no active league' })
   async getPlayerState(@CurrentUser('telegramId') telegramId: string) {
     return this.playerService.getPlayerState(telegramId);
+  }
+
+  @Post('apply-referral')
+  @ApiOperation({ summary: 'Apply a referral code to get bonus shards' })
+  @ApiResponse({ status: 201, description: 'Referral applied, shards awarded to both players' })
+  @ApiResponse({ status: 400, description: 'Invalid code, self-referral, or already have a referrer' })
+  async applyReferral(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body('referralCode') referralCode: string,
+  ) {
+    return this.playerService.applyReferral(telegramId, referralCode);
   }
 }

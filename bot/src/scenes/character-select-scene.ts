@@ -1,10 +1,10 @@
-import { getCharacterClass } from "../data/character-classes.js";
+﻿import { getCharacterClass } from "../data/character-classes.js";
 import { getHeroSkin } from "../data/sprite-registry.js";
 import { SpriteEngine } from "../ui/sprite-engine.js";
 import type { SharedDeps, SkinConfig } from "../types.js";
 
 /**
- * CharacterSelectScene — pick an existing character or create a new one.
+ * CharacterSelectScene - pick an existing character or create a new one.
  *
  * Lifecycle: mount(params) / unmount()
  */
@@ -54,6 +54,15 @@ export class CharacterSelectScene {
     const renderCharCard = (c: any) => {
       const cls = getCharacterClass(c.classId);
       const isActive = c.id === activeId;
+      const critPct = Math.round((c.critChance || 0) * 100);
+      const critMul = ((c.critMultiplier || 1.5) * 100).toFixed(0);
+      // Arcane crit row (mage or non-zero)
+      const hasArcane = c.classId === "mage" || (c.arcaneCritChance && c.arcaneCritChance > 0);
+      const arcCritPct = hasArcane ? Math.round((c.arcaneCritChance || 0) * 100) : 0;
+      const arcCritMul = hasArcane ? ((c.arcaneCritMultiplier || 1.5) * 100).toFixed(0) : "0";
+      const arcaneRow = hasArcane
+        ? `<span class="char-card__stat" title="Arcane Crit">🔮${arcCritPct}%/${arcCritMul}%</span>`
+        : "";
       return `
         <div class="char-card ${isActive ? "char-card--active" : ""}" data-id="${c.id}">
           <canvas class="char-card__preview" data-skin="${c.skinId}"></canvas>
@@ -61,6 +70,12 @@ export class CharacterSelectScene {
             <div class="char-card__name">${c.nickname}</div>
             <div class="char-card__class">${cls ? cls.icon + " " + cls.name : c.classId}</div>
             <div class="char-card__level">Lv. ${c.level}</div>
+            <div class="char-card__stats">
+              <span class="char-card__stat" title="HP">❤${(c.maxHp || c.hp || 0).toLocaleString()}</span>
+              <span class="char-card__stat" title="Damage">⚔${(c.tapDamage || 0).toLocaleString()}</span>
+              <span class="char-card__stat" title="Crit">🎯${critPct}%/${critMul}%</span>
+              ${arcaneRow}
+            </div>
           </div>
         </div>
       `;

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -321,7 +321,7 @@ export class FriendsService {
       ),
     ];
 
-    // Use denormalized leagueId on dojo_records — no JOIN with characters needed
+    // Use denormalized leagueId on dojo_records - no JOIN with characters needed
     let records: DojoRecord[];
     if (self?.leagueId) {
       records = await this.dojoRecordRepo.find({
@@ -358,7 +358,7 @@ export class FriendsService {
       select: ['id', 'leagueId'],
     });
 
-    // Use denormalized leagueId on dojo_records — no JOIN with characters needed
+    // Use denormalized leagueId on dojo_records - no JOIN with characters needed
     const where: any = {};
     if (char?.leagueId) {
       where.leagueId = char.leagueId;

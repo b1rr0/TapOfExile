@@ -12,6 +12,7 @@ declare global {
           notificationOccurred(type: "error" | "success" | "warning"): void;
           selectionChanged(): void;
         };
+        initData?: string;
         initDataUnsafe?: {
           user?: {
             id: number;
@@ -19,6 +20,7 @@ declare global {
             last_name?: string;
             username?: string;
           };
+          start_param?: string;
         };
         themeParams?: Record<string, string>;
       };

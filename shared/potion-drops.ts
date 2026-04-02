@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Universal loot pool system.
  *
  * After each combat, 3 independent rolls are made against the loot pool.
@@ -20,7 +20,7 @@ export type FlaskType =
   | 'wide_bottle'
   | 'jug';
 
-/** Potion color — only red (healing) for now, future-proof. */
+/** Potion color - only red (healing) for now, future-proof. */
 export type PotionColor = 'red';
 
 export interface FlaskDef {
@@ -72,7 +72,6 @@ export interface LootEntry {
 export type LootResult =
   | { type: 'potion'; flaskType: FlaskType; quality: string }
   // Future item types go here:
-  // | { type: 'gear'; gearId: string; quality: string }
   // | { type: 'currency'; currencyType: string; amount: number }
   ;
 
@@ -98,6 +97,7 @@ export const LOCATION_LOOT_POOLS: Record<number, LootPool> = {
       { id: 'round_flask_common',   weight: 500,  result: { type: 'potion', flaskType: 'round_flask',  quality: 'common' } },
       { id: 'round_flask_rare',     weight: 50,   result: { type: 'potion', flaskType: 'round_flask',  quality: 'rare' } },
       { id: 'round_flask_epic',     weight: 5,    result: { type: 'potion', flaskType: 'round_flask',  quality: 'epic' } },
+
     ],
   },
   2: {
@@ -110,6 +110,7 @@ export const LOCATION_LOOT_POOLS: Record<number, LootPool> = {
       { id: 'corked_flask_common',  weight: 400,  result: { type: 'potion', flaskType: 'corked_flask', quality: 'common' } },
       { id: 'corked_flask_rare',    weight: 40,   result: { type: 'potion', flaskType: 'corked_flask', quality: 'rare' } },
       { id: 'corked_flask_epic',    weight: 4,    result: { type: 'potion', flaskType: 'corked_flask', quality: 'epic' } },
+
     ],
   },
   3: {
@@ -123,6 +124,7 @@ export const LOCATION_LOOT_POOLS: Record<number, LootPool> = {
       { id: 'tall_bottle_rare',     weight: 80,   result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'rare' } },
       { id: 'tall_bottle_epic',     weight: 10,   result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'epic' } },
       { id: 'tall_bottle_legendary',weight: 1,    result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'legendary' } },
+
     ],
   },
   4: {
@@ -137,6 +139,7 @@ export const LOCATION_LOOT_POOLS: Record<number, LootPool> = {
       { id: 'wide_bottle_rare',     weight: 80,   result: { type: 'potion', flaskType: 'wide_bottle',  quality: 'rare' } },
       { id: 'wide_bottle_epic',     weight: 10,   result: { type: 'potion', flaskType: 'wide_bottle',  quality: 'epic' } },
       { id: 'wide_bottle_legendary',weight: 1,    result: { type: 'potion', flaskType: 'wide_bottle',  quality: 'legendary' } },
+
     ],
   },
   5: {
@@ -152,6 +155,7 @@ export const LOCATION_LOOT_POOLS: Record<number, LootPool> = {
       { id: 'jug_rare',             weight: 80,   result: { type: 'potion', flaskType: 'jug',          quality: 'rare' } },
       { id: 'jug_epic',             weight: 15,   result: { type: 'potion', flaskType: 'jug',          quality: 'epic' } },
       { id: 'jug_legendary',        weight: 2,    result: { type: 'potion', flaskType: 'jug',          quality: 'legendary' } },
+
     ],
   },
 };
@@ -173,6 +177,7 @@ export function getMapLootPool(tier: number): LootPool {
         { id: 'tall_bottle_rare',     weight: 80,   result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'rare' } },
         { id: 'tall_bottle_epic',     weight: 10,   result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'epic' } },
         { id: 'tall_bottle_legendary',weight: 1,    result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'legendary' } },
+  
       ],
     };
   }
@@ -189,6 +194,7 @@ export function getMapLootPool(tier: number): LootPool {
         { id: 'wide_bottle_rare',     weight: 80,   result: { type: 'potion', flaskType: 'wide_bottle',  quality: 'rare' } },
         { id: 'wide_bottle_epic',     weight: 10,   result: { type: 'potion', flaskType: 'wide_bottle',  quality: 'epic' } },
         { id: 'wide_bottle_legendary',weight: 1,    result: { type: 'potion', flaskType: 'wide_bottle',  quality: 'legendary' } },
+  
       ],
     };
   }
@@ -206,6 +212,7 @@ export function getMapLootPool(tier: number): LootPool {
         { id: 'jug_rare',             weight: 100,  result: { type: 'potion', flaskType: 'jug',          quality: 'rare' } },
         { id: 'jug_epic',             weight: 20,   result: { type: 'potion', flaskType: 'jug',          quality: 'epic' } },
         { id: 'jug_legendary',        weight: 2,    result: { type: 'potion', flaskType: 'jug',          quality: 'legendary' } },
+
       ],
     };
   }
@@ -220,6 +227,7 @@ export function getMapLootPool(tier: number): LootPool {
         { id: 'jug_rare',             weight: 150,  result: { type: 'potion', flaskType: 'jug',          quality: 'rare' } },
         { id: 'jug_epic',             weight: 30,   result: { type: 'potion', flaskType: 'jug',          quality: 'epic' } },
         { id: 'jug_legendary',        weight: 5,    result: { type: 'potion', flaskType: 'jug',          quality: 'legendary' } },
+
       ],
     };
   }
@@ -233,11 +241,12 @@ export function getMapLootPool(tier: number): LootPool {
       { id: 'jug_rare',             weight: 200,  result: { type: 'potion', flaskType: 'jug',          quality: 'rare' } },
       { id: 'jug_epic',             weight: 50,   result: { type: 'potion', flaskType: 'jug',          quality: 'epic' } },
       { id: 'jug_legendary',        weight: 10,   result: { type: 'potion', flaskType: 'jug',          quality: 'legendary' } },
+
     ],
   };
 }
 
-/** Boss map loot pool — best drops. */
+/** Boss map loot pool - best drops. */
 export const BOSS_MAP_LOOT_POOL: LootPool = {
   entries: [
     { id: 'tall_bottle_rare',     weight: 100,  result: { type: 'potion', flaskType: 'tall_bottle',  quality: 'rare' } },
@@ -250,6 +259,7 @@ export const BOSS_MAP_LOOT_POOL: LootPool = {
     { id: 'jug_rare',             weight: 200,  result: { type: 'potion', flaskType: 'jug',          quality: 'rare' } },
     { id: 'jug_epic',             weight: 80,   result: { type: 'potion', flaskType: 'jug',          quality: 'epic' } },
     { id: 'jug_legendary',        weight: 15,   result: { type: 'potion', flaskType: 'jug',          quality: 'legendary' } },
+
   ],
 };
 
@@ -358,7 +368,7 @@ export function getPoolStats(pool: LootPool): {
 }
 
 // ── Legacy exports (backward compat) ─────────────────────
-// Old code imports these — they still work but are wrappers.
+// Old code imports these - they still work but are wrappers.
 
 export interface PotionDropConfig {
   baseChance: number;

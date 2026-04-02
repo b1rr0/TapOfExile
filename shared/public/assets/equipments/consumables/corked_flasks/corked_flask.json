@@ -1,4 +1,4 @@
-{
+﻿{
   "type": "corked_flask",
   "spriteSize": {
     "w": 16,
@@ -6,8 +6,8 @@
   },
   "maxCharges": 5,
   "tiers": {
-    "tier_1": "Tier 1 — basic corked flask",
-    "tier_2": "Tier 2 — improved corked flask"
+    "tier_1": "Tier 1 - basic corked flask",
+    "tier_2": "Tier 2 - improved corked flask"
   },
   "colors": {
     "blue": {

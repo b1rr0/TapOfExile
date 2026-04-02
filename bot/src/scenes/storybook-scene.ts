@@ -1,4 +1,4 @@
-import { SpriteEngine } from "../ui/sprite-engine.js";
+﻿import { SpriteEngine } from "../ui/sprite-engine.js";
 import { BackgroundRenderer } from "../ui/background-renderer.js";
 import { ProjectileLayer } from "../ui/projectile-layer.js";
 import { HeroCharacter } from "../ui/characters/hero-character.js";
@@ -21,7 +21,7 @@ import type { ActiveSkillId } from "@shared/active-skills.js";
 import type { SharedDeps, SkinConfig, ActModifier } from "../types.js";
 
 /**
- * StorybookScene — sprite preview with accordion categories.
+ * StorybookScene - sprite preview with accordion categories.
  *
  * Single scrollable page with category buttons.
  * Click a button -> its sprite cards expand below as a dropdown list.
@@ -319,7 +319,7 @@ export class StorybookScene {
     const g = this._groups.get(catId);
     if (!g) return;
 
-    // Locations & Skills open as fullscreen overlay — not accordion
+    // Locations & Skills open as fullscreen overlay - not accordion
     if (catId === "locations") {
       this._openLocationViewer();
       return;
@@ -463,28 +463,28 @@ export class StorybookScene {
     this._locIndex = 0;
     this._locOpen = true;
 
-    // Build fullscreen overlay — mirrors combat scene layout:
+    // Build fullscreen overlay - mirrors combat scene layout:
     //   .hud (top bar)  ->  .battle-scene (canvas, flex:1)  ->  .combat-bottom-bar (info panel)
     const overlay = document.createElement("div");
     overlay.className = "sb-loc-fullscreen screen";
     overlay.innerHTML = `
-      <!-- Top bar — same as combat HUD -->
+      <!-- Top bar - same as combat HUD -->
       <div class="hud">
         <button class="hud-flee-btn" id="sb-loc-close">&larr;</button>
         <div class="hud-center">
           <button class="sb-loc-hud-arrow" id="sb-loc-prev">&#x276E;</button>
-          <span class="stage-display" id="sb-loc-title">—</span>
+          <span class="stage-display" id="sb-loc-title">-</span>
           <button class="sb-loc-hud-arrow" id="sb-loc-next">&#x276F;</button>
         </div>
         <span class="sb-loc-counter" id="sb-loc-counter"></span>
       </div>
 
-      <!-- Battle scene area — canvas fills this -->
+      <!-- Battle scene area - canvas fills this -->
       <div class="battle-scene" id="sb-loc-battle">
         <canvas class="scene-canvas" id="sb-loc-canvas"></canvas>
       </div>
 
-      <!-- Bottom bar — description instead of ATTACK -->
+      <!-- Bottom bar - description instead of ATTACK -->
       <div class="combat-bottom-bar">
         <div class="sb-loc-desc-panel" id="sb-loc-desc"></div>
       </div>
@@ -512,8 +512,6 @@ export class StorybookScene {
     const battleEl = overlay.querySelector("#sb-loc-battle") as HTMLElement;
     this._locResizeObserver = new ResizeObserver(() => {
       this._resizeLocCanvas();
-      const sc = this._locScenes[this._locIndex];
-      if (sc) (sc.bgRenderer as any)._dirty = true;
     });
     this._locResizeObserver.observe(battleEl);
 
@@ -570,15 +568,11 @@ export class StorybookScene {
     this._locCanvasW = w;
     this._locCanvasH = h;
 
-    for (const sc of this._locScenes) {
-      (sc.bgRenderer as any)._dirty = true;
-    }
+    // No-op: BackgroundRenderer draws fresh every frame
   }
 
   _switchLocScene(): void {
     this._updateLocInfo();
-    const sc = this._locScenes[this._locIndex];
-    if (sc) (sc.bgRenderer as any)._dirty = true;
   }
 
   _updateLocInfo(): void {
@@ -823,7 +817,7 @@ export class StorybookScene {
     const frameW = card.skin.defaultSize.w;
     const frameH = card.skin.defaultSize.h;
 
-    // "Combat size" — the intended visual size used in battle
+    // "Combat size" - the intended visual size used in battle
     const combatW = frameW * skinScale;
     const combatH = frameH * skinScale;
 
@@ -879,7 +873,7 @@ export class StorybookScene {
     const overlay = document.createElement("div");
     overlay.className = "sb-loc-fullscreen screen";
     overlay.innerHTML = `
-      <!-- Top bar — skill name + variant cycling -->
+      <!-- Top bar - skill name + variant cycling -->
       <div class="hud">
         <button class="hud-flee-btn" id="sb-skill-close">&larr;</button>
         <div class="hud-center">
@@ -895,7 +889,7 @@ export class StorybookScene {
         <canvas class="scene-canvas" id="sb-skill-canvas"></canvas>
       </div>
 
-      <!-- Action bar — mirrors real combat layout -->
+      <!-- Action bar - mirrors real combat layout -->
       <div class="action-bar">
         <div class="action-bar__abilities">
           <button class="action-slot action-slot--ability" id="sb-skill-slot0" data-slot="0">
@@ -988,7 +982,6 @@ export class StorybookScene {
     const battleEl = overlay.querySelector("#sb-skill-battle") as HTMLElement;
     this._skillResizeObserver = new ResizeObserver(() => {
       this._resizeSkillCanvas();
-      if (this._skillBg) (this._skillBg as any)._dirty = true;
     });
     this._skillResizeObserver.observe(battleEl);
 
@@ -1039,7 +1032,6 @@ export class StorybookScene {
     this._skillCanvasW = rect.width;
     this._skillCanvasH = rect.height;
 
-    if (this._skillBg) (this._skillBg as any)._dirty = true;
   }
 
   _updateSkillInfo(): void {
@@ -1159,7 +1151,7 @@ export class StorybookScene {
     }
 
     this._skillProjectileLayer.launch(entry.id, heroX, heroY, enemyX, enemyY, () => {
-      // On impact — shake enemy
+      // On impact - shake enemy
       if (this._skillEnemy) this._skillEnemy.hit();
     });
   }

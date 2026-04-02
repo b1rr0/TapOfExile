@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ActData {
   act: number;
@@ -7,7 +8,7 @@ interface ActData {
   theme: string;
   bossDesc: string;
   locations: { name: string; description: string; order: number }[];
-  modifiers: { icon: string; name: string; description: string; type: string }[];
+  modifiers: { icon: string; name: string; description: string; type: string; value?: string }[];
 }
 
 const ACTS: ActData[] = [
@@ -27,9 +28,9 @@ const ACTS: ActData[] = [
       { name: 'Castle Dungeon', description: 'The deepest cells. Something ancient stirs in the darkness.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83D\uDEE1\uFE0F', name: 'Castle Walls', description: 'Stone walls reduce incoming ranged damage', type: 'buff' },
-      { icon: '\u2694\uFE0F', name: 'Armory Access', description: 'Tap damage slightly increased', type: 'buff' },
-      { icon: '\uD83D\uDD76\uFE0F', name: 'Dim Corridors', description: 'Enemy crit chance increased in dark rooms', type: 'debuff' },
+      { icon: '\uD83D\uDEE1\uFE0F', name: 'Castle Walls', description: '+10 armor from stone fortifications', type: 'buff', value: '+10 armor' },
+      { icon: '\u2694\uFE0F', name: 'Armory Access', description: '+5% tap damage from nearby weapons', type: 'buff', value: '+5% dmg' },
+      { icon: '\uD83D\uDD76\uFE0F', name: 'Dim Corridors', description: '+3% incoming damage in dark rooms', type: 'debuff', value: '+3% taken' },
     ],
   },
   {
@@ -48,9 +49,9 @@ const ACTS: ActData[] = [
       { name: "Shepherd's Watch", description: 'An old watchtower overlooking the plains. Now a raider outpost.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83C\uDF3F', name: "Nature's Blessing", description: 'HP regeneration from fresh air', type: 'buff' },
-      { icon: '\u2600\uFE0F', name: 'Open Sky', description: 'No ambush penalties -- enemies visible early', type: 'buff' },
-      { icon: '\uD83D\uDC1B', name: 'Insect Swarm', description: 'Periodic minor poison damage over time', type: 'debuff' },
+      { icon: '\uD83C\uDF3F', name: "Nature's Blessing", description: '+3% dodge from fresh meadow air', type: 'buff', value: '+3% dodge' },
+      { icon: '\u2600\uFE0F', name: 'Open Sky', description: '+3% crit chance in clear weather', type: 'buff', value: '+3% crit' },
+      { icon: '\uD83D\uDC1B', name: 'Insect Swarm', description: '+5% incoming damage from bites', type: 'debuff', value: '+5% taken' },
     ],
   },
   {
@@ -69,10 +70,10 @@ const ACTS: ActData[] = [
       { name: 'Mercenary Outpost', description: 'Sell-swords for hire. Cross them and pay with your life.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83D\uDCA8', name: 'Tailwind', description: 'Movement speed buff -- faster attack rate', type: 'buff' },
-      { icon: '\u2600\uFE0F', name: 'Scorching Heat', description: 'Passive DPS ticks deal bonus fire damage', type: 'buff' },
-      { icon: '\uD83C\uDF2A\uFE0F', name: 'Dust Storm', description: 'Reduced visibility -- miss chance increased', type: 'debuff' },
-      { icon: '\uD83E\uDEA8', name: 'Rocky Terrain', description: 'Dodge chance reduced on uneven ground', type: 'debuff' },
+      { icon: '\uD83D\uDCA8', name: 'Tailwind', description: '+5% tap damage from favorable winds', type: 'buff', value: '+5% dmg' },
+      { icon: '\u2600\uFE0F', name: 'Scorching Heat', description: 'Enemies take +5% more elemental damage', type: 'buff', value: '+5% vuln' },
+      { icon: '\uD83C\uDF2A\uFE0F', name: 'Dust Storm', description: '-5% crit chance from poor visibility', type: 'debuff', value: '-5% crit' },
+      { icon: '\uD83E\uDEA8', name: 'Rocky Terrain', description: '-3% dodge on uneven ground', type: 'debuff', value: '-3% dodge' },
     ],
   },
   {
@@ -91,10 +92,10 @@ const ACTS: ActData[] = [
       { name: 'Frozen Shrine', description: 'A sacred place encased in eternal ice. Spirits guard it still.', order: 10 },
     ],
     modifiers: [
-      { icon: '\u2744\uFE0F', name: 'Frost Armor', description: 'Cold hardens your resolve -- defense up', type: 'buff' },
-      { icon: '\u2744\uFE0F', name: 'Frostbite', description: 'Extreme cold slows attack speed', type: 'debuff' },
-      { icon: '\uD83C\uDF28\uFE0F', name: 'Blizzard', description: 'Periodic freeze chance on both sides', type: 'debuff' },
-      { icon: '\u26F0\uFE0F', name: 'Thin Air', description: 'Stamina drains faster at high altitude', type: 'debuff' },
+      { icon: '\u2744\uFE0F', name: 'Frost Armor', description: '+15 armor from cold-hardened resolve', type: 'buff', value: '+15 armor' },
+      { icon: '\u2744\uFE0F', name: 'Frostbite', description: '-8% tap damage from extreme cold', type: 'debuff', value: '-8% dmg' },
+      { icon: '\uD83C\uDF28\uFE0F', name: 'Blizzard', description: '-5% dodge in heavy snowfall', type: 'debuff', value: '-5% dodge' },
+      { icon: '\u26F0\uFE0F', name: 'Thin Air', description: '+5% incoming damage at high altitude', type: 'debuff', value: '+5% taken' },
     ],
   },
   {
@@ -113,23 +114,25 @@ const ACTS: ActData[] = [
       { name: 'Poison Depths', description: 'Green mist seeps from the walls. Every breath is agony.', order: 10 },
     ],
     modifiers: [
-      { icon: '\uD83D\uDD2E', name: 'Crystal Glow', description: 'Cave crystals boost crit multiplier', type: 'buff' },
-      { icon: '\uD83D\uDD25', name: 'Lava Veins', description: 'Fire damage over time from magma fissures', type: 'debuff' },
-      { icon: '\uD83E\uDDA7', name: 'Cave Darkness', description: 'Total darkness -- high miss chance', type: 'debuff' },
-      { icon: '\u2620\uFE0F', name: 'Toxic Fumes', description: 'Poison stacks slowly drain HP', type: 'debuff' },
+      { icon: '\uD83D\uDD2E', name: 'Crystal Glow', description: '+8% crit chance from crystal refraction', type: 'buff', value: '+8% crit' },
+      { icon: '\uD83D\uDD25', name: 'Lava Veins', description: '+8% incoming damage from magma heat', type: 'debuff', value: '+8% taken' },
+      { icon: '\uD83E\uDD87', name: 'Cave Darkness', description: '-3% dodge in total darkness', type: 'debuff', value: '-3% dodge' },
+      { icon: '\u2620\uFE0F', name: 'Toxic Fumes', description: '-5% tap damage from noxious gas', type: 'debuff', value: '-5% dmg' },
     ],
   },
 ];
 
 export default function PlotPage() {
+  const { t } = useTranslation('plot');
+  const { t: tc } = useTranslation('common');
   const [selectedAct, setSelectedAct] = useState(0);
   const act = ACTS[selectedAct];
 
   return (
     <>
       <div className="page-heading">
-        <h1>Main Plot</h1>
-        <p>Journey through 5 acts with 50 unique locations, each with its own enemies, story, and modifiers.</p>
+        <h1>{t('title')}</h1>
+        <p>{t('subtitle')}</p>
       </div>
 
       <div className="tab-bar">
@@ -139,7 +142,7 @@ export default function PlotPage() {
             className={`tab-btn ${i === selectedAct ? 'active' : ''}`}
             onClick={() => setSelectedAct(i)}
           >
-            {a.icon} Act {a.act}: {a.name}
+            {a.icon} {t('actLabel', { num: a.act, name: a.name })}
           </button>
         ))}
       </div>
@@ -148,16 +151,16 @@ export default function PlotPage() {
         <div className="card-header">
           <div className="card-icon" style={{ fontSize: '2.5rem' }}>{act.icon}</div>
           <div>
-            <div className="card-title" style={{ fontSize: '1.4rem' }}>Act {act.act}: {act.name}</div>
+            <div className="card-title" style={{ fontSize: '1.4rem' }}>{t('actLabel', { num: act.act, name: act.name })}</div>
             <div className="card-subtitle">{act.theme}</div>
           </div>
         </div>
         <div className="card-body">
-          <strong>Act Boss:</strong> {act.bossDesc}
+          <strong>{t('actBoss')}</strong> {act.bossDesc}
         </div>
       </div>
 
-      <h3 className="section-title">Act Modifiers</h3>
+      <h3 className="section-title">{t('actModifiers')}</h3>
       <div className="card-grid cols-2" style={{ marginBottom: '1.5rem' }}>
         {act.modifiers.map((m) => (
           <div key={m.name} className="card" style={{
@@ -167,22 +170,23 @@ export default function PlotPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '1.3rem' }}>{m.icon}</span>
               <strong style={{ color: 'var(--text-heading)' }}>{m.name}</strong>
-              <span className={`badge ${m.type === 'buff' ? 'badge-rare' : 'badge-boss'}`}>{m.type}</span>
+              <span className={`badge ${m.type === 'buff' ? 'badge-rare' : 'badge-boss'}`}>{tc(`ui.${m.type}`)}</span>
+              {m.value && <span style={{ marginLeft: 'auto', fontFamily: 'monospace', fontSize: '0.8rem', color: m.type === 'buff' ? '#22c55e' : '#ef4444' }}>{m.value}</span>}
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.35rem' }}>{m.description}</p>
           </div>
         ))}
       </div>
 
-      <h3 className="section-title">Locations ({act.locations.length})</h3>
+      <h3 className="section-title">{t('locations', { count: act.locations.length })}</h3>
       <div style={{ overflowX: 'auto' }}>
         <table className="wiki-table">
           <thead>
             <tr>
-              <th>Order</th>
-              <th>Location</th>
-              <th>Description</th>
-              <th>Type</th>
+              <th>{t('thOrder')}</th>
+              <th>{t('thLocation')}</th>
+              <th>{t('thDescription')}</th>
+              <th>{t('thType')}</th>
             </tr>
           </thead>
           <tbody>
@@ -193,8 +197,8 @@ export default function PlotPage() {
                 <td style={{ maxWidth: '400px' }}>{loc.description}</td>
                 <td>
                   {loc.order <= 8
-                    ? <span className="badge badge-rare">Main</span>
-                    : <span className="badge badge-common">Side</span>
+                    ? <span className="badge badge-rare">{tc('ui.main')}</span>
+                    : <span className="badge badge-common">{tc('ui.side')}</span>
                   }
                 </td>
               </tr>
@@ -203,33 +207,28 @@ export default function PlotPage() {
         </table>
       </div>
 
-      <h2 className="section-title" style={{ marginTop: '2rem' }}>Progression Rules</h2>
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>{t('progressionTitle')}</h2>
       <div className="card-grid cols-2">
         <div className="card">
-          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>Location Unlock Pattern</h4>
-          <div className="formula-box" style={{ margin: 0 }}>
-            Order 1: Always unlocked<br />
-            Order 2-8: Requires previous order<br />
-            Order 9: Requires Order 3<br />
-            Order 10: Requires Order 5
-          </div>
+          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>{t('unlockPattern')}</h4>
+          <ul style={{ paddingLeft: '1.2rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <li>{t('unlock1')}</li>
+            <li>{t('unlock2')}</li>
+            <li>{t('unlock3')}</li>
+            <li>{t('unlock4')}</li>
+          </ul>
         </div>
         <div className="card">
-          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>Act Unlock Requirements</h4>
-          <div className="formula-box" style={{ margin: 0 }}>
-            Act N+1 unlocks when Act N main chain<br />
-            (orders 1-8) is fully completed.<br />
-            Side branches (9-10) are optional.
-          </div>
+          <h4 style={{ color: 'var(--text-heading)', marginBottom: '0.5rem' }}>{t('actUnlock')}</h4>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            {t('actUnlockDesc')}
+          </p>
         </div>
       </div>
 
       <div className="info-box" style={{ marginTop: '1.5rem' }}>
-        <h4>Monster Level Formula</h4>
-        <p>
-          <code style={{ color: 'var(--accent-gold)' }}>monsterLevel = (act - 1) * 10 + order</code>
-          <br />Range: Level 1 (Act 1, Order 1) to Level 50 (Act 5, Order 10)
-        </p>
+        <h4>{t('monsterLevels')}</h4>
+        <p dangerouslySetInnerHTML={{ __html: t('monsterLevelsDesc') }} />
       </div>
     </>
   );

@@ -1,4 +1,4 @@
-import { getSocket, waitForConnection } from "../combat-socket.js";
+﻿import { getSocket, waitForConnection } from "../combat-socket.js";
 import { B } from "../data/balance.js";
 import type { Socket } from "socket.io-client";
 import type { Monster, MapConfig, Location } from "../types.js";
@@ -15,7 +15,7 @@ interface SyntheticLocation {
 }
 
 /**
- * CombatManager — server-authoritative combat over WebSocket.
+ * CombatManager - server-authoritative combat over WebSocket.
  *
  * All damage, rewards, and progression are calculated on the server.
  * Enemy attacks are pushed in real-time via WebSocket every 1 second.
@@ -27,6 +27,8 @@ export class CombatManager {
   monster: Monster | null;
   private _deathCooldown: boolean;
   private _tapping: boolean;
+  /** Timestamp of last emitted tap - client-side throttle to avoid anticheat ban */
+  private _lastTapEmit: number;
 
   // Server session
   private _sessionId: string | null;
@@ -56,6 +58,7 @@ export class CombatManager {
     this.monster = null;
     this._deathCooldown = false;
     this._tapping = false;
+    this._lastTapEmit = 0;
 
     this._sessionId = null;
     this._socket = null;
@@ -127,6 +130,8 @@ export class CombatManager {
         damageBreakdown: result.damageBreakdown,
         isCrit: result.isCrit,
         monster: this.monster,
+        critExplosionDmg: result.critExplosionDmg || 0,
+        multiStrikeDmg: result.multiStrikeDmg || 0,
       });
 
       if (result.playerHp !== undefined) {
@@ -152,7 +157,7 @@ export class CombatManager {
       }
     });
 
-    // Active skill result (same structure as tap-result + skillId)
+    // Active skill result (same structure as tap-result + skillId + skillType)
     this._socket.on("combat:skill-result", (result: any) => {
       if (!this.monster) return;
 
@@ -165,11 +170,16 @@ export class CombatManager {
 
       this.events.emit("skillHit", {
         skillId: result.skillId,
+        skillType: result.skillType,
         damage: result.damage,
         damageBreakdown: result.damageBreakdown,
         isCrit: result.isCrit,
         monster: this.monster,
         cooldownUntil: result.cooldownUntil,
+        healAmount: result.healAmount,
+        effectId: result.effectId,
+        effectDuration: result.effectDuration,
+        activeEffects: result.activeEffects,
       });
 
       if (result.playerHp !== undefined) {
@@ -213,7 +223,7 @@ export class CombatManager {
       });
     });
 
-    // Potion used — update HP and notify UI
+    // Potion used - update HP and notify UI
     this._socket.on("combat:potion-used", (result: any) => {
       this._playerHp = result.playerHp;
       this._playerMaxHp = result.playerMaxHp ?? this._playerMaxHp;
@@ -229,13 +239,13 @@ export class CombatManager {
       });
     });
 
-    // Error handling — also reset tapping flag so the player isn't stuck
+    // Error handling - also reset tapping flag so the player isn't stuck
     this._socket.on("combat:error", (data: any) => {
       console.warn("[CombatManager] Socket error:", data.message);
       this._tapping = false;
     });
 
-    // Ban detection — server-side anti-cheat triggered
+    // Ban detection - server-side anti-cheat triggered
     this._socket.on("combat:banned", (data: { expiresAt: number; reason: string }) => {
       console.warn("[CombatManager] Player banned:", data.reason, "until", new Date(data.expiresAt));
       this._sessionId = null;
@@ -278,9 +288,9 @@ export class CombatManager {
    * Emit a combat start event and wait for `combat:started`.
    *
    * Resilience layers:
-   * 1. Retry emit every 2s (up to 5×) — survives lost messages during transport switch
-   * 2. Re-emit on socket `connect` — survives full reconnect cycle
-   * 3. 30s hard timeout — falls back to hideout on total failure
+   * 1. Retry emit every 2s (up to 5×) - survives lost messages during transport switch
+   * 2. Re-emit on socket `connect` - survives full reconnect cycle
+   * 3. 30s hard timeout - falls back to hideout on total failure
    */
   private _emitWithRetry(
     socket: Socket,
@@ -314,7 +324,7 @@ export class CombatManager {
       const onError = (err: any) => {
         if (settled) return;
         const msg: string = err.message || "";
-        // Transient errors — server hasn't finished auth yet, just wait for retry
+        // Transient errors - server hasn't finished auth yet, just wait for retry
         if (msg.includes("retry")) {
           return;
         }
@@ -444,12 +454,20 @@ export class CombatManager {
   castSkill(skillId: string): void {
     if (this._deathCooldown || !this.monster || !this._sessionId || !this._socket) return;
     this._socket.emit("combat:cast-skill", { sessionId: this._sessionId, skillId });
+    // Emit skillCast immediately for client-side animation (server result comes later as skillHit)
+    this.events.emit("skillCast", { skillId });
   }
 
   // ─── Tap ────────────────────────────────────────────────────
 
   handleTap(): void {
     if (this._deathCooldown || !this.monster || !this._sessionId || this._tapping || !this._socket) return;
+
+    // Client-side throttle: max ~9 taps/sec to stay under anticheat limit
+    const now = performance.now();
+    if (now - this._lastTapEmit < 110) return;
+    this._lastTapEmit = now;
+
     this._tapping = true;
 
     this._socket.emit("combat:tap", { sessionId: this._sessionId });
@@ -542,7 +560,7 @@ export class CombatManager {
       this._socket.off("connect");
       this._socket.off("disconnect");
     }
-    // Keep socket alive — next combat reuses it instantly
+    // Keep socket alive - next combat reuses it instantly
     this._socket = null;
     this._sessionId = null;
     this._listenersAttached = false;

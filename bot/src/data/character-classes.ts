@@ -1,5 +1,5 @@
-/**
- * Character Classes — driven by shared/class-stats.ts (single source of truth).
+﻿/**
+ * Character Classes - driven by shared/class-stats.ts (single source of truth).
  *
  * Re-exports CLASS_DEFS as CharacterClassDef-compatible records + helpers.
  */

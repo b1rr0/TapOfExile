@@ -1,11 +1,11 @@
-import { getHeroSkin } from "../data/sprite-registry.js";
+﻿import { getHeroSkin } from "../data/sprite-registry.js";
 import { HeroCharacter } from "../ui/characters/hero-character.js";
 import { formatCombatTime, renderLogEntries, createLogPanelHTML } from "../ui/combat-log-renderer.js";
 import type { LogEntry } from "../ui/combat-log-renderer.js";
 import type { SharedDeps } from "../types.js";
 
 /**
- * DeathScene — shown after the player dies in combat.
+ * DeathScene - shown after the player dies in combat.
  *
  * Displays:
  *  - Dead hero sprite (last frame of death animation)
@@ -32,11 +32,11 @@ export class DeathScene {
   }
 
   /**
-   * @param params.heroSkinId   — skin id for dead-hero sprite
-   * @param params.killerName   — name of the monster that killed the player
-   * @param params.combatTime   — combat duration in ms
-   * @param params.logEntries   — LogEntry[] from CombatLog
-   * @param params.combatStartTime — absolute ms timestamp
+   * @param params.heroSkinId   - skin id for dead-hero sprite
+   * @param params.killerName   - name of the monster that killed the player
+   * @param params.combatTime   - combat duration in ms
+   * @param params.logEntries   - LogEntry[] from CombatLog
+   * @param params.combatStartTime - absolute ms timestamp
    */
   mount(params: Record<string, any> = {}): void {
     const {

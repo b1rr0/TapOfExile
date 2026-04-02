@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -14,7 +14,7 @@ import {
 } from './interfaces/league-transfer.interface';
 
 @Injectable()
-export class LeagueMigrationService {
+export class LeagueMigrationService implements OnModuleInit {
   private readonly logger = new Logger(LeagueMigrationService.name);
 
   constructor(
@@ -31,6 +31,22 @@ export class LeagueMigrationService {
     private leagueService: LeagueService,
     private dataSource: DataSource,
   ) {}
+
+  /**
+   * On startup: check if the active monthly league has expired.
+   * Handles the case where the CRON job was missed (server was down on 1st).
+   */
+  async onModuleInit() {
+    const monthlyLeague = await this.leagueService.getActiveMonthlyLeague();
+    if (!monthlyLeague) return;
+
+    if (monthlyLeague.endsAt && monthlyLeague.endsAt < new Date()) {
+      this.logger.warn(
+        `Expired monthly league detected on startup: "${monthlyLeague.name}" (ended ${monthlyLeague.endsAt.toISOString()}). Running migration...`,
+      );
+      await this.handleMonthlyMigration();
+    }
+  }
 
   /**
    * CRON job: runs at 00:00 UTC on the 1st of every month.
@@ -62,24 +78,24 @@ export class LeagueMigrationService {
           `${result.itemsTransferred} items transferred.`,
       );
 
-      // Create next monthly league
+      // Create league for the current month (handles both CRON on 1st and late startup)
       const now = new Date();
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const monthEnd = new Date(
-        nextMonth.getFullYear(),
-        nextMonth.getMonth() + 1,
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const currentMonthEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
         0,
         23,
         59,
         59,
       );
 
-      const leagueName = `${JP_MONTH_NAMES[nextMonth.getMonth()]} ${nextMonth.getFullYear()}`;
+      const leagueName = `${JP_MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
 
       await this.leagueService.createMonthlyLeague(
         leagueName,
-        nextMonth,
-        monthEnd,
+        currentMonthStart,
+        currentMonthEnd,
       );
       this.logger.log(`New monthly league created: "${leagueName}"`);
     } catch (error) {

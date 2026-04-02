@@ -66,12 +66,13 @@ export function createMonsterForMap(
   const rarity = RARITIES[rarityId] || RARITIES.common;
 
   // Base = Act 5 order 10 equivalent
+  const actHpMul = Math.pow(B.ACT_HP_SCALING, B.MAP_BASE_ACT - 1);
   const actMul = Math.pow(B.ACT_SCALING_BASE, B.MAP_BASE_ACT - 1);
   const orderScale = B.MAP_BASE_ORDER;
 
-  // HP: base x orderScale x rarity x actMul x tierMul, randomised +/-15%
+  // HP: base x orderScale x rarity x actHpMul x tierMul, randomised +/-15%
   const hpScale = Math.pow(B.MONSTER_HP_GROWTH, orderScale - 1);
-  const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actMul * tierHpMul);
+  const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actHpMul * tierHpMul);
   const hpMin = Math.max(1, Math.floor(baseHp * (1 - B.MONSTER_HP_RANDOM)));
   const hpMax = Math.ceil(baseHp * (1 + B.MONSTER_HP_RANDOM));
   const hp = randInt(hpMin, hpMax);
@@ -112,11 +113,14 @@ export function createMonsterForLocation(
 ): Monster {
   const type = MONSTER_TYPES.find((m) => m.name === typeName) || MONSTER_TYPES[0];
   const rarity = RARITIES[rarityId] || RARITIES.common;
+
+  // Separate act scaling: HP uses dedicated scaler, Gold/XP use general
+  const actHpMul = Math.pow(B.ACT_HP_SCALING, actNumber - 1);
   const actMul = Math.pow(B.ACT_SCALING_BASE, actNumber - 1);
 
-  // --- HP: base x locationScale x rarity x actMul, then randomise +/-15 % ---
+  // --- HP: base x locationScale x rarity x actHpMul, then randomise +/-15 % ---
   const hpScale = Math.pow(B.MONSTER_HP_GROWTH, locationOrder - 1);
-  const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actMul);
+  const baseHp = Math.floor(B.MONSTER_HP_BASE * hpScale * rarity.hpMul * actHpMul);
   const hpMin = Math.max(1, Math.floor(baseHp * (1 - B.MONSTER_HP_RANDOM)));
   const hpMax = Math.ceil(baseHp * (1 + B.MONSTER_HP_RANDOM));
   const hp = randInt(hpMin, hpMax);

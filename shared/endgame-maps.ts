@@ -1,5 +1,5 @@
-/**
- * Endgame Map System — shared data and logic for both FE and BE.
+﻿/**
+ * Endgame Map System - shared data and logic for both FE and BE.
  *
  * Contains: tier definitions, boss maps, wave templates, drop settings,
  * and generic drop logic (accepts factory callbacks for FE/BE differences).
@@ -30,7 +30,7 @@ export const DROP_SETTINGS: DropSettings = {
 };
 
 /* ══════════════════════════════════════════════════════════════
- *  BOSS KEY TIERS — 3 difficulty levels
+ *  BOSS KEY TIERS - 3 difficulty levels
  * ══════════════════════════════════════════════════════════════ */
 
 export const BOSS_KEY_TIERS: BossKeyTierDef[] = [
@@ -56,22 +56,22 @@ export function pickBossKeyTier(sourceTier: number, isBossMap: boolean): number 
 }
 
 /* ══════════════════════════════════════════════════════════════
- *  TIER DEFINITIONS — 10 difficulty levels
+ *  TIER DEFINITIONS - 10 difficulty levels
  * ══════════════════════════════════════════════════════════════ */
 
 export const MAX_TIER: number = 10;
 
 export const MAP_TIERS: MapTier[] = [
   { tier: 1,  name: "Tier I",    hpMul: 1.0,  goldMul: 1.0,  xpMul: 1.0  },
-  { tier: 2,  name: "Tier II",   hpMul: 1.5,  goldMul: 1.4,  xpMul: 1.3  },
-  { tier: 3,  name: "Tier III",  hpMul: 2.2,  goldMul: 1.9,  xpMul: 1.7  },
-  { tier: 4,  name: "Tier IV",   hpMul: 3.2,  goldMul: 2.5,  xpMul: 2.2  },
-  { tier: 5,  name: "Tier V",    hpMul: 4.5,  goldMul: 3.2,  xpMul: 2.8  },
-  { tier: 6,  name: "Tier VI",   hpMul: 6.5,  goldMul: 4.2,  xpMul: 3.5  },
-  { tier: 7,  name: "Tier VII",  hpMul: 9.0,  goldMul: 5.5,  xpMul: 4.5  },
-  { tier: 8,  name: "Tier VIII", hpMul: 13.0, goldMul: 7.2,  xpMul: 5.8  },
-  { tier: 9,  name: "Tier IX",   hpMul: 18.0, goldMul: 9.5,  xpMul: 7.5  },
-  { tier: 10, name: "Tier X",    hpMul: 25.0, goldMul: 13.0, xpMul: 10.0 },
+  { tier: 2,  name: "Tier II",   hpMul: 1.3,  goldMul: 1.3,  xpMul: 1.2  },
+  { tier: 3,  name: "Tier III",  hpMul: 1.7,  goldMul: 1.7,  xpMul: 1.5  },
+  { tier: 4,  name: "Tier IV",   hpMul: 2.2,  goldMul: 2.1,  xpMul: 1.8  },
+  { tier: 5,  name: "Tier V",    hpMul: 2.8,  goldMul: 2.6,  xpMul: 2.2  },
+  { tier: 6,  name: "Tier VI",   hpMul: 3.5,  goldMul: 3.2,  xpMul: 2.7  },
+  { tier: 7,  name: "Tier VII",  hpMul: 4.5,  goldMul: 4.0,  xpMul: 3.3  },
+  { tier: 8,  name: "Tier VIII", hpMul: 6.0,  goldMul: 5.0,  xpMul: 4.0  },
+  { tier: 9,  name: "Tier IX",   hpMul: 7.8,  goldMul: 6.2,  xpMul: 5.0  },
+  { tier: 10, name: "Tier X",    hpMul: 10.0, goldMul: 8.0,  xpMul: 6.5  },
 ];
 
 export function getTierDef(tier: number): MapTier {
@@ -89,7 +89,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "The shadow of the fallen Shogun lingers, more powerful than ever.",
     bossType: "Shogun",
     icon: "\u2694\uFE0F",
-    hpMul: 8.0,   goldMul: 10.0, xpMul: 8.0,
+    hpMul: 4.5,   goldMul: 6.0, xpMul: 4.5,
     trashWaves: [
       { monsters: [{ type: "Ronin", count: 3, rarity: "rare" }, { type: "Oni", count: 2, rarity: "rare" }] },
       { monsters: [{ type: "Dragon", count: 2, rarity: "epic" }, { type: "Shogun", count: 1, rarity: "epic" }] },
@@ -101,7 +101,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "An ancient dragon hoards centuries of stolen power.",
     bossType: "Dragon",
     icon: "\uD83D\uDC09",
-    hpMul: 10.0,  goldMul: 12.0, xpMul: 10.0,
+    hpMul: 5.5,   goldMul: 7.0, xpMul: 5.5,
     trashWaves: [
       { monsters: [{ type: "Tengu", count: 3, rarity: "rare" }, { type: "Dragon", count: 2, rarity: "rare" }] },
       { monsters: [{ type: "Shogun", count: 2, rarity: "epic" }, { type: "Dragon", count: 1, rarity: "epic" }] },
@@ -113,7 +113,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "The demon warlord commands legions from his blood-soaked throne.",
     bossType: "Oni",
     icon: "\uD83D\uDC79",
-    hpMul: 7.0,   goldMul: 9.0,  xpMul: 7.0,
+    hpMul: 3.8,   goldMul: 5.0,  xpMul: 3.8,
     trashWaves: [
       { monsters: [{ type: "Oni", count: 4, rarity: "rare" }, { type: "Ronin", count: 2, rarity: "rare" }] },
       { monsters: [{ type: "Oni", count: 2, rarity: "epic" }, { type: "Tengu", count: 1, rarity: "epic" }] },
@@ -125,7 +125,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "The wind spirit rules from the highest peak, untouched by mortals.",
     bossType: "Tengu",
     icon: "\uD83C\uDF2A\uFE0F",
-    hpMul: 9.0,   goldMul: 11.0, xpMul: 9.0,
+    hpMul: 5.0,   goldMul: 6.5, xpMul: 5.0,
     trashWaves: [
       { monsters: [{ type: "Tengu", count: 4, rarity: "rare" }, { type: "Oni", count: 2, rarity: "rare" }] },
       { monsters: [{ type: "Dragon", count: 1, rarity: "epic" }, { type: "Tengu", count: 2, rarity: "epic" }] },
@@ -137,7 +137,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "A phantom swordsman endlessly relives his final duel.",
     bossType: "Ronin",
     icon: "\uD83D\uDC7B",
-    hpMul: 6.0,   goldMul: 8.0,  xpMul: 6.0,
+    hpMul: 3.3,   goldMul: 4.5,  xpMul: 3.3,
     trashWaves: [
       { monsters: [{ type: "Ronin", count: 4, rarity: "rare" }, { type: "Tengu", count: 1, rarity: "rare" }] },
       { monsters: [{ type: "Ronin", count: 2, rarity: "epic" }, { type: "Shogun", count: 1, rarity: "epic" }] },
@@ -149,7 +149,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "The forest itself rises to crush all intruders.",
     bossType: "Forest Spirit",
     icon: "\uD83C\uDF33",
-    hpMul: 7.5,   goldMul: 9.5,  xpMul: 7.5,
+    hpMul: 4.0,   goldMul: 5.5,  xpMul: 4.0,
     trashWaves: [
       { monsters: [{ type: "Oni", count: 3, rarity: "rare" }, { type: "Tengu", count: 2, rarity: "rare" }] },
       { monsters: [{ type: "Dragon", count: 2, rarity: "epic" }, { type: "Shogun", count: 1, rarity: "epic" }] },
@@ -161,7 +161,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "The mightiest beast challenges all who enter its domain.",
     bossType: "Wild Boar",
     icon: "\uD83D\uDC17",
-    hpMul: 6.5,   goldMul: 8.5,  xpMul: 6.5,
+    hpMul: 3.5,   goldMul: 4.8,  xpMul: 3.5,
     trashWaves: [
       { monsters: [{ type: "Ronin", count: 3, rarity: "rare" }, { type: "Oni", count: 3, rarity: "rare" }] },
       { monsters: [{ type: "Tengu", count: 2, rarity: "epic" }, { type: "Dragon", count: 1, rarity: "epic" }] },
@@ -173,7 +173,7 @@ export const BOSS_MAPS: BossMap[] = [
     description: "The lord of thieves has fortified his lair with traps and soldiers.",
     bossType: "Bandit",
     icon: "\uD83D\uDDE1\uFE0F",
-    hpMul: 5.5,   goldMul: 7.5,  xpMul: 5.5,
+    hpMul: 3.0,   goldMul: 4.0,  xpMul: 3.0,
     trashWaves: [
       { monsters: [{ type: "Ronin", count: 4, rarity: "rare" }, { type: "Oni", count: 2, rarity: "rare" }] },
       { monsters: [{ type: "Oni", count: 2, rarity: "epic" }, { type: "Tengu", count: 1, rarity: "epic" }] },
@@ -313,11 +313,11 @@ export function createBossKeyData(bossId: string, bossKeyTier: number): BagItemD
  * Generic: accepts factory callbacks so FE and BE can inject
  * different location-enrichment logic.
  *
- * @param tier         — map tier that was completed
- * @param isBossMap    — was it a boss map?
- * @param direction    — chosen boss direction (if any)
- * @param createMapKey — factory to create a map key item (FE adds location, BE adds its own)
- * @param createBossKey — factory to create a boss key item
+ * @param tier         - map tier that was completed
+ * @param isBossMap    - was it a boss map?
+ * @param direction    - chosen boss direction (if any)
+ * @param createMapKey - factory to create a map key item (FE adds location, BE adds its own)
+ * @param createBossKey - factory to create a boss key item
  */
 export function rollMapDrops(
   tier: number,
@@ -350,12 +350,14 @@ export function rollMapDrops(
     return drops;
   }
 
-  // Regular map drops
-  if (Math.random() < S.regular.sameTierChance) {
-    drops.push(createMapKey(tier));
-  }
-  if (tier < MAX_TIER && Math.random() < S.regular.tierUpChance) {
+  // Regular map drops - mutually exclusive: same-tier OR tier+1 (not both)
+  const keyRoll = Math.random();
+  if (keyRoll < S.regular.tierUpChance && tier < MAX_TIER) {
+    // Tier+1 wins (checked first - rarer outcome, 20%)
     drops.push(createMapKey(Math.min(MAX_TIER, tier + 1)));
+  } else if (keyRoll < S.regular.tierUpChance + S.regular.sameTierChance) {
+    // Same tier (60% band)
+    drops.push(createMapKey(tier));
   }
   // Boss key based on chosen direction
   if (tier >= S.regular.bossKeyMinTier && Math.random() < S.regular.bossKeyChance) {

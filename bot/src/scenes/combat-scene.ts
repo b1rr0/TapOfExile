@@ -1,10 +1,10 @@
-import { CombatManager } from "../game/combat.js";
+﻿import { CombatManager } from "../game/combat.js";
 import { BattleScene } from "../ui/battle-scene.js";
 import { Effects } from "../ui/effects.js";
 import { CombatLog } from "../ui/combat-log.js";
 import { HUD } from "../ui/hud.js";
 import { Equipment } from "../ui/equipment.js";
-import { renderActionBarHTML, initPotionSlots, initKeyboardHandler } from "../ui/action-bar.js";
+import { renderActionBarHTML, initPotionSlots, initKeyboardHandler, initAbilitySlots } from "../ui/action-bar.js";
 import { haptic } from "../utils/haptic.js";
 import { isActComplete, getBackgroundForLocation, getActModifiers, getLocationById, ACT_BACKGROUNDS } from "../data/locations.js";
 import type { SharedDeps, Location } from "../types.js";
@@ -42,7 +42,7 @@ const LOADING_TIP_INTERVAL = 5000;
 const LOADING_MAX_DURATION = 30000;
 
 /**
- * CombatScene — wraps the current battle flow into a single scene.
+ * CombatScene - wraps the current battle flow into a single scene.
  *
  * Lifecycle: mount(params) / unmount() with full cleanup.
  */
@@ -67,6 +67,7 @@ export class CombatScene {
   _onPlayerDied: (() => void) | null;
   _onCombatReady: (() => void) | null;
   _cleanupPotions: (() => void) | null;
+  _cleanupAbilities: (() => void) | null;
   _cleanupKeyboard: (() => void) | null;
   _onPlayerBanned: ((data: any) => void) | null;
 
@@ -97,6 +98,7 @@ export class CombatScene {
     this._onPlayerDied = null;
     this._onCombatReady = null;
     this._cleanupPotions = null;
+    this._cleanupAbilities = null;
     this._cleanupKeyboard = null;
     this._onPlayerBanned = null;
 
@@ -175,7 +177,13 @@ export class CombatScene {
           xpToNext: playerData ? playerData.xpToNext : 100,
           maxHp: activeChar?.maxHp || activeChar?.hp || 100,
           hp: activeChar?.hp || 100,
+          tapDamage: activeChar?.tapDamage || 1,
+          critChance: activeChar?.critChance || 0.05,
+          critMultiplier: activeChar?.critMultiplier || 1.5,
           dodgeChance: activeChar?.dodgeChance || 0,
+          weaponSpellLevel: (activeChar as any)?.weaponSpellLevel || 0,
+          arcaneSpellLevel: (activeChar as any)?.arcaneSpellLevel || 0,
+          versatileSpellLevel: (activeChar as any)?.versatileSpellLevel || 0,
           resistance: activeChar?.resistance,
         })}
 
@@ -252,6 +260,7 @@ export class CombatScene {
       backgroundSrc = getBackgroundForLocation(params.location);
     }
 
+    console.log(`[Combat] bg=${backgroundSrc}, isMap=${isMapMode}, act=${params.location?.act}, order=${params.location?.order}`);
     this.battleScene = new BattleScene(battleEl, this.events, { heroSkin, backgroundSrc });
 
     // Hide loading overlay only when BOTH server responded AND sprites loaded
@@ -292,7 +301,9 @@ export class CombatScene {
       },
       onAbility: (idx) => {
         const btn = this.container.querySelector(`#ability-${idx}`) as HTMLButtonElement | null;
-        if (btn && !btn.classList.contains("action-slot--empty")) btn.click();
+        if (btn && !btn.classList.contains("action-slot--empty") && !btn.classList.contains("action-slot--on-cd")) {
+          btn.click();
+        }
       },
       onPotion: (slot) => {
         const btn = this.container.querySelector(`#potion-${slot}`) as HTMLButtonElement | null;
@@ -351,7 +362,39 @@ export class CombatScene {
       events: this.events,
     });
 
-    // Listen for player death — switch to death screen after brief delay.
+    // ── Wire ability buttons with equipped skills ──────────
+    let equippedSkills = activeChar?.equippedSkills || [null, null, null, null];
+    // Fallback: if all slots empty but skills are unlocked, auto-fill from unlocked
+    if (equippedSkills.every((s: string | null) => !s) && activeChar?.unlockedActiveSkills?.length) {
+      equippedSkills = [...activeChar.unlockedActiveSkills.slice(0, 4)];
+      while (equippedSkills.length < 4) equippedSkills.push(null);
+    }
+    initAbilitySlots({
+      container: this.container,
+      equippedSkills,
+      projectileLayer: this.battleScene!.projectileLayer,
+      onCastSkill: (skillId) => { if (this.combat) this.combat.castSkill(skillId); },
+      events: this.events,
+      charData: activeChar ? {
+        level: activeChar.level,
+        xp: activeChar.xp || 0,
+        xpToNext: activeChar.xpToNext || 1,
+        maxHp: activeChar.maxHp,
+        hp: activeChar.hp || activeChar.maxHp,
+        tapDamage: activeChar.tapDamage || 1,
+        critChance: activeChar.critChance || 0.05,
+        critMultiplier: activeChar.critMultiplier || 1.5,
+        dodgeChance: activeChar.dodgeChance || 0,
+        weaponSpellLevel: (activeChar as any).weaponSpellLevel || 0,
+        arcaneSpellLevel: (activeChar as any).arcaneSpellLevel || 0,
+        versatileSpellLevel: (activeChar as any).versatileSpellLevel || 0,
+        resistance: (activeChar as any).resistance,
+      } : undefined,
+    }).then((cleanup) => {
+      this._cleanupAbilities = cleanup;
+    });
+
+    // Listen for player death - switch to death screen after brief delay.
     // We capture combat log data IMMEDIATELY to avoid it being null if
     // unmount() runs before the delayed scene switch (e.g. race with locationComplete).
     // A second snapshot is taken 300ms later to include staggered enemyAttack events.
@@ -360,13 +403,13 @@ export class CombatScene {
       if (_deathCaptured) return;          // guard against double-fire
       _deathCaptured = true;
 
-      // Snapshot #1 — immediate (guaranteed non-null combatLog)
+      // Snapshot #1 - immediate (guaranteed non-null combatLog)
       const combatLog = this.combatLog;
       let killerName = combatLog ? combatLog.currentMonsterName : "Unknown";
       let logEntries = combatLog ? [...combatLog.entries] : [];
       let combatStartTime = combatLog ? combatLog.combatStartTime : Date.now();
 
-      // Snapshot #2 — after 300ms, picks up staggered enemyAttack events
+      // Snapshot #2 - after 300ms, picks up staggered enemyAttack events
       setTimeout(() => {
         const cl = this.combatLog;
         if (cl) {
@@ -398,7 +441,7 @@ export class CombatScene {
     const completedBefore: string[] = [...(this.state.data.locations?.completed || [])];
     const wasActComplete = isActComplete(locActNumber, completedBefore);
 
-    // Listen for location complete — server already persisted everything
+    // Listen for location complete - server already persisted everything
     this._onLocationComplete = (data: any) => {
       const completedAfter: string[] = this.state.data.locations?.completed || [];
       const isNowComplete = isActComplete(locActNumber, completedAfter);
@@ -423,7 +466,7 @@ export class CombatScene {
     };
     this.events.on("locationComplete", this._onLocationComplete);
 
-    // Listen for map complete — server already persisted drops + endgame stats
+    // Listen for map complete - server already persisted drops + endgame stats
     this._onMapComplete = (data: any) => {
       const mc = data.mapConfig;
       const tier: number = mc.tier || 10;
@@ -558,9 +601,11 @@ export class CombatScene {
       this.events.off("playerBanned", this._onPlayerBanned);
       this._onPlayerBanned = null;
     }
-    // Clean up action bar (potions + keyboard)
+    // Clean up action bar (potions + abilities + keyboard)
     this._cleanupPotions?.();
     this._cleanupPotions = null;
+    this._cleanupAbilities?.();
+    this._cleanupAbilities = null;
     this._cleanupKeyboard?.();
     this._cleanupKeyboard = null;
     // Clean up loading overlay timers
