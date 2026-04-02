@@ -21,7 +21,7 @@ export class SkillTreeController {
   constructor(private skillTreeService: SkillTreeService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get skill tree allocations for a character' })
+  @ApiOperation({ summary: 'Get asterism allocations for a character' })
   @ApiResponse({ status: 200, description: 'Allocated node indices' })
   async getAllocations(
     @CurrentUser('telegramId') telegramId: string,

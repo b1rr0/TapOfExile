@@ -279,7 +279,7 @@ export class DojoScene {
       onTap: () => this._onTap(),
     });
 
-    // Ability slots - show equipped skills from the skill tree
+    // Ability slots - show equipped skills from the asterism
     {
       let equippedSkills = char.equippedSkills || [null, null, null, null];
       if (equippedSkills.every((s: string | null) => !s) && char.unlockedActiveSkills?.length) {

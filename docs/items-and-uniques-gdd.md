@@ -68,7 +68,7 @@ ITEM LEVEL:   1-100, tiers T5(1-19) T4(20-39) T3(40-59) T2(60-79) T1(80-100)
 | `damage_return` | Return N% Damage Taken | % of received damage dealt back to attacker | **UNIQUE ONLY** Warrior tank items |
 | `execute_threshold` | Execute below N% HP | Instant kill at HP threshold | **UNIQUE ONLY** Samurai burst items |
 
-> **`damage_return`** — процент полученного урона возвращается атакующему. В отличие от `thorns` (фиксированный flat урон), `damage_return` масштабируется с уроном врага. Чем сильнее бьёт враг — тем больше возврат. Идеальный танковый стат для боссов.
+> **`damage_return`** — a percentage of received damage is returned to the attacker. Unlike `thorns` (fixed flat damage), `damage_return` scales with enemy damage. The harder the enemy hits, the greater the return. An ideal tank stat for bosses.
 
 ### 1.3 Sustain Stats
 | ID | Name | Description | Notes |

@@ -6,7 +6,7 @@ const FEATURES = [
   { icon: '&#128737;&#65039;', title: 'Equipment', desc: 'Potions with 6 flask types and 4 quality tiers. Gear system coming soon.', to: '/equipment' },
   { icon: '&#128121;', title: 'Enemies', desc: '8 monster types across 5 acts with elemental resistances, 4 rarity tiers, and unique attacks.', to: '/enemies' },
   { icon: '&#127942;', title: 'Champions', desc: 'Live leaderboards: Dojo damage rankings and top experienced fighters by league.', to: '/champions' },
-  { icon: '&#127795;', title: 'Skill Tree', desc: '200+ passive nodes: minor, major, and keystone. Build your character your way.', to: '/skill-tree' },
+  { icon: '&#10036;', title: 'Asterism', desc: '200+ passive nodes: minor, major, and keystone. Build your character your way.', to: '/asterism' },
   { icon: '&#128163;', title: 'Damage & Combat', desc: 'Elemental damage types, resistances, crit system, active skills, and monster scaling.', to: '/damage' },
   { icon: '&#128214;', title: 'Main Plot', desc: '5 acts spanning Castle, Meadow, Fields, Snow Mountain, and The Depths.', to: '/plot' },
   { icon: '&#128506;&#65039;', title: 'Maps & Bosses', desc: '10 endgame tiers, 8 unique boss encounters, map key drops, and boss key system.', to: '/maps' },

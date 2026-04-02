@@ -49,6 +49,7 @@ export default function SkillTreeRenderer({
   const pinchDistRef = useRef<number | null>(null);
 
   const [tooltip, setTooltip] = useState<{ node: SkillNode; x: number; y: number } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Interactive allocation state
   const [allocated, setAllocated] = useState<number[]>(allocatedNodes || []);
@@ -63,6 +64,19 @@ export default function SkillTreeRenderer({
   }, [allocatedNodes, interactive]);
 
   const allocatedSet = useMemo(() => new Set(allocated), [allocated]);
+
+  // Search: compute matching node IDs
+  const searchMatchSet = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return new Set<number>();
+    const tree = getTree();
+    const matches = new Set<number>();
+    for (const node of tree.nodes) {
+      const haystack = `${node.label || ''} ${node.name || ''} ${node.def?.mods?.map((m: any) => m.stat).join(' ') || ''}`.toLowerCase();
+      if (haystack.includes(q)) matches.add(node.id);
+    }
+    return matches;
+  }, [searchQuery]);
 
   /* ── Allocation logic ────────────────────── */
 
@@ -186,6 +200,18 @@ export default function SkillTreeRenderer({
       el.classList.toggle('st-edge--active', set.has(a) && set.has(b));
     });
   }, [allocated, interactive]);
+
+  /* ── Update search highlight classes ──────── */
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const hasSearch = searchMatchSet.size > 0;
+    svg.querySelectorAll('.st-node').forEach(el => {
+      const id = Number(el.getAttribute('data-node-id'));
+      el.classList.toggle('st-node--search-match', searchMatchSet.has(id));
+      el.classList.toggle('st-node--search-dim', hasSearch && !searchMatchSet.has(id));
+    });
+  }, [searchMatchSet]);
 
   /* ── Build SVG once on mount ─────────────── */
   useEffect(() => {
@@ -424,13 +450,37 @@ export default function SkillTreeRenderer({
   return (
     <div className="skill-tree-wiki">
       {/* Controls: zoom + interactive panel */}
+      {/* Search bar */}
+      <div className="skill-tree-wiki__search">
+        <input
+          type="text"
+          className="skill-tree-wiki__search-input"
+          placeholder="Search nodes..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <span className="skill-tree-wiki__search-count">
+            {searchMatchSet.size} found
+          </span>
+        )}
+        {searchQuery && (
+          <button
+            className="skill-tree-wiki__search-clear"
+            onClick={() => setSearchQuery('')}
+          >
+            {'\u2715'}
+          </button>
+        )}
+      </div>
+
       <div className="skill-tree-wiki__controls">
         <button className="skill-tree-wiki__zoom" onClick={handleZoomIn}>+</button>
         <button className="skill-tree-wiki__zoom" onClick={handleZoomOut}>&minus;</button>
         {interactive && (
           <button
             className="skill-tree-wiki__zoom"
-            onClick={() => window.open('/skill-tree/builder', '_blank')}
+            onClick={() => window.open('/asterism/builder', '_blank')}
             title="Open fullscreen"
           >
             {'\u26F6'}

@@ -28,11 +28,11 @@ export default function App() {
   return (
     <Routes>
       {/* Fullscreen pages — no Layout wrapper */}
-      <Route path="character/:characterId/tree" element={<CharacterTreePage />} />
-      <Route path="skill-tree/builder" element={<SkillTreeBuilderPage />} />
-      <Route path="skill-tree/figures" element={<FigureMapPage />} />
+      <Route path="character/:characterId/asterism" element={<CharacterTreePage />} />
+      <Route path="asterism/builder" element={<SkillTreeBuilderPage />} />
+      <Route path="asterism/figures" element={<FigureMapPage />} />
 
-      {/* Landing layout — hero, leagues, champions, skill tree preview */}
+      {/* Landing layout — hero, leagues, champions, asterism preview */}
       <Route element={<Layout />}>
         <Route index element={<LandingPage />} />
         <Route path="champions" element={<ChampionsPage />} />
@@ -44,7 +44,7 @@ export default function App() {
           <Route path="characters" element={<CharactersPage />} />
           <Route path="equipment" element={<EquipmentPage />} />
           <Route path="enemies" element={<EnemiesPage />} />
-          <Route path="skill-tree" element={<SkillTreePage />} />
+          <Route path="asterism" element={<SkillTreePage />} />
           <Route path="damage" element={<DamagePage />} />
           <Route path="plot" element={<PlotPage />} />
           <Route path="maps" element={<MapsPage />} />

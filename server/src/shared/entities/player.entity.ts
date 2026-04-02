@@ -52,6 +52,9 @@ export class Player {
   @Column({ type: 'int', default: 0 })
   extraTradeSlots: number;
 
+  @Column({ type: 'int', default: 0 })
+  extraBagSlots: number;
+
   /** Skin IDs purchased with shards (default skins are always free) */
   @Column({ type: 'jsonb', default: [] })
   purchasedSkins: string[];

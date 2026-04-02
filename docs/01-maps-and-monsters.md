@@ -1,50 +1,50 @@
-# Карты и Монстры
+# Maps and Monsters
 
-## Общая архитектура
+## General Architecture
 
-Боевая система **server-authoritative** — все расчёты (урон, HP, награды) делаются на бекенде через **WebSocket** (Socket.IO, namespace `/combat`). Фронтенд — только отображение.
+The combat system is **server-authoritative** — all calculations (damage, HP, rewards) are done on the backend via **WebSocket** (Socket.IO, namespace `/combat`). The frontend is display-only.
 
-## Ключевые файлы
+## Key Files
 
-| Файл | Назначение |
-|------|-----------|
-| `shared/endgame-maps.ts` | Определения тиров, боссов, волн, дроп-логика |
-| `shared/monster-attacks.ts` | 8 типов монстров × 5 атак, weighted random |
-| `shared/balance.ts` | Все числовые константы баланса (`B`) |
-| `server/src/level-gen/level-gen.service.ts` | Генерация монстров и очереди |
-| `server/src/level-gen/monster-types.ts` | Типы монстров, рарити, сопротивления |
+| File | Purpose |
+|------|---------|
+| `shared/endgame-maps.ts` | Tier definitions, bosses, waves, drop logic |
+| `shared/monster-attacks.ts` | 8 monster types x 5 attacks, weighted random |
+| `shared/balance.ts` | All numeric balance constants (`B`) |
+| `server/src/level-gen/level-gen.service.ts` | Monster generation and queue building |
+| `server/src/level-gen/monster-types.ts` | Monster types, rarity, resistances |
 | `server/src/combat/combat.gateway.ts` | WebSocket gateway (namespace `/combat`) |
-| `server/src/combat/combat.service.ts` | Server-authoritative боевая логика |
-| `server/src/combat/elemental-damage.ts` | Расчёт элементального урона |
-| `bot/src/scenes/map-scene.ts` | UI выбора локаций (5 актов × 10 локаций) |
-| `bot/src/scenes/map-device-scene.ts` | UI выбора endgame карт |
-| `bot/src/scenes/combat-scene.ts` | UI боя |
-| `bot/src/game/combat.ts` | FE менеджер боя (CombatManager) |
+| `server/src/combat/combat.service.ts` | Server-authoritative combat logic |
+| `server/src/combat/elemental-damage.ts` | Elemental damage calculation |
+| `bot/src/scenes/map-scene.ts` | Location selection UI (5 acts x 10 locations) |
+| `bot/src/scenes/map-device-scene.ts` | Endgame map selection UI |
+| `bot/src/scenes/combat-scene.ts` | Combat UI |
+| `bot/src/game/combat.ts` | FE combat manager (CombatManager) |
 
 ---
 
-## Story Mode (5 актов × 10 локаций)
+## Story Mode (5 acts x 10 locations)
 
-Каждый акт — 10 локаций (orders 1-10). Orders 1-8 — основная цепочка, 9-10 — боковые ветки.
+Each act has 10 locations (orders 1-10). Orders 1-8 are the main chain, 9-10 are side branches.
 
-### Правила доступа к локациям
+### Location Access Rules
 
-- Акт 1, Order 1 — всегда доступна
-- Пройденные локации — всегда можно перепройти
-- Переход между актами: предыдущий акт нуждается в >= 8 пройденных main-chain локаций
-- Внутри акта, порядок открытия: `REQUIREMENT_ORDER = [0,1,2,3,4,5,6,7,3,5]`
-  - Order N требует `REQUIREMENT[N-1]` для открытия
-  - Пример: Order 9 требует Order 3, Order 10 требует Order 5
+- Act 1, Order 1 — always available
+- Completed locations — always replayable
+- Transitioning between acts: previous act requires >= 8 completed main-chain locations
+- Within an act, unlock order: `REQUIREMENT_ORDER = [0,1,2,3,4,5,6,7,3,5]`
+  - Order N requires `REQUIREMENT[N-1]` to unlock
+  - Example: Order 9 requires Order 3, Order 10 requires Order 5
 
-### Уровень монстра
+### Monster Level
 
 ```
 monsterLevel = (act - 1) * 10 + order
 ```
 
-Диапазон: 1 (Act 1 Order 1) — 50 (Act 5 Order 10).
+Range: 1 (Act 1 Order 1) — 50 (Act 5 Order 10).
 
-### Формулы скейлинга (Story Mode)
+### Scaling Formulas (Story Mode)
 
 ```
 actMul = ACT_SCALING_BASE ^ (act - 1)     // 2.5^(act-1)
@@ -55,10 +55,10 @@ XP     = MONSTER_XP_BASE   * XP_GROWTH^(order-1)    * rarity.xpMul   * actMul
 Damage = MONSTER_DMG_BASE  * DMG_GROWTH^(order-1)   * RARITY_DMG_MUL * actMul * [1 ± DMG_RANDOM]
 ```
 
-### Текущие значения баланса
+### Current Balance Values
 
-| Константа | Значение |
-|-----------|----------|
+| Constant | Value |
+|----------|-------|
 | `ACT_SCALING_BASE` | 2.5 |
 | `MONSTER_HP_BASE` | 10 |
 | `MONSTER_HP_GROWTH` | 1.5 |
@@ -71,10 +71,10 @@ Damage = MONSTER_DMG_BASE  * DMG_GROWTH^(order-1)   * RARITY_DMG_MUL * actMul * 
 | `MONSTER_DMG_GROWTH` | 1.4 |
 | `MONSTER_DMG_RANDOM` | 0.10 (±10%) |
 
-### Награды за локацию (база, до act scaling)
+### Location Rewards (base, before act scaling)
 
-| Order | Gold | XP  | Тип |
-|-------|------|-----|-----|
+| Order | Gold | XP  | Type |
+|-------|------|-----|------|
 | 1     | 60   | 40  | Main chain |
 | 2     | 100  | 65  | Main chain |
 | 3     | 140  | 95  | Main chain |
@@ -88,16 +88,16 @@ Damage = MONSTER_DMG_BASE  * DMG_GROWTH^(order-1)   * RARITY_DMG_MUL * actMul * 
 
 ---
 
-## Endgame карты (Tier 1-10)
+## Endgame Maps (Tier 1-10)
 
-Открываются после прохождения всех 5 актов (>= 8 main-chain локаций в каждом).
+Unlock after completing all 5 acts (>= 8 main-chain locations in each).
 
-### Тиры карт (MAP_TIERS)
+### Map Tiers (MAP_TIERS)
 
-Используют Act 5 Order 10 как базовую точку (`MAP_BASE_ACT=5, MAP_BASE_ORDER=10`), умножают на tier:
+Use Act 5 Order 10 as the base point (`MAP_BASE_ACT=5, MAP_BASE_ORDER=10`), multiplied by tier:
 
-| Тир | HP мн. | Gold мн. | XP мн. | Уровень монстра |
-|-----|--------|----------|--------|-----------------|
+| Tier | HP mul. | Gold mul. | XP mul. | Monster Level |
+|------|---------|-----------|---------|---------------|
 | 1   | 1.0    | 1.0      | 1.0    | 41              |
 | 2   | 1.5    | 1.4      | 1.3    | 42              |
 | 3   | 2.2    | 1.9      | 1.7    | 44              |
@@ -109,9 +109,9 @@ Damage = MONSTER_DMG_BASE  * DMG_GROWTH^(order-1)   * RARITY_DMG_MUL * actMul * 
 | 9   | 18.0   | 9.5      | 7.5    | 51              |
 | 10  | 25.0   | 13.0     | 10.0   | 52              |
 
-Формула уровня: `40 + round(mapTier * 1.2)`
+Level formula: `40 + round(mapTier * 1.2)`
 
-### Формулы скейлинга (Map Mode)
+### Scaling Formulas (Map Mode)
 
 ```
 HP   = 10 * 1.5^9 * rarityMul * 2.5^4 * tierHpMul
@@ -119,24 +119,24 @@ Gold = 3  * 1.35^9 * rarityMul * 2.5^4 * tierGoldMul
 XP   = 5  * 1.3^9  * rarityMul * 2.5^4 * tierXpMul
 ```
 
-### Волновые шаблоны (Wave Templates)
+### Wave Templates
 
-| Диапазон тиров | Кол-во волн |
-|----------------|-------------|
-| 1-2            | 3           |
-| 3-4            | 4           |
-| 5-6            | 4           |
-| 7-8            | 4           |
-| 9-10           | 5           |
+| Tier Range | Number of Waves |
+|------------|----------------|
+| 1-2        | 3              |
+| 3-4        | 4              |
+| 5-6        | 4              |
+| 7-8        | 4              |
+| 9-10       | 5              |
 
 ---
 
-## Боссы (BOSS_MAPS) — 8 боссов
+## Bosses (BOSS_MAPS) — 8 Bosses
 
-Каждый босс: 2 trash-волны + boss-монстр (3 волны).
+Each boss: 2 trash waves + boss monster (3 waves).
 
-| Босс | Тип | HP мн. | Gold мн. | XP мн. |
-|------|-----|--------|----------|--------|
+| Boss | Type | HP mul. | Gold mul. | XP mul. |
+|------|------|---------|-----------|---------|
 | Shadow Shogun's Domain | Shogun | 8.0 | 10.0 | 8.0 |
 | Dragon's Eternal Lair | Dragon | 10.0 | 12.0 | 10.0 |
 | Oni Warlord's Throne | Oni | 7.0 | 9.0 | 7.0 |
@@ -146,101 +146,101 @@ XP   = 5  * 1.3^9  * rarityMul * 2.5^4 * tierXpMul
 | The Beast King's Arena | Wild Boar | 6.5 | 8.5 | 6.5 |
 | Bandit Lord's Fortress | Bandit | 5.5 | 7.5 | 5.5 |
 
-### Boss Key Tiers (3 уровня сложности)
+### Boss Key Tiers (3 difficulty levels)
 
-| Тир | Название | Качество | HP | Gold | XP |
-|-----|----------|----------|----|------|----|
+| Tier | Name | Quality | HP | Gold | XP |
+|------|------|---------|----|----|-----|
 | 1 | Standard | boss_silver | 1.0x | 1.0x | 1.0x |
 | 2 | Empowered | boss_gold | 1.8x | 2.0x | 1.8x |
 | 3 | Mythic | boss_red | 3.0x | 3.5x | 3.0x |
 
-Выбор тира boss key при дропе:
-- Карты тир 5-6 → boss_tier 1
-- Карты тир 7-8 → boss_tier 2
-- Карты тир 9-10 → boss_tier 3
-- Boss-карты → всегда boss_tier 3
+Boss key tier selection on drop:
+- Map tier 5-6 → boss_tier 1
+- Map tier 7-8 → boss_tier 2
+- Map tier 9-10 → boss_tier 3
+- Boss maps → always boss_tier 3
 
 ---
 
-## Типы монстров (8)
+## Monster Types (8)
 
-| Тип | Базовые сопротивления | Основной элемент |
-|-----|----------------------|------------------|
+| Type | Base Resistances | Primary Element |
+|------|-----------------|-----------------|
 | Bandit | Physical | Physical |
 | Wild Boar | Physical | Physical |
 | Forest Spirit | Cold | Cold + Pure |
 | Ronin | Physical + Lightning | Physical + Lightning |
 | Oni | Fire | Fire |
 | Tengu | Lightning + Cold | Lightning |
-| Dragon | Мульти-элемент | Fire + Pure |
-| Shogun | Все элементы | Physical + Lightning + Pure |
+| Dragon | Multi-element | Fire + Pure |
+| Shogun | All elements | Physical + Lightning + Pure |
 
-Каждый тип имеет **5 уникальных атак** с разными элементальными сплитами, скоростью и весом.
+Each type has **5 unique attacks** with different elemental splits, speeds, and weights.
 
-### Множители редкости
+### Rarity Multipliers
 
-| Редкость | HP мн. | Gold мн. | XP мн. | DMG мн. | Бонус сопротивлений |
-|----------|--------|----------|--------|---------|---------------------|
+| Rarity | HP mul. | Gold mul. | XP mul. | DMG mul. | Resistance Bonus |
+|--------|---------|-----------|---------|----------|-----------------|
 | Common | 1.0 | 1.0 | 1.0 | 1.0 | +0% |
 | Rare | 1.6 | 1.5 | 1.4 | 1.3 | +5% |
 | Epic | 2.5 | 2.2 | 2.0 | 1.8 | +10% |
 | Boss | 4.0 | 3.5 | 3.0 | 2.5 | +15% |
 
-Resistance cap: **75%** на элемент.
+Resistance cap: **75%** per element.
 
 ---
 
-## Элементальная система
+## Elemental System
 
-### Элементы урона
+### Damage Elements
 `physical`, `fire`, `lightning`, `cold`, `pure`
 
-Pure урон игнорирует все сопротивления.
+Pure damage ignores all resistances.
 
-### Расчёт урона
+### Damage Calculation
 
 ```
-Для каждого элемента:
+For each element:
   fraction  = damageProfile[element]
   rawElem   = totalDamage * fraction
-  resist    = target.resistance[element]   (0 для pure)
+  resist    = target.resistance[element]   (0 for pure)
   effective = floor(rawElem * (1 - resist))
 
 total = sum(effective)
-Минимум 1 урона если rawDamage > 0
+Minimum 1 damage if rawDamage > 0
 ```
 
-Дефолтный профиль: `{ physical: 1.0 }` — 100% физический.
-Элементальные сплиты приходят из skill-tree нод, не из класса.
+Default profile: `{ physical: 1.0 }` — 100% physical.
+Elemental splits come from skill-tree nodes, not from the class.
 
 ---
 
-## Очередь монстров (buildMonsterQueue)
+## Monster Queue (buildMonsterQueue)
 
 ```
 for each wave → for each spawn → for i in 0..count → create monster → push to queue
 ```
 
-Хранится в Redis: `combat:session:{uuid}` с TTL 30 минут.
+Stored in Redis: `combat:session:{uuid}` with TTL 30 minutes.
 
 ---
 
 ## FE → BE Flow (WebSocket)
 
 ```
-1. Игрок выбирает локацию/ключ     → map-scene.ts / map-device-scene.ts
-2. FE: preconnectSocket()           → начинает подключение Socket.IO
-3. FE: emit "combat:start-location" → { locationId, waves, order, act }
-   или "combat:start-map"          → { mapKeyItemId, direction? }
-4. BE: валидация, buildMonsterQueue → Создаёт Redis-сессию
-5. BE: emit "combat:started"        → { sessionId, currentMonster, playerHp }
-6. FE: Entrance animation           → Loading run → monster entrance
-7. FE: emit "combat:entrance-done"  → BE запускает combat loop (200ms tick)
-8. FE: emit "combat:tap"            → { sessionId } (повторяется)
+1. Player selects location/key       → map-scene.ts / map-device-scene.ts
+2. FE: preconnectSocket()            → starts Socket.IO connection
+3. FE: emit "combat:start-location"  → { locationId, waves, order, act }
+   or "combat:start-map"             → { mapKeyItemId, direction? }
+4. BE: validation, buildMonsterQueue → Creates Redis session
+5. BE: emit "combat:started"         → { sessionId, currentMonster, playerHp }
+6. FE: Entrance animation            → Loading run → monster entrance
+7. FE: emit "combat:entrance-done"   → BE starts combat loop (200ms tick)
+8. FE: emit "combat:tap"             → { sessionId } (repeated)
 9. BE: processTap(), emit "tap-result" → { damage, isCrit, killed, playerHp }
-10. BE: processEnemyTick (каждые 200ms) → emit "enemy-attack" → { attacks[], playerHp }
-11. При killed: stopCombatLoop, ждёт entrance-done
-12. Все мертвы → FE emit "combat:complete" → BE emit "combat:completed"
-13. BE: начисляет gold/xp/drops     → Удаляет Redis-сессию
-14. FE: Victory scene               → Показывает награды
+10. BE: processEnemyTick (every 200ms) → emit "enemy-attack" → { attacks[], playerHp }
+11. On killed: stopCombatLoop, wait for entrance-done
+12. All dead → FE emit "combat:complete" → BE emit "combat:completed"
+13. BE: credits gold/xp/drops          → Deletes Redis session
+14. FE: Victory scene                  → Shows rewards
 ```

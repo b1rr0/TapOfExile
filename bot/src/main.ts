@@ -188,10 +188,8 @@ function startGame(): void {
 
   if (!state.hasCharacters()) {
     sceneManager.switchTo("characterCreate");
-  } else if (!state.data.activeCharacterId) {
-    sceneManager.switchTo("characterSelect");
   } else {
-    sceneManager.switchTo("hideout");
+    sceneManager.switchTo("characterSelect");
   }
 }
 

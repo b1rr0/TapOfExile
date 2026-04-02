@@ -204,7 +204,7 @@ export class PlayerService {
           bonuses,
         );
 
-        // Apply skill tree bonuses (additive from base stats, same as combat)
+        // Apply asterism bonuses (additive from base stats, same as combat)
         const allocSet = new Set<number>(c.allocatedNodes || []);
         if (allocSet.size > 0) {
           if (!skillTree) skillTree = buildSkillTree();
@@ -236,14 +236,14 @@ export class PlayerService {
           if (flat.armorDouble) eff.armor = Math.floor(eff.armor * 2);
           if (flat.regenBoost) eff.lifeRegen = Math.floor(eff.lifeRegen * (flat.regenBoost as number));
 
-          // CDR from tree: multiplicative with equipment CDR
+          // CDR from asterism: multiplicative with equipment CDR
           if (pct.cooldownReduction) {
             const equipMul = 1 - eff.cooldownReduction / 100;
             const treeMul = 1 - pct.cooldownReduction;
             eff.cooldownReduction = (1 - equipMul * treeMul) * 100;
           }
 
-          // Arcane crit from tree (additive)
+          // Arcane crit from asterism (additive)
           eff.arcaneCritChance += (pct.arcaneCritChance || 0) * 100;  // convert 0..1 → percentage points for eff
           eff.arcaneCritMultiplier += (pct.arcaneCritMultiplier || 0) * 100;
         }

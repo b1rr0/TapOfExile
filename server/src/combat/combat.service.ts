@@ -44,8 +44,8 @@ import {
   QUALITY_CHARGES,
   type LootEntry,
 } from '@shared/potion-drops';
-import { rollEquipment, SUBTYPES, type EquipmentSlotId } from '@shared/equipment-defs';
-import { pickRandomIcon } from '@shared/equipment-icons';
+import { rollEquipment, rollRarity, getSubtypesForSlot, SUBTYPES, SLOT_STAT_POOLS, type EquipmentSlotId } from '@shared/equipment-defs';
+import { pickRandomInUseIcon, getItemStatPool, getItemStatMultipliers, iconToDisplayName } from '@shared/equipment-icons';
 import {
   aggregateEquipmentStats,
   applyBonuses,
@@ -98,9 +98,9 @@ export interface CachedCharStats {
   weaponSubtypes: string[];
   /** Weapon-only equipment bonuses — stored for amp multiplier application */
   weaponBonuses: EquipmentBonuses;
-  /** Flat tap-only damage bonus from skill tree (doesn't affect skills) */
+  /** Flat tap-only damage bonus from asterism (doesn't affect skills) */
   tapHitBonus: number;
-  /** Skill tree allocated bonuses - stored for re-application after level-up */
+  /** Asterism allocated bonuses - stored for re-application after level-up */
   treeBonuses: { percent: Record<string, number>; flat: Record<string, number> };
 }
 
@@ -406,7 +406,7 @@ export class CombatService {
   }
 
   /**
-   * Build CachedCharStats from a Character entity + equipment bonuses + skill tree bonuses.
+   * Build CachedCharStats from a Character entity + equipment bonuses + asterism bonuses.
    */
   private buildCachedStats(char: Character, bonuses: EquipmentBonuses, weaponSubtypes: string[] = [], weaponBonuses?: EquipmentBonuses): CachedCharStats {
     // Always recompute base stats from class formula (not DB cache)
@@ -430,7 +430,7 @@ export class CombatService {
     // Class-based arcane crit (only mage gets meaningful growth)
     const classStats = statsAtLevel(char.classId, char.level);
 
-    // Compute skill tree bonuses from allocated nodes
+    // Compute asterism bonuses from allocated nodes
     const tree = buildSkillTree();
     const allocSet = new Set(char.allocatedNodes || []);
     const treeBonuses = computeAllocatedBonuses(tree.nodes, allocSet);
@@ -475,14 +475,14 @@ export class CombatService {
       tapHitBonus: 0,
     };
 
-    // Apply skill tree percent bonuses on top of equipment-modified stats
+    // Apply asterism percent bonuses on top of equipment-modified stats
     this.applyTreeBonuses(cached);
 
     return cached;
   }
 
   /**
-   * Apply skill tree percent/flat bonuses on top of equipment-modified stats.
+   * Apply asterism percent/flat bonuses on top of equipment-modified stats.
    *
    * All percentages scale BASE stats (level-only, no equipment) - additive stacking.
    * Additive for:        critChance, critMultiplier, dodgeChance
@@ -580,7 +580,7 @@ export class CombatService {
       stats.lifeRegen = Math.floor(stats.lifeRegen * flat.regenBoost);
     }
 
-    // Spell level bonuses from skill tree
+    // Spell level bonuses from asterism
     if (flat.weaponSpellLevel) {
       stats.weaponSpellLevel += flat.weaponSpellLevel;
     }
@@ -591,7 +591,7 @@ export class CombatService {
       stats.versatileSpellLevel += flat.versatileSpellLevel;
     }
 
-    // Life on Hit % from skill tree: multiplies gear lifeOnHit, floored
+    // Life on Hit % from asterism: multiplies gear lifeOnHit, floored
     if (pct.lifeOnHit && stats.lifeOnHit > 0) {
       stats.lifeOnHit = Math.floor(stats.lifeOnHit * (1 + pct.lifeOnHit));
     }
@@ -675,7 +675,7 @@ export class CombatService {
   }
 
   /**
-   * Re-apply equipment + skill tree bonuses after level-up (base stats changed).
+   * Re-apply equipment + asterism bonuses after level-up (base stats changed).
    */
   private reapplyEquipBonuses(stats: CachedCharStats): void {
     // Guard: old Redis sessions may not have equipBonuses
@@ -716,7 +716,7 @@ export class CombatService {
     stats.arcaneCritChance = classStatsForArcane.arcaneCritChance + eff.arcaneCritChance / 100;
     stats.arcaneCritMultiplier = classStatsForArcane.arcaneCritMultiplier + eff.arcaneCritMultiplier / 100;
 
-    // Re-apply skill tree bonuses on top
+    // Re-apply asterism bonuses on top
     this.applyTreeBonuses(stats);
   }
 
@@ -1667,21 +1667,35 @@ export class CombatService {
       await this.charRepo.save(char);
     }
 
-    // Roll and persist map drops for endgame sessions
+    // ── Roll 1: Map key drops (separate from loot) ──
     let mapDrops: Partial<Item>[] = [];
+    if (session.mode === 'map' || session.mode === 'boss_map') {
+      const keyDrops = this.lootService.rollMapKeyDrops(session.mapTier || 1);
+      if (keyDrops.length > 0) {
+        await this.lootService.addItemsToBag(session.playerLeagueId, keyDrops);
+        mapDrops.push(...keyDrops);
+      }
+    }
+
+    // ── Roll 2: Boss key drops (independent from map keys) ──
     if (session.mode === 'map' || session.mode === 'boss_map') {
       const isBoss = session.mode === 'boss_map';
       const direction = session.direction || session.bossId || null;
-      mapDrops = this.lootService.rollMapDrops(
-        session.mapTier || 1,
-        isBoss,
-        direction,
+      const bossKeyDrops = this.lootService.rollBossKeyDrops(
+        session.mapTier || 1, isBoss, direction,
       );
-      if (mapDrops.length > 0) {
-        await this.lootService.addItemsToBag(
-          session.playerLeagueId,
-          mapDrops,
-        );
+      if (bossKeyDrops.length > 0) {
+        await this.lootService.addItemsToBag(session.playerLeagueId, bossKeyDrops);
+        mapDrops.push(...bossKeyDrops);
+      }
+    }
+
+    // ── Roll 3: Act 5 map key drops (entry into endgame) ──
+    if (session.mode === 'location' && (session.locationAct || 0) >= 5) {
+      const actKeyDrops = this.lootService.rollActMapKeyDrops();
+      if (actKeyDrops.length > 0) {
+        await this.lootService.addItemsToBag(session.playerLeagueId, actKeyDrops);
+        mapDrops.push(...actKeyDrops);
       }
     }
 
@@ -1742,13 +1756,21 @@ export class CombatService {
           100,
         );
 
-        const rolled = rollEquipment(slot, itemLevel);
-        const sub = SUBTYPES.find(s => s.code === rolled.subtype);
-        const iconPath = pickRandomIcon(rolled.subtype);
+        // Pick subtype → icon → derive name + personal stat pool → roll
+        const subtypes = getSubtypesForSlot(slot);
+        const sub = subtypes[Math.floor(Math.random() * subtypes.length)];
+        const rarity = rollRarity();
+        const { path: iconPath, filename: iconFile } = pickRandomInUseIcon(sub.code);
+        // Use subtype's thematic pool as source (falls back to slot pool)
+        const sourcePool = sub.statPool && sub.statPool.length > 0 ? sub.statPool : SLOT_STAT_POOLS[slot];
+        const itemStatPool = getItemStatPool(iconFile, sourcePool);
+        const statMultipliers = getItemStatMultipliers(iconFile, itemStatPool);
+        const rolled = rollEquipment(slot, itemLevel, rarity, sub.code, itemStatPool as any, statMultipliers);
+        const displayName = iconToDisplayName(iconFile);
 
         lootDrops.push({
           id: `equip_${rolled.subtype}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          name: sub?.name ?? rolled.subtype,
+          name: displayName,
           type: 'equipment',
           quality: rolled.rarity,
           level: rolled.itemLevel,
@@ -2606,7 +2628,7 @@ export class CombatService {
     const monsterResistance = monster.resistance || {};
     const breakdown = computeElementalDamage(rawDamage, skillDef.elementalProfile, monsterResistance);
 
-    // Apply elemental % bonuses from skill tree to skill's elemental damage portions
+    // Apply elemental % bonuses from asterism to skill's elemental damage portions
     // (same bonuses that boost tap damage — fire/cold/lightning % nodes should work for skills too)
     const treePct = stats.treeBonuses?.percent || {};
     if (treePct.fireDmg && breakdown.fire > 0) {

@@ -6,6 +6,7 @@ import { PlayerLeague } from '../shared/entities/player-league.entity';
 import { Player } from '../shared/entities/player.entity';
 import { Character } from '../shared/entities/character.entity';
 import { Item } from '../shared/entities/item.entity';
+import { TradeListing } from '../shared/entities/trade-listing.entity';
 import { LeagueService } from './league.service';
 import { LeagueController } from './league.controller';
 import { LeagueMigrationService } from './league-migration.service';
@@ -19,6 +20,7 @@ import { LeagueMigrationService } from './league-migration.service';
       Player,
       Character,
       Item,
+      TradeListing,
     ]),
   ],
   controllers: [LeagueController],

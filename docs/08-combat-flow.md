@@ -1,35 +1,35 @@
-# 08 — Combat Flow (полный цикл боя)
+# 08 — Combat Flow (full combat cycle)
 
-> Описание всей системы боя: клиент (bot), сервер (NestJS + Redis),
-> WebSocket-ивенты, анимации, тайминги.
+> Description of the entire combat system: client (bot), server (NestJS + Redis),
+> WebSocket events, animations, timings.
 
 ---
 
-## Оглавление
+## Table of Contents
 
-1. [Архитектура](#1-архитектура)
-2. [Подключение сокета](#2-подключение-сокета)
-3. [Старт боя](#3-старт-боя)
+1. [Architecture](#1-architecture)
+2. [Socket connection](#2-socket-connection)
+3. [Combat start](#3-combat-start)
 4. [Loading Run → Combat Ready](#4-loading-run--combat-ready)
-5. [Entrance (выход монстра)](#5-entrance-выход-монстра)
-6. [Серверный Combat Loop](#6-серверный-combat-loop)
-7. [Тап игрока (атака)](#7-тап-игрока-атака)
-8. [Смерть монстра → Следующий монстр](#8-смерть-монстра--следующий-монстр)
-9. [Завершение боя (Complete)](#9-завершение-боя-complete)
-10. [Смерть игрока](#10-смерть-игрока)
-11. [Побег (Flee)](#11-побег-flee)
+5. [Entrance (monster appearance)](#5-entrance-monster-appearance)
+6. [Server Combat Loop](#6-server-combat-loop)
+7. [Player tap (attack)](#7-player-tap-attack)
+8. [Monster death → Next monster](#8-monster-death--next-monster)
+9. [Combat completion (Complete)](#9-combat-completion-complete)
+10. [Player death](#10-player-death)
+11. [Flee](#11-flee)
 12. [Disconnect / Reconnect](#12-disconnect--reconnect)
-13. [Система атак монстра](#13-система-атак-монстра)
-14. [Элементальный урон](#14-элементальный-урон)
-15. [Анимации и рендер](#15-анимации-и-рендер)
-16. [Socket Events — полный список](#16-socket-events--полный-список)
-17. [Ключевые тайминги](#17-ключевые-тайминги)
-18. [Redis-сессия (структура)](#18-redis-сессия-структура)
-19. [Timeline диаграммы](#19-timeline-диаграммы)
+13. [Monster attack system](#13-monster-attack-system)
+14. [Elemental damage](#14-elemental-damage)
+15. [Animations and rendering](#15-animations-and-rendering)
+16. [Socket Events — full list](#16-socket-events--full-list)
+17. [Key timings](#17-key-timings)
+18. [Redis session (structure)](#18-redis-session-structure)
+19. [Timeline diagrams](#19-timeline-diagrams)
 
 ---
 
-## 1. Архитектура
+## 1. Architecture
 
 ```
 ┌──────────────┐  Socket.IO /combat   ┌──────────────────┐
@@ -48,54 +48,54 @@
                                        └──────────────────┘
 ```
 
-**Ключевой принцип**: сервер — авторитетен. Весь урон (и от игрока, и от монстра)
-считается на сервере. Клиент — тонкий слой визуализации.
+**Key principle**: the server is authoritative. All damage (from both player and monster)
+is calculated on the server. The client is a thin visualization layer.
 
-### Файлы
+### Files
 
-| Роль | Путь |
+| Role | Path |
 |------|------|
-| Клиент: менеджер боя | `bot/src/game/combat.ts` |
-| Клиент: сцена + спрайты | `bot/src/ui/battle-scene.ts` |
-| Клиент: герой | `bot/src/ui/characters/hero-character.ts` |
-| Клиент: враг | `bot/src/ui/characters/enemy-character.ts` |
-| Клиент: базовый персонаж | `bot/src/ui/characters/character.ts` |
-| Клиент: сокет-подключение | `bot/src/combat-socket.ts` |
-| Сервер: gateway (WS) | `server/src/combat/combat.gateway.ts` |
-| Сервер: сервис (логика) | `server/src/combat/combat.service.ts` |
-| Сервер: элементальный урон | `server/src/combat/elemental-damage.ts` |
-| Сервер: генерация монстров | `server/src/level-gen/level-gen.service.ts` |
-| Shared: баланс | `shared/balance.ts` |
-| Shared: атаки монстров | `shared/monster-attacks.ts` |
-| Shared: стата классов | `shared/class-stats.ts` |
+| Client: combat manager | `bot/src/game/combat.ts` |
+| Client: scene + sprites | `bot/src/ui/battle-scene.ts` |
+| Client: hero | `bot/src/ui/characters/hero-character.ts` |
+| Client: enemy | `bot/src/ui/characters/enemy-character.ts` |
+| Client: base character | `bot/src/ui/characters/character.ts` |
+| Client: socket connection | `bot/src/combat-socket.ts` |
+| Server: gateway (WS) | `server/src/combat/combat.gateway.ts` |
+| Server: service (logic) | `server/src/combat/combat.service.ts` |
+| Server: elemental damage | `server/src/combat/elemental-damage.ts` |
+| Server: monster generation | `server/src/level-gen/level-gen.service.ts` |
+| Shared: balance | `shared/balance.ts` |
+| Shared: monster attacks | `shared/monster-attacks.ts` |
+| Shared: class stats | `shared/class-stats.ts` |
 
 ---
 
-## 2. Подключение сокета
+## 2. Socket connection
 
-**Файл**: `bot/src/combat-socket.ts`
+**File**: `bot/src/combat-socket.ts`
 
 ```
 getSocket() → io(WS_URL/combat, { auth: { token: JWT }, transports: ["polling","websocket"] })
 waitForConnection(socket, 8000ms) → Promise<void>
 ```
 
-- Singleton-сокет — переиспользуется между боями
+- Singleton socket — reused between combats
 - `transports: ["polling", "websocket"]` + `upgrade: true`
-- Реконнект: 5 попыток с 500ms задержкой
-- Timeout подключения: 5000ms
+- Reconnect: 5 attempts with 500ms delay
+- Connection timeout: 5000ms
 
-**Сервер (auth)**: `combat.gateway.ts` → `handleConnection()`
-- Извлекает JWT из `client.handshake.auth.token`
-- Верифицирует: `payload.type === 'access'`
-- Маппит: `socketId ↔ telegramId`
-- Отключает при ошибке авторизации
+**Server (auth)**: `combat.gateway.ts` → `handleConnection()`
+- Extracts JWT from `client.handshake.auth.token`
+- Verifies: `payload.type === 'access'`
+- Maps: `socketId ↔ telegramId`
+- Disconnects on authorization error
 
 ---
 
-## 3. Старт боя
+## 3. Combat start
 
-### Клиент → Сервер
+### Client → Server
 
 ```
 socket.emit("combat:start-location", {
@@ -103,7 +103,7 @@ socket.emit("combat:start-location", {
 })
 ```
 
-или для карты:
+or for a map:
 
 ```
 socket.emit("combat:start-map", {
@@ -111,141 +111,141 @@ socket.emit("combat:start-map", {
 })
 ```
 
-### Сервер (combat.service.ts → startLocation / startMapByDto)
+### Server (combat.service.ts → startLocation / startMapByDto)
 
-1. Очистка стейл-сессии (`cleanupStaleSession`)
-2. Валидация доступа к локации (prerequisite)
-3. Генерация очереди монстров: `levelGen.buildMonsterQueue(waves, order, act)`
-4. Создание Redis-сессии (см. [структура](#18-redis-сессия-структура))
+1. Stale session cleanup (`cleanupStaleSession`)
+2. Location access validation (prerequisite)
+3. Monster queue generation: `levelGen.buildMonsterQueue(waves, order, act)`
+4. Redis session creation (see [structure](#18-redis-session-structure))
 5. `lastEnemyAttackTime = Date.now()`
 6. `nextAttackIn = getFirstAttackDelay(queue[0])`
-7. Сохранение в Redis (TTL = 1800с = 30 мин)
+7. Save to Redis (TTL = 1800s = 30 min)
 
-### Сервер → Клиент
+### Server → Client
 
 ```
 socket.emit("combat:started", {
   sessionId,
   totalMonsters,
-  currentMonster,    // первый монстр
+  currentMonster,    // first monster
   playerHp,
   playerMaxHp,
 })
 ```
 
-**Важно**: combat loop НЕ стартует здесь. Он стартует только после `combat:entrance-done`.
+**Important**: combat loop does NOT start here. It starts only after `combat:entrance-done`.
 
-### Клиент (combat.ts → startLocation callback)
+### Client (combat.ts → startLocation callback)
 
-1. Сохраняет `_sessionId`, `_totalMonsters`, `_playerHp`
-2. Эмитит `"playerHpChanged"` → UI обновляет полоску HP
-3. Эмитит `"locationWaveProgress"` → `{ current: 0, total }`
-4. Эмитит `"combatReady"` → battle-scene вызывает `stopLoadingRun()`
-5. Вызывает `_setMonsterFromServer(result.currentMonster)` → эмитит `"monsterSpawned"`
+1. Saves `_sessionId`, `_totalMonsters`, `_playerHp`
+2. Emits `"playerHpChanged"` → UI updates HP bar
+3. Emits `"locationWaveProgress"` → `{ current: 0, total }`
+4. Emits `"combatReady"` → battle-scene calls `stopLoadingRun()`
+5. Calls `_setMonsterFromServer(result.currentMonster)` → emits `"monsterSpawned"`
 
 ---
 
 ## 4. Loading Run → Combat Ready
 
-### Loading Run (до подключения к серверу)
+### Loading Run (before server connection)
 
-**Файл**: `battle-scene.ts`
+**File**: `battle-scene.ts`
 
-Пока WebSocket подключается и сервер создаёт сессию, герой бежит:
+While WebSocket connects and server creates session, the hero runs:
 
-- `_loadingRunActive = true` (при создании BattleScene)
-- Герой играет анимацию `"run"`
-- Враг скрыт (`_visible = false`)
-- Фон скроллится вперёд: 120 px/s
-- Текст "Loading..." с анимированными точками
-- Автостоп через 10 секунд
+- `_loadingRunActive = true` (on BattleScene creation)
+- Hero plays `"run"` animation
+- Enemy is hidden (`_visible = false`)
+- Background scrolls forward: 120 px/s
+- "Loading..." text with animated dots
+- Auto-stop after 10 seconds
 
 ### Combat Ready
 
-Когда приходит `"combat:started"`:
-1. Эмитится `"combatReady"`
+When `"combat:started"` arrives:
+1. `"combatReady"` is emitted
 2. `stopLoadingRun()`:
    - `_loadingRunActive = false`
-   - Герой → `play("idle")`
-   - Враг → `resetState()`
-   - Камера → `snapCamera(0)`
+   - Hero → `play("idle")`
+   - Enemy → `resetState()`
+   - Camera → `snapCamera(0)`
 
 ---
 
-## 5. Entrance (выход монстра)
+## 5. Entrance (monster appearance)
 
-### Триггер
+### Trigger
 
-Ивент `"monsterSpawned"` → `_onMonsterSpawned()`:
+Event `"monsterSpawned"` → `_onMonsterSpawned()`:
 
-1. Обновляет имя монстра + редкость
-2. Обновляет HP-бар
-3. Показывает monster-info
-4. **Если спрайты загружены**: `enemy.spawn()` + `_startEntrance()`
-5. **Если спрайтов нет**: сразу `emit("entranceDone")`
+1. Updates monster name + rarity
+2. Updates HP bar
+3. Shows monster-info
+4. **If sprites are loaded**: `enemy.spawn()` + `_startEntrance()`
+5. **If no sprites**: immediately `emit("entranceDone")`
 
-### Анимация входа
+### Entrance animation
 
 **Enemy (enemy-character.ts → spawn)**:
-- Сброс позиции
-- Начало слайда с правого края: offset=400px, speed=700 px/s
-- Длительность слайда: `400 / 700 ≈ 571ms`
-- Анимация: `"idle"` (играет пока едет)
+- Position reset
+- Slide from right edge: offset=400px, speed=700 px/s
+- Slide duration: `400 / 700 ≈ 571ms`
+- Animation: `"idle"` (plays while sliding)
 
 **Hero (battle-scene.ts → _startEntrance)**:
-- `hero.runEntrance()` → анимация `"run"`
-- Камера панорамирует по прогрессу волны
+- `hero.runEntrance()` → `"run"` animation
+- Camera pans by wave progress
 
-**Длительность хореографии**: `_entranceDuration = 1.2с`
+**Choreography duration**: `_entranceDuration = 1.2s`
 
-Вход завершается когда: `elapsed >= 1.2s` **И** камера перестала панорамировать.
+Entrance completes when: `elapsed >= 1.2s` **AND** camera has stopped panning.
 
-### Отмена входа тапом
+### Entrance cancellation by tap
 
-Если игрок тапает во время entrance:
+If the player taps during entrance:
 1. `_entranceActive = false`
-2. Камера снэпится к целевой позиции
-3. Сразу эмитится `"entranceDone"`
+2. Camera snaps to target position
+3. Immediately emits `"entranceDone"`
 
-### entranceDone → Сервер
+### entranceDone → Server
 
 ```
-Клиент: events.emit("entranceDone")
+Client: events.emit("entranceDone")
   → combat.ts: signalEntranceDone()
     → socket.emit("combat:entrance-done", { sessionId })
 ```
 
-**Сервер (handleEntranceDone)**:
-1. Проверяет `combatLoops.has(sessionId)` — если цикл уже бежит, игнорирует
-2. Сбрасывает `session.lastEnemyAttackTime = Date.now()`
-3. Стартует `startCombatLoop(sessionId, telegramId)`
+**Server (handleEntranceDone)**:
+1. Checks `combatLoops.has(sessionId)` — if loop is already running, ignores
+2. Resets `session.lastEnemyAttackTime = Date.now()`
+3. Starts `startCombatLoop(sessionId, telegramId)`
 
-**Это значит**: первая атака монстра произойдёт через `nextAttackIn` мс
-после окончания entrance (обычно ~1000ms).
+**This means**: the first monster attack will happen `nextAttackIn` ms
+after entrance ends (typically ~1000ms).
 
 ---
 
-## 6. Серверный Combat Loop
+## 6. Server Combat Loop
 
-**Файл**: `combat.gateway.ts → startCombatLoop()`
+**File**: `combat.gateway.ts → startCombatLoop()`
 
 ```
 setInterval(async () => {
   result = combatService.processEnemyTick(sessionId)
   if (result.attacks.length > 0) → emit "combat:enemy-attack"
   if (result.playerDead) → stopLoop + emit "combat:player-died"
-}, 200)  // 200ms тик = 5 тиков/сек
+}, 200)  // 200ms tick = 5 ticks/sec
 ```
 
 ### processEnemyTick (combat.service.ts)
 
-1. Загружает сессию из Redis
-2. Загружает Character из PostgreSQL (для dodge/block/resistance)
-3. Вызывает `processEnemyAttacks(session, char, Date.now())`
-4. Сохраняет сессию обратно в Redis
-5. Возвращает массив атак + текущее HP игрока
+1. Loads session from Redis
+2. Loads Character from PostgreSQL (for dodge/block/resistance)
+3. Calls `processEnemyAttacks(session, char, Date.now())`
+4. Saves session back to Redis
+5. Returns array of attacks + current player HP
 
-### processEnemyAttacks — система timeBank
+### processEnemyAttacks — timeBank system
 
 ```
 elapsed = now - lastEnemyAttackTime
@@ -254,184 +254,184 @@ timeBank = elapsed
 while (timeBank >= nextAttackIn && attackCount < MAX_PENDING_ATTACKS) {
   timeBank -= nextAttackIn
 
-  1. Выбрать атаку из пула (pickRandomAttack по весам)
+  1. Pick attack from pool (pickRandomAttack by weights)
   2. Dodge check (Math.random() < char.dodgeChance)
   3. Block check (Warrior special: Math.random() < char.specialValue)
-  4. Рассчитать урон (elemental system)
-  5. Применить урон: session.playerCurrentHp -= damage
-  6. Рассчитать nextAttackIn для следующей атаки
+  4. Calculate damage (elemental system)
+  5. Apply damage: session.playerCurrentHp -= damage
+  6. Calculate nextAttackIn for the next attack
 }
 
-lastEnemyAttackTime = now - timeBank  // сохранить остаток
+lastEnemyAttackTime = now - timeBank  // save remainder
 ```
 
-**MAX_PENDING_ATTACKS = 10** — анти-AFK кап (не больше 10 атак за один тик).
+**MAX_PENDING_ATTACKS = 10** — anti-AFK cap (no more than 10 attacks per tick).
 
 ---
 
-## 7. Тап игрока (атака)
+## 7. Player tap (attack)
 
-### Клиент (combat.ts → handleTap)
+### Client (combat.ts → handleTap)
 
-Guard-условия:
-- `_deathCooldown` — между смертью монстра и спавном нового
-- `!monster` — нет текущего монстра
-- `!_sessionId` — нет сессии
-- `_tapping` — предыдущий тап ещё не обработан
-- `!_socket` — нет подключения
+Guard conditions:
+- `_deathCooldown` — between monster death and new spawn
+- `!monster` — no current monster
+- `!_sessionId` — no session
+- `_tapping` — previous tap not yet processed
+- `!_socket` — no connection
 
 ```
 socket.emit("combat:tap", { sessionId })
 ```
 
-Fallback: `_tapping` сбрасывается через 2000ms если нет ответа.
+Fallback: `_tapping` resets after 2000ms if no response.
 
-### Сервер (handleTap → processTap)
+### Server (handleTap → processTap)
 
-1. **Rate limit**: min 50ms между тапами (MIN_TAP_INTERVAL_MS)
-2. Загрузка Character из БД (server-authoritative)
-3. **Крит**: `Math.random() < char.critChance` → `rawDamage *= critMultiplier`
-4. **Элементальный урон**: `computeElementalDamage(rawDamage, damageProfile, monsterResistance)`
+1. **Rate limit**: min 50ms between taps (MIN_TAP_INTERVAL_MS)
+2. Load Character from DB (server-authoritative)
+3. **Crit**: `Math.random() < char.critChance` → `rawDamage *= critMultiplier`
+4. **Elemental damage**: `computeElementalDamage(rawDamage, damageProfile, monsterResistance)`
 5. `monster.currentHp -= breakdown.total`
-6. Если `currentHp <= 0`:
+6. If `currentHp <= 0`:
    - `killed = true`
-   - Начисление gold в session (session.totalGoldEarned)
-   - **XP начисляется сразу в Character** (level-scaling, level up inline)
+   - Gold credited to session (session.totalGoldEarned)
+   - **XP is credited immediately to Character** (level-scaling, level up inline)
    - `char.xp += scaledXp` → while loop level up → `charRepo.save(char)`
    - `currentIndex++`
-   - `lastEnemyAttackTime = now` (сброс для нового монстра)
+   - `lastEnemyAttackTime = now` (reset for new monster)
    - `nextAttackIn = getFirstAttackDelay(nextMonster)`
-7. Сохранение сессии в Redis
+7. Save session to Redis
 
-### Сервер → Клиент
+### Server → Client
 
 ```
 socket.emit("combat:tap-result", {
   damage, damageBreakdown, isCrit,
   monsterHp, monsterMaxHp,
   killed, isComplete,
-  currentMonster,       // следующий монстр (если killed)
+  currentMonster,       // next monster (if killed)
   monstersRemaining,
   playerHp, playerMaxHp, playerDead,
-  // Per-kill XP (только при killed=true):
-  xpGained,             // сколько XP получено за этого монстра
-  leveledUp,            // true если произошёл level up
-  level, xp, xpToNext,  // актуальные значения после начисления
+  // Per-kill XP (only when killed=true):
+  xpGained,             // how much XP gained for this monster
+  leveledUp,            // true if level up occurred
+  level, xp, xpToNext,  // current values after crediting
 })
 ```
 
-### Gateway после tap-result
+### Gateway after tap-result
 
 ```
 if (playerDead)     → stopCombatLoop + emit "combat:player-died"
-if (killed && !isComplete) → stopCombatLoop  // ← пауза до entrance-done
+if (killed && !isComplete) → stopCombatLoop  // ← pause until entrance-done
 ```
 
-### Клиент после tap-result
+### Client after tap-result
 
 1. `_tapping = false`
 2. `monster.currentHp = result.monsterHp`
-3. Эмит `"damage"` → battle-scene: hero attack anim + enemy shake + HP bar update
-4. Эмит `"playerHpChanged"` → UI обновляет HP игрока
-5. Если `killed`:
-   - Обновляет локальный char (level, xp, xpToNext) из ответа сервера
+3. Emit `"damage"` → battle-scene: hero attack anim + enemy shake + HP bar update
+4. Emit `"playerHpChanged"` → UI updates player HP
+5. If `killed`:
+   - Updates local char (level, xp, xpToNext) from server response
    - → `_onMonsterDeath(result)`
 
 ---
 
-## 8. Смерть монстра → Следующий монстр
+## 8. Monster death → Next monster
 
-### Клиент (_onMonsterDeath)
+### Client (_onMonsterDeath)
 
 ```
-1. _deathCooldown = true         // блокировка тапов
+1. _deathCooldown = true         // block taps
 2. _monstersKilled++
 3. emit "monsterDied"            // → battle-scene: enemy.die() + gold floater
-4. emit "xpGained" { xp }       // → effects: фиолетовый "+N XP" floater
-                                 // → combat-log: фиолетовая запись "✦ +N XP"
+4. emit "xpGained" { xp }       // → effects: purple "+N XP" floater
+                                 // → combat-log: purple entry "+N XP"
 5. if (leveledUp):
      emit "levelUp" { level }    // → effects: "LEVEL N!" announce
-                                 // → HUD: обновление Lv.N
-6. emit "xpChanged" { xp, xpToNext }  // → HUD: обновление XP бара
+                                 // → HUD: update Lv.N
+6. emit "xpChanged" { xp, xpToNext }  // → HUD: update XP bar
 7. emit "locationWaveProgress"
 
 8. setTimeout(SPAWN_DELAY_MS) {  // 1200ms
      if (isComplete) {
-       complete()                // завершить бой → gold + loot
+       complete()                // finish combat → gold + loot
      } else {
-       _setMonsterFromServer()   // спавн нового
-       _deathCooldown = false    // разблокировка тапов
+       _setMonsterFromServer()   // spawn new
+       _deathCooldown = false    // unblock taps
      }
    }
 ```
 
-### Анимация смерти врага
+### Enemy death animation
 
 ```
 enemy.die():
-  1. Играет анимацию "death"
+  1. Plays "death" animation
   2. onComplete → startDeath():
-     - _deathAlpha уменьшается: dt * 2.5 (≈ 400ms до полного исчезновения)
-     - Когда alpha = 0 → _visible = false
+     - _deathAlpha decreases: dt * 2.5 (≈ 400ms to full fade)
+     - When alpha = 0 → _visible = false
 ```
 
-### Сервер (на handleTap)
+### Server (on handleTap)
 
-При `result.killed && !result.isComplete`:
-- **stopCombatLoop(sessionId)** — цикл атак останавливается
-- Ждёт `combat:entrance-done` от клиента
+When `result.killed && !result.isComplete`:
+- **stopCombatLoop(sessionId)** — attack loop stops
+- Waits for `combat:entrance-done` from client
 
-### Timeline смены монстра
+### Monster transition timeline
 
 ```
-T=0ms     Последний тап убивает монстра
-          Сервер: stopCombatLoop()
-          Клиент: emit "monsterDied" → анимация смерти
+T=0ms     Last tap kills the monster
+          Server: stopCombatLoop()
+          Client: emit "monsterDied" → death animation
 
-T=0-400ms Анимация смерти врага (death anim + fade)
+T=0-400ms Enemy death animation (death anim + fade)
 
-T=1200ms  Клиент: _setMonsterFromServer() → emit "monsterSpawned"
+T=1200ms  Client: _setMonsterFromServer() → emit "monsterSpawned"
           → _onMonsterSpawned() → enemy.spawn() + _startEntrance()
-          _deathCooldown = false (можно тапать!)
+          _deathCooldown = false (can tap!)
 
-T=1200ms+ Вход нового монстра (слайд: ~571ms, хореография: 1200ms)
-          Игрок МОЖЕТ тапать по монстру во время входа
+T=1200ms+ New monster entrance (slide: ~571ms, choreography: 1200ms)
+          Player CAN tap the monster during entrance
 
-T=2400ms  Entrance завершается (1200ms хореография)
-          emit "entranceDone" → сервер: startCombatLoop()
+T=2400ms  Entrance completes (1200ms choreography)
+          emit "entranceDone" → server: startCombatLoop()
           lastEnemyAttackTime = Date.now()
 
-T=3400ms  Первая атака нового монстра (≈1000ms после entrance)
+T=3400ms  First attack of new monster (≈1000ms after entrance)
 ```
 
-**Итого**: ~2 секунды от смерти до начала атак нового монстра
-(1200ms spawn delay + 1200ms entrance). Совпадает с требованием
-«2 секунды после смерти прошлого».
+**Total**: ~2 seconds from death to new monster's first attack
+(1200ms spawn delay + 1200ms entrance). Matches the requirement
+of "2 seconds after previous death".
 
 ---
 
-## 9. Завершение боя (Complete)
+## 9. Combat completion (Complete)
 
-### Клиент
+### Client
 
 ```
 socket.emit("combat:complete", { sessionId })
-// ожидание "combat:completed" (timeout 10s)
+// waiting for "combat:completed" (timeout 10s)
 ```
 
-### Сервер (completeSession)
+### Server (completeSession)
 
 1. `stopCombatLoop(sessionId)`
-2. Проверка: все монстры убиты (`currentIndex >= monsterQueue.length`)
-3. **Gold → `PlayerLeague.gold`** (per-league пул, начисляется ТОЛЬКО здесь)
-4. **XP уже начислен per-kill** в `processTap()` — НЕ дублируется
+2. Check: all monsters killed (`currentIndex >= monsterQueue.length`)
+3. **Gold → `PlayerLeague.gold`** (per-league pool, credited ONLY here)
+4. **XP already credited per-kill** in `processTap()` — NOT duplicated
 5. **Meta stats** → Player (`totalGold, totalKills, totalTaps`)
 6. **Location completion** → `char.completedLocations`
-7. **Map drops** (для endgame maps): `lootService.rollMapDrops()`
+7. **Map drops** (for endgame maps): `lootService.rollMapDrops()`
 8. **Audit record** → PostgreSQL (`CombatSession` entity, status='completed')
-9. **Cleanup Redis**: удаление сессии
+9. **Cleanup Redis**: delete session
 
-### Сервер → Клиент
+### Server → Client
 
 ```
 socket.emit("combat:completed", {
@@ -445,17 +445,17 @@ socket.emit("combat:completed", {
 
 ---
 
-## 10. Смерть игрока
+## 10. Player death
 
-### Триггер
+### Trigger
 
-Серверный combat loop обнаруживает `playerCurrentHp <= 0`:
+Server combat loop detects `playerCurrentHp <= 0`:
 
 ```
 gateway: stopCombatLoop() → combatService.playerDeath() → emit "combat:player-died"
 ```
 
-Или tap-result с `playerDead = true`:
+Or tap-result with `playerDead = true`:
 
 ```
 gateway: stopCombatLoop() → playerDeath() → emit "combat:player-died"
@@ -463,33 +463,33 @@ gateway: stopCombatLoop() → playerDeath() → emit "combat:player-died"
 
 ### playerDeath (combat.service.ts)
 
-1. Сохраняет audit record: `status = 'died'`, `monstersKilled = currentIndex`
-2. Удаляет Redis сессию
-3. **Gold потерян** — не записан в БД (был только в Redis-сессии)
-4. **Loot потерян** — дропы не ролятся
-5. **XP сохранён** — уже начислен per-kill в `processTap()`
-6. **XP Loss** — штраф опыта при смерти (lvl 40+, см. [02-rewards-after-map.md](./02-rewards-after-map.md))
+1. Saves audit record: `status = 'died'`, `monstersKilled = currentIndex`
+2. Deletes Redis session
+3. **Gold lost** — not written to DB (was only in Redis session)
+4. **Loot lost** — drops are not rolled
+5. **XP preserved** — already credited per-kill in `processTap()`
+6. **XP Loss** — XP penalty on death (lvl 40+, see [02-rewards-after-map.md](./02-rewards-after-map.md))
 
-### Клиент
+### Client
 
 ```
 _onPlayerDeath():
-  _playerDead = true (guard от double-fire)
+  _playerDead = true (guard against double-fire)
   emit "playerDied" → battle-scene: hero death animation
   _sessionId = null
 ```
 
 ---
 
-## 11. Побег (Flee)
+## 11. Flee
 
 ```
-Клиент: socket.emit("combat:flee", { sessionId })
-Сервер: stopCombatLoop() → fleeCombat() → удаление Redis → emit "combat:fled"
+Client: socket.emit("combat:flee", { sessionId })
+Server: stopCombatLoop() → fleeCombat() → delete Redis → emit "combat:fled"
 ```
 
-**Gold потерян, loot потерян. XP сохранён** (уже начислен per-kill).
-**XP Loss НЕ применяется** — штраф только при смерти.
+**Gold lost, loot lost. XP preserved** (already credited per-kill).
+**XP Loss is NOT applied** — penalty only on death.
 
 ---
 
@@ -497,16 +497,16 @@ _onPlayerDeath():
 
 ### Disconnect (gateway → handleDisconnect)
 
-1. `stopCombatLoop(sessionId)` — пауза атак
-2. Запуск grace timer: **30 000ms** (30 секунд)
-3. Если timer истекает → `fleeCombat()` (бой потерян)
+1. `stopCombatLoop(sessionId)` — pause attacks
+2. Start grace timer: **30 000ms** (30 seconds)
+3. If timer expires → `fleeCombat()` (combat lost)
 
 ### Reconnect (gateway → handleReconnect)
 
-1. Отмена grace timer
-2. `session.lastEnemyAttackTime = Date.now()` — **прощение** пропущенных атак
-3. `startCombatLoop()` — возобновление
-4. Отправка текущего состояния клиенту:
+1. Cancel grace timer
+2. `session.lastEnemyAttackTime = Date.now()` — **forgiveness** for missed attacks
+3. `startCombatLoop()` — resume
+4. Send current state to client:
 
 ```
 socket.emit("combat:reconnected", {
@@ -516,7 +516,7 @@ socket.emit("combat:reconnected", {
 })
 ```
 
-### Клиент (auto-reconnect)
+### Client (auto-reconnect)
 
 ```
 socket.on("connect", () => {
@@ -524,98 +524,98 @@ socket.on("connect", () => {
 })
 ```
 
-Socket.IO автоматически пытается 5 раз с 500ms задержкой.
+Socket.IO automatically attempts 5 times with 500ms delay.
 
 ---
 
-## 13. Система атак монстра
+## 13. Monster attack system
 
 ### Attack Pool
 
-Каждый тип монстра имеет 5 атак (`shared/monster-attacks.ts`):
+Each monster type has 5 attacks (`shared/monster-attacks.ts`):
 
 ```typescript
 interface MonsterAttack {
   name: string;           // "Slash", "Fire Breath"
   damage: ElementalDamage; // { physical: 0.8, fire: 0.2 }
-  damageMul: number;       // 0.3 — 2.5 (множитель к scaledDamage)
-  speed: number;           // 0.3 — 3.0 секунд (время подготовки)
-  pauseAfter: number;      // 0.2 — 2.0 секунд (пауза после удара)
-  weight: number;          // 5 — 40 (вес для random выбора)
+  damageMul: number;       // 0.3 — 2.5 (multiplier to scaledDamage)
+  speed: number;           // 0.3 — 3.0 seconds (charge-up time)
+  pauseAfter: number;      // 0.2 — 2.0 seconds (pause after hit)
+  weight: number;          // 5 — 40 (weight for random selection)
 }
 ```
 
-### Выбор атаки (pickRandomAttack)
+### Attack selection (pickRandomAttack)
 
-Взвешенный рандом:
+Weighted random:
 ```
 totalWeight = sum(attack.weight)
 roll = random() * totalWeight
-перебор атак: roll -= weight → если roll <= 0, выбрана
+iterate attacks: roll -= weight → if roll <= 0, selected
 ```
 
-### Расчёт nextAttackIn
+### nextAttackIn calculation
 
 ```
-nextAttackIn = (текущая_атака.pauseAfter + следующая_атака.speed) * 1000 мс
+nextAttackIn = (current_attack.pauseAfter + next_attack.speed) * 1000 ms
 ```
 
-Пример: `pauseAfter=0.5s`, `nextSpeed=1.0s` → `nextAttackIn = 1500ms`
+Example: `pauseAfter=0.5s`, `nextSpeed=1.0s` → `nextAttackIn = 1500ms`
 
-### Первая атака (getFirstAttackDelay)
+### First attack (getFirstAttackDelay)
 
 ```
-avg = среднее(speed всех атак в пуле) * 1000
+avg = average(speed of all attacks in pool) * 1000
 ```
 
-Fallback (нет атак в пуле): `ENEMY_ATTACK_INTERVAL_MS = 1000ms`
+Fallback (no attacks in pool): `ENEMY_ATTACK_INTERVAL_MS = 1000ms`
 
 ### Dodge / Block
 
-- **Dodge**: `Math.random() < char.dodgeChance` → 0 урона, `nextAttackIn` уменьшен
-- **Block** (Warrior special): `Math.random() < char.specialValue` → 0 урона
+- **Dodge**: `Math.random() < char.dodgeChance` → 0 damage, `nextAttackIn` reduced
+- **Block** (Warrior special): `Math.random() < char.specialValue` → 0 damage
 
-При dodge/block: `nextAttackIn = (pauseAfter + 0.3) * 1000` (быстрая повторная атака)
+On dodge/block: `nextAttackIn = (pauseAfter + 0.3) * 1000` (quick re-attack)
 
 ---
 
-## 14. Элементальный урон
+## 14. Elemental damage
 
-**Файл**: `server/src/combat/elemental-damage.ts`
+**File**: `server/src/combat/elemental-damage.ts`
 
-### Элементы
+### Elements
 
-| Элемент | Описание |
-|---------|----------|
-| physical | Базовый физический |
-| fire | Огненный |
-| lightning | Молния |
-| cold | Холод/лёд |
-| pure | Чистый (игнорирует сопротивления) |
+| Element | Description |
+|---------|------------|
+| physical | Base physical |
+| fire | Fire |
+| lightning | Lightning |
+| cold | Cold/ice |
+| pure | Pure (ignores resistances) |
 
-### Формула
+### Formula
 
 ```
-Для каждого элемента:
+For each element:
   rawElemDmg = rawDamage * fraction
 
-  если pure:
+  if pure:
     finalDmg = floor(rawElemDmg)
-  иначе:
+  else:
     finalDmg = floor(rawElemDmg * (1 - resistance * 0.01))
 
-total = sum(все элементы)
-Минимум 1 урона если rawDamage > 0
+total = sum(all elements)
+Minimum 1 damage if rawDamage > 0
 ```
 
 ### Resistance cap
 
-`RESISTANCE_CAP = 0.75` (75%) — ни один элемент не может быть сопротивлён больше 75%.
+`RESISTANCE_CAP = 0.75` (75%) — no element can be resisted more than 75%.
 
-### Rarity бонус к сопротивлениям
+### Rarity resistance bonus
 
-| Редкость | Бонус ко всем сопротивлениям |
-|----------|------------------------------|
+| Rarity | Bonus to all resistances |
+|--------|--------------------------|
 | common | +0% |
 | rare | +5% |
 | epic | +10% |
@@ -623,34 +623,34 @@ total = sum(все элементы)
 
 ---
 
-## 15. Анимации и рендер
+## 15. Animations and rendering
 
 ### Render Loop (battle-scene.ts)
 
-- **Тик**: `setTimeout` каждые **80ms** (~12.5 FPS)
+- **Tick**: `setTimeout` every **80ms** (~12.5 FPS)
 - **Delta time**: `dt = (now - lastTime) / 1000`, cap 0.2s
-- **Порядок отрисовки**: background → hero → enemy
+- **Draw order**: background → hero → enemy
 
-### Анимации персонажей
+### Character animations
 
-| Анимация | Описание | Длительность |
-|----------|----------|-------------|
-| idle | Ожидание | loop |
-| run | Бег (entrance) | loop |
-| attack1 | Атака | one-shot → idle |
-| death | Смерть | one-shot → fade |
+| Animation | Description | Duration |
+|-----------|------------|----------|
+| idle | Idle | loop |
+| run | Running (entrance) | loop |
+| attack1 | Attack | one-shot → idle |
+| death | Death | one-shot → fade |
 
-### Эффекты
+### Effects
 
-| Эффект | Описание | Тайминг |
-|--------|----------|---------|
-| Enemy slide-in | Вход справа | 400px / 700px/s ≈ 571ms |
-| Enemy shake | При получении удара | decay: 80 px/s |
-| Hero shake | При получении удара | shake(4) |
-| Death fade | Прозрачность → 0 | dt * 2.5 ≈ 400ms |
+| Effect | Description | Timing |
+|--------|------------|--------|
+| Enemy slide-in | Enter from right | 400px / 700px/s ≈ 571ms |
+| Enemy shake | On taking damage | decay: 80 px/s |
+| Hero shake | On taking damage | shake(4) |
+| Death fade | Opacity → 0 | dt * 2.5 ≈ 400ms |
 | Entrance choreography | Hero run + camera pan | 1200ms |
 
-### HP бар монстра
+### Monster HP bar
 
 ```
 _updateHp(monster):
@@ -659,9 +659,9 @@ _updateHp(monster):
   hpText = "currentHp / maxHp"
 ```
 
-Стилизация по редкости: `hp-rarity-{common|rare|epic|boss}`
+Styled by rarity: `hp-rarity-{common|rare|epic|boss}`
 
-### HP бар игрока
+### Player HP bar
 
 ```
 _updatePlayerHp(hp, maxHp):
@@ -671,39 +671,39 @@ _updatePlayerHp(hp, maxHp):
 
 ---
 
-## 16. Socket Events — полный список
+## 16. Socket Events — full list
 
-### Клиент → Сервер
+### Client → Server
 
-| Event | Data | Когда |
-|-------|------|-------|
-| `combat:start-location` | `{locationId, waves, order, act}` | Начало боя (локация) |
-| `combat:start-map` | `{mapKeyItemId, direction?}` | Начало боя (карта) |
-| `combat:tap` | `{sessionId}` | Тап по монстру |
-| `combat:entrance-done` | `{sessionId}` | Вход монстра завершён |
-| `combat:complete` | `{sessionId}` | Завершить и получить награды |
-| `combat:flee` | `{sessionId}` | Побег без наград |
-| `combat:reconnect` | `{sessionId}` | Восстановление сессии |
+| Event | Data | When |
+|-------|------|------|
+| `combat:start-location` | `{locationId, waves, order, act}` | Combat start (location) |
+| `combat:start-map` | `{mapKeyItemId, direction?}` | Combat start (map) |
+| `combat:tap` | `{sessionId}` | Tap on monster |
+| `combat:entrance-done` | `{sessionId}` | Monster entrance finished |
+| `combat:complete` | `{sessionId}` | Complete and receive rewards |
+| `combat:flee` | `{sessionId}` | Flee without rewards |
+| `combat:reconnect` | `{sessionId}` | Restore session |
 
-### Сервер → Клиент
+### Server → Client
 
-| Event | Data | Когда |
-|-------|------|-------|
-| `combat:started` | `{sessionId, totalMonsters, currentMonster, playerHp, playerMaxHp}` | Бой создан |
-| `combat:tap-result` | `{damage, isCrit, monsterHp, killed, isComplete, currentMonster, playerHp, xpGained, leveledUp, level, xp, xpToNext, ...}` | Результат тапа (xp per-kill) |
-| `combat:enemy-attack` | `{attacks[], playerHp, playerMaxHp, playerDead}` | Атаки врага (каждые ~200ms тик) |
-| `combat:player-died` | `{sessionId}` | Игрок умер |
-| `combat:completed` | `{totalGold, totalXp, level, xp, xpToNext, gold, mapDrops, dailyBonusRemaining}` | Бой завершён, gold + loot |
-| `combat:fled` | `{success}` | Побег подтверждён |
-| `combat:reconnected` | `{sessionId, currentMonster, playerHp, ...}` | Сессия восстановлена |
-| `combat:error` | `{message}` | Ошибка |
+| Event | Data | When |
+|-------|------|------|
+| `combat:started` | `{sessionId, totalMonsters, currentMonster, playerHp, playerMaxHp}` | Combat created |
+| `combat:tap-result` | `{damage, isCrit, monsterHp, killed, isComplete, currentMonster, playerHp, xpGained, leveledUp, level, xp, xpToNext, ...}` | Tap result (xp per-kill) |
+| `combat:enemy-attack` | `{attacks[], playerHp, playerMaxHp, playerDead}` | Enemy attacks (every ~200ms tick) |
+| `combat:player-died` | `{sessionId}` | Player died |
+| `combat:completed` | `{totalGold, totalXp, level, xp, xpToNext, gold, mapDrops, dailyBonusRemaining}` | Combat complete, gold + loot |
+| `combat:fled` | `{success}` | Flee confirmed |
+| `combat:reconnected` | `{sessionId, currentMonster, playerHp, ...}` | Session restored |
+| `combat:error` | `{message}` | Error |
 
 ---
 
-## 17. Ключевые тайминги
+## 17. Key timings
 
-| Параметр | Значение | Файл |
-|----------|----------|------|
+| Parameter | Value | File |
+|-----------|-------|------|
 | Socket connect timeout | 5000ms | combat-socket.ts |
 | waitForConnection timeout | 8000ms | combat-socket.ts |
 | Start location/map timeout | 10000ms | combat.ts |
@@ -726,10 +726,10 @@ _updatePlayerHp(hp, maxHp):
 
 ---
 
-## 18. Redis-сессия (структура)
+## 18. Redis session (structure)
 
 **Key**: `combat:session:{uuid}`
-**TTL**: 1800 секунд (30 минут)
+**TTL**: 1800 seconds (30 minutes)
 
 ```typescript
 interface RedisCombatSession {
@@ -740,36 +740,36 @@ interface RedisCombatSession {
   playerLeagueId: string;
   mode: 'location' | 'map' | 'boss_map';
 
-  monsterQueue: ServerMonster[]; // полная очередь монстров
-  currentIndex: number;          // индекс текущего монстра (0-based)
+  monsterQueue: ServerMonster[]; // full monster queue
+  currentIndex: number;          // index of current monster (0-based)
 
-  totalGoldEarned: number;       // накопленное золото за бой
-  totalXpEarned: number;         // накопленный XP за бой
-  totalTaps: number;             // количество тапов
-  lastTapTime: number;           // timestamp последнего тапа (rate limit)
-  startedAt: number;             // timestamp начала боя
+  totalGoldEarned: number;       // accumulated gold for the combat
+  totalXpEarned: number;         // accumulated XP for the combat
+  totalTaps: number;             // number of taps
+  lastTapTime: number;           // timestamp of last tap (rate limit)
+  startedAt: number;             // combat start timestamp
 
-  locationId?: string;           // ID локации
-  mapTier?: number;              // уровень карты (endgame)
-  bossId?: string;               // ID босса
-  direction?: string;            // направление карты
+  locationId?: string;           // location ID
+  mapTier?: number;              // map level (endgame)
+  bossId?: string;               // boss ID
+  direction?: string;            // map direction
 
-  playerLevel: number;           // уровень игрока при старте (для XP scaling)
-  playerCurrentHp: number;       // текущее HP игрока
-  playerMaxHp: number;           // максимальное HP игрока
-  lastEnemyAttackTime: number;   // timestamp последней обработки атак
-  nextAttackIn: number;          // ms до следующей атаки монстра
+  playerLevel: number;           // player level at start (for XP scaling)
+  playerCurrentHp: number;       // current player HP
+  playerMaxHp: number;           // maximum player HP
+  lastEnemyAttackTime: number;   // timestamp of last attack processing
+  nextAttackIn: number;          // ms until next monster attack
 }
 ```
 
 ---
 
-## 19. Timeline диаграммы
+## 19. Timeline diagrams
 
-### Полный бой (2 монстра)
+### Full combat (2 monsters)
 
 ```
-Клиент                              Сервер                    Redis
+Client                              Server                    Redis
   │                                    │                         │
   ├─ emit "start-location" ──────────►│                         │
   │                                    ├─ buildMonsterQueue()   │
@@ -782,20 +782,20 @@ interface RedisCombatSession {
   ├─ enemy.spawn() + _startEntrance()  │                         │
   │                                    │                         │
   │  ~~~ entrance animation (1.2s) ~~~ │                         │
-  │  (игрок может тапать!)             │                         │
+  │  (player can tap!)                 │                         │
   │                                    │                         │
   ├─ emit "entrance-done" ───────────►│                         │
   │                                    ├─ lastEnemyAttackTime=now│
   │                                    ├─ startCombatLoop() ────│─► GET/SET
   │                                    │  (200ms interval)       │
   │                                    │                         │
-  │  ~~~ бой: тапы + вражеские атаки ~~│                         │
+  │  ~~~ combat: taps + enemy attacks ~│                         │
   │                                    │                         │
   ├─ emit "tap" ─────────────────────►│                         │
   │                                    ├─ processTap()          │
   │◄── "tap-result" {killed:true} ────┤                         │
   │                                    ├─ stopCombatLoop() ◄────│
-  │                                    │  (пауза!)              │
+  │                                    │  (pause!)              │
   ├─ emit "monsterDied"                │                         │
   │                                    │                         │
   │  ~~~ SPAWN_DELAY (1200ms) ~~~~~~~~ │                         │
@@ -809,14 +809,14 @@ interface RedisCombatSession {
   │                                    ├─ lastEnemyAttackTime=now│
   │                                    ├─ startCombatLoop() ────│─► GET/SET
   │                                    │                         │
-  │  ~~~ бой: тапы + вражеские атаки ~~│                         │
+  │  ~~~ combat: taps + enemy attacks ~│                         │
   │                                    │                         │
   ├─ emit "tap" {killed, isComplete}──►│                         │
   │                                    ├─ XP → char (per-kill)   │
   │                                    ├─ charRepo.save()        │
   │◄── "tap-result" {xpGained,level}──┤                         │
   │                                    ├─ stopCombatLoop()       │
-  ├─ "+N XP" floater (фиолетовый)     │                         │
+  ├─ "+N XP" floater (purple)         │                         │
   │                                    │                         │
   │  ~~~ SPAWN_DELAY (1200ms) ~~~~~~~~ │                         │
   │                                    │                         │
@@ -830,14 +830,14 @@ interface RedisCombatSession {
 ### Disconnect / Reconnect
 
 ```
-Клиент                              Сервер
+Client                              Server
   │                                    │
   X  (connection lost)                 │
   │                                    ├─ handleDisconnect()
   │                                    ├─ stopCombatLoop()
   │                                    ├─ start 30s grace timer
   │                                    │
-  │  ~~~ до 30 секунд ~~~~~~~~~~~~~~~~ │
+  │  ~~~ up to 30 seconds ~~~~~~~~~~~~ │
   │                                    │
   ├─ (reconnected) ──────────────────►│
   ├─ emit "reconnect" ──────────────►│

@@ -53,7 +53,7 @@ export const ELEMENT_COLORS: Record<DamageElement, string> = {
   pure:      '#da70d6',
 };
 
-// ── Skill tree ───────────────────────────────────────────
+// ── Asterism ─────────────────────────────────────────────
 
 export type ModMode = "percent" | "flat";
 export type NodeType = "start" | "classSkill" | "activeSkill" | "minor" | "notable" | "keystone" | "figureEntry";

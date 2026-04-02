@@ -1,8 +1,9 @@
 ﻿import { formatNumber } from "../utils/format.js";
-import { TOTAL_ACTS } from "../data/locations.js";
+import { TOTAL_ACTS, getLocationsForAct } from "../data/locations.js";
 import { formatCombatTime, renderLogEntries, createLogPanelHTML } from "../ui/combat-log-renderer.js";
 import type { LogEntry } from "../ui/combat-log-renderer.js";
-import type { SharedDeps, BagItem } from "../types.js";
+import type { SharedDeps, BagItem, Location } from "../types.js";
+import { preconnectSocket } from "../combat-socket.js";
 
 /**
  * VictoryScene - shown after completing a location or endgame map.
@@ -46,7 +47,22 @@ export class VictoryScene {
       mapDrops = [],
       logEntries = [] as LogEntry[],
       combatStartTime = Date.now(),
+      location = null,
     } = params;
+
+    // Find next location in the same act
+    let nextLocation: Location | null = null;
+    if (location && !isMapVictory) {
+      const actLocations = getLocationsForAct(location.act);
+      const curIdx = actLocations.findIndex((l: Location) => l.id === location.id);
+      if (curIdx >= 0 && curIdx < actLocations.length - 1) {
+        // Next location in the same act (skip locked side quests)
+        const next = actLocations[curIdx + 1];
+        if (next && next.order <= 8) {
+          nextLocation = next;
+        }
+      }
+    }
 
     // Act completion banner
     let actBanner = "";
@@ -132,7 +148,8 @@ export class VictoryScene {
           ${dropsHtml}
 
           <div class="victory-actions">
-            <button class="victory-btn victory-btn--log" id="victory-log-btn">&#x1F4DC; Battle Log</button>
+            <button class="victory-btn victory-btn--log" id="victory-log-btn">&#x1F4DC; Log</button>
+            ${nextLocation ? `<button class="victory-btn victory-btn--next" id="victory-next">Next &#x25B6;</button>` : ''}
             <button class="victory-btn victory-btn--hideout" id="victory-continue">Hideout</button>
           </div>
         </div>
@@ -144,6 +161,16 @@ export class VictoryScene {
     // ── Buttons ──
     (this.container.querySelector("#victory-continue") as HTMLButtonElement)
       .addEventListener("click", () => this.sceneManager.switchTo("hideout"));
+
+    // Next Challenge button
+    const nextBtn = this.container.querySelector("#victory-next") as HTMLButtonElement | null;
+    if (nextBtn && nextLocation) {
+      nextBtn.addEventListener("click", async () => {
+        preconnectSocket();
+        await this.state.refreshState().catch(() => {});
+        this.sceneManager.switchTo("combat", { location: nextLocation });
+      });
+    }
 
     const logPanel = this.container.querySelector("#victory-log-panel") as HTMLElement;
     const logList = this.container.querySelector("#victory-log-list") as HTMLElement;

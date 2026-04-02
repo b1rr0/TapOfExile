@@ -1,22 +1,22 @@
-# Boots (Ботинки)
+# Boots
 
 **Slot:** `boots`
-**Описание:** Ботинки - оборонительный слот. Дают HP, броню, уклонение, ES и резисты. Ключевой слот для выживаемости.
+**Description:** Boots are a defensive slot. They provide HP, armour, evasion, ES, and resistances. A key slot for survivability.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип                       | Код             | Особенность                       |
+| Subtype                      | Code            | Feature                           |
 |------------------------------|-----------------|-----------------------------------|
-| Plate Boots (Латные)         | `boot_plate`   | Броня, HP                         |
-| Leather Boots (Кожаные)      | `boot_leather` | Уклонение, dodge                  |
-| Silk Shoes (Шёлковые)        | `boot_silk`    | Энергощит                          |
-| Chain Boots (Кольчужные)     | `boot_chain`   | Броня + Уклонение (гибрид)        |
+| Plate Boots                  | `boot_plate`   | Armour, HP                        |
+| Leather Boots                | `boot_leather` | Evasion, dodge                    |
+| Silk Shoes                   | `boot_silk`    | Energy shield                     |
+| Chain Boots                  | `boot_chain`   | Armour + Evasion (hybrid)         |
 
 ---
 
-## Базовая защита (implicit)
+## Base Defence (implicit)
 
 | Tier | iLvl      | Base Armour | Base Evasion | Base ES |
 |------|-----------|-------------|--------------|---------|
@@ -28,7 +28,7 @@
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### Flat Life (`flat_hp`)
 
@@ -100,11 +100,11 @@
 | T2   | 60 - 79   | 3%  | 32%  |
 | T1   | 80 - 100  | 3%  | 45%  |
 
-> Ботинки дают огненные/холодные/молниевые резисты, но **не физический** — физ. резист на броне/кольцах/амулетах.
+> Boots provide fire/cold/lightning resistances, but **not physical** — phys. resistance is on armour/rings/amulets.
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 10, Common Leather Boots:**
 ```

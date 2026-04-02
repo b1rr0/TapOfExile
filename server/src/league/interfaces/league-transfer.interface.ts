@@ -2,6 +2,7 @@ export interface LeagueTransferResult {
   playersTransferred: number;
   charactersTransferred: number;
   itemsTransferred: number;
+  tradesTransferred: number;
   goldTransferred: bigint;
   sourceLeagueId: string;
   targetLeagueId: string;
@@ -12,4 +13,5 @@ export interface LeagueTransferPlayerResult {
   goldMerged: string;
   charactersMoved: number;
   itemsMoved: number;
+  tradesMoved: number;
 }

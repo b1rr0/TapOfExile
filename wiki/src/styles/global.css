@@ -599,6 +599,65 @@ a:hover {
 }
 .skill-tree-wiki__viewport:active { cursor: grabbing; }
 
+/* ── Search bar ── */
+.skill-tree-wiki__search {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.skill-tree-wiki__search-input {
+  width: 180px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+}
+.skill-tree-wiki__search-input:focus {
+  border-color: var(--ds-crimson);
+  box-shadow: 0 0 6px rgba(164, 2, 57, 0.4);
+}
+.skill-tree-wiki__search-input::placeholder {
+  color: #5a5a6a;
+}
+.skill-tree-wiki__search-count {
+  font-size: 0.75rem;
+  color: var(--ds-crimson);
+  white-space: nowrap;
+}
+.skill-tree-wiki__search-clear {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* ── Search match: red glow ── */
+.st-node--search-match circle,
+.st-node--search-match path {
+  stroke: #ff2244 !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 8px rgba(255, 34, 68, 0.8)) !important;
+}
+/* Dim non-matching nodes during search */
+.st-node--search-dim {
+  opacity: 0.15;
+}
+
 .skill-tree-wiki__controls {
   position: absolute;
   top: 0.75rem;

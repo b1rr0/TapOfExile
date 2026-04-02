@@ -15,7 +15,7 @@
  */
 
 /** Default fallback background. */
-const DEFAULT_BG: string = "/assets/background/castle/img.png";
+const DEFAULT_BG: string = "/assets/background/castle/inventory.png";
 
 export class BackgroundRenderer {
   _bgImage: HTMLImageElement | null;
@@ -94,7 +94,7 @@ export class BackgroundRenderer {
     if (!this._loaded) return 0;
     const img = this._bgImage!;
     const scale = Math.max(canvasH / img.naturalHeight, canvasW / img.naturalWidth);
-    const drawW = img.naturalWidth * scale;
+    const drawW = img.naturalWidth * scale * 1.30;
     return Math.max(0, drawW - canvasW);
   }
 
@@ -158,17 +158,21 @@ export class BackgroundRenderer {
 
     if (imgW === 0 || imgH === 0) return;
 
-    // Cover scale + stretch: +5% width, +20% height to eliminate grey edges
+    // Cover scale + generous stretch to eliminate all grey edges
     const scale = Math.max(h / imgH, w / imgW);
-    const drawW = imgW * scale * 1.10;
-    const drawH = imgH * scale * 1.27;
+    const drawW = imgW * scale * 1.30;
+    const drawH = imgH * scale * 1.30;
 
-    // Horizontal pan
+    // Horizontal pan — clamp so right edge never goes past canvas
     const maxPan = Math.max(0, drawW - w);
     const camX = Math.max(0, Math.min(this._cameraX, maxPan));
 
     // Bottom-aligned + 10% shift down
     const dy = h - drawH + drawH * 0.10;
+
+    // Dark fill underneath to guarantee no grey leaks
+    ctx.fillStyle = "#050208";
+    ctx.fillRect(0, 0, w, h);
 
     ctx.drawImage(img, -camX, dy, drawW, drawH);
   }

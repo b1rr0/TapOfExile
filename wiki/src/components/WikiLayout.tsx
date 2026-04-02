@@ -6,7 +6,7 @@ const WIKI_LINKS = [
   { to: '/wiki/characters', icon: '⚔️', key: 'classes' },
   { to: '/wiki/enemies', icon: '👹', key: 'enemies' },
   { to: '/wiki/equipment', icon: '🧪', key: 'equipment' },
-  { to: '/wiki/skill-tree', icon: '🌳', key: 'skillTree' },
+  { to: '/wiki/asterism', icon: '✴', key: 'skillTree' },
   { to: '/wiki/damage', icon: '💥', key: 'damage' },
   { to: '/wiki/plot', icon: '📖', key: 'plot' },
   { to: '/wiki/maps', icon: '🗺️', key: 'maps' },

@@ -3,7 +3,7 @@
  *
  * Single source of truth for FE and BE.
  * All numeric ranges come from bot/docs/equipment/*.md.
- * Each stat has a full description (RU).
+ * Each stat has a full description.
  */
 
 // ── Types ────────────────────────────────────────────────
@@ -31,6 +31,7 @@ export type StatId =
   | 'weapon_spell_level' | 'arcane_spell_level' | 'versatile_spell_level'
   | 'cooldown_reduction'
   | 'arcane_crit_chance' | 'arcane_crit_multiplier'
+  | 'pct_elemental_dmg'
   | 'skill_level';  // deprecated → versatile_spell_level (backward compat)
 
 // ── Stat Definitions (with descriptions) ─────────────────
@@ -38,11 +39,11 @@ export type StatId =
 export interface StatDef {
   id: StatId;
   name: string;
-  /** Единица отображения: '+N', '+N%', '+N/s' */
+  /** Display unit: '+N', '+N%', '+N/s' */
   unit: string;
-  /** Полное описание стата (RU) */
+  /** Full stat description */
   description: string;
-  /** Категория: offensive / defensive / utility */
+  /** Category: offensive / defensive / utility */
   category: 'offensive' | 'defensive' | 'utility';
 }
 
@@ -52,49 +53,49 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'flat_phys_dmg',
     name: 'Flat Physical Damage',
     unit: '+N',
-    description: 'Добавляет плоский физический урон к каждой атаке. Суммируется с базовым уроном оружия перед процентными модификаторами.',
+    description: 'Adds flat physical damage to each attack. Stacks with base weapon damage before percentage modifiers.',
     category: 'offensive',
   },
   pct_phys_dmg: {
     id: 'pct_phys_dmg',
     name: '% Physical Damage',
     unit: '+N%',
-    description: 'Увеличивает весь физический урон на указанный процент. Применяется после сложения базового и плоского урона.',
+    description: 'Increases all physical damage by a percentage. Applied after base and flat damage are summed.',
     category: 'offensive',
   },
   flat_fire_dmg: {
     id: 'flat_fire_dmg',
     name: 'Flat Fire Damage',
     unit: '+N',
-    description: 'Добавляет плоский урон огнём к каждой атаке. Проходит через fire resistance врага.',
+    description: 'Adds flat fire damage to each attack. Reduced by enemy fire resistance.',
     category: 'offensive',
   },
   flat_cold_dmg: {
     id: 'flat_cold_dmg',
     name: 'Flat Cold Damage',
     unit: '+N',
-    description: 'Добавляет плоский урон холодом к каждой атаке. Проходит через cold resistance врага.',
+    description: 'Adds flat cold damage to each attack. Reduced by enemy cold resistance.',
     category: 'offensive',
   },
   flat_lightning_dmg: {
     id: 'flat_lightning_dmg',
     name: 'Flat Lightning Damage',
     unit: '+N',
-    description: 'Добавляет плоский урон молнией к каждой атаке. Имеет самый широкий разброс значений среди элементов.',
+    description: 'Adds flat lightning damage to each attack. Has the widest value range among elements.',
     category: 'offensive',
   },
   crit_chance: {
     id: 'crit_chance',
     name: 'Critical Strike Chance',
     unit: '+N%',
-    description: 'Увеличивает шанс нанести критический удар. Базовый крит шанс - 5%. Критический удар наносит урон × crit_multiplier.',
+    description: 'Increases critical strike chance. Base crit chance is 5%. Critical hits deal damage × crit_multiplier.',
     category: 'offensive',
   },
   crit_multiplier: {
     id: 'crit_multiplier',
     name: 'Critical Strike Multiplier',
     unit: '+N%',
-    description: 'Увеличивает множитель критического урона. Базовый множитель - 150%. Чем выше - тем разрушительнее критические удары.',
+    description: 'Increases critical strike damage multiplier. Base multiplier is 150%. Higher values mean more devastating crits.',
     category: 'offensive',
   },
   // ── Defensive ──
@@ -102,91 +103,91 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'flat_hp',
     name: 'Flat Life',
     unit: '+N',
-    description: 'Добавляет плоское количество очков здоровья к максимуму HP. Основной оборонительный стат - увеличивает запас прочности.',
+    description: 'Adds flat life to maximum HP. Primary defensive stat — increases survivability.',
     category: 'defensive',
   },
   pct_hp: {
     id: 'pct_hp',
     name: '% Increased Life',
     unit: '+N%',
-    description: 'Увеличивает максимальное здоровье на процент. Применяется ко всему пулу HP (базовый + плоский).',
+    description: 'Increases maximum life by a percentage. Applied to the entire HP pool (base + flat).',
     category: 'defensive',
   },
   flat_armor: {
     id: 'flat_armor',
     name: 'Flat Armour',
     unit: '+N',
-    description: 'Добавляет плоскую броню. Броня снижает получаемый физический урон по формуле: reduction = armor / (armor + 10 × enemyDmg).',
+    description: 'Adds flat armour. Armour reduces physical damage taken: reduction = armor / (armor + 10 × enemyDmg).',
     category: 'defensive',
   },
   pct_armor: {
     id: 'pct_armor',
     name: '% Increased Armour',
     unit: '+N%',
-    description: 'Увеличивает общую броню на процент. Применяется к сумме базовой и плоской брони со всей экипировки.',
+    description: 'Increases total armour by a percentage. Applied to the sum of base and flat armour from all equipment.',
     category: 'defensive',
   },
   flat_evasion: {
     id: 'flat_evasion',
     name: 'Flat Evasion',
     unit: '+N',
-    description: 'Добавляет плоское уклонение. Уклонение даёт шанс полностью избежать удара: dodge% = evasion / (evasion + 200).',
+    description: 'Adds flat evasion. Evasion grants a chance to completely avoid a hit: dodge% = evasion / (evasion + 200).',
     category: 'defensive',
   },
   pct_evasion: {
     id: 'pct_evasion',
     name: '% Increased Evasion',
     unit: '+N%',
-    description: 'Увеличивает общее уклонение на процент. Применяется к сумме базового и плоского уклонения.',
+    description: 'Increases total evasion by a percentage. Applied to the sum of base and flat evasion.',
     category: 'defensive',
   },
   flat_energy_shield: {
     id: 'flat_energy_shield',
     name: 'Flat Energy Shield',
     unit: '+N',
-    description: 'Добавляет плоский энергетический щит. ES поглощает урон раньше HP и восстанавливается через несколько секунд без урона.',
+    description: 'Adds flat energy shield. ES absorbs damage before HP and regenerates after a few seconds without taking damage.',
     category: 'defensive',
   },
   pct_energy_shield: {
     id: 'pct_energy_shield',
     name: '% Increased Energy Shield',
     unit: '+N%',
-    description: 'Увеличивает общий энергетический щит на процент. Применяется ко всему пулу ES.',
+    description: 'Increases total energy shield by a percentage. Applied to the entire ES pool.',
     category: 'defensive',
   },
   block_chance: {
     id: 'block_chance',
     name: 'Block Chance',
     unit: '+N%',
-    description: 'Шанс заблокировать входящий физический удар. Блок полностью отменяет урон. Доступен только на одноручном оружии и щитах.',
+    description: 'Chance to block an incoming physical hit. Block completely negates damage. Available only on one-hand weapons and shields.',
     category: 'defensive',
   },
   fire_res: {
     id: 'fire_res',
     name: 'Fire Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый урон от огня на указанный процент. Максимальный капитан - 75%. Критически важен против Oni и Dragon.',
+    description: 'Reduces fire damage taken by a percentage. Max cap is 75%. Critical against Oni and Dragon.',
     category: 'defensive',
   },
   cold_res: {
     id: 'cold_res',
     name: 'Cold Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый урон от холода на указанный процент. Максимальный капитан - 75%. Важен против Forest Spirit.',
+    description: 'Reduces cold damage taken by a percentage. Max cap is 75%. Important against Forest Spirit.',
     category: 'defensive',
   },
   lightning_res: {
     id: 'lightning_res',
     name: 'Lightning Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый урон от молнии на указанный процент. Максимальный капитан - 75%. Критичен против Ronin и Tengu.',
+    description: 'Reduces lightning damage taken by a percentage. Max cap is 75%. Critical against Ronin and Tengu.',
     category: 'defensive',
   },
   phys_res: {
     id: 'phys_res',
     name: 'Physical Resistance',
     unit: '+N%',
-    description: 'Снижает получаемый физический урон на процент (поверх брони). Максимальный капитан - 75%. Работает независимо от Armour.',
+    description: 'Reduces physical damage taken by a percentage (on top of armour). Max cap is 75%. Works independently from Armour.',
     category: 'defensive',
   },
   // ── Utility ──
@@ -194,84 +195,91 @@ export const STAT_DEFS: Record<StatId, StatDef> = {
     id: 'gold_find',
     name: 'Gold Find',
     unit: '+N%',
-    description: 'Увеличивает количество золота, получаемого за убийство монстров. Суммируется со всей экипировки мультипликативно.',
+    description: 'Increases gold gained from killing monsters. Stacks multiplicatively across all equipment.',
     category: 'utility',
   },
   xp_bonus: {
     id: 'xp_bonus',
     name: 'Experience Bonus',
     unit: '+N%',
-    description: 'Увеличивает получаемый опыт за убийство монстров. Ускоряет прокачку уровня персонажа.',
+    description: 'Increases experience gained from killing monsters. Accelerates character leveling.',
     category: 'utility',
   },
   life_regen: {
     id: 'life_regen',
     name: 'Life Regeneration',
     unit: '+N/s',
-    description: 'Пассивное восстановление здоровья в секунду. Работает постоянно, даже в бою. Суммируется со всей экипировки.',
+    description: 'Passive life recovery per second. Works constantly, even in combat. Stacks across all equipment.',
     category: 'utility',
   },
   life_on_hit: {
     id: 'life_on_hit',
     name: 'Life on Hit',
     unit: '+N',
-    description: 'Восстанавливает указанное количество HP за каждый нанесённый удар (тап). Мгновенное лечение - идеально для активного геймплея.',
+    description: 'Restores HP on each hit (tap). Instant healing — ideal for active gameplay.',
     category: 'utility',
   },
   passive_dps_bonus: {
     id: 'passive_dps_bonus',
     name: 'Passive DPS Bonus',
     unit: '+N%',
-    description: 'Увеличивает пассивный урон (автоатаку). Бонус применяется к тикам урона, которые наносятся автоматически без тапов.',
+    description: 'Increases passive damage (auto-attack). Bonus applies to damage ticks dealt automatically without taps.',
     category: 'utility',
   },
   weapon_spell_level: {
     id: 'weapon_spell_level',
     name: 'Bugei Spell Level',
     unit: '+N',
-    description: 'Добавляет уровни к Bugei скилам (скейлятся от урона оружия). Каждый уровень ×1.07 к урону. Также усиливает базовую атаку Hit.',
+    description: 'Adds levels to Bugei skills (scale from weapon damage). Each level ×1.07 damage. Also boosts the base Hit attack.',
     category: 'offensive',
   },
   arcane_spell_level: {
     id: 'arcane_spell_level',
     name: 'Arcane Spell Level',
     unit: '+N',
-    description: 'Добавляет уровни к Arcane скилам (имеют свой базовый урон). Каждый уровень ×1.07 к урону.',
+    description: 'Adds levels to Arcane skills (have their own base damage). Each level ×1.07 damage.',
     category: 'offensive',
   },
   versatile_spell_level: {
     id: 'versatile_spell_level',
     name: 'Versatile Spell Level',
     unit: '+N',
-    description: 'Добавляет уровни ко ВСЕМ скилам (Bugei + Arcane), но в 1.5× слабее: 3 очка = 2 эффективных уровня.',
+    description: 'Adds levels to ALL skills (Bugei + Arcane), but 1.5× weaker: 3 points = 2 effective levels.',
     category: 'offensive',
   },
   cooldown_reduction: {
     id: 'cooldown_reduction',
     name: 'Cooldown Reduction',
     unit: '+N%',
-    description: 'Снижает время перезарядки всех активных скилов. Стакается мультипликативно (каждый источник снижает остаток).',
+    description: 'Reduces cooldown of all active skills. Stacks multiplicatively (each source reduces the remainder).',
     category: 'utility',
   },
   arcane_crit_chance: {
     id: 'arcane_crit_chance',
     name: 'Arcane Crit Chance',
     unit: '+N%',
-    description: 'Шанс аркейн-критического удара для Arcane скилов. Аркейн скилы НЕ используют обычные криты, только аркейн криты.',
+    description: 'Arcane crit chance for Arcane skills. Arcane skills do NOT use regular crits, only arcane crits.',
     category: 'offensive',
   },
   arcane_crit_multiplier: {
     id: 'arcane_crit_multiplier',
     name: 'Arcane Crit Damage',
     unit: '+N%',
-    description: 'Множитель аркейн-критического урона. Базовый множитель - 150%. Применяется только к Arcane скилам.',
+    description: 'Arcane crit damage multiplier. Base multiplier is 150%. Applies only to Arcane skills.',
+    category: 'offensive',
+  },
+  pct_elemental_dmg: {
+    id: 'pct_elemental_dmg',
+    name: 'Elemental Damage',
+    unit: '+N%',
+    description: 'Increases all elemental damage (fire, cold, lightning) by a percentage. Acts as a multiplier to all elemental damage sources.',
     category: 'offensive',
   },
   skill_level: {
     id: 'skill_level',
     name: 'Skill Level',
     unit: '+N',
-    description: '[Deprecated → Versatile Spell Level] Добавляет уровни ко всем скилам.',
+    description: '[Deprecated → Versatile Spell Level] Adds levels to all skills.',
     category: 'offensive',
   },
 };
@@ -316,8 +324,8 @@ export interface EquipmentRarityDef {
 export const EQUIPMENT_RARITIES: Record<EquipmentRarity, EquipmentRarityDef> = {
   common:    { id: 'common',    label: 'Common',    color: '#9d9d9d', statCount: [2, 2], dropWeight: 60 },
   rare:      { id: 'rare',      label: 'Rare',      color: '#4488ff', statCount: [2, 3], dropWeight: 25 },
-  epic:      { id: 'epic',      label: 'Epic',      color: '#a335ee', statCount: [3, 4], dropWeight: 12 },
-  legendary: { id: 'legendary', label: 'Legendary', color: '#ff8000', statCount: [4, 4], dropWeight: 3  },
+  epic:      { id: 'epic',      label: 'Epic',      color: '#a335ee', statCount: [3, 5], dropWeight: 12 },
+  legendary: { id: 'legendary', label: 'Legendary', color: '#ff8000', statCount: [5, 6], dropWeight: 3  },
 };
 
 // ── Slot definitions ─────────────────────────────────────
@@ -329,15 +337,15 @@ export interface SlotDef {
 }
 
 export const SLOT_DEFS: Record<EquipmentSlotId, SlotDef> = {
-  one_hand: { id: 'one_hand', name: 'One-Hand Weapon', description: 'Одноручное оружие - мечи, топоры, кинжалы, жезлы, булавы. Позволяет использовать щит во второй руке.' },
-  two_hand: { id: 'two_hand', name: 'Two-Hand Weapon', description: 'Двуручное оружие - луки, посохи, двуручные мечи. Статы ~1.5× выше одноручного, но нельзя носить щит.' },
-  helmet:   { id: 'helmet',   name: 'Helmet',          description: 'Защитная экипировка для головы. Даёт HP, броню, уклонение, энергощит и бонус к опыту.' },
-  amulet:   { id: 'amulet',   name: 'Amulet',          description: 'Универсальный слот - даёт как атакующие, так и защитные статы. Единственный слот с passive_dps_bonus.' },
-  armor:    { id: 'armor',    name: 'Body Armour',     description: 'Основной защитный слот. Максимальные значения HP, брони, уклонения и энергощита в игре.' },
-  ring:     { id: 'ring',     name: 'Ring',            description: 'Универсальные аксессуары (2 слота). Крит, элементальный урон, резисты и gold find.' },
-  gloves:   { id: 'gloves',   name: 'Gloves',          description: 'Гибридный слот. Даёт оборонительные статы + крит и life on hit. Микс атаки и защиты.' },
-  belt:     { id: 'belt',     name: 'Belt',            description: 'Утилитарно-защитный слот. Основной источник HP и gold find. Также даёт броню и life regen.' },
-  boots:    { id: 'boots',    name: 'Boots',           description: 'Оборонительный слот. HP, броня, уклонение, ES и элементальные резисты.' },
+  one_hand: { id: 'one_hand', name: 'One-Hand Weapon', description: 'One-handed weapons — swords, axes, daggers, wands, maces. Allows using a shield in the off-hand.' },
+  two_hand: { id: 'two_hand', name: 'Two-Hand Weapon', description: 'Two-handed weapons — bows, staves, greatswords. Stats ~1.5× higher than one-hand, but cannot equip a shield.' },
+  helmet:   { id: 'helmet',   name: 'Helmet',          description: 'Head protection. Grants HP, armour, evasion, energy shield, and XP bonus.' },
+  amulet:   { id: 'amulet',   name: 'Amulet',          description: 'Universal slot — provides both offensive and defensive stats. The only slot with passive_dps_bonus.' },
+  armor:    { id: 'armor',    name: 'Body Armour',     description: 'Primary defensive slot. Highest HP, armour, evasion, and energy shield values in the game.' },
+  ring:     { id: 'ring',     name: 'Ring',            description: 'Universal accessories (2 slots). Crit, elemental damage, resistances, and gold find.' },
+  gloves:   { id: 'gloves',   name: 'Gloves',          description: 'Hybrid slot. Provides defensive stats + crit and life on hit. Mix of offence and defence.' },
+  belt:     { id: 'belt',     name: 'Belt',            description: 'Utility-defensive slot. Primary source of HP and gold find. Also grants armour and life regen.' },
+  boots:    { id: 'boots',    name: 'Boots',           description: 'Defensive slot. HP, armour, evasion, ES, and elemental resistances.' },
 };
 
 // ── Subtypes ─────────────────────────────────────────────
@@ -349,54 +357,109 @@ export interface SubtypeDef {
   description: string;
   /** Implicit stat (base stat of the subtype), if any */
   implicit?: { stat: StatId; tierRanges: [number, number][] };
+  /** Personal stat pool for this subtype (subset of slot pool). Falls back to SLOT_STAT_POOLS if empty/missing. */
+  statPool?: StatId[];
 }
 
 export const SUBTYPES: SubtypeDef[] = [
-  // One-Hand
-  { code: 'oh_sword',  name: 'Sword',  slot: 'one_hand', description: 'Баланс урона и крита' },
-  { code: 'oh_axe',    name: 'Axe',    slot: 'one_hand', description: 'Высокий физ. урон' },
-  { code: 'oh_dagger', name: 'Dagger', slot: 'one_hand', description: 'Высокий крит' },
-  { code: 'oh_wand',   name: 'Wand',   slot: 'one_hand', description: 'Элементальный урон' },
-  { code: 'oh_mace',   name: 'Mace',   slot: 'one_hand', description: 'Высокий урон, низкая скорость' },
-  // Two-Hand
-  { code: 'th_sword',  name: 'Greatsword', slot: 'two_hand', description: 'Высокий физ. урон' },
-  { code: 'th_axe',    name: 'Greataxe',   slot: 'two_hand', description: 'Максимальный физ. урон' },
-  { code: 'th_bow',    name: 'Bow',        slot: 'two_hand', description: 'Дальний бой, крит' },
-  { code: 'th_staff',  name: 'Staff',      slot: 'two_hand', description: 'Элементальный урон' },
-  { code: 'th_mace',   name: 'Greatmace',  slot: 'two_hand', description: 'Огромный урон, медленный' },
-  // Helmet
-  { code: 'helm_heavy',   name: 'Heavy Helm', slot: 'helmet', description: 'Броня, HP' },
-  { code: 'helm_light',   name: 'Light Helm', slot: 'helmet', description: 'Уклонение, энергощит' },
-  { code: 'helm_circlet', name: 'Circlet',    slot: 'helmet', description: 'Энергощит, бонус опыта' },
-  // Amulet
-  { code: 'amu_pendant',  name: 'Pendant',  slot: 'amulet', description: 'Баланс атаки и защиты' },
-  { code: 'amu_talisman', name: 'Talisman', slot: 'amulet', description: 'Элементальный фокус' },
-  { code: 'amu_locket',   name: 'Locket',   slot: 'amulet', description: 'Защитный фокус' },
-  // Armor
-  { code: 'arm_plate',   name: 'Plate',   slot: 'armor', description: 'Максимальная броня' },
-  { code: 'arm_leather', name: 'Leather', slot: 'armor', description: 'Уклонение' },
-  { code: 'arm_robe',    name: 'Robe',    slot: 'armor', description: 'Энергощит' },
-  { code: 'arm_chain',   name: 'Chain',   slot: 'armor', description: 'Броня + Уклонение (гибрид)' },
-  // Ring
-  { code: 'ring_ruby',     name: 'Ruby Ring',     slot: 'ring', description: 'Implicit: +flat_hp',            implicit: { stat: 'flat_hp',            tierRanges: [[5,12],[5,22],[5,35],[5,50],[5,70]] } },
-  { code: 'ring_sapphire', name: 'Sapphire Ring', slot: 'ring', description: 'Implicit: +flat_cold_dmg',      implicit: { stat: 'flat_cold_dmg',      tierRanges: [[1,3],[1,6],[1,10],[1,16],[1,24]] } },
-  { code: 'ring_topaz',    name: 'Topaz Ring',    slot: 'ring', description: 'Implicit: +flat_lightning_dmg',  implicit: { stat: 'flat_lightning_dmg', tierRanges: [[1,4],[1,8],[1,14],[1,22],[1,32]] } },
-  { code: 'ring_gold',     name: 'Gold Ring',     slot: 'ring', description: 'Implicit: +gold_find',          implicit: { stat: 'gold_find',          tierRanges: [[3,8],[3,14],[3,22],[3,32],[3,45]] } },
-  { code: 'ring_iron',     name: 'Iron Ring',     slot: 'ring', description: 'Implicit: +flat_phys_dmg',      implicit: { stat: 'flat_phys_dmg',      tierRanges: [[1,2],[1,5],[1,9],[1,14],[1,20]] } },
-  // Gloves
-  { code: 'glov_gauntlet', name: 'Gauntlets', slot: 'gloves', description: 'Броня, атака' },
-  { code: 'glov_bracer',   name: 'Bracers',   slot: 'gloves', description: 'Уклонение, крит' },
-  { code: 'glov_wrap',     name: 'Wraps',     slot: 'gloves', description: 'Энергощит, крит' },
-  // Belt
-  { code: 'belt_leather', name: 'Leather Belt', slot: 'belt', description: 'Implicit: +flat_hp',            implicit: { stat: 'flat_hp',            tierRanges: [[5,15],[5,28],[5,45],[5,65],[5,90]] } },
-  { code: 'belt_chain',   name: 'Chain Belt',   slot: 'belt', description: 'Implicit: +flat_energy_shield', implicit: { stat: 'flat_energy_shield', tierRanges: [[2,6],[2,12],[2,20],[2,30],[2,42]] } },
-  { code: 'belt_heavy',   name: 'Heavy Belt',   slot: 'belt', description: 'Implicit: +flat_armor',         implicit: { stat: 'flat_armor',         tierRanges: [[3,12],[3,25],[3,42],[3,62],[3,85]] } },
-  { code: 'belt_cloth',   name: 'Cloth Belt',   slot: 'belt', description: 'Implicit: +gold_find',          implicit: { stat: 'gold_find',          tierRanges: [[3,8],[3,15],[3,25],[3,38],[3,55]] } },
-  // Boots
-  { code: 'boot_plate',   name: 'Plate Boots',   slot: 'boots', description: 'Броня, HP' },
-  { code: 'boot_leather', name: 'Leather Boots', slot: 'boots', description: 'Уклонение' },
-  { code: 'boot_silk',    name: 'Silk Shoes',    slot: 'boots', description: 'Энергощит' },
-  { code: 'boot_chain',   name: 'Chain Boots',   slot: 'boots', description: 'Броня + Уклонение (гибрид)' },
+  // ═══ One-Hand ═══
+  { code: 'oh_sword',  name: 'Sword',  slot: 'one_hand', description: 'Balanced damage and crit',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'flat_cold_dmg', 'flat_fire_dmg', 'life_on_hit', 'weapon_spell_level', 'versatile_spell_level'] },
+  { code: 'oh_axe',    name: 'Axe',    slot: 'one_hand', description: 'High physical damage',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'life_on_hit', 'weapon_spell_level', 'versatile_spell_level'] },
+  { code: 'oh_dagger', name: 'Dagger', slot: 'one_hand', description: 'High crit',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_lightning_dmg', 'flat_cold_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'] },
+  { code: 'oh_wand',   name: 'Wand',   slot: 'one_hand', description: 'Elemental damage',
+    statPool: ['flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'pct_elemental_dmg', 'crit_chance', 'crit_multiplier', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'] },
+  { code: 'oh_mace',   name: 'Mace',   slot: 'one_hand', description: 'High damage, slow speed',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_lightning_dmg', 'crit_multiplier', 'block_chance', 'life_on_hit', 'weapon_spell_level', 'versatile_spell_level', 'arcane_crit_multiplier'] },
+
+  // ═══ Two-Hand ═══
+  { code: 'th_sword',  name: 'Greatsword', slot: 'two_hand', description: 'High physical damage',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_cold_dmg', 'flat_fire_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'versatile_spell_level', 'arcane_crit_multiplier'] },
+  { code: 'th_axe',    name: 'Greataxe',   slot: 'two_hand', description: 'Maximum physical damage',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'versatile_spell_level', 'arcane_crit_multiplier'] },
+  { code: 'th_bow',    name: 'Bow',        slot: 'two_hand', description: 'Ranged, crit',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_lightning_dmg', 'flat_cold_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'] },
+  { code: 'th_staff',  name: 'Staff',      slot: 'two_hand', description: 'Elemental damage',
+    statPool: ['flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'pct_elemental_dmg', 'crit_chance', 'crit_multiplier', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'] },
+  { code: 'th_mace',   name: 'Greatmace',  slot: 'two_hand', description: 'Massive damage, slow',
+    statPool: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'versatile_spell_level', 'arcane_crit_multiplier'] },
+
+  // ═══ Helmet ═══
+  { code: 'helm_heavy',   name: 'Heavy Helm', slot: 'helmet', description: 'Armour, HP',
+    statPool: ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'] },
+  { code: 'helm_light',   name: 'Light Helm', slot: 'helmet', description: 'Evasion, energy shield',
+    statPool: ['flat_hp', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'cooldown_reduction', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'helm_circlet', name: 'Circlet',    slot: 'helmet', description: 'Energy shield, XP bonus',
+    statPool: ['pct_hp', 'flat_energy_shield', 'pct_energy_shield', 'xp_bonus', 'cooldown_reduction', 'fire_res', 'cold_res', 'lightning_res'] },
+
+  // ═══ Amulet ═══
+  { code: 'amu_pendant',  name: 'Pendant',  slot: 'amulet', description: 'Balanced offence and defence',
+    statPool: ['pct_phys_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'life_regen', 'passive_dps_bonus', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'amu_talisman', name: 'Talisman', slot: 'amulet', description: 'Elemental focus',
+    statPool: ['flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'] },
+  { code: 'amu_locket',   name: 'Locket',   slot: 'amulet', description: 'Defensive focus',
+    statPool: ['flat_hp', 'pct_hp', 'life_regen', 'cooldown_reduction', 'gold_find', 'xp_bonus', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'] },
+
+  // ═══ Armor ═══
+  { code: 'arm_plate',   name: 'Plate',   slot: 'armor', description: 'Maximum armour',
+    statPool: ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'life_regen', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'] },
+  { code: 'arm_leather', name: 'Leather', slot: 'armor', description: 'Evasion',
+    statPool: ['flat_hp', 'pct_hp', 'flat_evasion', 'pct_evasion', 'life_regen', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'arm_robe',    name: 'Robe',    slot: 'armor', description: 'Energy shield',
+    statPool: ['pct_hp', 'flat_energy_shield', 'pct_energy_shield', 'life_regen', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'arm_chain',   name: 'Chain',   slot: 'armor', description: 'Armour + Evasion (hybrid)',
+    statPool: ['flat_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'life_regen', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'] },
+
+  // ═══ Ring ═══
+  { code: 'ring_ruby',     name: 'Ruby Ring',     slot: 'ring', description: 'Implicit: +flat_hp',
+    implicit: { stat: 'flat_hp',            tierRanges: [[5,12],[5,22],[5,35],[5,50],[5,70]] },
+    statPool: ['pct_hp', 'life_regen', 'life_on_hit', 'passive_dps_bonus', 'flat_hp', 'fire_res', 'phys_res'] },
+  { code: 'ring_sapphire', name: 'Sapphire Ring', slot: 'ring', description: 'Implicit: +flat_cold_dmg',
+    implicit: { stat: 'flat_cold_dmg',      tierRanges: [[1,3],[1,6],[1,10],[1,16],[1,24]] },
+    statPool: ['flat_cold_dmg', 'crit_chance', 'crit_multiplier', 'pct_hp', 'cold_res', 'lightning_res', 'arcane_crit_chance'] },
+  { code: 'ring_topaz',    name: 'Topaz Ring',    slot: 'ring', description: 'Implicit: +flat_lightning_dmg',
+    implicit: { stat: 'flat_lightning_dmg', tierRanges: [[1,4],[1,8],[1,14],[1,22],[1,32]] },
+    statPool: ['flat_lightning_dmg', 'pct_phys_dmg', 'crit_chance', 'gold_find', 'lightning_res', 'fire_res', 'arcane_crit_multiplier'] },
+  { code: 'ring_gold',     name: 'Gold Ring',     slot: 'ring', description: 'Implicit: +gold_find',
+    implicit: { stat: 'gold_find',          tierRanges: [[3,8],[3,14],[3,22],[3,32],[3,45]] },
+    statPool: ['gold_find', 'xp_bonus', 'pct_hp', 'flat_hp', 'life_regen', 'passive_dps_bonus', 'fire_res', 'cold_res'] },
+  { code: 'ring_iron',     name: 'Iron Ring',     slot: 'ring', description: 'Implicit: +flat_phys_dmg',
+    implicit: { stat: 'flat_phys_dmg',      tierRanges: [[1,2],[1,5],[1,9],[1,14],[1,20]] },
+    statPool: ['pct_phys_dmg', 'flat_fire_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'phys_res', 'arcane_crit_chance'] },
+
+  // ═══ Gloves ═══
+  { code: 'glov_gauntlet', name: 'Gauntlets', slot: 'gloves', description: 'Armour, attack',
+    statPool: ['pct_phys_dmg', 'flat_armor', 'life_on_hit', 'crit_chance', 'flat_evasion', 'flat_energy_shield'] },
+  { code: 'glov_bracer',   name: 'Bracers',   slot: 'gloves', description: 'Evasion, crit',
+    statPool: ['crit_chance', 'flat_evasion', 'life_on_hit', 'pct_phys_dmg', 'flat_armor', 'flat_energy_shield'] },
+  { code: 'glov_wrap',     name: 'Wraps',     slot: 'gloves', description: 'Energy shield, crit',
+    statPool: ['crit_chance', 'flat_energy_shield', 'life_on_hit', 'pct_phys_dmg', 'flat_armor', 'flat_evasion'] },
+
+  // ═══ Belt ═══
+  { code: 'belt_leather', name: 'Leather Belt', slot: 'belt', description: 'Implicit: +flat_hp',
+    implicit: { stat: 'flat_hp',            tierRanges: [[5,15],[5,28],[5,45],[5,65],[5,90]] },
+    statPool: ['flat_hp', 'pct_hp', 'life_regen', 'gold_find', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'belt_chain',   name: 'Chain Belt',   slot: 'belt', description: 'Implicit: +flat_energy_shield',
+    implicit: { stat: 'flat_energy_shield', tierRanges: [[2,6],[2,12],[2,20],[2,30],[2,42]] },
+    statPool: ['flat_hp', 'pct_hp', 'flat_armor', 'cooldown_reduction', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'belt_heavy',   name: 'Heavy Belt',   slot: 'belt', description: 'Implicit: +flat_armor',
+    implicit: { stat: 'flat_armor',         tierRanges: [[3,12],[3,25],[3,42],[3,62],[3,85]] },
+    statPool: ['flat_hp', 'pct_hp', 'flat_armor', 'life_regen', 'fire_res', 'phys_res', 'lightning_res'] },
+  { code: 'belt_cloth',   name: 'Cloth Belt',   slot: 'belt', description: 'Implicit: +gold_find',
+    implicit: { stat: 'gold_find',          tierRanges: [[3,8],[3,15],[3,25],[3,38],[3,55]] },
+    statPool: ['flat_hp', 'gold_find', 'cooldown_reduction', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'] },
+
+  // ═══ Boots ═══
+  { code: 'boot_plate',   name: 'Plate Boots',   slot: 'boots', description: 'Armour, HP',
+    statPool: ['flat_hp', 'flat_armor', 'flat_energy_shield', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'boot_leather', name: 'Leather Boots', slot: 'boots', description: 'Evasion',
+    statPool: ['flat_hp', 'flat_evasion', 'flat_energy_shield', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'boot_silk',    name: 'Silk Shoes',    slot: 'boots', description: 'Energy shield',
+    statPool: ['flat_hp', 'flat_energy_shield', 'flat_evasion', 'fire_res', 'cold_res', 'lightning_res'] },
+  { code: 'boot_chain',   name: 'Chain Boots',   slot: 'boots', description: 'Armour + Evasion (hybrid)',
+    statPool: ['flat_hp', 'flat_armor', 'flat_evasion', 'flat_energy_shield', 'fire_res', 'cold_res', 'lightning_res'] },
 ];
 
 export function getSubtypesForSlot(slot: EquipmentSlotId): SubtypeDef[] {
@@ -438,8 +501,8 @@ export const BASE_DEFENSES: Record<string, { armor: [number,number][]; evasion: 
 // ── Stat pools per slot ──────────────────────────────────
 
 export const SLOT_STAT_POOLS: Record<EquipmentSlotId, StatId[]> = {
-  one_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'],
-  two_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'],
+  one_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'pct_elemental_dmg', 'crit_chance', 'crit_multiplier', 'block_chance', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'],
+  two_hand: ['flat_phys_dmg', 'pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'pct_elemental_dmg', 'crit_chance', 'crit_multiplier', 'life_on_hit', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier'],
   helmet:   ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'xp_bonus', 'cooldown_reduction', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   amulet:   ['pct_phys_dmg', 'flat_fire_dmg', 'flat_cold_dmg', 'flat_lightning_dmg', 'crit_chance', 'crit_multiplier', 'flat_hp', 'pct_hp', 'gold_find', 'xp_bonus', 'life_regen', 'passive_dps_bonus', 'cooldown_reduction', 'weapon_spell_level', 'arcane_spell_level', 'versatile_spell_level', 'arcane_crit_chance', 'arcane_crit_multiplier', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
   armor:    ['flat_hp', 'pct_hp', 'flat_armor', 'pct_armor', 'flat_evasion', 'pct_evasion', 'flat_energy_shield', 'pct_energy_shield', 'life_regen', 'fire_res', 'cold_res', 'lightning_res', 'phys_res'],
@@ -466,6 +529,7 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     flat_fire_dmg:     [[1,4],   [1,10],  [1,20],  [1,38],  [1,60]],
     flat_cold_dmg:     [[1,4],   [1,10],  [1,20],  [1,38],  [1,60]],
     flat_lightning_dmg:[[1,6],   [1,15],  [1,30],  [1,50],  [1,80]],
+    pct_elemental_dmg: [[5,15],  [5,30],  [5,55],  [5,85],  [5,120]],
     crit_chance:       [[0.5,2], [0.5,4], [0.5,6], [0.5,9], [0.5,12]],
     crit_multiplier:   [[5,15],  [5,25],  [5,40],  [5,60],  [5,85]],
     block_chance:      [[1,3],   [1,5],   [1,8],   [1,12],  [1,15]],
@@ -484,6 +548,7 @@ export const STAT_RANGES: Record<EquipmentSlotId, Partial<Record<StatId, TierRan
     flat_fire_dmg:     [[1,6],   [1,15],  [1,30],  [1,57],  [1,90]],
     flat_cold_dmg:     [[1,6],   [1,15],  [1,30],  [1,57],  [1,90]],
     flat_lightning_dmg:[[1,9],   [1,22],  [1,45],  [1,75],  [1,120]],
+    pct_elemental_dmg: [[8,22],  [8,45],  [8,80],  [8,128], [8,180]],
     crit_chance:       [[0.5,2], [0.5,4], [0.5,6], [0.5,9], [0.5,12]],
     crit_multiplier:   [[8,22],  [8,38],  [8,60],  [8,90],  [8,128]],
     life_on_hit:       [[1,5],   [1,10],  [1,21],  [1,33],  [1,52]],
@@ -661,11 +726,19 @@ function pickRandom<T>(arr: T[], n: number): T[] {
   return result;
 }
 
-/** Roll a stat value for given stat + tier index. */
-function rollStatValue(statId: StatId, slot: EquipmentSlotId, tierIdx: number): number {
+/** Roll a stat value for given stat + tier index, with optional range multiplier. */
+function rollStatValue(statId: StatId, slot: EquipmentSlotId, tierIdx: number, multiplier: number = 1): number {
   const ranges = STAT_RANGES[slot]?.[statId];
   if (!ranges) return 0;
-  const [min, max] = ranges[tierIdx];
+  let [min, max] = ranges[tierIdx];
+  // Apply per-item multiplier to range (x2 = strong stat, x0.5 = weak stat)
+  if (multiplier !== 1) {
+    min = Math.round(min * multiplier * 10) / 10;
+    max = Math.round(max * multiplier * 10) / 10;
+  }
+  // Clamp min to at least 1 (prevents 0.5 spell levels etc.)
+  if (min < 1) min = 1;
+  if (max < 1) max = 1;
   // Percent and float stats use float roll; flat ints use int roll
   if (min % 1 !== 0 || max % 1 !== 0) return randFloat(min, max);
   return randInt(min, max);
@@ -693,6 +766,8 @@ export function rollEquipment(
   itemLevel: number,
   rarity?: EquipmentRarity,
   subtype?: string,
+  iconStatPool?: StatId[],
+  statMultipliers?: Record<string, number>,
 ): RolledEquipment {
   const rar = rarity ?? rollRarity();
   const tierIdx = getTierIndex(itemLevel);
@@ -736,8 +811,8 @@ export function rollEquipment(
   const [minStats, maxStats] = EQUIPMENT_RARITIES[rar].statCount;
   const statCount = randInt(minStats, maxStats);
 
-  // Build available pool
-  const pool = [...SLOT_STAT_POOLS[slot]];
+  // Build available pool (can be overridden by iconStatPool param)
+  const pool = [...(iconStatPool && iconStatPool.length > 0 ? iconStatPool : SLOT_STAT_POOLS[slot])];
 
   // Pick stats, enforcing max 2 resists
   const selectedStats: StatId[] = [];
@@ -761,10 +836,10 @@ export function rollEquipment(
     if (RESIST_STATS.includes(stat)) resistCount++;
   }
 
-  // Roll values
+  // Roll values (apply per-item multipliers if provided)
   const stats: RolledStat[] = selectedStats.map(id => ({
     id,
-    value: rollStatValue(id, slot, tierIdx),
+    value: rollStatValue(id, slot, tierIdx, statMultipliers?.[id]),
   }));
 
   return {

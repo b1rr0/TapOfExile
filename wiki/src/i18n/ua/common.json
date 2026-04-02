@@ -6,7 +6,7 @@
   "footer": { "copyright": "© EKNM, underground since 201X" },
   "wikiNav": {
     "overview": "Огляд", "classes": "Класи", "enemies": "Вороги",
-    "equipment": "Спорядження", "skillTree": "Древо Навичок", "damage": "Урон",
+    "equipment": "Спорядження", "skillTree": "Астеризм", "damage": "Урон",
     "plot": "Сюжет", "maps": "Карти"
   },
   "stats": {

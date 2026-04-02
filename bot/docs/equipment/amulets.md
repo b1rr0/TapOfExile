@@ -1,21 +1,21 @@
-# Amulets (Амулеты)
+# Amulets
 
 **Slot:** `amulet`
-**Описание:** Ожерелье/амулет. Универсальный слот - может давать как атакующие, так и защитные статы. Единственный слот с passive_dps_bonus и широким набором элементального урона.
+**Description:** Necklace/amulet. A universal slot that can provide both offensive and defensive stats. The only slot with passive_dps_bonus and a wide range of elemental damage.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип                  | Код              | Особенность                     |
+| Subtype                 | Code             | Feature                         |
 |-------------------------|------------------|---------------------------------|
-| Pendant (Кулон)         | `amu_pendant`   | Баланс атаки и защиты           |
-| Talisman (Талисман)     | `amu_talisman`  | Элементальный фокус             |
-| Locket (Медальон)       | `amu_locket`    | Защитный фокус                  |
+| Pendant                 | `amu_pendant`   | Balance of offence and defence  |
+| Talisman                | `amu_talisman`  | Elemental focus                 |
+| Locket                  | `amu_locket`    | Defensive focus                 |
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### % Physical Damage (`pct_phys_dmg`)
 
@@ -177,11 +177,11 @@
 | T2   | 60 - 79   | 3%  | 32%  |
 | T1   | 80 - 100  | 3%  | 45%  |
 
-> Амулет может нести резисты вместе с атакующими статами — уникально. Locket (защитный фокус) идеален для phys_res + flat_hp комбинации.
+> Amulets can carry resistances together with offensive stats — unique among slots. Locket (defensive focus) is ideal for phys_res + flat_hp combinations.
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 15, Common Pendant:**
 ```

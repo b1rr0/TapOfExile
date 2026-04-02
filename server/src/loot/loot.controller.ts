@@ -58,6 +58,17 @@ export class LootController {
     return this.lootService.sellItem(pl.id, itemId);
   }
 
+  @Post('bulk-sell')
+  @ApiOperation({ summary: 'Sell multiple items from bag at once' })
+  @ApiResponse({ status: 201, description: 'Items sold, returns total gold and count' })
+  async bulkSell(
+    @CurrentUser('telegramId') telegramId: string,
+    @Body() dto: { itemIds: string[] },
+  ) {
+    const pl = await this.playerService.getActivePlayerLeague(telegramId);
+    return this.lootService.bulkSell(pl.id, dto.itemIds);
+  }
+
   @Post('equip-potion')
   @ApiOperation({ summary: 'Equip a potion from bag to consumable slot' })
   @ApiResponse({ status: 201, description: 'Potion equipped' })

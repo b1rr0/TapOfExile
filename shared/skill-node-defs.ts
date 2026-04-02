@@ -1,7 +1,7 @@
 ﻿/**
- * Skill Node Definitions - OOP data model for skill tree stat bonuses.
+ * Skill Node Definitions - OOP data model for asterism stat bonuses.
  *
- * Each node in the passive tree carries a NodeDef that describes its stat effects.
+ * Each node in the asterism carries a NodeDef that describes its stat effects.
  * NodeDef holds one or more StatModifiers, enabling proper multi-stat support.
  *
  * Usage:
@@ -187,7 +187,7 @@ export const MINOR_POOL: NodeDef[] = [
   minor("min_hp_10",    "+10% HP",             pct("hp", 0.10)),
   minor("min_gold_5",   "+5% Gold Find",       pct("goldFind", 0.05)),
   minor("min_xp_6",     "+6% XP Gain",         pct("xpGain", 0.06)),
-  minor("min_hit_30",   "+20 Hit (tap)",        flat("tapHit", 20)),  // ID suffix is legacy; value is 20
+  minor("min_hit_30",   "+15 Hit (tap)",        flat("tapHit", 15)),  // nerfed: was 20, reduced for early-tree balance
   minor("min_dmg_4",    "+4% Bugei Damage",          pct("damage", 0.04)),
   minor("min_crit_3",   "+3% Bugei Crit Chance",     pct("critChance", 0.03)),
   minor("min_critd_6",  "+6% Bugei Crit Damage",     pct("critMulti", 0.06)),
@@ -195,7 +195,7 @@ export const MINOR_POOL: NodeDef[] = [
   minor("min_hp_8",     "+8% HP",              pct("hp", 0.08)),
   minor("min_gold_4",   "+4% Gold Find",       pct("goldFind", 0.04)),
   minor("min_cold_5",   "+5% Cold Damage",     pct("coldDmg", 0.05)),
-  minor("min_hit_40",   "+20 Hit (tap)",        flat("tapHit", 20)),  // ID suffix is legacy; value is 20
+  minor("min_hit_40",   "+15 Hit (tap)",        flat("tapHit", 15)),  // nerfed: was 20, reduced for early-tree balance
   // Arcane crit minors
   minor("min_arccrit_5",  "+5% Arcane Crit Chance",       pct("arcaneCritChance", 0.05)),
   minor("min_arccritd_8", "+8% Arcane Crit Damage",   pct("arcaneCritMulti", 0.08)),
@@ -376,7 +376,7 @@ export const CLASS_SKILLS: Record<string, NodeDef[]> = {
   mage: [
     classSkill("mag_fireball",  "+30% Fire Damage",                "Fireball",        pct("fireDmg", 0.30)),
     classSkill("mag_mshield",   "+25% HP",                         "Mana Shield",     pct("hp", 0.25)),
-    classSkill("mag_surge",     "+50 Hit (tap)",                   "Arcane Surge",    flat("tapHit", 50)),
+    classSkill("mag_surge",     "+15 Hit (tap)",                   "Arcane Surge",    flat("tapHit", 15)),
     classSkill("mag_frost",     "+25% Cold Damage",                "Frost Nova",      pct("coldDmg", 0.25)),
     classSkill("mag_lbolt",     "+25% Lightning Damage",           "Lightning Bolt",  pct("lightningDmg", 0.25)),
     classSkill("mag_echo",      "+15% Fire, +15% Lightning",       "Spell Echo",      pct("fireDmg", 0.15), pct("lightningDmg", 0.15)),
@@ -389,7 +389,7 @@ export const CLASS_SKILLS: Record<string, NodeDef[]> = {
     classSkill("mag_overchg",   "+35% Bugei Crit Damage",                 "Overcharge",      pct("critMulti", 0.35)),
     classSkill("mag_meteor",    "+35% Fire Damage",                  "Meteor",          pct("fireDmg", 0.35)),
     classSkill("mag_wisdom",    "+20% XP, +10% Gold",               "Arcane Wisdom",   pct("xpGain", 0.20), pct("goldFind", 0.10)),
-    classSkill("mag_void",      "+20% Pure Bugei Dmg, +33 Hit",          "Void Rift",       pct("pureDmg", 0.20), flat("tapHit", 33)),
+    classSkill("mag_void",      "+20% Pure Bugei Dmg, +15 Hit",          "Void Rift",       pct("pureDmg", 0.20), flat("tapHit", 15)),
     classSkill("mag_arcpow",    "+3 Arcane Spell Lv.",              "Arcane Power",    flat("arcaneSpellLevel", 3)),
   ],
 
@@ -498,7 +498,7 @@ export const SKILL_CONNECTOR_DEFS: Record<string, NodeDef[]> = {
 // ── Bonus aggregation utility ─────────────────────────────
 
 /**
- * Sum all stat bonuses from allocated skill tree nodes.
+ * Sum all stat bonuses from allocated asterism nodes.
  *
  * @param   nodes      - full node array from buildSkillTree().nodes
  * @param   allocated  - set of allocated numeric node IDs

@@ -1,68 +1,68 @@
-# Дерево навыков (Skill Tree)
+# Skill Tree
 
-## Ключевые файлы
+## Key Files
 
-| Файл | Назначение |
-|------|-----------|
-| `shared/skill-tree.ts` | Построение дерева (~256 нод), layout, SkillNode, SkillTreeBuilder |
-| `shared/skill-tree-validation.ts` | Валидация аллокаций (BFS, бюджет очков) |
-| `shared/skill-node-defs.ts` | NodeDef, StatModifier, пулы нод, CLASS_SKILLS |
-| `server/src/skill-tree/skill-tree.service.ts` | BE: сохранение, валидация, сброс |
-| `server/src/skill-tree/skill-tree.controller.ts` | REST эндпоинты |
-| `bot/src/scenes/skill-tree-scene.ts` | FE: SVG рендер, pan/zoom, взаимодействие |
-| `bot/src/data/skill-tree.ts` | FE re-export из shared + CLASS_IMG |
+| File | Purpose |
+|------|---------|
+| `shared/skill-tree.ts` | Tree construction (~256 nodes), layout, SkillNode, SkillTreeBuilder |
+| `shared/skill-tree-validation.ts` | Allocation validation (BFS, point budget) |
+| `shared/skill-node-defs.ts` | NodeDef, StatModifier, node pools, CLASS_SKILLS |
+| `server/src/skill-tree/skill-tree.service.ts` | BE: save, validate, reset |
+| `server/src/skill-tree/skill-tree.controller.ts` | REST endpoints |
+| `bot/src/scenes/skill-tree-scene.ts` | FE: SVG rendering, pan/zoom, interaction |
+| `bot/src/data/skill-tree.ts` | FE re-export from shared + CLASS_IMG |
 
-## Архитектура дерева
+## Tree Architecture
 
-Круговой граф в стиле PoE2, ~256 нод. Layout детерминированный (seeded RNG, seed=42), кэшируется.
+Circular graph in PoE2 style, ~256 nodes. Layout is deterministic (seeded RNG, seed=42), cached.
 
-### Структура (слои изнутри наружу):
+### Structure (layers from inside out):
 
 ```
-Центр (CX=800, CY=800)
-  → 4 стартовые ноды на radius 210 (samurai/warrior/mage/archer)
-  → Каждая внутри Emblem circle (r=100) с 16 class-specific скиллами
+Center (CX=800, CY=800)
+  → 4 start nodes at radius 210 (samurai/warrior/mage/archer)
+  → Each inside Emblem circle (r=100) with 16 class-specific skills
   → Inner ring (3 per class = 12)
   → Trunk ring (5 per class = 20)
   → Branch ring (5 per class = 20)
   → Fractal tendrils (5 roots per class, depth-2 branching)
-  → Keystones на самых дальних точках (2 per class = 8)
+  → Keystones at the farthest points (2 per class = 8)
   → Cross-class bridges (trunk[ci][4] → trunk[ci+1][0])
 ```
 
-### Типы нод
+### Node Types
 
-| Тип | Форма | Размер | Описание |
-|-----|-------|--------|----------|
-| start | circle | 14 | Стартовая нода класса |
-| minor | circle | 8 | Маленькие бонусы (+3-10%) |
-| notable | hex | 12 | Средние бонусы (+10-35%), часто multi-stat |
-| keystone | diamond | 16 | Мощные (+50-100%), часто с trade-off |
-| classSkill | hex | 9 | Внутри Emblem, до 6 штук |
+| Type | Shape | Size | Description |
+|------|-------|------|-------------|
+| start | circle | 14 | Class start node |
+| minor | circle | 8 | Small bonuses (+3-10%) |
+| notable | hex | 12 | Medium bonuses (+10-35%), often multi-stat |
+| keystone | diamond | 16 | Powerful (+50-100%), often with trade-off |
+| classSkill | hex | 9 | Inside Emblem, up to 6 |
 
-## Система очков
+## Point System
 
-- **Outer points** = `level - 1` (minor, notable, keystone ноды)
-- **Class skills** — отдельный лимит: `MAX_CLASS_SKILLS = 6`
-- Start нода не расходует очки
+- **Outer points** = `level - 1` (minor, notable, keystone nodes)
+- **Class skills** — separate limit: `MAX_CLASS_SKILLS = 6`
+- Start node does not cost points
 
-## Пулы нод (skill-node-defs.ts)
+## Node Pools (skill-node-defs.ts)
 
-### MINOR_POOL (16 нод, циклически)
+### MINOR_POOL (16 nodes, cyclic)
 
-+3-10% к одному стату: damage, critChance, critMulti, hp, goldFind, xpGain, dodge, fire/lightning/cold/pure dmg.
++3-10% to a single stat: damage, critChance, critMulti, hp, goldFind, xpGain, dodge, fire/lightning/cold/pure dmg.
 
-### NOTABLE_POOL (24 ноды, циклически)
+### NOTABLE_POOL (24 nodes, cyclic)
 
-+10-35% к одному или двум статам. Примеры:
++10-35% to one or two stats. Examples:
 - "Razor Edge" (+12% Damage)
 - "Eagle Eye" (+15% Crit Chance)
 - "Blood Frenzy" (+8% Dmg, +15% HP)
 - "Precision" (+10% Crit, +10% Dmg)
 
-### KEYSTONE_POOL (8 нод)
+### KEYSTONE_POOL (8 nodes)
 
-Мощные эффекты:
+Powerful effects:
 - **Berserker Rage**: +100% Dmg (2x Dmg at low HP)
 - **Perfect Aim**: +100% Crit Damage (Crits deal 3x)
 - **Undying Will**: +100% HP, -20% Dmg
@@ -74,7 +74,7 @@
 
 ### CLASS_SKILLS (16 per class)
 
-Уникальные для каждого класса:
+Unique per class:
 - **Samurai**: Lightning + physical, crit-focused (Iaido, Bushido, Windcutter...)
 - **Warrior**: Fire + physical, tanky (Shield Wall, Warcry, Heavy Strike...)
 - **Mage**: Fire/lightning/cold, elemental diversity (Fireball, Frost Nova, Lightning Bolt...)
@@ -97,46 +97,46 @@ coldDmg      → coldDmg
 pureDmg      → pureDmg
 ```
 
-## Вычисление бонусов (computeAllocatedBonuses)
+## Bonus Calculation (computeAllocatedBonuses)
 
 ```typescript
-// Для каждой allocated ноды суммирует модификаторы:
+// For each allocated node, sums modifiers:
 result = { percent: { tapDamage: 0.23, critChance: 0.15, ... }, flat: {} }
-// Применение: finalStat = baseStat * (1 + bonuses.percent[key]) + bonuses.flat[key]
+// Application: finalStat = baseStat * (1 + bonuses.percent[key]) + bonuses.flat[key]
 ```
 
-## Валидация (skill-tree-validation.ts)
+## Validation (skill-tree-validation.ts)
 
-**Используется и на FE (pre-validation) и на BE (authoritative).**
+**Used on both FE (pre-validation) and BE (authoritative).**
 
-4 проверки:
+4 checks:
 
-1. **Start node allocated** — стартовая нода класса должна быть в массиве
-2. **Valid IDs** — все ID целые числа в диапазоне [0, tree.nodes.length)
-3. **BFS connectivity** — все ноды достижимы от стартовой через другие allocated ноды
+1. **Start node allocated** — the class start node must be in the array
+2. **Valid IDs** — all IDs are integers in range [0, tree.nodes.length)
+3. **BFS connectivity** — all nodes are reachable from the start node via other allocated nodes
 4. **Points budget**:
-   - outer nodes (не start и не classSkill) <= `level - 1`
+   - outer nodes (not start and not classSkill) <= `level - 1`
    - classSkill nodes <= `MAX_CLASS_SKILLS (6)`
 
 ## API Endpoints
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/skill-tree?characterId` | Получить allocated ноды |
-| POST | `/skill-tree/accept` | Сохранить аллокации (body: `{characterId, allocated: number[]}`) |
-| POST | `/skill-tree/reset` | Сброс (body: `{characterId}`), стоимость: 100 gold * кол-во нод |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/skill-tree?characterId` | Get allocated nodes |
+| POST | `/skill-tree/accept` | Save allocations (body: `{characterId, allocated: number[]}`) |
+| POST | `/skill-tree/reset` | Reset (body: `{characterId}`), cost: 100 gold * number of nodes |
 
 ## FE Flow (skill-tree-scene.ts)
 
-1. `mount()` → `buildSkillTree()` (из shared, cached)
-2. Загружает `char.allocatedNodes` из стейта
-3. Рендерит SVG: emblems → edges → nodes
+1. `mount()` → `buildSkillTree()` (from shared, cached)
+2. Loads `char.allocatedNodes` from state
+3. Renders SVG: emblems → edges → nodes
 4. Pan/zoom (pointer + pinch + wheel)
-5. **Two-tap interaction**: 1й тап → tooltip, 2й тап → allocate/deallocate
-6. Проверки при аллокации:
-   - `isReachable(nodeId)` — есть allocated сосед
-   - `getOuterUsedCount() < totalPoints` — есть свободные очки
-   - `getClassSkillCount() < MAX_CLASS_SKILLS` — лимит класс-скиллов
-7. Деаллокация только leaf нод (`isLeaf` проверяет BFS connectivity)
+5. **Two-tap interaction**: 1st tap → tooltip, 2nd tap → allocate/deallocate
+6. Checks on allocation:
+   - `isReachable(nodeId)` — has an allocated neighbor
+   - `getOuterUsedCount() < totalPoints` — free points available
+   - `getClassSkillCount() < MAX_CLASS_SKILLS` — class skill limit
+7. Deallocation only for leaf nodes (`isLeaf` checks BFS connectivity)
 8. **Accept** → FE pre-validation (`validateAllocations`) → `api.skillTree.accept()`
-9. **Reset** кнопка → confirm popup → очищает всё до startNode, 100 gold/node
+9. **Reset** button → confirm popup → clears everything to startNode, 100 gold/node

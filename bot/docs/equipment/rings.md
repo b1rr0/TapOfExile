@@ -1,25 +1,25 @@
-# Rings (Кольца)
+# Rings
 
-**Slot:** `ring` (2 слота: `left_ring`, `right_ring`)
-**Описание:** Кольца - универсальные аксессуары. Можно носить 2 одновременно. Дают микс из атакующих, защитных и утилитарных статов. Хороший источник крита, элементального урона и gold find.
+**Slot:** `ring` (2 slots: `left_ring`, `right_ring`)
+**Description:** Rings are universal accessories. You can wear 2 simultaneously. They provide a mix of offensive, defensive, and utility stats. A good source of crit, elemental damage, and gold find.
 
 ---
 
-## Подтипы
+## Subtypes
 
-| Подтип                  | Код            | Особенность                     |
+| Subtype                 | Code           | Feature                         |
 |-------------------------|----------------|---------------------------------|
-| Ruby Ring (Рубин)       | `ring_ruby`   | Implicit: +flat_hp              |
-| Sapphire Ring (Сапфир)  | `ring_sapphire` | Implicit: +flat_cold_dmg     |
-| Topaz Ring (Топаз)      | `ring_topaz`  | Implicit: +flat_lightning_dmg   |
-| Gold Ring (Золотое)     | `ring_gold`   | Implicit: +gold_find            |
-| Iron Ring (Железное)    | `ring_iron`   | Implicit: +flat_phys_dmg        |
+| Ruby Ring               | `ring_ruby`   | Implicit: +flat_hp              |
+| Sapphire Ring           | `ring_sapphire` | Implicit: +flat_cold_dmg     |
+| Topaz Ring              | `ring_topaz`  | Implicit: +flat_lightning_dmg   |
+| Gold Ring               | `ring_gold`   | Implicit: +gold_find            |
+| Iron Ring               | `ring_iron`   | Implicit: +flat_phys_dmg        |
 
 ---
 
-## Implicit бонусы (зависят от подтипа)
+## Implicit Bonuses (depend on subtype)
 
-| Подтип    | Implicit Stat       | T5 (1-19) | T4 (20-39) | T3 (40-59) | T2 (60-79) | T1 (80-100) |
+| Subtype   | Implicit Stat       | T5 (1-19) | T4 (20-39) | T3 (40-59) | T2 (60-79) | T1 (80-100) |
 |-----------|---------------------|-----------|------------|------------|------------|-------------|
 | Ruby      | flat_hp             | 5 - 12    | 5 - 22     | 5 - 35     | 5 - 50     | 5 - 70      |
 | Sapphire  | flat_cold_dmg       | 1 - 3     | 1 - 6      | 1 - 10     | 1 - 16     | 1 - 24      |
@@ -29,7 +29,7 @@
 
 ---
 
-## Доступные статы и диапазоны
+## Available Stats and Ranges
 
 ### % Physical Damage (`pct_phys_dmg`)
 
@@ -201,11 +201,11 @@
 | T2   | 60 - 79   | 3%  | 32%  |
 | T1   | 80 - 100  | 3%  | 45%  |
 
-> Кольца — ключевой слот для покрытия резистов без потери атакующих статов. Iron Ring (phys res) особенно ценен для Мага. Максимум 2 резист-стата на одном кольце.
+> Rings are a key slot for covering resistances without losing offensive stats. Iron Ring (phys res) is especially valuable for the Mage. Maximum 2 resistance stats on a single ring.
 
 ---
 
-## Пример генерации
+## Generation Example
 
 **iLvl 12, Common Iron Ring:**
 ```

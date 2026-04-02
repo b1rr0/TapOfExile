@@ -6,7 +6,7 @@
 
 ### Charge System
 
-Each potion holds **5 charges**. As charges are consumed, the liquid level visually decreases - the vial appears progressively more "sipped" (надпитая бутылка):
+Each potion holds **5 charges**. As charges are consumed, the liquid level visually decreases - the vial appears progressively more "sipped" (partially drunk bottle):
 
 - `{color}_5.png` - Full vial (5/5 charges)
 - `{color}_4.png` - Sipped once (4/5 charges)
